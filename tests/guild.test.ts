@@ -351,6 +351,32 @@ describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
     expect(Gd.growStats(top, 500, undefined, rng)).toEqual([]);
     expect(top.sxp).toBe(3);
   });
+  it('직전 레벨업에서 오른 항목을 저장하고, 레벨이 오르지 않은 판에는 유지한다', () => {
+    const s = save(100), m = add(s, 'warrior', 0, { lv: 40, sxp: 0.9, learn: 10 });
+    const before = { ...m.stats };
+    const ups = Gd.growStats(m, 1, undefined, rng);
+    expect(ups).toHaveLength(1);
+    expect(m.lastStatGains).toEqual(ups.map(x => x.k));
+    expect(m.stats[ups[0].k]).toBe(before[ups[0].k] + 1);
+    Gd.growStats(m, 0, 'dodge', rng);
+    expect(m.lastStatGains).toEqual(ups.map(x => x.k));
+    expect(migrate(JSON.parse(JSON.stringify(s))).guild.members[0].lastStatGains).toEqual(m.lastStatGains);
+    // 다음 레벨업에서 능력치가 안 오르면 이전 화살표를 지운다.
+    Gd.growStats(m, 1, undefined, rng);
+    expect(m.lastStatGains).toEqual([]);
+  });
+  it('상승 기록이 없는 과거 저장은 표시하지 않고, 잘못된 키와 중복 기록을 걸러낸다', () => {
+    const s = save(100), m = add(s, 'mage');
+    const raw = JSON.parse(JSON.stringify(s));
+    delete raw.guild.members[0].lastStatGains;
+    expect(migrate(raw).guild.members[0].lastStatGains).toEqual([]);
+    raw.guild.members[0].lastStatGains = ['atk', 'atk', 'unknown', null, 'skill'];
+    expect(migrate(raw).guild.members[0].lastStatGains).toEqual(['atk', 'skill']);
+    m.sxp = 2.9; m.learn = 10;
+    const ups = Gd.growStats(m, 1, undefined, rng);
+    expect(ups).toHaveLength(3);
+    expect(m.lastStatGains).toEqual([...new Set(ups.map(x => x.k))]);
+  });
   it('「한 일」 표: 판 크기와 상관없이 가장 두드러진 일 하나, 모자라면 없음', () => {
     const did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 };
     const x = (o: Partial<Parameters<typeof deedOf>[0]>) => deedOf({ did, dealt: 0, top: false, low: 0.9, alive: true, role: 'melee', ...o });

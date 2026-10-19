@@ -73,7 +73,7 @@ const ROLE_PICK: [PostRole, string][] = [['tank', '탱커'], ['melee', '근접']
 
 const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);
 /** 줄 · 시트에 넘길 사람 (인연 Lv에 따라 안개) */
-const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats'>, bond: number, star = 0, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star, fm: { stats: m.stats }, bond, member });
+const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats' | 'lastStatGains'>, bond: number, star = 0, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star, fm: { stats: m.stats }, lastStatGains: member ? m.lastStatGains : undefined, bond, member });
 
 /** 위: 하위 탭 (상점과 같은 .subtabs). 영입 = 지원자 빨간 점 */
 function tabs(): string {
@@ -410,7 +410,7 @@ function detailHtml(m: GuildMember): string {
     ${memDetailHtml(d)}
     <div class="g-acts">
       ${act('data-sponsor aria-haspopup="dialog"', IC.sponsor(), m.boost > 0 ? '지원 중' : '골드 지원', m.boost > 0 ? `${m.boost}판 남음` : sw || goldCost(sg), !!sw || gold < sg)}
-      ${act('data-release aria-haspopup="dialog"', IC.release(), '내보내기', '친구 목록으로', !!m.story)}
+      ${act('data-release aria-haspopup="dialog"', IC.release(), '내보내기', '길드에서 제외', !!m.story)}
     </div>`;
 }
 
@@ -425,7 +425,7 @@ function memberConfirmHtml(): string {
       <h3 id="guildConfirmTitle">${support ? '골드 지원' : '내보내기'}</h3>
       <div class="g-action-member"><b>${esc(m.nick)}</b><span>${CLASSES[m.cls].name} · Lv ${m.lv}</span></div>
       <p id="guildConfirmDesc">${support ? '전투에 참여하지 않아도 경험치를 소량 획득합니다. 후원하시겠습니까?' : '길드에서 내보냅니다.'}</p>
-      ${support ? `<div class="g-action-cost"><span>${SPONSOR.runs}판 지원</span>${goldCost(sponsorGold(m.lv))}</div>` : '<p class="g-action-note">친구 목록으로 이동하며 인연과 성장은 유지됩니다.</p>'}
+      ${support ? `<div class="g-action-cost"><span>${SPONSOR.runs}판 지원</span>${goldCost(sponsorGold(m.lv))}</div>` : ''}
       <div class="g-action-buttons"><button type="button" data-shut>취소</button><button type="button" class="${support ? 'primary' : 'danger'}" data-gconfirm${disabled ? ' disabled' : ''}>확인</button></div>
     </section>`;
 }
@@ -439,7 +439,7 @@ function confirmMemberAction(): void {
     if (action.kind === 'sponsor') st.msg = sponsor(G.save, m.id) || `골드 지원 · ${m.boost}판 남음`;
     else if (!m.story && release(G.save, m.id)) {
       st.sheet = null;
-      st.msg = `${m.nick}(${CLASSES[m.cls].name}) 친구 목록으로 · 인연은 그대로`;
+      st.msg = `${m.nick}(${CLASSES[m.cls].name}) 길드에서 내보냈습니다.`;
     }
     commit();
   }

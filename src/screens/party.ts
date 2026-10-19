@@ -165,7 +165,8 @@ function pickSeg(i: number, focus = false): void {
 function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
   if (!m?.cls) return '';
-  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, bond: bondOf(G.save, m.nick), member: m.gid != null })}`);
+  const lastStatGains = m.gid != null ? G.save.guild.members.find(g => g.id === m.gid)?.lastStatGains : undefined;
+  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, bond: bondOf(G.save, m.nick), member: m.gid != null, lastStatGains })}`);
 }
 
 function render(keepScroll = true): void {

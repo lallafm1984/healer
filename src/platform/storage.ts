@@ -703,6 +703,7 @@ function memberOf(raw: unknown): GuildMember | null {
   return {
     id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: m.story && STORY[m.story] ? STORY[m.story].ab : typeof m.ab === 'string' ? m.ab : '', // 스토리 동료는 고유 스킬 (93 4-4)
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
+    lastStatGains: Array.isArray(m.lastStatGains) ? STAT_KEYS.filter(k => m.lastStatGains!.includes(k)) : [],
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
     know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
     boost: Math.max(0, Math.min(SPONSOR.max, Math.round(n(m.boost, 0)))),
@@ -721,7 +722,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
   return {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
-    sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
+    lastStatGains: [], sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 

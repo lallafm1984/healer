@@ -73,6 +73,8 @@ export interface GuildMember {
   xp: number;
   /** 지금 능력치 (들어올 때 그 사람 능력치, 출전 경험으로 오름) */
   stats: Stats;
+  /** 직전 레벨업 때 실제 오른 능력치. 과거 저장은 기록이 없으므로 표시하지 않는다. */
+  lastStatGains?: StatKey[];
   learn: number;
   steady: number;
   /** 쌓인 능력치 점수 (레벨업마다 학습력만큼, 1점 = 한 칸 +1) · 최근 5판의 「한 일」 표 */

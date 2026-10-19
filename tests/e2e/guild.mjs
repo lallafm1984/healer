@@ -117,6 +117,7 @@ export default async function guild(url, shots) {
   await page.click(`#s-guild [data-mem="${low.id}"] .f-mt`); await page.clock.runFor(50);
   const g1 = (await save()).player.gold;
   ok((await text('#s-guild [data-sponsor] b')) === '골드 지원' && (await text('#s-guild [data-release] b')) === '내보내기', '길드원 작업 버튼: 골드 지원 · 내보내기');
+  ok((await text('#s-guild [data-release] small')) === '길드에서 제외' && !/친구 목록/.test(await text('#s-guild .g-msheet')), '내보내기 버튼에 친구 목록 대신 길드에서 제외 표시');
   await page.click('#s-guild [data-sponsor]'); await page.clock.runFor(50);
   ok((await text('#guildConfirmDesc')) === '전투에 참여하지 않아도 경험치를 소량 획득합니다. 후원하시겠습니까?' && (await save()).player.gold === g1 && (await save()).guild.members.find(m => m.id === low.id).boost === 0, '골드 지원 첫 누름: 요청 문구의 확인 팝업만, 골드·후원 유지');
   ok(await page.locator('#s-guild .g-msheet').evaluate(el => el.inert) && await page.locator('#s-guild .g-action-confirm').evaluate(el => el.contains(document.activeElement)), '확인창을 여는 동안 상세 비활성화 · 팝업에 포커스');
@@ -142,6 +143,7 @@ export default async function guild(url, shots) {
   await page.click(`#s-guild [data-mem="${hired.id}"] .f-mt`); await page.clock.runFor(50);
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   ok((await text('#guildConfirmDesc')) === '길드에서 내보냅니다.' && (await text('#guildConfirmTitle')) === '내보내기' && (await save()).guild.members.length === 6, '내보내기 첫 누름: 요청 문구의 확인 팝업만, 길드원 유지');
+  ok(!/친구 목록|인연과 성장/.test(await text('#s-guild .g-action-confirm')), '내보내기 확인창의 친구 목록 · 인연과 성장 안내 제거');
   await page.clock.runFor(200);
   await page.screenshot({ path: `${shots}/guild_release_confirm.png` });
   await page.click('#s-guild .g-action-buttons [data-shut]'); await page.clock.runFor(50);
@@ -152,7 +154,7 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-gconfirm]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members.length === 5 && sv.guild.away.some(m => m.nick === hired.nick) && /인연은 그대로/.test(await text('#s-guild .warnbox')), '보내기 = 친구 목록으로 (인연 그대로)');
+  ok(sv.guild.members.length === 5 && sv.guild.away.some(m => m.nick === hired.nick) && /길드에서 내보냈습니다/.test(await text('#s-guild .warnbox')), '내보내기 = 길드에서 제외, 완료 안내');
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator(`#s-guild [data-friend="${hired.nick}"]`).count()) === 1 && /예전 길드원/.test(await text(`#s-guild [data-friend="${hired.nick}"]`)), '보낸 사람은 친구 초대 줄에 「예전 길드원」');
 
@@ -214,10 +216,12 @@ export default async function guild(url, shots) {
   await page.click('#roster'); await page.clock.runFor(50);
 
   // ---- 반별 · 높은 스킬/인연 상태를 포함한 반응형 검수 ----
+  await page.emulateMedia({ reducedMotion: 'reduce' }); // 시트 애니메이션의 중간 프레임 없이 실제 배치 검수
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.guild.members.forEach((m, i) => {
       for (const k of Object.keys(m.stats)) m.stats[k] = i === 0 ? 13 : 20;
+      m.lastStatGains = i === 0 ? ['atk', 'skill', 'judgment'] : [];
       s.users[m.nick].pt = i === 0 ? 8 : 330;
     });
     localStorage.setItem('healer.save', JSON.stringify(s));
@@ -245,6 +249,16 @@ export default async function guild(url, shots) {
     }));
     ok(indicators, `${name}: 스킬과 능력 별이 겹치거나 넘치지 않음`);
     await page.screenshot({ path: `${shots}/guild_members_${name}.png` });
+    await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(250);
+    const grown = await page.locator('#s-guild .fm-grid li:has(.fm-up)').allTextContents();
+    ok(grown.length === 3 && ['공격', '기술 숙련', '판단'].every(k => grown.some(x => x.includes(k))), `${name}: 저장을 다시 읽어도 직전 상승 항목 세 곳에만 화살표`);
+    const growthFit = await page.locator('#s-guild .fm-grid li').evaluateAll(els => els.every(el => {
+      const label = el.querySelector(':scope > span'), value = el.querySelector('b');
+      return label.scrollWidth <= label.clientWidth + 1 && label.getBoundingClientRect().right <= value.getBoundingClientRect().left && el.scrollWidth <= el.clientWidth + 1;
+    }));
+    ok(growthFit, `${name}: 능력치 이름 · 수치 · 상승 화살표 겹침이나 잘림 없음`);
+    await page.screenshot({ path: `${shots}/guild_growth_${name}.png` });
+    await shut();
     await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
     const rrows = await page.locator('#s-guild .g-list .pcard').evaluateAll(els => els.filter(el => {
       const cap = el.querySelector('.f-l1 > .cap'), ps = el.querySelector('.f-l1 > .f-ps'), mt = el.querySelector('.f-mt');

@@ -53,7 +53,7 @@ const isAway = (save: SaveData, nick: string) => save.guild.away.some(m => m.nic
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
   const prof = profileOf(p.nick, p.pers);
   const stats = { ...prof.stats, ...(story ? STORY[story].boost : {}) };
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -411,6 +411,7 @@ export function growStats(m: GuildMember, levels: number, deed: Deed | undefined
     m.sxp = Math.round((m.sxp - 1) * 1000) / 1000; m.stats[k]++;
     out.push({ k, to: m.stats[k], why: deed && DEED_STATS[deed].includes(k) ? DEED_WHY[deed] : '' });
   }
+  if (levels > 0) m.lastStatGains = [...new Set(out.map(x => x.k))];
   return out;
 }
 

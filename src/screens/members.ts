@@ -3,7 +3,7 @@ import { ABILITIES, AB_GRADE } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { bondName } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { abilityStars, ROLE_CORE, seedOf, STAT_GROUPS, STAT_NAMES, type Stats } from '../data/fm';
+import { abilityStars, ROLE_CORE, seedOf, STAT_GROUPS, STAT_NAMES, type StatKey, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
 import { bondIconSvg, ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
@@ -30,13 +30,16 @@ function personalityHtml(name: PersName, desc = true): string {
  * 능력치 세 묶음 × 네 줄 (97 「숫자와 보이는 법」): 1~5 회색 · 6~10 흰색 · 11~15 초록 · 16~20 금빛, 역할 핵심 넷은 굵게.
  * 인연 안개 (FM 스카우트): exact = 길드원 숫자 · range = 친구 「11~14」 (참 값이 들어 있는 너비 4, 사람 · 칸마다 고정)
  */
-export function statsHtml(nick: string, stats: Stats, role: 'tank' | 'melee' | 'ranged', fog: 'exact' | 'range'): string {
+export function statsHtml(nick: string, stats: Stats, role: 'tank' | 'melee' | 'ranged', fog: 'exact' | 'range', lastStatGains: readonly StatKey[] = []): string {
+  const gains = new Set(fog === 'exact' ? lastStatGains : []);
   const band = (v: number) => (v >= 16 ? 'b4' : v >= 11 ? 'b3' : v >= 6 ? 'b2' : 'b1');
   const cell = (k: keyof Stats) => {
     const v = stats[k], core = ROLE_CORE[role].includes(k);
     let txt = String(v), lab = `${STAT_NAMES[k]} ${v}`, shown = v;
     if (fog === 'range') { const lo = Math.max(1, Math.min(17, v - (seedOf(`fog:${nick}:${k}`) % 4))); txt = `${lo}~${lo + 3}`; lab = `${STAT_NAMES[k]} ${lo}에서 ${lo + 3}`; shown = lo + 2; } // 색도 범위 가운데로 (참 값이 새지 않게)
-    return `<li class="${core ? 'core ' : ''}${band(shown)}" aria-label="${lab}${core ? ', 역할 핵심' : ''}"><span>${STAT_NAMES[k]}</span><b>${txt}</b></li>`;
+    const up = gains.has(k), growth = up ? ', 직전 레벨업에서 상승' : '';
+    const arrow = '<svg class="fm-up" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1L11 10H1Z"/></svg>';
+    return `<li class="${core ? 'core ' : ''}${band(shown)}" aria-label="${lab}${core ? ', 역할 핵심' : ''}${growth}"><span>${STAT_NAMES[k]}</span><b>${gains.size ? `<span class="fm-growth-slot"${up ? ' title="직전 레벨업에서 상승"' : ''}>${up ? arrow : ''}</span>` : ''}${txt}</b></li>`;
   };
   return `<div class="fm-grid${fog === 'range' ? ' fog' : ''}">${STAT_GROUPS.map(g => `<section><h5>${g.name}</h5><ul>${g.keys.map(cell).join('')}</ul></section>`).join('')}</div>`;
 }
@@ -59,6 +62,8 @@ export interface CardData {
   star?: number;
   /** 능력치 (97 FM). 있으면 능력 ★ */
   fm?: { stats: Stats };
+  /** 직전 레벨업에서 오른 항목. 정확한 능력치를 보는 길드원에게만 표시한다. */
+  lastStatGains?: StatKey[];
   /** 인연 Lv (93 3-3). 있으면 하트 · 안개 (0~1 = 능력 ★만 · 2 이상 친구 = 범위 · 길드원 = 숫자) */
   bond?: number;
   /** 내 길드원 (능력치 숫자) */
@@ -103,7 +108,7 @@ export function memDetailHtml(m: CardData): string {
   const b = m.bond ?? 0, role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const fog = m.member ? 'exact' : b >= 2 ? 'range' : null;
   const how = m.member ? '' : b >= 2 ? '<small>친구: 범위만 · 길드에 들어오면 숫자</small>' : '<small>친구가 되면 능력치가 보임</small>';
-  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${m.bond != null ? how : ''}</p>${fog ? statsHtml(m.nick, m.fm.stats, role, fog) : ''}` : ''}${abHtml(m.ab, m.star || 0)}
+  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${m.bond != null ? how : ''}</p>${fog ? statsHtml(m.nick, m.fm.stats, role, fog, m.lastStatGains) : ''}` : ''}${abHtml(m.ab, m.star || 0)}
     ${personalityHtml(m.pers)}</div>`;
 }
 

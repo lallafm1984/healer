@@ -300,7 +300,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-action-member b { font-size: 16px; }
 #s-guild .g-action-member span { flex: none; font-size: 12px; color: var(--gk-mute); }
 #s-guild .g-action-confirm p { margin: 0; font-size: 15px; line-height: 1.7; }
-#s-guild .g-action-confirm .g-action-note { color: var(--gk-mute); font-size: 12px; }
 #s-guild .g-action-cost { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--gk-card-bd); border-radius: 8px; background: var(--gk-card); }
 #s-guild .g-action-cost > span:first-child { font-size: 13px; color: var(--gk-ink2); }
 #s-guild .g-action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
