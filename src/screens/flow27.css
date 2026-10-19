@@ -176,13 +176,6 @@
 .f-det .skill-level, .pab .skill-level { padding: 0 4px; border: 1px solid #86704b; border-radius: 3px; background: #30271c; font-size: 11px; vertical-align: 1px; }
 .f-det .pfm { margin: 0 0 4px; font-size: 12px; color: var(--mute); }
 .f-det .pfm small { margin-left: 6px; font-size: 11px; }
-/* 인연: 그림 장식 대신 작은 황동 테 하트와 같은 톤의 숫자. */
-.bond { flex: none; display: inline-flex; align-items: center; gap: 3px; padding: 1px 4px; border: 1px solid #8d755143; border-radius: 5px; background: #251e1780; font: 800 11px/1 var(--font-body); }
-.bond.line { color: #b3a18a; }
-.bond.red { color: #d1b293; }
-.bond.gold { color: #ead08b; border-color: #b7914e80; }
-.bond small { font: 800 10px/1 var(--font-body); color: inherit; }
-.bond-icon { display: inline-block; width: 14px; height: 14px; flex: none; vertical-align: middle; }
 /* 능력치 세 묶음 × 네 줄 (97): 1~5 회색 · 6~10 흰색 · 11~15 초록 · 16~20 금빛, 역할 핵심 굵게 */
 .fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 4px; }
 .fm-grid section { min-width: 0; }

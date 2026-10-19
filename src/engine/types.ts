@@ -251,9 +251,8 @@ export interface Unit {
   thrCool?: number;
   /** 강타 예고를 맞은 시각 (어그로: 탱커 집중) */
   busterAt?: number;
-  /** 인연 (93 3-2): 이 전투에서 가장 낮았던 체력 비율 · 그때까지 받은 내 치유 (생명의 은인 = 그 뒤로 내 힐을 받고 끝까지 삶) */
+  /** 성장 행동을 판단할 때 쓸 이 전투의 최저 체력 비율 */
   low?: number;
-  gotLow?: number;
   /** 길드원 「한 일」 (97): 장판을 피한 수 · 옮긴 수 · 끊은 수 · 맞은 강타 수 · 쫄에게 준 딜 */
   did?: { dodge: number; move: number; cut: number; buster: number; adds: number };
   /** 길드원 공략 숙지 단계 (93 5-4): 이 전투에서 0~3 */
@@ -267,15 +266,13 @@ export interface Unit {
   cheerUp?: number;
   /** 영웅이 대신 맞아 줌: until까지 받는 피해의 share를 id가 */
   coverBy?: { id: number; until: number; share: number };
-  /** 내 힐로 회복한 양 (인연 점수 · 은혜 갚기, 93 3-2) */
+  /** 이번 전투에서 내 힐로 회복한 양 (은혜 갚기) */
   got: number;
   /** 눈치 자질 (17 9-1): 반응 시간 배율, 회피 보정 */
   senseReact: number;
   senseDodge: number;
   /** 길드원이면 길드원 id */
   gid?: number;
-  /** 인연 점수 (93 3-2, save.users): 은혜 갚기 호감도. 없으면 0 */
-  bond: number;
   /** 결계사 인장 (79 5장): 이 시각까지 붙어 있음 */
   seal?: number;
   /** 점성술사 별의 잠 (79 4장): 이 시각까지 피해 · 회복 · 딜 없음 */
@@ -330,8 +327,6 @@ export interface RosterEntry {
   know?: Partial<Record<string, number>>;
   /** 길드원 id */
   gid?: number;
-  /** 인연 점수 (93 3-2): 은혜 갚기 호감도 (06 6장). 공개모집 · 길드원 모두 */
-  bond?: number;
   /** 공개모집 (97 FM): lv가 그 사람 자기 레벨 (칸 레벨 상한 없음) */
   pub?: boolean;
   /** 능력치 12 (97 FM) · 이번 판 꾸준함 흔들림 (모든 칸에 더함) */

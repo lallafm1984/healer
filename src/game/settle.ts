@@ -1,7 +1,6 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { recordBond } from './bond';
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -11,7 +10,7 @@ import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
-import { feastBonus, foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
+import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
 import type { StoryKey } from '../data/guild';
 import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
@@ -46,8 +45,8 @@ export interface BattleResult {
   endMana: number;
   minMana: number;
   auto: boolean;
-  /** got = 내 힐로 회복한 양 (구간 합, 인연), gid = 길드원 id, low = 가장 낮았던 체력 비율, rescued = 생명의 은인 (93 3-2, data/bond) */
-  party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number; low?: number; rescued?: boolean; deed?: import('../data/guild').Deed }[];
+  /** 파티원의 전투 결과와 성장에 반영할 행동 기록. */
+  party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number; low?: number; deed?: import('../data/guild').Deed }[];
   /** 전투 기록에 보이는 줄 (마지막 전투) */
   detail: [string, string][];
   /** 플레이 테스트 기록 (탭 · 오탭 · 쓸기 등): 레벨 잠금 무시(개발 빌드)를 켰을 때만 보여 줌 */
@@ -93,8 +92,6 @@ export interface Settlement {
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
   /** 길드원 경험치 · 능력치 · 공략 숙지 · 명성 (93 · 97) */
   guild: GuildAfter | null;
-  /** 인연 (93 3-2): 이 판에서 오른 점수 (이긴 판만) */
-  bond: import('./bond').BondGain[];
   /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (창단 멤버 닉네임) */
   founded: string[] | null;
   /** 스토리 동료 합류 (93 4-4): 들어옴 · 정원이 차서 기다림 */
@@ -210,12 +207,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   }
 
   const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff, hero) : null;
-  // 인연 (93 3-2, 사슬 3번): 튜토리얼이 끝난 뒤 모든 판 (자동 전투도), 길드가 꺼져 있어도. 진 판은 만남만
-  const bond = play ? recordBond(save, r, grade === 'S') : [];
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save) : null;
-  // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 연회장 인연 +, 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
-  if (FEATURES.guild && play && r.win && isGuildParty(roster)) feastBonus(save, bond);
+  // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
   const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
   const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
   const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
@@ -253,6 +247,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, bond, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

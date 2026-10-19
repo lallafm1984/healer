@@ -12,10 +12,9 @@ import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
-import { withBond } from '../game/bond';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, bondOf, guildNicks, guildOpen, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
+import { autoPick, guildNicks, guildOpen, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -70,7 +69,7 @@ function roll(): void {
 /** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */
 function compose(): void {
   const list = Flow.mode === 'guild' && guildReady() ? guildRoster(G.save, Flow.gpick, Flow.pub!, firstEnc(), Flow.seed) : Flow.pub!.slice();
-  Flow.party = withBond(G.save, list); // 은혜 갚기 호감도 = 인연 점수 (공개모집도)
+  Flow.party = list;
 }
 
 /**
@@ -124,9 +123,9 @@ function guildPickHtml(stage: number): string {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
       const ks = e.know?.[boss] ?? 0; // 이 보스 공략 숙지 (93 7-1)
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `${gameIcon('know', '숙지 ')}${ks}<span class="sr">단계 공략 숙지</span>` : '', gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `${gameIcon('know', '숙지 ')}${ks}<span class="sr">단계 공략 숙지</span>` : '', gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
-    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage, bond: bondOf(G.save, m.nick) }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
+    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
@@ -166,7 +165,7 @@ function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
   if (!m?.cls) return '';
   const lastStatGains = m.gid != null ? G.save.guild.members.find(g => g.id === m.gid)?.lastStatGains : undefined;
-  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, bond: bondOf(G.save, m.nick), member: m.gid != null, lastStatGains })}`);
+  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, member: m.gid != null, lastStatGains })}`);
 }
 
 function render(keepScroll = true): void {
@@ -182,7 +181,7 @@ function render(keepScroll = true): void {
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
   const rows = Flow.party!.map((p, i) => (p.cls
-    ? memRowHtml({ ...p, cls: p.cls, bond: tutDone ? bondOf(G.save, p.nick) : undefined }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
+    ? memRowHtml({ ...p, cls: p.cls }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
     : plainRow(p))).join('');
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}

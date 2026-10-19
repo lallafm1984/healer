@@ -52,7 +52,7 @@ function render(): void {
       ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 ${currencyAmount('gold', run * WEEKLY_REWARD.runs)} · 월요일 오전 6시 리셋</small></h3>
         <ul class="mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="note">주간 임무는 Lv ${WEEKLY_LV}부터</p>`}
       ${FEATURES.guild && lv >= GUILD_LEVEL ? `<section class="panel"><h4>길드 주간 목표 <small>길드파티로 클리어 ${g.n}/${GUILD_GOAL.need}</small></h4>
-        <p class="note">명성 +${GUILD_GOAL.fame} · 그 주에 출전한 길드원 인연 +2 (길드파티 = 자리 절반 이상이 길드원)</p>
+        <p class="note">명성 +${GUILD_GOAL.fame} (길드파티 = 자리 절반 이상이 길드원)</p>
         <button class="btn" type="button" id="guildGoal"${g.got || g.n < GUILD_GOAL.need ? ' disabled' : ''}>${g.got ? '받음' : '받기'}</button></section>` : ''}
       ${G.save.chalChest ? `<section class="panel"><h4>주간 도전 상자 <small>지난주 최고 ${G.save.chalChest}단계</small></h4>
         <p class="note">${chal!.grades.length ? `${chal!.grades.join(' · ')} 보장 · ` : ''}${currencyAmount('gold', chal!.goldRuns * runGold(G.save.player.level))}${chal!.grades.length ? '' : ' (장비는 5단계부터)'}</p>

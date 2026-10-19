@@ -1,5 +1,5 @@
 /**
- * 길드 v2 (93 · 97, 사슬 4번): 결성 · 영입 셋 (친구 초대 · 모집 공고 · 명성 지원자) · 보내기 · 스킬 다시 뽑기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
+ * 길드 v2 (93 · 97, 사슬 4번): 결성 · 모집 공고 · 명성 지원자 영입 · 보내기 · 스킬 다시 뽑기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
 import { resourceBalance, spendResource } from './resources';
@@ -9,10 +9,10 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, BOND_JOIN, FAC, FAC_GOLD, FEAST_BOND, SPONSOR, sponsorGold, type FacKey, bondLv, DEED_STATS, DEED_WHY, FAME, FRIEND_LV, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
-  knowGain, knowStage, starOfBond, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
+  APP_DAYS, appsPerDay, FAC, FAC_GOLD, SPONSOR, sponsorGold, type FacKey, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
+  knowGain, knowStage, memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
 } from '../data/guild';
-import { PARTY_POOL, STORY_NICKS, type PoolMember } from '../data/nicknames';
+import { PARTY_POOL, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
 import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '../data/progression';
 import type { RosterEntry } from '../engine/types';
@@ -41,13 +41,7 @@ const PEOPLE: Person[] = RECRUIT_CLASSES.flatMap(cls => PARTY_POOL[cls].map(p =>
 const BY_NICK = new Map(PEOPLE.map(p => [p.nick, p]));
 export const personOf = (nick: string): Person | null => BY_NICK.get(nick) ?? null;
 
-/** 인연 점수 · Lv */
-export const bondPt = (save: SaveData, nick: string) => save.users[nick]?.pt ?? 0;
-export const bondOf = (save: SaveData, nick: string) => bondLv(bondPt(save, nick));
-const raiseBond = (save: SaveData, nick: string, pt: number) => { const u = (save.users[nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 }); u.pt = Math.max(u.pt, pt); };
-
 const isIn = (save: SaveData, nick: string) => save.guild.members.some(m => m.nick === nick);
-const isAway = (save: SaveData, nick: string) => save.guild.away.some(m => m.nick === nick);
 
 /** 길드원 하나 (1000명 가운데 사람, 그 사람 지금 레벨 = 세상 레벨). 스토리 동료는 고정 능력치를 덧씀 */
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
@@ -62,8 +56,6 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
   const nm: GuildMember = { ...m, id: g.nextId++, joined: Date.now() };
   g.members.push(nm);
-  g.away = g.away.filter(x => x.nick !== nm.nick);
-  raiseBond(save, nm.nick, BOND_JOIN);
   return nm;
 }
 
@@ -84,16 +76,9 @@ export function buildFac(save: SaveData, k: FacKey): string {
   save.guild.fac[k] = facLv(save, k) + 1;
   return '';
 }
-/** 연회장 (93 6-3): 길드파티로 이긴 판의 인연 점수 +10% × 단계 (소수는 그대로 쌓임) */
-export function feastBonus(save: SaveData, gains: { nick: string; pt: number }[]): void {
-  const lv = facLv(save, 'feast');
-  if (!lv) return;
-  for (const b of gains) { const u = save.users[b.nick]; if (u && b.pt > 0) { const add = Math.round(b.pt * FEAST_BOND * lv * 100) / 100; u.pt = Math.round((u.pt + add) * 100) / 100; b.pt = Math.round((b.pt + add) * 100) / 100; } }
-}
-
 // ---------- 스토리 동료 이슬 · 칼날 (93 4-4) ----------
-const hasStory = (save: SaveData, k: StoryKey) => save.guild.members.some(m => m.story === k) || save.guild.away.some(m => m.story === k) || save.guild.storyWait.includes(k);
-/** 첫 10인 레이드 클리어 = 이슬, 첫 20인 = 칼날. 정원이 차 있으면 친구 목록에서 「초대 대기」. 들어오면 합류 카드 한 번 */
+const hasStory = (save: SaveData, k: StoryKey) => save.guild.members.some(m => m.story === k) || save.guild.storyWait.includes(k);
+/** 첫 10인 레이드 클리어 = 이슬, 첫 20인 = 칼날. 정원이 차 있으면 영입 화면에서 「합류 대기」. 들어오면 합류 카드 한 번 */
 export function storyArrive(save: SaveData, k: StoryKey): 'joined' | 'wait' | null {
   const g = save.guild;
   if (!g.founded || hasStory(save, k)) return null;
@@ -115,10 +100,7 @@ export function inviteStory(save: SaveData, k: StoryKey): string {
 }
 
 // ---------- 결성 (93 4-1) ----------
-/**
- * Lv 15 결성 이야기: 스토리 동료 말없는탱 (탱커) + 인연 점수가 가장 높은 딜러 3명 (같으면 살려 준 횟수 · 함께 이긴 판 순).
- * 만난 사람이 모자라면 비워 둠 (공개모집이 채움). 이미 결성했거나 길드가 안 열렸으면 null
- */
+/** 말없는탱과 근접 1명 · 원거리 2명으로 결성한다. */
 export function foundGuild(save: SaveData): string[] | null {
   const g = save.guild;
   if (g.founded || !guildOpen(save).ok) return null;
@@ -127,37 +109,15 @@ export function foundGuild(save: SaveData): string[] | null {
   const st = STORY.tank;
   join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), 'tank'));
   out.push(st.nick);
-  const dealers = Object.entries(save.users).map(([nick, u]) => ({ p: personOf(nick), u })).filter(x => x.p && CLASSES[x.p.cls].role !== 'tank' && x.u.pt > 0 && !isIn(save, x.p.nick))
-    .sort((a, b) => b.u.pt - a.u.pt || b.u.saved - a.u.saved || b.u.wins - a.u.wins).slice(0, 3);
-  for (const { p } of dealers) { join(save, newMember(save, p!, worldLevel(save, p!))); out.push(p!.nick); }
+  const dealers = (['rogue', 'mage', 'archer'] as const).map(cls => PEOPLE.find(p => p.cls === cls && !isIn(save, p.nick))!);
+  for (const p of dealers) { join(save, newMember(save, p, worldLevel(save, p))); out.push(p.nick); }
   return out;
 }
 
-// ---------- 친구 초대 (93 4-2 ①) ----------
-/** 친구 (인연 Lv 2 이상, 길드에 없는 사람): 인연 순. 보낸 사람은 키운 그대로 */
-export function friendsOf(save: SaveData): { nick: string; person: Person | null; away: GuildMember | null; pt: number }[] {
-  return Object.entries(save.users).filter(([nick, u]) => bondLv(u.pt) >= FRIEND_LV && !isIn(save, nick) && !STORY_NICKS.includes(nick))
-    .map(([nick, u]) => ({ nick, person: personOf(nick), away: save.guild.away.find(m => m.nick === nick) ?? null, pt: u.pt }))
-    .filter(x => x.person || x.away).sort((a, b) => b.pt - a.pt);
-}
-export function inviteFriend(save: SaveData, nick: string): string {
-  if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
-  if (bondOf(save, nick) < FRIEND_LV) return '친구가 아님';
-  if (isIn(save, nick)) return '이미 길드원';
-  const away = save.guild.away.find(m => m.nick === nick);
-  if (away) { join(save, away); return ''; }
-  const p = personOf(nick);
-  if (!p) return '없는 사람';
-  join(save, newMember(save, p, worldLevel(save, p)));
-  return '';
-}
-
 // ---------- 모집 공고 · 명문 공고 (93 4-2 ②) ----------
-/** 아직 길드원이 아닌 사람 가운데 (처음 보는 사람 먼저) */
+/** 아직 길드원이 아닌 사람 가운데 */
 function strangers(save: SaveData, ok: (p: Person) => boolean, taken: Set<string>): Person[] {
-  const list = PEOPLE.filter(p => !isIn(save, p.nick) && !isAway(save, p.nick) && !taken.has(p.nick) && ok(p));
-  const fresh = list.filter(p => !save.users[p.nick]);
-  return fresh.length ? fresh : list;
+  return PEOPLE.filter(p => !isIn(save, p.nick) && !taken.has(p.nick) && ok(p));
 }
 function drawOne(list: Person[], r: () => number, rare2: boolean): Person | null {
   if (!list.length) return null;
@@ -282,12 +242,11 @@ export function rerollAbility(save: SaveData, id: number, r: () => number): stri
   return '';
 }
 
-/** 보내기 (93 4-3): 인연 · 키운 것은 그대로 남아 친구 목록으로 (다시 부르면 그대로) */
+/** 길드에서 내보내고 모든 규모의 편성에서 제외한다. */
 export function release(save: SaveData, id: number): boolean {
   const g = save.guild, m = memberOf(save, id);
   if (!m) return false;
   g.members = g.members.filter(x => x.id !== id);
-  if (!m.story) g.away = [...g.away.filter(x => x.nick !== m.nick), m];
   for (const k of Object.keys(g.picks) as (keyof typeof g.picks)[]) g.picks[k] = g.picks[k]!.filter(x => x !== id);
   return true;
 }
@@ -301,11 +260,11 @@ export function knowStages(m: Pick<GuildMember, 'know'>, save?: SaveData): Recor
   if (save && war >= 5) for (const o of save.guild.members) for (const [k, p] of Object.entries(o.know)) if (knowStage(p, war) >= 3 && !out[k]) out[k] = 1;
   return out;
 }
-/** 전투에 넘기는 길드원: 자기 레벨 · 능력치 (그날 꾸준함 흔들림) · 인연 ★ · 버릇 (침착 · 판단) */
+/** 전투에 넘기는 길드원: 자기 레벨 · 능력치 (그날 꾸준함 흔들림) · 스킬 레벨 · 버릇 (침착 · 판단) */
 export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEntry {
   return {
-    role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: starOfBond(bondOf(save, m.nick)), lv: m.lv, pub: true,
-    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, bond: bondPt(save, m.nick), know: knowStages(m, save),
+    role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: memberSkillLevel(m), lv: m.lv, pub: true,
+    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m, save),
   };
 }
 
@@ -313,8 +272,8 @@ export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEnt
 export const slotsOf = (enc: Encounter) => ({ tank: enc.comp.tank, dps: enc.comp.melee + enc.comp.ranged });
 /** 규모 (탐험 3 · 5인 · 10 · 20인): 지난 편성을 따로 기억 */
 export const sizeKey = (enc: Encounter): '3' | '5' | '10' | '20' => { const n = enc.comp.tank + enc.comp.melee + enc.comp.ranged + 1; return n <= 3 ? '3' : n <= 5 ? '5' : n <= 10 ? '10' : '20'; };
-/** 편성 순서 (지난 편성 밖): 레벨 → 인연 */
-const order = (save: SaveData) => save.guild.members.slice().sort((a, b) => b.lv - a.lv || bondPt(save, b.nick) - bondPt(save, a.nick));
+/** 편성 순서 (지난 편성 밖): 레벨 → 합류 순 */
+const order = (save: SaveData) => save.guild.members.slice().sort((a, b) => b.lv - a.lv || a.id - b.id);
 
 /** 처음 편성: 그 규모의 지난 편성 중 남아 있는 사람 + 빈자리는 레벨 높은 순 */
 export function autoPick(save: SaveData, enc: Encounter, fresh = false): number[] {
@@ -459,14 +418,6 @@ export function guildAfter(
       g.firstLog = [...g.firstLog, { key: firstKey, day: dayKey(), sec: Math.round(o.time ?? 0), nicks: out.members.map(x => x.nick) }].slice(-200);
     }
     g.fame += out.fame;
-    const w = save.weekly.guild;
-    w.ran = [...new Set([...(w.ran ?? []), ...out.members.map(x => x.nick)])];
   }
   return out;
-}
-
-/** 길드 주간 목표 (93 6-1): 명성 + 그 주에 출전한 길드원 인연 +2 */
-export const GOAL_BOND = 2;
-export function goalBond(save: SaveData): void {
-  for (const nick of save.weekly.guild.ran ?? []) if (isIn(save, nick)) { const u = (save.users[nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 }); u.pt += GOAL_BOND; }
 }

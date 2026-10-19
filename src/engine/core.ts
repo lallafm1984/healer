@@ -1,5 +1,5 @@
 import { armorFactor, type DamageAim } from '../data/armor';
-import { BOND, bondSize } from '../data/bond';
+import { healingShareScore } from '../data/healing-share';
 import { KNOW } from '../data/guild';
 import { healThreat, takenThreat } from './threat';
 import { SPREAD } from '../data/bosses';
@@ -285,15 +285,6 @@ export function recentDmg(f: Fight, u: Unit, sec: number): number {
 export const hasAbsorb = (f: Fight, u: Unit): boolean => u.mods.some(m => m.k === 'absorb' && m.until > f.t && m.v > 1e-9);
 
 /**
- * 호감도 (06 6장 은혜 갚기 · 93): 인연 점수가 먼저, 같으면 이번 판에 받은 내 치유 몫 ÷ 그 역할 · 판 크기 평소의 상위 10% 선 (인연 「유난히 크게 도움」과 같은 보정).
- * 탱커는 힐을 늘 많이 받아 그냥 양으로 고르면 거의 언제나 탱커가 됨 (Lim 10-18)
- */
-function affinity(f: Fight, u: Unit, total: number): number {
-  const top = u.role === 'healer' ? 1 : BOND.helpTop[bondSize(f.party.length)][u.role];
-  return u.bond * 1e6 + (total > 0 ? u.got / total / top : 0);
-}
-
-/**
  * 이 사람이 받을 양 (보스 배율 · 받는 피해 증가 · 직업군 방어력 · 위치 · 장비 · 특성 · 직업 · 보호 · 피해 감소). damage()와 강타 예고 숫자 (bossParts telDmg)가 같이 씀.
  * ahead = 맞을 때까지 남은 초: 보호 · 피해 감소는 그때도 남아 있어야 줄임 (성역은 그때도 그 칸이 성역이면). damage()는 0 = 지금
  */
@@ -346,10 +337,10 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     const c = coverPart(f, u, amt);
     if (c) { amt -= c.part; damage(f, c.by, c.part / f.dmgMult, magic, 'fixed'); }
   }
-  // 은혜 갚기 (06 6장): 내가 죽을 피해를 호감도가 가장 높은 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
+  // 은혜 갚기 (06 6장): 내가 죽을 피해를 이번 전투에서 내 치유가 크게 도운 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
     const total = f.party.reduce((t, x) => t + (x.me ? 0 : x.got), 0);
-    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => affinity(f, b, total) - affinity(f, a, total) || b.hp / b.max - a.hp / a.max)[0];
+    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => healingShareScore(b.role, b.got, total, f.party.length) - healingShareScore(a.role, a.got, total, f.party.length) || b.hp / b.max - a.hp / a.max)[0];
     if (v) {
       f.tx.repayUsed = true;
       emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });
@@ -362,7 +353,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
-  if (u.low == null || u.hp / u.max < u.low) { u.low = Math.max(0, u.hp / u.max); u.gotLow = u.got; } // 인연 (93): 가장 낮았던 때
+  if (u.low == null || u.hp / u.max < u.low) { u.low = Math.max(0, u.hp / u.max); } // 성장 행동 판단에 쓸 최저 체력
   if (f.thr) takenThreat(f, amt); // 어그로 (96): 내 위협 = 치유 ÷ 받은 피해
   if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; } // 피해 숫자 (화면 빨간 숫자): 틱 피해는 모아서
   else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });

@@ -49,7 +49,7 @@ export interface JobsDone {
   fame: number;
 }
 
-/** 판 뒤 (이긴 판): 부탁 = 그 사람을 넣고 그 장소를 그 난이도 이상으로 · 원정 = 길드파티로 그 장소 보통 이상. 명성 · 인연을 바로 줌 */
+/** 판 뒤 (이긴 판): 부탁 = 그 사람을 넣고 그 장소를 그 난이도 이상으로 · 원정 = 길드파티로 그 장소 보통 이상. 명성을 바로 줌 */
 export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; content: string; diff: DiffName; roster: RosterEntry[] }): JobsDone {
   const out: JobsDone = { reqs: [], exped: [], expedAll: false, fame: 0 };
   const g = save.guild;
@@ -58,8 +58,6 @@ export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; cont
   for (const q of g.reqs.list) {
     if (q.done || q.content !== o.content || di < ALL_DIFFS.indexOf(q.diff) || !went.has(q.nick)) continue;
     q.done = true; out.reqs.push(q.nick); out.fame += REQ.fame;
-    const u = save.users[q.nick];
-    if (u) u.pt += REQ.bond;
   }
   if (isGuildParty(o.roster) && di >= ALL_DIFFS.indexOf('보통')) for (const x of g.exped.list) {
     if (x.done || x.content !== o.content) continue;

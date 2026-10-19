@@ -1,4 +1,4 @@
-/** 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 사슬 7번): 시설 셋 · 부탁 쪽지 · 주간 원정 · 스토리 동료 이슬 · 칼날 · 고유 스킬 */
+/** 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 사슬 7번): 시설 둘 · 부탁 쪽지 · 주간 원정 · 스토리 동료 이슬 · 칼날 · 고유 스킬 */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
@@ -29,25 +29,16 @@ function add(s: SaveData, cls: 'warrior' | 'mage' | 'archer' = 'mage', i = 0, o:
 beforeAll(() => { FEATURES.guild = true; });
 
 describe('시설 (93 6-3)', () => {
-  it('골드 5,000 · 10,000 · 20,000 · 40,000 · 80,000, 길드 Lv 4 · 6 · 7에 열림, 5단계까지', () => {
+  it('골드 5,000 · 10,000 · 20,000 · 40,000 · 80,000, 길드 Lv 6 · 7에 열림, 5단계까지', () => {
     const s = save();
-    expect(Gd.buildFac(s, 'feast')).toMatch(/길드 Lv 4/);
-    s.guild.fame = 120;
-    let gold = s.player.gold;
-    for (let i = 0; i < 5; i++) { expect(Gd.buildFac(s, 'feast')).toBe(''); gold -= FAC_GOLD[i]; }
-    expect([Gd.facLv(s, 'feast'), s.player.gold]).toEqual([5, gold]);
-    expect(Gd.buildFac(s, 'feast')).toBe('최고 단계');
     expect(Gd.buildFac(s, 'war')).toMatch(/길드 Lv 6/);
-    expect(migrate(JSON.parse(JSON.stringify(s))).guild.fac).toEqual({ feast: 5, war: 0, post: 0 });
-  });
-  it('연회장: 길드파티 승리 인연 +10% × 단계 (소수는 쌓임)', () => {
-    const s = save(), m = add(s);
-    s.guild.fac.feast = 3;
-    s.users[m.nick] = { pt: 10, met: 1, wins: 1, saved: 0, mvp: 0 };
-    const gains = [{ nick: m.nick, pt: 3 }];
-    Gd.feastBonus(s, gains);
-    expect([s.users[m.nick].pt, gains[0].pt]).toEqual([10.9, 3.9]);
-    expect(migrate(JSON.parse(JSON.stringify(s))).users[m.nick].pt).toBe(10.9);
+    s.guild.fame = 320;
+    let gold = s.player.gold;
+    for (let i = 0; i < 5; i++) { expect(Gd.buildFac(s, 'war')).toBe(''); gold -= FAC_GOLD[i]; }
+    expect([Gd.facLv(s, 'war'), s.player.gold]).toEqual([5, gold]);
+    expect(Gd.buildFac(s, 'war')).toBe('최고 단계');
+    expect(Gd.buildFac(s, 'post')).toMatch(/길드 Lv 7/);
+    expect(migrate(JSON.parse(JSON.stringify(s))).guild.fac).toEqual({ war: 5, post: 0 });
   });
   it('작전실: 숙지 문턱이 줄고, 5단계는 3단계 길드원이 있는 전투를 모두 1단계부터 (공략 공유)', () => {
     expect([0, 1, 2, 3, 4].map(w => knowStage(3, w))).toEqual([2, 2, 2, 2, 3]);
@@ -120,10 +111,9 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
 describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
   const T = new Date(2026, 9, 7, 12).getTime();
   const stages = [{ content: 'rustfort', diff: '어려움' as const }, { content: 'plateau', diff: '보통' as const }];
-  it('부탁: 매일 길드원 2명, 그 사람을 넣고 그 장소를 그 난이도 이상으로 깨면 인연 +3 · 명성 +2, 날이 바뀌면 새로', () => {
+  it('부탁: 매일 길드원 2명, 그 사람을 넣고 그 장소를 그 난이도 이상으로 깨면 명성 +2, 날이 바뀌면 새로', () => {
     seed = 5;
-    const s = save(30), a = add(s, 'mage', 0), b = add(s, 'mage', 1);
-    s.users[a.nick] = { pt: 10, met: 1, wins: 1, saved: 0, mvp: 0 }; s.users[b.nick] = { pt: 10, met: 1, wins: 1, saved: 0, mvp: 0 };
+    const s = save(30); add(s, 'mage', 0); add(s, 'mage', 1);
     refreshReqs(s, stages, rng, T);
     expect(s.guild.reqs.list.length).toBe(REQ.perDay);
     expect(jobsDot(s)).toBe(true);
@@ -132,7 +122,8 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '쉬움', roster }).reqs).toEqual(q.diff === '쉬움' ? [q.nick] : []);
     const done = jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster });
     expect(done.reqs).toEqual([q.nick]);
-    expect([s.users[q.nick].pt, s.guild.fame]).toEqual([10 + REQ.bond, REQ.fame]);
+    expect(s.guild.fame).toBe(REQ.fame);
+    expect(s).not.toHaveProperty('users');
     refreshReqs(s, stages, rng, T + 3600e3);
     expect(s.guild.reqs.list[0].done).toBe(true); // 같은 날은 그대로
     refreshReqs(s, stages, rng, T + 864e5);

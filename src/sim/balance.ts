@@ -81,7 +81,7 @@ export interface Run {
 /** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
 export type SpecMode = 'common' | 'class';
 /** sim 손잡이 (기준 판에서 바꿔 보기, 96 어그로 레벨 차이 판): party = 뽑은 파티를 고침, heroUp = 내 레벨 + */
-export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number; /** 구간이 끝날 때마다 (인연 보정 sim) */ onFight?: (f: Fight) => void }
+export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number; /** 구간이 끝날 때마다 (시뮬레이션 관찰) */ onFight?: (f: Fight) => void }
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common', tweak?: RunTweak): Run {
   const segs = c.fights(d), s = standard(c, d);

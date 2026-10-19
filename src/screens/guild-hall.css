@@ -46,13 +46,12 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild.ns .pcard.f-mem:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
 #s-guild .f-mem b { font: inherit; }
 #s-guild .f-mem .pnick { flex: none; max-width: 48%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 700 15px var(--font-body); color: var(--gk-ink); }
-/* 편성 줄과 같은 첫 줄: 닉네임 · 인연 하트 / 아래 직업 · Lv, 오른쪽 성격 칩 (두 줄 높이). 한 줄에 다 놓으면 긴 성격 칩 (딜 욕심쟁이 · 분위기메이커 …)이 직업 · Lv를 덮었음 (#234 뒤) */
-#s-guild.ns .pcard.f-mem .f-l1 { display: grid; grid-template-columns: minmax(0, max-content) auto minmax(0, 1fr) auto; gap: 2px 6px; }
+/* 편성 줄과 같은 첫 줄: 닉네임 / 아래 직업 · Lv, 오른쪽 성격 칩 (두 줄 높이). 한 줄에 다 놓으면 긴 성격 칩 (딜 욕심쟁이 · 분위기메이커 …)이 직업 · Lv를 덮었음 (#234 뒤) */
+#s-guild.ns .pcard.f-mem .f-l1 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 6px; }
 #s-guild.ns .pcard.f-mem .f-l1 > .pnick { grid-column: 1; grid-row: 1; max-width: none; }
-#s-guild.ns .pcard.f-mem .f-l1 > .bond { grid-column: 2; grid-row: 1; align-self: center; }
-#s-guild.ns .pcard.f-mem .f-l1 > .cap { grid-column: 1 / 4; grid-row: 2; line-height: 1.2; }
+#s-guild.ns .pcard.f-mem .f-l1 > .cap { grid-column: 1; grid-row: 2; line-height: 1.2; }
 #s-guild.ns .pcard.f-mem .f-l1 > .f-sp { display: none; }
-#s-guild.ns .pcard.f-mem .f-l1 > .f-ps { grid-column: 4; grid-row: 1 / 3; align-self: center; }
+#s-guild.ns .pcard.f-mem .f-l1 > .f-ps { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 #s-guild.ns .pcard.f-mem .f-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
 #s-guild.ns .pcard.f-mem .f-l2 > .f-ab { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #s-guild.ns .pcard.f-mem .f-l2 > .f-tag { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border: 1px solid var(--gk-card-bd); border-radius: 6px; font-size: 10.5px; line-height: 16px; color: var(--gk-ink2); white-space: nowrap; }
@@ -128,7 +127,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-pill:not(:has(.g-ic)) { padding: 0 8px; }
 #s-guild .g-pill > .g-ic { width: 18px; height: 18px; object-fit: contain; }
 #s-guild .g-pill.fame { color: var(--gk-num); }
-#s-guild .g-pill.bond { color: #ffb0a0; }
 #s-guild .g-pill.ok, #s-guild .g-pill.free { color: #9ad48f; border-color: #4c6b3a; }
 #s-guild .g-pill.warn { color: var(--gk-enr-ink); border-color: var(--gk-enr-bd); }
 #s-guild .g-places { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -195,7 +193,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-postgo > .btn small { font-size: 11px; }
 #s-guild .g-postgo .currency-amount { justify-content: center; }
 #s-guild .g-full { text-align: center; }
-/* 큰 그림 칸 (2026-10-19 Lim 「C안」): 현황 둘 (할 일 · 시설) 한 줄, 영입 넷 2 × 2. 고른 칸 = 금테 + 아래 판 하나 */
+/* 큰 그림 칸 (2026-10-19 Lim 「C안」): 현황 둘 (할 일 · 시설) 한 줄, 영입은 공고 · 명성 지원자. 고른 칸 = 금테 + 아래 판 하나 */
 #s-guild .g-hub { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 #s-guild .g-hub.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #s-guild .g-hubt {
@@ -257,13 +255,13 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 #s-guild .sheet .fm-grid h5 { color: var(--gk-mute); }
 #s-guild .sheet .f-det .f-star { letter-spacing: 0; }
-/* 시트: 레벨 · 인연 막대, 숙지, 동작 둘 (같은 크기 돌 버튼) */
+/* 시트: 레벨 경험치 막대, 숙지, 동작 둘 (같은 크기 돌 버튼) */
 #s-guild .sheet .h-rule .g-info { margin: -10px -8px -10px 0; }
 #s-guild .sheet .g-tip { border: 1px solid var(--gk-line); border-radius: 10px; }
 #s-guild .g-meters { display: flex; flex-direction: column; gap: 6px; }
 #s-guild .g-meter { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; }
 #s-guild .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
-#s-guild .g-meter .k :is(.g-ic,.bond-icon) { width: 16px; height: 16px; object-fit: contain; }
+#s-guild .g-meter .k .g-ic { width: 16px; height: 16px; object-fit: contain; }
 #s-guild .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
 #s-guild .sheet .g-tiles { padding: 8px 4px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; }
 #s-guild .g-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -379,3 +377,9 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-acts b { font-size: 13px; }
 #s-guild .g-acts small { line-height: 1.4; }
 #s-guild .g-smsg { position: sticky; bottom: 48px; z-index: 2; }
+
+/* 길드 Lv 1: 공고 하나만 열려 있으면 빈 두 번째 칸 없이 짧은 한 줄. */
+#s-guild .g-hub.n1 { grid-template-columns: minmax(0, 1fr); }
+#s-guild .g-hub.n1 .g-hubt { min-height: 56px; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 8px 14px; }
+#s-guild .g-hub.n1 .g-hubi { width: 32px; height: 32px; }
+#s-guild .g-hub.n1 .g-hubt small { margin-left: auto; margin-right: 12px; }

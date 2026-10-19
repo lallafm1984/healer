@@ -2,27 +2,17 @@
  * 길드 v2 (기획 `93` · FM `97`, Lim 10-18 「fm과 함께 길드 v2를 모두 적용하자」, 사슬 4번). 수치는 초안 (길드 밸런스는 5번 PR).
  * - 길드원 = 1000명 가운데 한 사람 그대로 (닉네임 · 직업 · 성격 · 직업 스킬 · 능력치 · 학습력 · 꾸준함), 자기 레벨로 싸움
  * - 크는 길 = 출전 경험뿐 (레벨 경험치 · 능력치 경험), 훈련 · 육성 포인트 · 자질 · 전투력 숫자는 없앰
- * - 인연 Lv (save.users 점수)가 스킬 ★를 저절로 올림, 명성이 길드 Lv · 정원을 올림
+ * - 길드원 레벨이 스킬 레벨을 올림, 명성이 길드 Lv · 정원을 올림
  */
 import type { ClassKey } from './classes';
 import { lerp3, ROLE_CORE, STAT_KEYS, type StatKey, type Stats } from './fm';
 import type { PersName } from './personalities';
 
-// ---------- 인연 Lv (93 3-3) ----------
-/** 누적 점수 → 인연 Lv 0~12 (0 처음 · 1 아는 사이 · 2 친구 · 3~11 길드원 · 12 단짝) */
-export const BOND_STEPS = [0, 1, 4, 8, 20, 35, 55, 80, 110, 150, 200, 260, 330] as const;
-export function bondLv(pt: number): number {
-  let lv = 0;
-  for (let i = 1; i < BOND_STEPS.length; i++) if (pt >= BOND_STEPS[i]) lv = i;
-  return lv;
-}
-export const bondName = (lv: number) => (lv >= 12 ? '단짝' : lv >= 3 ? '길드원' : lv === 2 ? '친구' : lv === 1 ? '아는 사이' : '처음');
-/** 길드에 들어오면 적어도 이 점수 (인연 Lv 3) */
-export const BOND_JOIN = 8;
-/** 친구 (길드 초대 · 능력치 범위) */
-export const FRIEND_LV = 2;
-/** 직업 스킬 ★: 길드원 (인연 Lv 3) ★1, 인연 Lv 4 · 6 · 8 · 10에서 ★2 · ★3 · ★4 · ★5 (육성 포인트가 없어져 새로 정한 기본값, 13-1). 공개모집 · 친구는 ★ 없음 */
-export const starOfBond = (lv: number) => (lv >= 10 ? 5 : lv >= 8 ? 4 : lv >= 6 ? 3 : lv >= 4 ? 2 : lv >= 3 ? 1 : 0);
+/** 길드원 Lv 1 · 20 · 40 · 60 · 80에서 스킬 LV 1~5. 과거에 얻은 스킬 레벨은 유지한다. */
+export const SKILL_LEVELS = [1, 20, 40, 60, 80] as const;
+export const memberSkillLevel = (m: Pick<GuildMember, 'lv' | 'skillFloor'>): number => Math.max(
+  Math.min(5, Math.max(1, m.skillFloor ?? 1)), SKILL_LEVELS.filter(at => m.lv >= at).length,
+);
 
 // ---------- 길드 Lv · 정원 · 명성 (93 6-1 · 6-2) ----------
 export const GUILD_STEPS = [0, 20, 60, 120, 200, 320, 480, 700, 1200, 2000] as const;
@@ -66,8 +56,10 @@ export interface GuildMember {
   nick: string;
   cls: ClassKey;
   pers: PersName;
-  /** 직업 스킬 (★는 인연 Lv로) */
+  /** 직업 스킬 */
   ab: string;
+  /** 이전 저장에서 얻은 스킬 레벨의 하한. 새 성장은 길드원 레벨을 따른다. */
+  skillFloor?: number;
   /** 자기 레벨 · 경험치 (상한 = 내 레벨) */
   lv: number;
   xp: number;
@@ -168,23 +160,20 @@ export const knowGain = (learn: number) => lerp3(learn, 0.7, 1, 1.4);
 export const knowStage = (pt: number, war = 0) => (WAR_AT[Math.min(4, war)] ?? KNOW.at).filter(x => pt + 1e-9 >= x).length;
 
 // ---------- 시설 (93 6-3, 업데이트 묶음 7번 PR): 골드로 1~5단계 ----------
-export type FacKey = 'feast' | 'war' | 'post';
-export const FAC_KEYS: FacKey[] = ['feast', 'war', 'post'];
-/** 단계마다 골드 (시설 하나 15.5만, 셋 46.5만) */
+export type FacKey = 'war' | 'post';
+export const FAC_KEYS: FacKey[] = ['war', 'post'];
+/** 단계마다 골드 (시설 하나 15.5만, 둘 31만) */
 export const FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 export const FAC: Record<FacKey, { name: string; guildLv: number; steps: string[] }> = {
-  feast: { name: '연회장', guildLv: 4, steps: ['길드파티 승리 인연 +10%', '인연 +20%', '인연 +30%', '인연 +40%', '인연 +50%'] },
   war: { name: '작전실', guildLv: 6, steps: ['숙지 3단계 6번 → 5번', '숙지 2단계 3번 → 2번', '숙지 3단계 5번 → 4번', '숙지 3단계 4번 → 3번', '공략 공유: 3단계 길드원이 있는 보스는 모두 1단계부터'] },
   post: { name: '모집소', guildLv: 7, steps: ['공고 지원자 +1', '명성 지원자 머무는 날 +2', '공고 골드 −20%', '명성 지원자 하루 +1', '명문 공고 지원자 +2'] },
 };
-/** 연회장: 단계마다 길드파티 승리 인연 점수 +10% (소수는 모아 둠) */
-export const FEAST_BOND = 0.1;
 /** 작전실: 숙지 문턱 (단계 0~4). 5단계 = 공략 공유 */
 export const WAR_AT: number[][] = [[0.5, 3, 6], [0.5, 3, 5], [0.5, 2, 5], [0.5, 2, 4], [0.5, 2, 3]];
 
 // ---------- 부탁 쪽지 · 주간 원정 (93 8장, 업데이트 묶음) ----------
-/** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 그 사람 인연 +3 · 명성 +2. 날이 바뀌면 새로 (쌓이지 않음) */
-export const REQ = { perDay: 2, bond: 3, fame: 2 };
+/** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 명성 +2. 날이 바뀌면 새로 (쌓이지 않음) */
+export const REQ = { perDay: 2, fame: 2 };
 /** 주간 원정: 내 레벨에 맞는 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상. 칸마다 명성 +5, 셋 다 = 원정 상자 (클리어 골드 5판 + 장비 1) */
 export const EXPED = { n: 3, fame: 5, chestGold: 5 };
 

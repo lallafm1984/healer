@@ -2,7 +2,6 @@
  * 재화·임무·상점·시즌 패스·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
-import { goalBond } from './guild';
 import { EXPED } from '../data/guild';
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
@@ -178,13 +177,12 @@ export function swapMission(save: SaveData, i: number, r: () => number): string 
   return '';
 }
 
-/** 길드 주간 목표 (93 6-1): 명성 + 그 주에 길드파티로 출전한 길드원 인연 +2 (예전 길드원 경험치 몫 대신) */
+/** 길드 주간 목표 (93 6-1): 명성 보상 */
 export function claimGuildGoal(save: SaveData): string {
   const g = save.weekly.guild;
   if (g.got || g.n < GUILD_GOAL.need) return '아직 못 채움';
   g.got = true;
   save.guild.fame += GUILD_GOAL.fame;
-  goalBond(save);
   return '';
 }
 

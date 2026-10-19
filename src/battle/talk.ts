@@ -5,7 +5,6 @@
  */
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
-import { bondLv, FRIEND_LV } from '../data/guild';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
 import type { BubbleKind } from './board';
 
@@ -167,15 +166,12 @@ export function createTalk(rand: () => number = Math.random) {
     const party = f.party.filter(u => !u.me).map(u => u.nick).join(',');
     const retry = i.cont > 0 || (party === lastParty && lastLost && i.seg === 0);
     lastParty = party; lastLost = false;
-    // 첫 마디: 인사 · 다시 도전 · 다음 구간. 첫 구간 인사는 길드 (93): 단짝 · 원정대 출발 · 아는 얼굴 (친구)
+    // 첫 마디: 인사 · 다시 도전 · 다음 구간. 첫 구간 인사는 길드 (93): 원정대 출발
     let first: TalkSit = retry ? 'retry' : i.seg > 0 ? 'nextSeg' : 'hello', firstU: Unit | undefined;
     if (first === 'hello') {
       const others = f.party.filter(u => !u.me), guild = others.filter(u => u.gid != null);
-      const buddy = guild.filter(u => bondLv(u.bond) >= 12), friends = others.filter(u => u.gid == null && bondLv(u.bond) >= FRIEND_LV);
       const one = (xs: Unit[]) => xs[Math.floor(rand() * xs.length)];
-      if (buddy.length && rand() < 0.6) { first = 'guildBuddy'; firstU = one(buddy); }
-      else if (guild.length && guild.length * 2 >= others.length && rand() < 0.7) { first = 'guildGo'; firstU = one(guild); }
-      else if (friends.length && rand() < 0.7) { first = 'guildMeet'; firstU = one(friends); }
+      if (guild.length && guild.length * 2 >= others.length && rand() < 0.7) { first = 'guildGo'; firstU = one(guild); }
     }
     queue.push({ at: now + 250, c: { sit: first, u: firstU } });
     // 둘째 마디: 콘텐츠·난이도·어픽스 중 하나

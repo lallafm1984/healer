@@ -10,7 +10,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { BOND_JOIN, FRIEND_LV, BOND_STEPS, FAC_KEYS, GUILD_NAME, SPONSOR, STORY, type FacKey, type GuildMember, type PostKind, type StoryKey } from '../data/guild';
+import { FAC_GOLD, FAC_KEYS, GUILD_NAME, SPONSOR, STORY, type FacKey, type GuildMember, type PostKind, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -25,7 +25,8 @@ export const SAVE_KEY = 'healer.save';
  * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
-export const SAVE_VERSION = 20;
+/** v21: 친구·인연 제거, 기존 스킬 단계 보존, 연회장 투자액 환급. */
+export const SAVE_VERSION = 21;
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
 export const MAT_GOLD = { stone: 100, refined: 500 };
 
@@ -112,8 +113,6 @@ export interface GuildSave {
   founded: boolean;
   storySeen: boolean;
   members: GuildMember[];
-  /** 보낸 사람 (93 4-3): 인연 · 키운 것이 그대로 남아 친구 초대로 다시 옴 */
-  away: GuildMember[];
   /** 낸 공고와 지원자 (고를 때까지 남음). pick = 역할 (모집 공고) · 직업 (명문 공고) */
   post: { kind: PostKind; pick: string; cands: GuildMember[] } | null;
   /** 명성 지원자 (until = 떠나는 날 YYYY-MM-DD) · 마지막으로 채운 날 */
@@ -130,7 +129,7 @@ export interface GuildSave {
   picks: Partial<Record<'3' | '5' | '10' | '20', number[]>>;
   /** 시설 단계 0~5 (93 6-3) */
   fac: Record<FacKey, number>;
-  /** 스토리 동료 (93 4-4): 정원이 차서 친구 목록에서 기다림 · 한 번 보여 줄 합류 카드 */
+  /** 스토리 동료 (93 4-4): 정원이 차서 영입 화면에서 기다림 · 한 번 보여 줄 합류 카드 */
   storyWait: StoryKey[];
   storyCard: StoryKey | null;
   /** 부탁 쪽지 (93 8장): 그날 2장 */
@@ -139,8 +138,8 @@ export interface GuildSave {
   exped: { week: string; list: { content: string; done: boolean }[]; got: boolean };
 }
 
-export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
-  fac: { feast: 0, war: 0, post: 0 }, storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
+export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
+  fac: { war: 0, post: 0 }, storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
 
 /** 임무 하나: 진행 · 보상 받음 */
 export interface MissionSave { key: string; n: number; got: boolean }
@@ -176,8 +175,8 @@ export interface WeeklySave {
   chalBest: number;
   /** chalBest를 세운 직업: 월요일 상자 장비의 전용 효과 기준. 현재 직업과 무관하게 수령 가능 */
   chalHero?: HeroKey;
-  /** 길드 주간 목표 진행 · 받음 · 이번 주 길드파티로 출전한 길드원 (받으면 인연 +2, 93 6-1) */
-  guild: { n: number; got: boolean; ran?: string[] };
+  /** 길드 주간 목표 진행 · 받음 */
+  guild: { n: number; got: boolean };
 }
 
 /** 시즌 패스 (15 4장). 81에서 프리미엄 라인을 없애 보상 한 줄 (free = 받은 단계) */
@@ -255,12 +254,7 @@ export interface SaveData {
   chalChestHero?: HeroKey;
   /** v11: 캐릭터 목록 (계정, 68). 캐릭터를 바꿀 때 shareAccount가 새 캐릭터 저장으로 옮김 */
   roster: Roster;
-  /** v18: 인연 (길드 v2 93 3-2, game/bond): 만난 파티원 닉네임 → 점수 · 만난 판 · 함께 이긴 판 · 살려 준 횟수 · 딜 1등. 캐릭터마다 */
-  users: Record<string, BondRec>;
 }
-
-/** 인연 한 사람 (v18) */
-export interface BondRec { pt: number; met: number; wins: number; saved: number; mvp: number; /** 처음 만난 판 (날짜 · 콘텐츠 키, 기록 카드) */ first?: { day: string; at: string } }
 
 export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
 export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], merit: { 10: 0, 20: 0 }, loot: [], chalBest: 0, guild: { n: 0, got: false } });
@@ -290,25 +284,12 @@ export function newSave(now = Date.now()): SaveData {
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
-    roster: newRoster('priest', now), users: {},
+    roster: newRoster('priest', now),
   };
 }
 
 /** 캐릭터 하나짜리 목록 (새 저장: 사제, 튜토리얼) */
 export const newRoster = (hero: HeroKey, now: number, level = 1): Roster => ({ cur: 1, slots: 1, next: 2, chars: [{ id: 1, hero, name: HEROES[hero].name, level, at: now }] });
-
-/** v18 인연 명부: 숫자가 아닌 칸은 0, 모르는 사람 꼴은 버림 */
-function usersOf(v: unknown): Record<string, BondRec> {
-  if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
-  const out: Record<string, BondRec> = {};
-  const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : 0);
-  for (const [k, r] of Object.entries(v as Record<string, unknown>)) {
-    if (!k || !r || typeof r !== 'object') continue;
-    const o = r as Partial<BondRec>;
-    out[k] = { pt: Math.round((typeof o.pt === 'number' && Number.isFinite(o.pt) && o.pt >= 0 ? o.pt : 0) * 100) / 100, met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp), ...(o.first && typeof o.first.day === 'string' && typeof o.first.at === 'string' ? { first: { day: o.first.day, at: o.first.at } } : {}) };
-  }
-  return out;
-}
 
 /** 옛 버전 저장을 지금 버전으로. 모르는 값은 새 저장 기본값으로 채움 */
 export function migrate(raw: unknown): SaveData {
@@ -316,7 +297,11 @@ export function migrate(raw: unknown): SaveData {
   const o = raw as Partial<SaveData>;
   const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : Date.now());
   const obj = <T extends object>(v: unknown, d: T): T => (v && typeof v === 'object' && !Array.isArray(v) ? { ...d, ...(v as T) } : d);
-  const users = usersOf(o.users);
+  const users = (raw as { users?: Record<string, { pt?: unknown }> }).users;
+  const legacySkill = (nick: string) => {
+    const pt = users?.[nick]?.pt;
+    return typeof pt === 'number' && Number.isFinite(pt) ? legacySkillAt(pt) : 1;
+  };
   const out: SaveData = {
     ...base, ...o, v: SAVE_VERSION,
     settings: { ...obj(o.settings, base.settings), compactSkills: true },
@@ -332,14 +317,12 @@ export function migrate(raw: unknown): SaveData {
     hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
     heroes: heroesOf(o),
     // v4: 길드 (옛 저장은 빈 길드)
-    guild: guildOf(o.guild, users, typeof o.v === 'number' ? o.v : 0),
+    guild: guildOf(o.guild, legacySkill, typeof o.v === 'number' ? o.v : 0),
     // v5: 재화·임무·패스. v14 (81): 공훈만 남기고 크리스탈 · 악몽 열쇠 · 모집권은 버림
     wallet: { merit: typeof o.wallet?.merit === 'number' ? o.wallet.merit : 0 },
     daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
     weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
     pass: passOf(o.pass, base.pass),
-    // v18: 인연 (옛 저장은 빈 명부). v19: 옛 길드원 · 스카우트 인연은 guildOf가 채움
-    users,
     stamina: staminaOf(o.stamina, base.stamina),
     bought: Array.isArray(o.bought) ? o.bought.filter((k): k is string => typeof k === 'string') : [],
     chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,
@@ -348,7 +331,7 @@ export function migrate(raw: unknown): SaveData {
     roster: rosterOf(o.roster, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.createdAt),
   };
   // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림
-  for (const k of ['member', 'firstBuy', 'items', 'bag'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  for (const k of ['member', 'firstBuy', 'items', 'bag', 'users'] as const) delete (out as unknown as Record<string, unknown>)[k];
   // v17 (91): 골드 다시. 골드는 0부터 (v16이 버린 옛 골드는 되살리지 않음), 남은 강화석 · 정제 강화석을 골드로. 강화석 무제한 → 골드 무제한
   const legacy = o as unknown as { mats?: { stone?: unknown; refined?: unknown }; settings?: { devStones?: unknown } };
   if ((o.v ?? 0) < 17) {
@@ -358,6 +341,12 @@ export function migrate(raw: unknown): SaveData {
     // 일일 임무 「장비 강화」 → 「장비 판매」 (진행 그대로)
     for (const m of out.daily.missions) if (m.key === 'enhance2') m.key = 'sell2';
   } else if (typeof out.player.gold !== 'number' || !isFinite(out.player.gold)) out.player.gold = 0;
+  // v21: 없어진 연회장 투자액을 한 번 돌려주고, 친구·인연 기록은 저장하지 않는다.
+  if ((o.v ?? 0) < 21) {
+    const feast = (o.guild?.fac as Record<string, unknown> | undefined)?.feast;
+    if (typeof feast === 'number' && Number.isFinite(feast)) out.player.gold += FAC_GOLD.slice(0, Math.max(0, Math.min(5, Math.round(feast)))).reduce((a, n) => a + n, 0);
+  }
+  delete (out.weekly.guild as unknown as Record<string, unknown>).ran;
   for (const k of ['mats'] as const) delete (out as unknown as Record<string, unknown>)[k];
   for (const k of ['devStones', 'quickEnhance'] as const) delete (out.settings as unknown as Record<string, unknown>)[k];
   // 「레이드 판을 5인 던전 모양으로」 설정은 버림: 모든 판이 5인 던전 모양 (2026-10-16 Lim, 저장 형식은 그대로 v16)
@@ -645,39 +634,39 @@ function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   return hs;
 }
 
-function guildOf(v: unknown, users: Record<string, BondRec>, ver: number): GuildSave {
+/** 이전 인연 스킬 단계는 저장을 옮길 때만 읽는다. */
+const legacySkillAt = (pt: number) => pt >= 200 ? 5 : pt >= 110 ? 4 : pt >= 55 ? 3 : pt >= 20 ? 2 : 1;
+function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number): GuildSave {
   const d = newGuild();
   if (!v || typeof v !== 'object') return d;
   const g = v as Partial<GuildSave> & { scouts?: unknown; pick?: unknown };
   const num = (x: unknown, z = 0) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
   if (ver < 19) {
-    // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 인연 = max(레벨 × 5, 길드원 문턱), 인연 스카우트는 친구로
+    // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 당시 스킬 단계를 보존
     const out: GuildSave = { ...d, fame: num(g.fame), nextId: num(g.nextId, 1) };
     for (const raw of Array.isArray(g.members) ? g.members : []) {
       const m = oldMember(raw, out.nextId);
       if (!m) continue;
       out.nextId = Math.max(out.nextId, m.id + 1);
       out.members.push(m);
-      const u = (users[m.nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 });
-      u.pt = Math.max(u.pt, BOND_JOIN, m.lv * 5);
-    }
-    for (const s of Array.isArray(g.scouts) ? g.scouts : []) {
-      const nick = (s as { nick?: unknown })?.nick;
-      if (typeof nick !== 'string') continue;
-      const u = (users[nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 });
-      u.pt = Math.max(u.pt, BOND_STEPS[FRIEND_LV]);
+      m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick), legacySkillAt(m.lv * 5));
     }
     out.founded = out.members.length > 0; out.storySeen = out.founded;
     if (Array.isArray(g.pick)) out.picks['5'] = (g.pick as unknown[]).filter((x): x is number => typeof x === 'number' && out.members.some(m => m.id === x));
     return out;
   }
-  const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => memberOf(r)).filter((m): m is GuildMember => !!m) : []);
+  const member = (x: unknown) => {
+    const m = memberOf(x);
+    if (m && ver < 21) m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick));
+    return m;
+  };
+  const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => member(r)).filter((m): m is GuildMember => !!m) : []);
   return {
     name: typeof g.name === 'string' ? g.name : d.name,
     founded: !!g.founded, storySeen: !!g.storySeen,
-    members: mem(g.members), away: mem(g.away),
+    members: mem(g.members),
     post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { kind: g.post.kind === 'elite' ? 'elite' : 'normal', pick: String(g.post.pick ?? 'any'), cands: mem(g.post.cands) } : null,
-    apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? memberOf((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
+    apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? member((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
     appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
     fame: num(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
@@ -703,6 +692,7 @@ function memberOf(raw: unknown): GuildMember | null {
   return {
     id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: m.story && STORY[m.story] ? STORY[m.story].ab : typeof m.ab === 'string' ? m.ab : '', // 스토리 동료는 고유 스킬 (93 4-4)
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
+    skillFloor: Math.max(1, Math.min(5, Math.floor(n(m.skillFloor, 1)))),
     lastStatGains: Array.isArray(m.lastStatGains) ? STAT_KEYS.filter(k => m.lastStatGains!.includes(k)) : [],
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
     know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
@@ -714,7 +704,7 @@ function memberOf(raw: unknown): GuildMember | null {
 /** v18 이전 길드원 (자질 · 육성 포인트) → v19: 같은 닉네임 1000명 줄의 사람 (없으면 그 닉네임 · 성격으로 굴림), 레벨 · 경험치 · 스킬 그대로 */
 function oldMember(raw: unknown, nextId: number): GuildMember | null {
   if (!raw || typeof raw !== 'object') return null;
-  const o = raw as { id?: number; nick?: string; cls?: ClassKey; pers?: PersName; lv?: number; xp?: number; ab?: string; runs?: number };
+  const o = raw as { id?: number; nick?: string; cls?: ClassKey; pers?: PersName; lv?: number; xp?: number; ab?: string; star?: number; runs?: number };
   if (typeof o.nick !== 'string' || !o.cls || !RECRUIT_CLASSES.includes(o.cls) || !o.pers || !PERS[o.pers]) return null;
   const base = o.nick.replace(/\d+$/, '');
   const p = PARTY_POOL[o.cls].find(x => x.nick === o.nick || x.nick === base);
@@ -722,6 +712,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
   return {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
+    skillFloor: typeof o.star === 'number' && Number.isFinite(o.star) ? Math.max(1, Math.min(5, Math.floor(o.star))) : 1,
     lastStatGains: [], sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }

@@ -17,7 +17,7 @@ import type { BossSkill, Fight } from '../src/engine';
 /** 96 어그로 상황: 어그로와 이어진 성격 29종만 자기 대사 (나머지는 역할 · 공통) */
 const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
 /** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
-const GUILD93: TalkSit[] = ['guildMeet', 'guildGo', 'guildSaved', 'guildKnow', 'guildTame', 'guildFirst', 'guildBuddy'];
+const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildKnow', 'guildTame', 'guildFirst'];
 const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
@@ -384,16 +384,10 @@ describe('길드 대사 (93 9-2)', () => {
     for (let k = 0; k < 60; k++) out.push(...talk.frame(f, k * 50, { pulling: true, paused: false }));
     return { f, talk, out };
   };
-  it('판 시작: 길드파티 = 원정대 출발 (길드원), 단짝이 있으면 단짝, 공개모집의 친구 = 아는 얼굴, 아무도 없으면 인사', () => {
-    const go = opening(p => { p[0].gid = 1; p[1].gid = 2; p[0].bond = 8; p[1].bond = 8; });
+  it('판 시작: 길드파티는 원정대 출발, 공개모집은 인사', () => {
+    const go = opening(p => { p[0].gid = 1; p[1].gid = 2; });
     expect(go.out[0].sit).toBe('guildGo');
     expect(go.f.party.find(u => u.id === go.out[0].id)!.gid).not.toBeUndefined();
-    const buddy = opening(p => { p[0].gid = 1; p[1].gid = 2; p[1].bond = 330; });
-    expect(buddy.out[0].sit).toBe('guildBuddy');
-    expect(buddy.f.party.find(u => u.id === buddy.out[0].id)!.bond).toBe(330);
-    const meet = opening(p => { p[2].bond = 4; });
-    expect(meet.out[0].sit).toBe('guildMeet');
-    expect(meet.f.party.find(u => u.id === meet.out[0].id)!.bond).toBe(4);
     expect(opening(() => {}).out[0].sit).toBe('hello');
   });
   it('길드 첫 킬: 마지막 구간을 이긴 길드 첫 처치 판이면 길드원이 「길드 첫 킬」', () => {

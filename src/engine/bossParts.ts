@@ -674,7 +674,7 @@ function spawnOneSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
     id: f.nextId++, role: 'ranged', cls: null, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
     base: max, max, hp: max * (f.mythic && e.hpMythic ? e.hpMythic : e.hp), dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
     guardian: 0, shield: 0, debuffs: [], moving: null, react: null, retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0,
-    thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0, bond: 0,
+    thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0,
     soul: { name: e.name, short: e.short, until: f.t + e.sec, total: e.sec, win: e.win, fail: e.fail, art: e.art },
   };
   if (e.type) u.debuffs.push({ id: f.nextId++, name: e.name, type: e.type, left: e.sec }); // 이 유형을 지우는 해제가 바로 성공
