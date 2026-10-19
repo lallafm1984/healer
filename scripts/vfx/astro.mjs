@@ -164,28 +164,44 @@ export default {
     },
   },
 
-  /** 별비 (회복한 칸마다): 왼쪽 위에서 Codex 꼬리별 (astro-comet) 넷이 차례로 크게 비스듬히 떨어져 칸 곳곳에 꽂히며, 닿는 자리마다 별빛이 번쩍 튀고
-   *  호박 · 보랏빛 물결이 퍼지며 별가루가 흩날림 */
+  /** 별비 (회복한 칸마다, 2026-10-19 Lim 「별비가 아쉽다」 → 수도사처럼 그림 없이 코드): 밤하늘 보랏빛이 칸 위에 깔리고, 왼쪽 위에서 빛나는 별 머리 다섯이
+   *  굵은 호박 · 보랏빛 빛 꼬리를 끌며 차례로 비스듬히 쏟아져 칸 곳곳에 꽂히고 (꼬리에서 별가루가 흩날림), 닿는 자리마다 흰 섬광 · 호박 · 보랏빛 고리와 작은 오각 별이 터지고,
+   *  마지막 하나가 가운데에 크게 떨어지며 큰 충격파와 별가루가 사방으로 퍼지고 반짝임이 켜짐 */
   'astro-fall': {
     frames: 20, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
-      const fade = 1 - E.in2(seg(t, 0.6, 1)), spots = [[-0.55, 0.62], [0.55, 0.48], [0.0, 0.75], [-0.15, 0.2]];
-      glow(g, 0, 0.2, 1.15, NIGHT.glow, 0.4 * fade);
-      spots.forEach(([tx, ty], i) => {
-        const d = i * 0.09, u = seg(t, d, d + 0.18), x = lerp(tx - 1.3, tx, E.in2(u)), y = lerp(ty - 1.5, ty, E.in2(u));
-        if (u > 0 && u < 1 && !pic(g, 'astro-comet', x, y, 1.9, 1, { anchorX: 0.86, anchorY: 0.86, add: 0.3 })) comet(g, s2 => ({ x: lerp(x - 0.7, x, s2), y: lerp(y - 0.8, y, s2) }), 0, 1, { w: 0.14, rim: AM.rim, body: AM.body, core: AM.core, glowCol: AM.glow });
-        const hit = seg(t, d + 0.18, d + 0.6);
-        if (hit > 0 && hit < 1) {
-          glow(g, tx, ty, 0.6 * (1 - hit), AM.glow, 0.9 * (1 - hit));
-          glow(g, tx, ty, 0.35 * (1 - hit), '#ffffff', 0.8 * (1 - E.out2(hit)));
-          twinkle(g, tx, ty - 0.05, 0.4 * Math.sin(Math.PI * Math.min(1, hit * 1.5)), 1 - hit, i);
-          ringGlow(g, tx, ty, lerp(0.1, 0.75, E.out3(hit)), 0.05, AM.light, 0.75 * (1 - hit), 0.34);
-          ringGlow(g, tx, ty, lerp(0.05, 0.55, E.out3(seg(hit, 0.1, 1))), 0.04, '#b8a8ff', 0.7 * (1 - hit), 0.34);
-        }
-        starBurst(g, t, 11 + i, 18, { x: tx, y: ty, sp: 0.8, sq: 0.55, t0: d + 0.18, a: fade, grav: 0.35 });
+      const fade = 1 - E.in2(seg(t, 0.62, 1));
+      const spots = [[-0.62, 0.55, 0.0, 0.8], [0.6, 0.42, 0.07, 0.8], [-0.2, 0.78, 0.13, 0.8], [0.32, 0.8, 0.19, 0.8], [0.02, 0.15, 0.25, 1.25]];
+      glowOval(g, 0, -0.35, 1.25, 0.75, NIGHT.glow, 0.32 * bell(t, 0, 0.2, 0.85));
+      glowOval(g, 0, -0.4, 0.8, 0.45, NIGHT.mid, 0.25 * bell(t, 0, 0.2, 0.85));
+      // 뒤에서 함께 쏟아지는 가는 별똥별 (빗발처럼)
+      particles(g, t, 70, 16, (r, k) => ({ t0: r() * 0.4, life: 0.16 + r() * 0.08, x1: -0.9 + r() * 1.9, y1: -0.2 + r() * 1.0, v2: r() < 0.45 }), (gg, p, age) => {
+        const x = lerp(p.x1 - 0.9, p.x1, E.in2(age)), y = lerp(p.y1 - 1.1, p.y1, E.in2(age)), a = (1 - E.in2(seg(age, 0.7, 1))) * fade;
+        lightStroke(gg, s2 => ({ x: lerp(x - 0.45, x, s2), y: lerp(y - 0.55, y, s2) }), 0, 1, w0 => 0.045 * w0, { rim: NIGHT.rim, body: p.v2 ? '#c8b8ff' : AM.light, core: '#ffffff', a: 0.8 * a, rimW: 0.008, glowCol: p.v2 ? NIGHT.glow : AM.glow, glowA: 0.6 });
+        speck(gg, x, y, 0.024, '#ffffff', a, 1);
       });
-      twinkles(g, t, 6, 6, { t0: 0.25, step: 0.06, w: 2.0, y0: 0, h: 1.6, a: fade });
-      starSwirl(g, t, 5, 34, { y0: 0.75, rise: 1.3, rr: 0.95, t0: 0.3, span: 0.4, a: fade });
+      spots.forEach(([tx, ty, d, big], i) => {
+        const dur = 0.16, u = seg(t, d, d + dur), ox = tx - 1.35, oy = ty - 1.65, hx = lerp(ox, tx, E.in2(u)), hy = lerp(oy, ty, E.in2(u));
+        const P = s2 => ({ x: lerp(ox, hx, s2), y: lerp(oy, hy, s2) });
+        // 빛 꼬리 (호박 몸 + 보랏빛 번짐) · 별 머리
+        if (u > 0 && t < d + dur + 0.08) {
+          const tail = Math.max(0, 1 - 0.75 / Math.max(0.2, u)), a = 1 - seg(t, d + dur, d + dur + 0.08);
+          lightStroke(g, P, tail, 1, w0 => 0.19 * big * w0 ** 0.8, { rim: NIGHT.rim, body: i % 2 ? '#c8b8ff' : AM.light, core: AM.core, a, rimW: 0.016, coreW: 0.45, glowCol: i % 2 ? NIGHT.glow : AM.glow, glowA: 0.8 });
+          if (u < 1) { glow(g, hx, hy, 0.5 * big, NIGHT.glow, 0.7); glow(g, hx, hy, 0.34 * big, AM.glow, 0.85); glow(g, hx, hy, 0.15 * big, '#ffffff', 1); twinkle(g, hx, hy, 0.3 * big, 1, t * 8 + i); }
+        }
+        // 꼬리에서 흩날리는 별가루
+        particles(g, t, 40 + i, 10, (r, k) => ({ t0: d + (k / 10) * dur, life: 0.3 + r() * 0.2, dx: (r() - 0.5) * 0.3, dy: (r() - 0.3) * 0.3, sz: 0.016 + r() * 0.02, v2: r() < 0.4 }), (gg, p, age) => {
+          const q = seg(p.t0, d, d + dur), x = lerp(ox, tx, E.in2(q)) + p.dx * age, y = lerp(oy, ty, E.in2(q)) + p.dy * age + 0.15 * age * age, al = (1 - age) * fade;
+          glow(gg, x, y, p.sz * 4, p.v2 ? NIGHT.glow : AM.glow, 0.45 * al); speck(gg, x, y, p.sz, p.v2 ? '#c8b8ff' : AM.light, al, age * 4);
+        });
+        // 닿는 순간
+        const h0 = d + dur;
+        impact(g, t, { x: tx, y: ty, t0: h0, r: 0.55 * big, sy: big > 1 ? 0.85 : 0.5 });
+        for (let k = 0; k < (big > 1 ? 7 : 4); k++) { const q = seg(t, h0, h0 + 0.4), an = (k * TAU) / (big > 1 ? 7 : 4) + i, dd = (0.12 + 0.55 * big * E.out3(q)); if (q > 0 && q < 1) star5(g, tx + Math.cos(an) * dd, ty + Math.sin(an) * dd * 0.75, 0.09 * big * (1 - q), an + t * 6, (1 - q) * fade, 0.8); }
+        starBurst(g, t, 11 + i, big > 1 ? 44 : 16, { x: tx, y: ty, sp: 0.75 * big, sq: big > 1 ? 0.85 : 0.55, t0: h0, a: fade, grav: 0.3 });
+      });
+      twinkles(g, t, 6, 9, { t0: 0.3, step: 0.05, w: 2.1, y0: 0, h: 1.8, a: fade });
+      starSwirl(g, t, 5, 36, { y0: 0.75, rise: 1.35, rr: 1.0, t0: 0.4, span: 0.35, a: fade });
     },
   },
 
