@@ -9,7 +9,7 @@ import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
-import { advanceTutorial, TUT, TUT_CONTENT } from './tutorial';
+import { advanceTutorial, TUT, TUT_CONTENT, tutReplay } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
 import type { StoryKey } from '../data/guild';
@@ -118,6 +118,8 @@ export interface Settlement {
   cont: number;
   /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
   tutEnd: boolean;
+  /** 튜토리얼 다시 보기 판 (경험치 · 골드 없음, 다시 보기용 글) */
+  tutReplay: boolean;
   /** 휴식 (90): 클리어한 판만. used = 쓴 휴식, share = 받은 휴식 보너스 몫 (비례, 0이면 기본 보상). 튜토리얼 · 진 판 · 포기는 null */
   rest: RestUse | null;
   /** 휴식 보너스 몫 (xp · gold에 들어 있음, 결과 화면 기본 → 「휴식 보너스!」 + N). 휴식 보너스를 안 받은 판은 null */
@@ -165,11 +167,13 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 기본 = 예전 휴식 판 1/3, 휴식 보너스 ×2, Lv 1부터 장소 경험치 · 골드도). 튜토리얼 판 (휴식을 안 씀)은 예전 값 그대로, 꼬리표 없음
   const rest = play && r.win && !r.quit ? useRest(save, staminaCost(c, r.chal), now) : null;
   const run = (n: number) => (play ? restRun(n) : n > 0 ? Math.max(1, Math.round(n)) : 0);
-  const xp0 = !r.win || r.quit ? 0
+  // 튜토리얼 다시 보기 판 (이미 녹슨 고원을 깬 저장의 튜토리얼 판)은 경험치 · 골드 없음 (105 QA: 휴식 없이 clearXp(내 레벨)을 무한 반복)
+  const replay = !play && tutReplay(save);
+  const xp0 = replay || !r.win || r.quit ? 0
     : run(!r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
       : clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival);
   // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD
-  const gold0 = r.win ? run(clearGold(stage, r.diff, grade!, raid) * kind) : 0;
+  const gold0 = r.win && !replay ? run(clearGold(stage, r.diff, grade!, raid) * kind) : 0;
   const share = rest ? rest.share : 1;
   const xp = restGain(xp0, share), gold = restGain(gold0, share);
   const restBonus = rest && rest.share > 0 && (xp > restBase(xp0) || gold > restBase(gold0)) ? { xp: xp - restBase(xp0), gold: gold - restBase(gold0) } : null;
@@ -222,7 +226,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
   const fame0 = save.guild.fame;
   const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
-  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs }) : null;
+  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs, myLv: levelBefore, chal: !!r.chal }) : null;
   const guildFame = save.guild.fame > fame0 ? { before: fame0, gain: save.guild.fame - fame0 } : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
@@ -257,6 +261,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, meritFull: meritAll, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, meritFull: meritAll, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

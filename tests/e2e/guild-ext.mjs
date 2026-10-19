@@ -34,7 +34,7 @@ export default async function guildExt(url, shots) {
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
 
   // ---- 부탁 쪽지 · 주간 원정 (93 8장) ----
-  ok((await text('#s-guild .gh-fame')).trim() === '명성 480' && (await page.getAttribute('#s-guild .gh-bar', 'aria-label')).includes('길드 Lv 8'), '명성은 누적 수치만 표시, 막대는 다음 길드 레벨 성장');
+  ok((await text('#s-guild .gh-xp')).trim() === '명성 65 / 70' && (await page.getAttribute('#s-guild .gh-xp', 'aria-label')).includes('길드 Lv 8'), '명성 막대 = 이 레벨에서 쌓인 것 / 필요량 (명성 480 = 길드 Lv 8의 65 / 70, 103)');
   let sv = await save();
   ok(sv.guild.reqs.list.length === 2 && (await page.locator('#s-guild .g-job').count()) === 2, `부탁 쪽지 2장 (${sv.guild.reqs.list.map(q => `${q.nick} ${q.content} ${q.diff}`)})`);
   ok(sv.guild.exped.list.length >= 1 && (await page.locator('#s-guild .g-exrow').count()) === sv.guild.exped.list.length && /주간 원정/.test(await text('#s-guild .g-exped')), `주간 원정 ${sv.guild.exped.list.length}곳`);
@@ -224,7 +224,9 @@ export default async function guildExt(url, shots) {
     ok(allGeometry.scrollbar === 'none' && ['auto', 'scroll'].includes(allGeometry.overflow), `${name}: 스크롤바만 숨기고 스크롤 기능 유지`);
     await page.screenshot({ path: `${shots}/guild_members_ranged_${name}.png`, fullPage: false });
     await page.click('#s-guild [data-mrole="any"]'); await page.clock.runFor(50);
-    await page.locator('#guild-panel-mem [data-mem]').last().scrollIntoViewIfNeeded();
+    // 사람처럼 맨 끝까지 내림 (scrollIntoViewIfNeeded는 하단 메뉴에 가린 판 끝에 맞추고 멈춤: 길드원이 적으면 마지막 줄이 메뉴 뒤에서 멈춘 것처럼 보였음)
+    await page.locator('#guild-panel-mem [data-mem]').last().evaluate(el => { const body = el.closest('.ns-body'); body.scrollTop = body.scrollHeight; });
+    await page.clock.runFor(50);
     ok(await page.locator('#guild-panel-mem [data-mem]').last().evaluate(el => {
       const r = el.getBoundingClientRect(), body = el.closest('.ns-body').getBoundingClientRect();
       return r.top >= body.top && r.bottom <= Math.min(body.bottom, document.querySelector('#tabs').getBoundingClientRect().top);
@@ -256,8 +258,7 @@ export default async function guildExt(url, shots) {
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
-  ok((await save()).guild.fame === 1000000 && (await text('#s-guild .gh-fame')).trim() === '명성 1,000,000', '최고 길드 레벨 이후 누적 명성도 저장·표시 유지');
-  ok((await page.locator('#s-guild .gh-bar').count()) === 0, '최고 길드 레벨에서는 가득 찬 명성 막대를 표시하지 않음');
+  ok((await save()).guild.fame === 1000000 && (await text('#s-guild .gh-xp')).trim() === 'MAX' && /길드 Lv 30/.test(await text('#s-guild .guild-hero')), '최고 길드 레벨 (Lv 30) 뒤에도 명성은 쌓여 저장, 막대는 가득 · MAX (103)');
   await page.screenshot({ path: `${shots}/guild_fame_unlimited.png`, fullPage: false });
   ok((await page.locator('#guild-exped-places button').count()) === 0
     && (await page.locator('#guild-exped-places .g-place-complete').count()) === (await save()).guild.exped.list.length, '원정 모두 완료하면 입장 버튼 없이 완료 표시만 유지');

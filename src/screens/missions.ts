@@ -42,10 +42,10 @@ function render(): void {
       <p class="note">1개마다 ${currencyAmount('gold', Math.round(run * MISSION_REWARD.goldShare))} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
       <ul class="mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>
       <section class="panel chest">
-        <h4>완료 상자 <small>임무 5개를 다 받으면 · ${currencyAmount('gold', run * CHEST_REWARD.runs)} + 장비 1개</small></h4>
+        <h4>완료 상자 <small>임무 ${d.missions.length}개를 다 받으면 · ${currencyAmount('gold', run * CHEST_REWARD.runs)} + 장비 1개</small></h4>
         ${ch.banked ? `<p class="note">놓친 날 상자 ${ch.banked}개 (최대 2일)</p>` : ''}
         <div class="gbtns">
-          <button class="btn primary" type="button" id="chest"${ch.today || ch.banked ? '' : ' disabled'}>${ch.today ? '오늘 상자 열기' : ch.banked ? '놓친 날 상자 열기' : d.chest ? '오늘 상자 받음' : `${gotN}/5`}</button>
+          <button class="btn primary" type="button" id="chest"${ch.today || ch.banked ? '' : ' disabled'}>${ch.today ? '오늘 상자 열기' : ch.banked ? '놓친 날 상자 열기' : d.chest ? '오늘 상자 받음' : `${gotN}/${d.missions.length}`}</button>
           ${d.chest && !d.chest2 ? `<button class="btn" type="button" id="chest2"${adLeft > 0 || adsFree(G.save) ? '' : ' disabled'}>${adsFree(G.save) ? '한 번 더 (광고 없음)' : '광고 보고 한 번 더'}</button>` : ''}
         </div>
       </section>

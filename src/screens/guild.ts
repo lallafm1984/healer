@@ -269,11 +269,11 @@ function recruitHtml(): string {
   const waitRows = g.storyWait.map(k => { const s = STORY[k], p = profileOf(s.nick, s.pers); return memRowHtml(card({ nick: s.nick, cls: s.cls, pers: s.pers, ab: s.ab, lv: topLevel(G.save), stats: { ...p.stats, ...s.boost } as GuildMember['stats'] }), {
     tag: '합류 대기', extra: side(`data-istory="${k}"`, '영입') }); }).join('');
   const cost = postCost(G.save), count = POST.cands;
-  const post = g.post;
-  const cands = post ? `<ul class="pcards g-list g-candidates">${post.cands.map((c, i) => candRow(c, i, 'cand')).join('')}</ul>` : `<p class="g-empty0">공고를 내면 지원자 ${count}명이 찾아옵니다.<small>Lv ${Math.max(1, my - 5)} 이상 · 모두 영입 가능</small></p>`;
+  const post = g.post, room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
+  const cands = post ? `<ul class="pcards g-list g-candidates">${post.cands.map((c, i) => candRow(c, i, 'cand')).join('')}</ul>` : `<p class="g-empty0">공고를 내면 지원자 ${count}명이 찾아옵니다.<small>Lv ${Math.max(1, my - 5)} 이상 · ${roomTxt}</small></p>`;
   const postSec: Sec = {
     key: 'post', flat: true, icon: IC.post(), title: POST.name, dot: !!post?.cands.length,
-    body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>${post ? `지원자 ${post.cands.length}명` : POST.name}<small> · 모두 영입 가능</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">모든 직업 무작위 · 희귀 등장 ${POST.rareChance * 100}%</p></div>
+    body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>${post ? `지원자 ${post.cands.length}명` : POST.name}<small> · ${roomTxt}</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">모든 직업 무작위 · 희귀 등장 ${POST.rareChance * 100}%</p></div>
       <div class="g-post-action"><button class="btn mini primary" type="button" data-post="normal" aria-describedby="guild-post-cost"${post ? ' aria-haspopup="dialog"' : ''}${isFull || gold < cost ? ' disabled' : ''}>${post ? '새 공고' : '공고 내기'}</button><small id="guild-post-cost">${goldCost(cost)}</small></div></div>
       ${gold < cost ? `<p class="g-empty0">골드 ${fmt(cost - gold)} 부족</p>` : ''}
       ${cands}`,

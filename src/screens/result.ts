@@ -155,6 +155,7 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   // 튜토리얼 끝: 다음에 할 일 (로비 「출전」 = 길잡이가 고른 다음 장소)까지 (QA 2026-10-16, 처음 하는 사람이 다음을 몰랐음)
   if (x.tutEnd && worn) return '<p class="coachtip"><b>첫 장비</b>를 바로 장착했습니다. 튜토리얼은 여기까지. 로비의 <b>「출전」</b>을 누르면 다음 장소로 갑니다.</p>';
   // 다음 장소 이름 · 레벨은 CONTENT를 따라감 (2026-10-18 해금 레벨 검토: Lv 3 탐험이 잿빛 공동묘지 → 고철 더미 언덕으로 바뀐 뒤에도 옛 이름이 남아 있었음)
+  if (x.tutEnd && x.tutReplay) return '<p class="coachtip">튜토리얼 다시 보기는 여기까지. 로비 <b>「출전」</b>은 지금 레벨에 맞는 곳으로 갑니다.</p>'; // 105 QA
   if (x.tutEnd) { const ex = contentOf('scrapheap'), dg = contentOf('rustfort'); return `<p class="coachtip">튜토리얼은 여기까지! Lv ${ex.unlockLv}에 탐험 <b>${ex.name}</b>, Lv ${dg.unlockLv}에 첫 던전 <b>${dg.name}</b></p>`; }
   if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
   return '';
@@ -167,10 +168,10 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false
   // 휴식 보너스 (90 · 2026-10-17 Lim): 받은 판은 골드 이름 옆 · 경험치 바 아래 남빛 「휴식 보너스 +N」 (받은 보너스 몫, 비례면 그만큼).
   // 연출이면 기본 값부터 올라가고 꼬리표는 다 오른 뒤 (playRestBonus). 휴식 없이 받은 판은 숫자만 (꼬리표 · 빨간 색 없음). 튜토리얼은 없음
   const gb = x.restBonus?.gold ?? 0;
-  const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
+  const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur${add ? ' rb' : ''}"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
-  else if (x.meritFull) tiles.push(`<span class="r-cur full"><span class="r-ci">${currencyIcon('merit')}</span><span class="r-cv"><b>공훈 가득</b><small>보유 ${MERIT_HOLD_CAP}까지</small></span></span>`); // 보유 상한 (103)
+  else if (x.meritFull) tiles.push(`<span class="r-cur full"><span class="r-ci">${currencyIcon('merit')}</span><span class="r-cv"><b>공훈 가득</b><small>최대 ${MERIT_HOLD_CAP}</small></span></span>`); // 보유 상한 (103)
   const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>

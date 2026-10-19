@@ -23,6 +23,7 @@ import { abilityFeatures, encFeatures, REC, recommendPick, recScore } from '../s
 import { settle, type BattleResult } from '../src/game/settle';
 import { TUT } from '../src/game/tutorial';
 import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/storage';
+import { contentOf } from '../src/data/content';
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -596,7 +597,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(24);
+    expect(SAVE_VERSION).toBe(25);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;
@@ -721,5 +722,36 @@ describe('낮은 장소 명성 (103 「넷 다」 1)', () => {
     const ok = go(20);
     expect([ok.low, ok.fame, ok.first]).toEqual([false, FAME.dungeon + FAME.first, true]);
     expect(go(30, 20).fame).toBe(FAME.raid20); // 레이드 적 = max(내 Lv, 레이드 Lv)
+  });
+});
+
+describe('105 QA 1바퀴', () => {
+  it('낮은 장소는 판 전 레벨로 (Lv 17이 녹슨 요새 보통을 깨며 Lv 18이 돼도 명성), 주간 도전 판은 첫 처치 아님', () => {
+    const s = save(18);
+    const a = add(s, 'warrior', 0, { lv: 18 }), b = add(s, 'mage', 0, { lv: 18 });
+    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const go = (o: Partial<Parameters<typeof Gd.guildAfter>[2]>) => Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 7, raid: 0, content: 'rustfort', kind: 'dungeon', party: [], roster, ...o });
+    expect(go({ myLv: 17 }).low).toBe(false);
+    expect(go({ myLv: 18 }).low).toBe(true);
+    const c = go({ myLv: 17, chal: true, content: 'crypt' });
+    expect([c.first, s.guild.firsts.includes('crypt|보통')]).toEqual([false, false]);
+  });
+  it('길드파티를 꾸릴 수 있나는 역할 자리로 셈: 탱커 3 + 딜러 7 = 20인 9명뿐 (자리 탱커 2)', () => {
+    const s = save(80);
+    for (let i = 0; i < 3; i++) add(s, 'warrior', i);
+    for (let i = 0; i < 7; i++) add(s, 'mage', i);
+    const enc20 = ENCOUNTERS[contentOf('cathedral1').fights('보통')[0]];
+    expect(Gd.guildPartyFits(s, enc20)).toBe(false);
+    add(s, 'archer', 0);
+    expect(Gd.guildPartyFits(s, enc20)).toBe(true);
+  });
+  it('v24 저장도 정원 바닥 보정 (명성 × 2는 v24 전만)', () => {
+    const s = save(30);
+    for (let i = 0; i < 10; i++) add(s, 'mage', i);
+    s.guild.fame = 100;
+    const d = migrate({ ...JSON.parse(JSON.stringify(s)), v: 24 });
+    expect(d.guild.fame).toBe(GUILD_STEPS[8]); // 10명 → 길드 Lv 9 (정원 10)
+    expect(Gd.capOf(d).cap).toBeGreaterThanOrEqual(10);
+    expect(migrate({ ...JSON.parse(JSON.stringify(s)), v: 24, guild: { ...s.guild, fame: 9999 } }).guild.fame).toBe(9999);
   });
 });

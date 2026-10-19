@@ -107,3 +107,15 @@ describe('튜토리얼 판만 튜토리얼 보상 (103 다른 문제점 2)', () 
     expect(s.stamina.n).toBeLessThan(n0);
   });
 });
+
+describe('튜토리얼 다시 보기 (105 QA)', () => {
+  it('이미 녹슨 고원을 깬 저장의 다시 보기 판은 경험치 · 골드 없음, 처음 하는 판은 그대로', () => {
+    const run = (s: ReturnType<typeof newSave>) => settle(s, { content: 'plateau', diff: '쉬움', win: true, quit: false, reason: '', segIdx: 1, segN: 2, time: 120, restSec: 0, deaths: 0, healed: 3000, overheal: 300, dispels: 0, dispellable: 0, endMana: 40, minMana: 20, auto: false, party: [], detail: [] }, () => 0.5);
+    const first = newSave(1); first.tut = TUT.explore;
+    const a = run(first);
+    expect(a.xp).toBeGreaterThan(0); expect(a.tutReplay).toBe(false);
+    const again = newSave(1); again.tut = TUT.intro; again.player.level = 40; again.clears.plateau = { 쉬움: { stars: 3, grade: 'S', best: 60, n: 1 } };
+    const b = run(again);
+    expect([b.xp, b.gold, b.tutReplay]).toEqual([0, 0, true]);
+  });
+});

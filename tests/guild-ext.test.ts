@@ -153,3 +153,20 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     void ENCOUNTERS;
   });
 });
+
+describe('주간 원정 주 중 다시 뽑기 (105 QA)', () => {
+  it('주 중에 길드원이 줄어 길드파티를 못 꾸리는 안 깬 레이드 칸만 던전으로', () => {
+    const T = new Date(2026, 9, 7, 12).getTime(), s = save(80);
+    add(s, 'warrior', 0); add(s, 'warrior', 1);
+    for (let i = 0; i < 8; i++) add(s, i % 2 ? 'archer' : 'mage', i);
+    refreshExped(s, () => true, T);
+    const size = () => s.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'));
+    expect(size()).toEqual([5, 10, 20]);
+    s.guild.exped.list[1].done = true; // 10인은 이미 깸
+    s.guild.members.splice(2, 3); // 7명: 10인 (5) 은 되고 20인 (10) 은 안 됨
+    refreshExped(s, () => true, T + 3600e3);
+    expect(size()).toEqual([5, 10, 5]);
+    expect(s.guild.exped.list[1].done).toBe(true);
+    expect(new Set(s.guild.exped.list.map(x => x.content)).size).toBe(3);
+  });
+});

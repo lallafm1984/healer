@@ -125,6 +125,8 @@
 #s-settle .r-cur b { font: 900 16px/1.1 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
 #s-settle .r-cur small { font-size: 11px; color: var(--gk-mute); }
 #s-settle .r-cur.full b { color: var(--gk-mute); font-size: 14px; } /* 공훈 가득 (보유 상한, 103) */
+/* 휴식 보너스 꼬리표가 붙은 칸은 넓게 (105 QA: 레이드 골드 · 공훈 두 칸이면 「골드 휴식 보너스 +N」이 「골드 …」로 잘렸음) */
+#s-settle .r-cur.rb { flex: 2 1 0; }
 #s-settle .r-item.none.r-glow { margin-top: 6px; } /* 낮은 장소 · 명성 없음 (103): 길드 막대 자리 */
 
 /* 경험치: 레벨 배지 + 굵은 바 */

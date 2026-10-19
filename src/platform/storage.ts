@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 24; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103)
+export const SAVE_VERSION = 25; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -642,8 +642,8 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   if (!v || typeof v !== 'object') return d;
   const g = v as Partial<GuildSave> & { scouts?: unknown; pick?: unknown };
   const num = (x: unknown, z = 0) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
-  // v24 (103): 명성 값이 두 배가 되어 옛 명성도 × 2. 정원이 길드 Lv + 1로 줄어 옛 길드원이 넘치지 않게, 그 인원이 다 들어가는 길드 Lv의 누적 명성까지는 올림 (103 다른 문제점 3)
-  const fameOf = (x: unknown, members: number) => (ver < 24 ? Math.max(num(x) * 2, GUILD_STEPS[Math.min(GUILD_MAX - 1, Math.max(0, members - 2))]) : num(x));
+  // v24 (103): 명성 값이 두 배가 되어 옛 명성도 × 2. v25 (103 다른 문제점 3 · 105 QA): 정원이 길드 Lv + 1로 줄어 옛 길드원이 넘치지 않게, 그 인원이 다 들어가는 길드 Lv의 누적 명성까지는 올림 (#302 빌드에서 v24가 된 저장도)
+  const fameOf = (x: unknown, members: number) => { const f = num(x) * (ver < 24 ? 2 : 1); return ver < 25 ? Math.max(f, GUILD_STEPS[Math.min(GUILD_MAX - 1, Math.max(0, members - 2))]) : f; };
   if (ver < 19) {
     // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 당시 스킬 단계를 보존
     const out: GuildSave = { ...d, fame: 0, nextId: num(g.nextId, 1) };
