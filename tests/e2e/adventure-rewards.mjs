@@ -3,14 +3,16 @@ import { chooseContent, pastTitle, shownImagesReady } from './nav.mjs';
 import { DEPARTURE_DEVICES, departureLayout, layoutIssues } from './adventure-no-scroll.mjs';
 
 // 실제 A 클리어 확률 (88): 바탕 표 (일반 ~ 희귀)에 +0.02를 밀고, 영웅 · 전설은 따로 (Lv 100: 최대값 × 1.1). 공개모집 보정은 제외.
-// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 적 레벨 = 내 레벨 100. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
+// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 그 레이드 레벨 (#296 · 103: 심연의 탑 1층 45 · 악몽 60, 대성당 1구역 70 · 악몽 80), 전설은 내 Lv 100. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
+// RAID_AGAIN = 그 주에 주 첫 보상을 받은 칸을 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」): 같은 레벨 던전 표 + 20인 Lv 100 어려움 · 악몽 전설 1% × 1.1
 const GRADES=['일반','고급','희귀','영웅','전설'];
 const GRADE_COLORS=['#C8C8C8','#3FD85A','#4A9BFF','#BE6EFF','#FFD23F'];
 const TABLES={
   dungeon:{쉬움:[100,0,0,0,0],보통:[68,32,0,0,0],어려움:[0,78,22,0,0],악몽:[0,63,37,0,0]},
-  raid10:{쉬움:[0,58*.978,42*.978,2.2,0],보통:[0,0,94.5,5.5,0],어려움:[0,0,83.5,16.5,0],악몽:[0,0,72.5,27.5,0]},
-  raid20:{쉬움:[0,0,95.6,4.4,0],보통:[0,0,91.2,8.8,0],어려움:[0,0,75.8,22,2.2],악몽:[0,0,61.5,33,5.5]},
+  raid10:{쉬움:[0,57.977214285714,41.9835,0.039285714285714,0],보통:[0,0,99.901785714286,0.098214285714286,0],어려움:[0,0,99.705357142857,0.29464285714286,0],악몽:[0,0,92.142857142857,7.8571428571429,0]},
+  raid20:{쉬움:[0,0,97.957142857143,2.0428571428571,0],보통:[0,0,95.914285714286,4.0857142857143,0],어려움:[0,0,87.585714285714,10.214285714286,2.2],악몽:[0,0,73.285714285714,21.214285714286,5.5]},
 };
+const RAID_AGAIN={raid20:{악몽:[0,0,84.757142857143,14.142857142857,1.1]}};
 
 async function seed(page,{level=100,devUnlock=false,loot=[],cleared=false,merit=0}={}) {
   await page.evaluate(({level,devUnlock,loot,cleared,merit})=>{
@@ -180,9 +182,9 @@ export default async function adventureRewards(url,shots) {
           ok(await page.locator('.b-reward-chance').count()===0,'확률 팝오버 resize 후 Esc 닫기');
           ok(await page.locator('[data-reward="crystal"]').count()===0,'첫 클리어 크리스탈 없음 (81)');
           await seed(page,{loot:['cathedral1|악몽'],cleared:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
-          const claimed=await inspectProbabilities(page,[0,0,0,0,0],{maxGrade:'전설'});
-          ok(claimed.ok && /이번 주 장비 수령 완료/.test(claimed.geometry.text) && await page.locator('[data-reward="crystal"]').count()===0,
-            '이번 주 수령 완료: 단일 장비 아이콘·등급 줄 없음·완료 안내·크리스탈 반복 없음',claimed);
+          const claimed=await inspectProbabilities(page,RAID_AGAIN.raid20.악몽,{maxGrade:'전설'});
+          ok(claimed.ok && /다시 깬 판/.test(claimed.geometry.text) && await page.locator('[data-reward="crystal"]').count()===0,
+            '이번 주 첫 보상 받음: 다시 깬 판 등급 표 (던전 표 · 전설 1.1%)·안내·크리스탈 반복 없음',claimed);
           for(const trigger of ['render','icon']) {
             await seed(page,{loot:['cathedral1|악몽'],cleared:true,merit:150});
             await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
@@ -202,8 +204,8 @@ export default async function adventureRewards(url,shots) {
             await page.keyboard.press('Escape');
           }
           for(const level of [99,100]) {
-            // 88: 전설은 Lv 100부터. Lv 99 영웅 = 30% × 55/56 × 1.1
-            const h=30*55/56*1.1;
+            // 88: 전설은 Lv 100부터. 영웅 = 30% × (대성당 1구역 악몽 Lv 80 − 44) / 56 × 1.1 (레이드 레벨, #296)
+            const h=30*36/56*1.1;
             await seed(page,{level,devUnlock:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
             const state=await inspectProbabilities(page,level<100?[0,0,100-h,h,0]:TABLES.raid20.악몽);
             ok(state.ok,`Lv${level}: 실제 최고등급 ${level<100?'영웅·전설 0%':'전설 5.5%'}와 등급별 확률 일치`,state);
