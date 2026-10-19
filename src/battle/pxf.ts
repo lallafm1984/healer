@@ -140,7 +140,6 @@ export const PXF = {
   'warder-hold': skill(20, 92, { size: 320 }),
   'warder-judgment': skill(18, 88, { size: 288 }),
   'warder-citadel-loop': loop(36, 84, 12, 256),
-  'warder-barrier-loop': loop(36, 74, 12, 256),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': small(11, 74),
   'common-crit': small(12, 66),
@@ -245,7 +244,7 @@ export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
 export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = {
   priest: ['priest-shelter-loop'], druid: ['druid-moss-loop'], paladin: ['paladin-beacon-loop', 'paladin-sanctuary-loop'],
   shaman: ['shaman-spring-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-sea-loop'], monk: ['monk-pool-loop', 'monk-mist-loop'],
-  astrologer: ['astro-nova-loop', 'astro-sleep-loop'], warder: ['warder-citadel-loop', 'warder-barrier-loop'],
+  astrologer: ['astro-nova-loop', 'astro-sleep-loop'], warder: ['warder-citadel-loop'],
 };
 /** 루프 클립이면 지금 시각 (초)의 프레임 */
 export const loopFrame = (c: PxfClip, sec: number): number => ((Math.floor(sec * c.fps) % c.frames) + c.frames) % c.frames;
