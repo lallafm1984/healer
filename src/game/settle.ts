@@ -100,8 +100,8 @@ export interface Settlement {
   jobs: JobsDone | null;
   /** 레이드 공훈 (12 3-5) */
   merit: number;
-  /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
-  lootLocked: boolean;
+  /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
+  raidLoot: 'first' | 'again' | null;
   /** 공개모집 일일 보너스 판 (13 2-2): 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
   pubBonus: number;
   /** 이 판으로 다 채운 임무 */
@@ -173,23 +173,21 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   const items: GearItem[] = [];
   let newSpecs: string[] = [], newDex: string[] = [];
-  // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
-  const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
+  // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
+  const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
   let merit = 0;
   if (r.win) {
-    if (!lootLocked) {
-      // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
-      // 등급은 콘텐츠 · 난이도 바탕 표 (일반 ~ 희귀) + 영웅 · 전설 확률 (88, equipment dropOdds). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
-      // 등급대 · 영웅 확률 레벨 (86 · 88): 탐험 · 던전은 장소 레벨, 레이드는 그 판 적 레벨, 주간 도전은 내 레벨. 전설은 내 레벨 100부터 20인만.
-      // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
-      // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 레이드 적은 내 레벨까지 오르지만 (runmode) 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf). 주간 도전은 내 레벨 그대로
-      const dropLv = r.chal ? stage : stageOf(c, r.diff);
-      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv }));
-      save.gear.bag.push(...items);
-      newDex = noteDex(save, items);
-      newSpecs = noteSpecs(save, items);
-      if (play && raid) save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
-    }
+    // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
+    // 등급은 콘텐츠 · 난이도 바탕 표 (일반 ~ 희귀) + 영웅 · 전설 확률 (88, equipment dropOdds). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
+    // 등급대 · 영웅 확률 레벨 (86 · 88): 탐험 · 던전은 장소 레벨, 레이드는 그 판 적 레벨, 주간 도전은 내 레벨. 전설은 내 레벨 100부터 20인만.
+    // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
+    // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 레이드 적은 내 레벨까지 오르지만 (runmode) 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf). 주간 도전은 내 레벨 그대로
+    const dropLv = r.chal ? stage : stageOf(c, r.diff);
+    items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
+    save.gear.bag.push(...items);
+    newDex = noteDex(save, items);
+    newSpecs = noteSpecs(save, items);
+    if (raidLoot === 'first') save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
     if (play && raid) { merit = meritFor(save, raid, r.diff); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
   }
 
@@ -249,6 +247,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, raidLoot, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

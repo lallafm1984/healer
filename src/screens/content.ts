@@ -130,12 +130,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤. 휴식은 전투 전에 안 보여 줌 (90 · 2026-10-17) */
+/** 레이드: 이번 주 첫 클리어 보상 받음 (칸 = 보스 × 난이도, 2026-10-19 Lim 「주 첫 판만 크게」). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤. 휴식은 전투 전에 안 보여 줌 (90 · 2026-10-17) */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
-  const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}</span>`;
+  const dots = `<span class="b-loot" role="img" aria-label="이번 주 첫 보상 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 첫 클리어 보상: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">주간</span>${dots}</span>`;
 }
 
 /** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 길잡이 추천 (86) → 첫 장소 (장소가 없는 분류면 null) */
@@ -219,18 +219,18 @@ interface SceneReward {
 /** 기본 A 평가 기준. 공개모집·주간 도전 보너스는 편성 전 확정되지 않으므로 제외한다. */
 function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const raid = raidSize(c), play = G.save.tut >= TUT.done;
-  // 등급대 · 영웅 레벨 (88): 탐험 · 던전은 장소 레벨, 레이드는 적 레벨 (= 내 레벨, 열림 레벨 아래로 안 내려감)
-  const lv = G.save.player.level, odds = gearGradeOdds(d, raid, lv, 'A', false, raid ? Math.max(lv, stageOf(c, d)) : c.stageLv);
+  // 등급대 · 영웅 레벨 (88 · 103): 탐험 · 던전은 장소 레벨, 레이드는 그 레이드 레벨 (settle dropLv, #296). 레이드 칸 주 첫 보상을 받았으면 다시 깬 판 표 (던전 표)
   const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
+  const lv = G.save.player.level, odds = gearGradeOdds(d, raid, lv, 'A', false, raid ? stageOf(c, d) : c.stageLv, !lootOpen);
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   // 칸마다 최소 등급 (88 v0.2, Lim 「칸마다 난이도 및 레벨에 따라서 최소 등급」): 확률 창 아래 한 줄
   const minG = ITEM_GRADES.find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   const items: SceneReward[] = [{
-    key: 'gear', name: '장비 등급별 확률', label: lootOpen ? maxGrade : '수령 완료', icon: gameIcon('gear', ICON.gear),
-    color: GRADE_STYLE[maxGrade].color, probability: lootOpen ? 1 : 0, maxGrade,
-    gradeOdds: Object.fromEntries(ITEM_GRADES.map(g => [g, lootOpen ? odds[g] : 0])) as Record<ItemGrade, number>,
-    // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 이번 주에 받았으면 그 한 줄
-    basis: lootOpen ? `최소 ${minG}` : '이번 주 장비 수령 완료',
+    key: 'gear', name: '장비 등급별 확률', label: maxGrade, icon: gameIcon('gear', ICON.gear),
+    color: GRADE_STYLE[maxGrade].color, probability: 1, maxGrade,
+    gradeOdds: odds,
+    // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 레이드는 주 첫 클리어 · 다시 깬 판
+    basis: `최소 ${minG}${raid && play ? (lootOpen ? ' · 이번 주 첫 클리어' : ' · 다시 깬 판 (첫 보상은 받음)') : ''}`,
   }];
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });

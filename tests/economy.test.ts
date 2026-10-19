@@ -221,14 +221,15 @@ describe('정산 연결', () => {
     expect([0, 1, 2, 3].map(() => settle(s, result(), rng, [], T0).pubBonus)).toEqual([1, 2, 3, 0]);
     expect(settle(s, result(), rng, [], T0).pubBonus).toBe(0);
   });
-  it('레이드: 공훈 (주 150 상한), 장비는 보스·난이도마다 주 1번', () => {
+  it('레이드: 공훈 (주 150 상한), 장비는 매 판 1개 · 보스·난이도마다 주 첫 클리어만 레이드 보상 (Lim 「주 첫 판만 크게」)', () => {
     const s = save(40);
     s.daily.pub = 3;
     const raid = () => settle(s, result({ content: 'abyss1', diff: '어려움', segN: 1, segIdx: 0 }), rng, [], T0);
     const a = raid();
-    expect([a.merit, a.items.length, a.lootLocked]).toEqual([MERIT[10]['어려움'], 1, false]);
+    expect([a.merit, a.items.length, a.raidLoot]).toEqual([MERIT[10]['어려움'], 1, 'first']);
     const b = raid();
-    expect([b.merit, b.items, b.lootLocked]).toEqual([15, [], true]);
+    expect([b.merit, b.items.length, b.raidLoot]).toEqual([15, 1, 'again']);
+    expect(s.weekly.loot).toEqual(['abyss1|어려움']); // 다시 깬 판은 주 첫 보상 기록을 더하지 않음
     for (let i = 0; i < 10; i++) raid();
     expect(s.weekly.merit[10]).toBe(150);
     expect(raid().merit).toBe(0);

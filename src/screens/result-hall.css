@@ -82,6 +82,7 @@
   box-shadow: inset 3px 0 0 var(--g), inset 0 0 0 1px var(--gk-line);
 }
 #s-settle .r-item.none { min-height: 0; padding: 8px 10px; background: #15120e; box-shadow: inset 0 0 0 1px var(--gk-line); color: var(--gk-mute); }
+#s-settle .r-item.none.week.first { color: var(--gk-accent); } /* 레이드 칸 주 첫 클리어 (2026-10-19 Lim 「주 첫 판만 크게」) */
 #s-settle button.r-item { width: 100%; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 #s-settle button.r-item:active { filter: brightness(1.15); }
 #s-settle button.r-item:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 3px; }

@@ -116,14 +116,14 @@ describe('공통 성장과 직업별 착용 조합', () => {
 
 describe('클리어 직업과 보상 횟수', () => {
   beforeEach(fresh);
-  it('직업을 바꿔도 레이드 장비·공훈 상한·첫 클리어 보상을 다시 받지 않음', () => {
+  it('직업을 바꿔도 레이드 주 첫 보상·공훈 상한·첫 클리어 보상을 다시 받지 않음', () => {
     const r = result({ hero: 'priest', content: 'abyss1' });
     const a = settle(G.save, r, () => .5, [], now);
     expect(a.items).toHaveLength(1); expect(a.first).toBe(true);
     G.save.weekly.merit[10] = 150;
     switchHero('druid', now);
     const b = settle(G.save, { ...r, hero: 'druid' }, () => .5, [], now);
-    expect(b.items).toHaveLength(0); expect(b.lootLocked).toBe(true); expect(b.merit).toBe(0);
+    expect(b.items).toHaveLength(1); expect(b.raidLoot).toBe('again'); expect(b.merit).toBe(0); // 다시 깬 판 보상 (던전 표), 주 첫 보상은 직업 공통
     expect(b.first).toBe(false);
     expect(raidLootOpen(G.save, 'abyss1', '어려움')).toBe(false);
     expect(G.save.heroes.priest?.wins).toBe(1); expect(G.save.heroes.druid?.wins).toBe(1);

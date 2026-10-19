@@ -254,6 +254,11 @@ export const heroRamp = (lv: number) => Math.max(0, Math.min(1, (lv - (HERO_FROM
 /** 전설 (88, Lim 「노란색은 100레벨부터」): 내 레벨 100부터 20인 레이드 어려움 · 악몽에서만. 고유 장비 · 이름 있는 장신구 (그 구역 것) */
 export const LEGEND_LEVEL = MAX_LEVEL;
 export const LEGEND_CHANCE: Partial<Record<DiffName, number>> = { '어려움': 0.02, '악몽': 0.05 };
+/**
+ * 레이드 다시 깬 판 (2026-10-19 Lim 카드 「주 첫 판만 크게」): 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표 그대로, 그 주에 다시 깨면 같은 레벨 던전 표
+ * (바탕 표 · 영웅 확률 = 던전) + 20인 · 내 레벨 100 어려움 · 악몽 전설 이만큼
+ */
+export const REPEAT_LEGEND: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.01 };
 
 /** 클리어 등급이 높을수록 바탕 표에서 상위 등급 확률 소폭↑ (02 10-4): 굴린 값을 이만큼 위로 민다 (바탕 표 상한까지) */
 export const GRADE_BONUS: Record<'S' | 'A' | 'B' | 'C', number> = { S: 0.05, A: 0.02, B: 0, C: 0 };
@@ -263,15 +268,20 @@ export const PUB_GRADE_BONUS = 0.25;
 export const TOP_GRADE_MULT: Record<'S' | 'A' | 'B' | 'C', number> = { S: 1.2, A: 1.1, B: 1, C: 1 };
 export const PUB_TOP_MULT = 1.5;
 
-/** 드롭 등급을 정하는 맥락: tierLv = 등급대 · 영웅 레벨 (장소 레벨 · 레이드 적 레벨 · 내 레벨), level = 내 레벨 (전설), pub = 공개모집 보너스 판 */
-export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; level: number; grade?: 'S' | 'A' | 'B' | 'C'; pub?: boolean }
+/**
+ * 드롭 등급을 정하는 맥락: tierLv = 등급대 · 영웅 레벨 (장소 레벨 · 레이드 레벨 · 내 레벨), level = 내 레벨 (전설), pub = 공개모집 보너스 판,
+ * repeat = 그 주에 레이드 칸 첫 보상을 이미 받은 다시 깬 판 (던전 표, REPEAT_LEGEND)
+ */
+export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; level: number; grade?: 'S' | 'A' | 'B' | 'C'; pub?: boolean; repeat?: boolean }
+/** 바탕 표 · 영웅 확률을 고르는 콘텐츠 크기 (레이드 다시 깬 판은 던전 = 0) */
+const tableOf = (o: OddsCtx): 0 | 10 | 20 => (o.repeat ? 0 : o.raid ?? 0);
 /** 영웅 확률 (클리어 등급 · 보너스 배율 포함) */
-export const heroChance = (o: OddsCtx) => HERO_MAX[o.raid ?? 0][o.diff] * heroRamp(o.tierLv) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
-/** 전설 확률: 20인 레이드 · 내 레벨 100부터 */
-export const legendChance = (o: OddsCtx) => (o.raid === 20 && o.level >= LEGEND_LEVEL ? (LEGEND_CHANCE[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1) : 0);
+export const heroChance = (o: OddsCtx) => HERO_MAX[tableOf(o)][o.diff] * heroRamp(o.tierLv) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
+/** 전설 확률: 20인 레이드 · 내 레벨 100부터 (다시 깬 판은 REPEAT_LEGEND) */
+export const legendChance = (o: OddsCtx) => (o.raid === 20 && o.level >= LEGEND_LEVEL ? ((o.repeat ? REPEAT_LEGEND : LEGEND_CHANCE)[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1) : 0);
 /** 최종 등급 확률 (ITEM_GRADES 순): 바탕 표를 보너스만큼 밀고 (상한 그대로), 영웅 · 전설 확률만큼 덜어 냄 */
 export function dropOdds(o: OddsCtx): number[] {
-  const base = dropTable(o.diff, o.raid ?? 0, o.tierLv), top = ITEM_GRADES.indexOf(topGrade(base));
+  const base = dropTable(o.diff, tableOf(o), o.tierLv), top = ITEM_GRADES.indexOf(topGrade(base));
   const shift = GRADE_BONUS[o.grade ?? 'A'] + (o.pub ? PUB_GRADE_BONUS : 0);
   // 누적 확률을 shift만큼 당김: 굴린 값 x → min(x + shift, 1) (예전 rollGrade와 같음)
   const out = ITEM_GRADES.map(() => 0);
@@ -556,7 +566,7 @@ export function pickKind(r: () => number, place: string): KindDef {
  */
 /** 효과 1줄 계약을 유지하며 전용 빌드와 기존 공용 빌드를 함께 제공 */
 export const CLASS_LOOT_CHANCE = 0.7;
-export interface DropCtx { hero?: HeroKey; /** 클리어 보상: 효과가 붙는 장비는 전용 70% / 공용 30% (고유 전설 제외) */ classLoot?: boolean; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number; /** 탐험 · 던전 등급대 레벨 (장소 레벨, 86 · dropTable) */ tierLv?: number }
+export interface DropCtx { hero?: HeroKey; /** 클리어 보상: 효과가 붙는 장비는 전용 70% / 공용 30% (고유 전설 제외) */ classLoot?: boolean; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number; /** 탐험 · 던전 등급대 레벨 (장소 레벨, 86 · dropTable) */ tierLv?: number; /** 레이드 다시 깬 판 (OddsCtx.repeat) */ repeat?: boolean }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -662,7 +672,7 @@ export const specsOf = (eq: Equipped, hero: HeroKey): Record<string, number> => 
  * o = 드롭 맥락 (직업 · 장소 · 레이드 인원 · 공개모집 보너스 · 등급대 레벨, 없으면 내 레벨). 전설은 그 장소의 고유 장비 · 이름 있는 장신구 중 하나 (makeLegend)
  */
 export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
-  let g = rollGrade(r, dropOdds({ diff, raid: o.raid ?? 0, tierLv: o.tierLv ?? level, level, grade, pub: o.bonus }));
+  let g = rollGrade(r, dropOdds({ diff, raid: o.raid ?? 0, tierLv: o.tierLv ?? level, level, grade, pub: o.bonus, repeat: o.repeat }));
   if (o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap)) g = o.cap;
   if (g === LEGEND) { const lg = makeLegend(r, id, o); if (lg) return lg; }
   const k = o.place && PLACE_KINDS[o.place] ? pickKind(r, o.place) : undefined;

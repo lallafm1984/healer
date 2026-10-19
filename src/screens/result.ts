@@ -183,8 +183,10 @@ function countUp(v: number, add: number, anim: boolean): string {
 
 /** 받은 장비를 누르면 캐릭터 메뉴와 같은 상세를 연다. 별도의 새 특수능력 띠는 표시하지 않는다. */
 function itemsHtml(x: Settlement): string {
-  if (!x.items.length) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
-  return x.items.map(it => itemRow(it.id)).join('');
+  // 레이드 칸 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): 첫 클리어 = 레이드 보상, 다시 깬 판 = 던전과 같은 표 (월요일 오전 6시에 다시)
+  const week = x.raidLoot === 'first' ? '<p class="r-item none week first">이번 주 첫 클리어 보상</p>'
+    : x.raidLoot === 'again' ? '<p class="r-item none week">이번 주 첫 보상은 받음 · 월요일 오전 6시에 다시</p>' : '';
+  return week + x.items.map(it => itemRow(it.id)).join('');
 }
 
 /** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 · 부위·종류 / 특수능력 · 입고 있으면 「장착함」. 지금 장비와의 ▲▼ · 「빈칸」 비교는 없음 (2026-10-17 Lim 「전투 결과도 마찬가지」) */
