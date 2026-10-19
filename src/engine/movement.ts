@@ -123,6 +123,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
     const j = rt * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1));
     rt = Math.max(STAT_ACT.minReact, j > rt ? Math.min(j, Math.max(rt, tel.impact - f.t - STAT_ACT.lastCall)) : j);
   }
+  if (inZ && u.hesitUntil != null && f.t < u.hesitUntil) rt += u.hesitUntil - f.t; // 99 마: 보스를 뺏고 당황해 머뭇거림 (침착 15 밑)
   if (u.ps && inZ) {
     rt = rt * persReact(f, u, tel) + persLate(f, u); // 뉴비 · 완벽주의자 · 끈기형 (75 · 95) · 끊기 욕심 (95)
     if (u.p.foresee) rt = Math.max(0.05, rt - u.p.foresee.lead); // 예언가 (95)
@@ -232,11 +233,11 @@ export function recoverAt(f: Fight, u: Unit, impact: number): number {
   return impact + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1);
 }
 /**
- * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응이 낮을수록) = 터진 뒤 뛰어나옴, 엉뚱한 쪽 (판단이 낮을수록) = 장판 안 다른 칸으로 갔다가 터진 뒤 다시,
- * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true
+ * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응 느림 · 판단 좋음) = 늦어도 맞는 칸으로 터진 뒤 뛰어나옴, 엉뚱한 쪽 (반응 빠름 · 판단 나쁨) = 먼저 장판 안 다른 칸으로 뛰었다가 터진 뒤 다시,
+ * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시, 둘 다 낮으면 대개 이것). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true (Codex 검토 반영 1)
  */
 function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): boolean {
-  const cr = clumsy(st(u, 'react')), late = STAT_ACT.late * cr, wrong = STAT_ACT.wrong * clumsy(st(u, 'judgment'));
+  const cr = clumsy(st(u, 'react')), cj = clumsy(st(u, 'judgment')), late = STAT_ACT.late * cr * (1 - cj), wrong = STAT_ACT.wrong * cj * (1 - cr);
   if (late + wrong <= 0) return false;
   const x = f.rng();
   if (x < late) {

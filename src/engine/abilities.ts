@@ -537,6 +537,16 @@ export function guardNow(f: Fight, u: Unit): boolean {
   return true;
 }
 
+/**
+ * 99 마 · Codex 검토 반영 1 (판단 · 침착 둘 다 15 넘는 딜러가 보스를 뺏었을 때): 방어 생존기를 켜고 버팀. 강타 한 번만 줄이는 것 · 전투당 1회는 빼고, 헛씀 판정은 거침. 썼으면 true
+ */
+export function holdGuard(f: Fight, u: Unit): boolean {
+  if (!u.ab || !u.alive || hasMod(u, 'stop')) return false;
+  const a = DEF(u);
+  if (!guardAb(a) || a.cd <= 0 || (a.fx.e === 'cut' && a.fx.hit) || !ready(f, u, a, 0)) return false;
+  return tryUse(f, u, a, {});
+}
+
 /** 미리미리 · 아슬아슬: 나를 노리는 강타 예고에 생존기 (체력 조건 생존기도). 미리미리는 바로, 아슬아슬은 맞기 lead초 전 (clutchTick). 다뤘으면 true */
 function guardTel(f: Fight, u: Unit, a: AbilityDef, tel: Telegraph): boolean {
   if (tel.kind !== 'buster' || !tel.units.includes(u.id) || !guardAb(a) || !ready(f, u, a, 0)) return false;

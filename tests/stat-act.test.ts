@@ -93,11 +93,18 @@ describe('(가) 못 피한 모양', () => {
     expect(slow.late).toBeGreaterThan(quick.late * 1.6);
     const dull = shapes({ judgment: 1 }, 300), sharp = shapes({ judgment: 20 }, 300);
     expect(dull.wrong).toBeGreaterThan(sharp.wrong * 2);
-    const avg = shapes({}, 400), tot = avg.late + avg.wrong + avg.freeze;
-    expect(avg.late / tot).toBeGreaterThan(STAT_ACT.late * clumsy(10) - 0.08);
-    expect(avg.late / tot).toBeLessThan(STAT_ACT.late * clumsy(10) + 0.08);
+    const avg = shapes({}, 400), tot = avg.late + avg.wrong + avg.freeze, want = STAT_ACT.late * clumsy(10) * (1 - clumsy(10));
+    expect(avg.late / tot).toBeGreaterThan(want - 0.06);
+    expect(avg.late / tot).toBeLessThan(want + 0.06);
     const par = shapes({ react: 15, judgment: 15 }, 200);
     expect(par.late + par.wrong).toBe(0); // 15 이상 = 예전처럼 멈칫만
+  });
+
+  it('Codex 검토 반영 1: 반응 빠름 + 판단 나쁨 = 먼저 엉뚱한 쪽, 반응 느림 + 판단 좋음 = 늦어도 맞는 칸, 둘 다 낮으면 멈칫', () => {
+    const quickDull = shapes({ react: 15, judgment: 1 }, 200), slowSharp = shapes({ react: 1, judgment: 15 }, 200), both = shapes({ react: 1, judgment: 1 }, 200);
+    expect(quickDull.late).toBe(0); expect(quickDull.wrong).toBeGreaterThan(50);
+    expect(slowSharp.wrong).toBe(0); expect(slowSharp.late).toBeGreaterThan(70);
+    expect(both.late + both.wrong).toBe(0); expect(both.freeze).toBeGreaterThan(150);
   });
 
   it('늦게 피함: 터질 때는 그 칸에 있다가 (맞음) 터진 뒤 안전한 칸으로 뛰어나옴', () => {
@@ -285,7 +292,50 @@ describe('(마) 어그로 상황', () => {
     expect(hi.out.every(x => x === 0)).toBe(true);
     expect(par.out[0]).toBe(0);
     expect(par.out[4]).toBeCloseTo(1 - THREAT.ease);
-    expect(lo.out.every(x => x === 1)).toBe(true);
+    expect(lo.out.every(x => x === 1 || x === 0)).toBe(true); // 판단 · 침착 1: 계속 때리다가 당황하면 잠깐 끊김 (아래)
+    expect(lo.out.slice(1).every(x => x === 1)).toBe(true);
+  });
+  /** Codex 검토 반영 1: 뺏는 순간 (사건 · 대사 · 칸) 과 그 뒤 딜 배율 */
+  function stealCase(st: Partial<Stats>, ab = 'rogue.kick', seed = 1) {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱', {}, 15), { ...R('melee', 'rogue', '사교형', '근', st, 15), ab }, R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const tk = who(f, '탱'), u = who(f, '근'), t = f.thr!;
+    for (let i = 0; i < 200; i++) { E.step(f); f.events.length = 0; }
+    const cell0 = u.cell, sits: string[] = [];
+    let used = false;
+    for (let i = 0; i < 40 && !t.steal; i++) {
+      t.v.set(u.id, (t.v.get(tk.id) ?? 1) * 3); E.step(f);
+      for (const ev of f.events) { if (ev.type === 'bark' && ev.id === u.id && ev.sit) sits.push(ev.sit); if (ev.type === 'ability' && ev.id === u.id && !ev.fumble) used = true; }
+      f.events.length = 0;
+    }
+    expect(t.steal?.id).toBe(u.id);
+    const s0 = t.steal!, at0 = s0.at, moved = (u.moving?.to ?? u.cell) !== cell0, hesit = (u.hesitUntil ?? 0) - at0, lost = (u.lostUntil ?? 0) > f.t;
+    t.retakeAt = f.t + 20;
+    const dps = (dt: number) => { while (f.t < at0 + dt) { E.step(f); f.events.length = 0; } return threatDps(f, u); };
+    return { s0, sits, used, moved, hesit, lost, dps };
+  }
+  it('Codex 검토 반영 1: 판단 = 고르기 · 침착 = 해내기 — 네 모양 (멈추고 생존기 · 당황해 한 대 더 · 차분히 계속 · 끊기고 자리 잃음)', () => {
+    // 판단 ↑ 침착 ↑: 멈추고 기다리며 방어 생존기를 켬
+    const hh = stealCase({ judgment: 20, composure: 20 }, 'rogue.evasion');
+    expect(hh.used).toBe(true); expect(hh.sits).toContain('aggroHold'); expect(hh.dps(1)).toBe(0); expect(hh.dps(6)).toBe(0);
+    // 판단 ↑ 침착 ↓: 멈추기로 했지만 한 대 더 (멈춤이 늦음) · 장판 반응 머뭇거림
+    const hl = stealCase({ judgment: 20, composure: 1 });
+    expect(hl.sits).toContain('aggroPanic'); expect(hl.hesit).toBeCloseTo(STAT_ACT.hesit, 1);
+    expect(hl.s0.stopAt - hl.s0.at).toBeCloseTo(THREAT.calm[0] + STAT_ACT.panicHit, 1);
+    expect(hl.dps(2.5)).toBe(1); expect(hl.dps(4)).toBe(0);
+    // 판단 ↓ 침착 ↑: 차분히 계속 때림 (끊김 · 자리 잃음 없음)
+    const lh = stealCase({ judgment: 1, composure: 20 });
+    expect(lh.sits).toContain('aggroIgnore'); expect(lh.moved || lh.lost).toBe(false); expect(lh.dps(0.3)).toBe(1); expect(lh.dps(3)).toBe(1);
+    // 판단 ↓ 침착 ↓: 딜이 끊기고 옆 칸으로 밀려남 (「?」), 끊김이 끝나면 다시 그대로 때림
+    const ll = stealCase({ judgment: 1, composure: 1 });
+    expect(ll.sits).toContain('aggroLost'); expect(ll.moved).toBe(true); expect(ll.lost).toBe(true);
+    expect(ll.dps(0.5)).toBe(0); expect(ll.dps(STAT_ACT.breakSec + 0.3)).toBe(1);
+    // 15 = 예전 그대로 (생존기 · 당황 · 자리 잃음 없음)
+    const par = stealCase({ judgment: 15, composure: 15 }, 'rogue.evasion');
+    expect(par.used).toBe(false); expect(par.hesit).toBeLessThanOrEqual(0); expect(par.moved || par.lost).toBe(false); expect(par.sits).toContain('aggroSteal');
   });
 });
 
@@ -331,8 +381,8 @@ describe('(라) 방어 · 회피 · 나머지', () => {
 describe('Codex 검토 반영: 버그', () => {
   it('A: 못 피한 뒤 다시 움직이는 때는 세 모양 모두 같은 침착 식 (늦게 피함 · 엉뚱한 쪽이 멈칫보다 먼저 벗어나지 않음)', () => {
     const late: number[] = [], wrong: number[] = [], freeze: number[] = [];
-    for (let i = 0; i < 400; i++) {
-      const f = fight({ st: { react: 1, judgment: 1 }, seed: 7000 + i }), u = who(f, '근');
+    for (let i = 0; i < 600; i++) {
+      const f = fight({ st: i % 3 === 0 ? { react: 1, judgment: 15 } : i % 3 === 1 ? { react: 15, judgment: 1 } : { react: 1, judgment: 1 }, seed: 7000 + i }), u = who(f, '근');
       u.senseDodge = -2;
       const tel = zoneTel(f, u);
       u.react = { at: f.t, tel: tel.id };
