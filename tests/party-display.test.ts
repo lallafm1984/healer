@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -87,6 +87,12 @@ describe('전투 칸 글자 크기', () => {
     expect(hpLabelText(1000, false, 5000)).not.toMatch(/\+/);
     const u = { mods: [{ k: 'absorb', v: 200.4, until: 9, src: 'healer' }, { k: 'absorb', v: 100, until: 5, src: 'gear' }, { k: 'absorb', v: 50, until: 1, src: 'gear' }] as unknown as Mod[] };
     expect(hpLabelText(1000, false, shieldTimerOf(u, 2)?.amt)).toBe('1301');
+  });
+  it('결계사 인장은 그림 대신 왼쪽 열 원 + 남은 초 (2026-10-19 Lim 「보호막 유지 시간처럼 단순하게」), 결계사 전투에서 붙어 있을 때만', () => {
+    expect(sealTimerOf({ seal: 18 }, 10, 'warder')).toBe(8);
+    expect(sealTimerOf({ seal: 9.9 }, 10, 'warder')).toBeNull();
+    expect(sealTimerOf({}, 10, 'warder')).toBeNull();
+    expect(sealTimerOf({ seal: 18 }, 10, 'priest')).toBeNull();
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;

@@ -18,13 +18,12 @@ import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { asleep, CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { raining } from '../engine/shaman';
-import { sealed } from '../engine/warder';
 import { emblemColor } from '../screens/art';
 import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf, type GuardTimerKey } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, type GuardTimerKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -1216,6 +1215,8 @@ const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
   guardian: [0xeadfbe, 0x080605], bark: [0x8a5a2e, 0xffffff], soothe: [0x4fae8c, 0x080605],
   immune: [0xc3cad4, 0x080605], sacrifice: [0xc99320, 0x080605], sleep: [0x7a62d0, 0xffffff],
 };
+/** 결계사 인장 남은 시간 원 [채움, 숫자 색]: 결계사 레몬 노랑 + 짙은 호박 숫자 (2026-10-19 Lim, 예전 인장 그림 대신) */
+const SEAL_COLOR: [number, number] = [0xffd51f, 0x3d2a00];
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤.
@@ -1299,14 +1300,14 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-spring-aura', 'board-totem-earth-aura', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
-  warder: ['board-seal', 'board-citadel'],
+  warder: ['board-citadel'],
 };
 /**
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
   'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」)
-  'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96],
+  'board-mist': [0.98, 0.49],
   'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
@@ -1989,7 +1990,7 @@ export function render(now: number): void {
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
     // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
-    const guards = guardTimersOf(u, F.t, F.hero), leftN = (shieldT ? 1 : 0) + guards.length;
+    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0);
     const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
@@ -2065,7 +2066,7 @@ export function render(now: number): void {
     }
     // 보호막 시간 (2026-10-16 Lim): 지속 힐 원을 칸 왼쪽으로 뒤집은 자리 · 같은 크기, 짙은 파란 원 + 흰 숫자. 배지가 있으면 배지 왼쪽 같은 줄.
     // 방어 생존기 시간 (2026-10-18 Lim 「드루이드의 껍질처럼 … 왼쪽에 (도트힐이 오른쪽에 표시되는것처럼)」): 보호막 원 아래로 효과마다 색 원 + 남은 초, 지속 힐 원처럼 세로로.
-    // 왼쪽 위 열은 보호막 · 방어 생존기 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 인장 · 별자리 표식 (leftY = 다음 것의 윗변)
+    // 왼쪽 위 열은 보호막 · 방어 생존기 · 결계사 인장 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 별자리 표식 (leftY = 다음 것의 윗변)
     let leftY: number | null = null;
     if (leftN) {
       const sr = shieldLayout.radius, lower = sr + 0.75 + (leftN - 1) * shieldLayout.step;
@@ -2073,6 +2074,7 @@ export function render(now: number): void {
       const col = [
         ...(shieldT ? [{ key: `shield${u.id}`, kind: 'shield', left: shieldT.left, fill: C.shieldFill, fg: C.white }] : []),
         ...guards.map(g => ({ key: `guard${u.id}-${g.key}`, kind: 'guard', left: g.left, fill: GUARD_COLOR[g.key][0], fg: GUARD_COLOR[g.key][1] })),
+        ...(sealLeft != null ? [{ key: `seal${u.id}`, kind: 'seal', left: sealLeft, fill: SEAL_COLOR[0], fg: SEAL_COLOR[1] }] : []),
       ];
       col.forEach((c, i) => {
         const px = start.x, py = start.y + i * shieldLayout.step;
@@ -2190,10 +2192,10 @@ export function render(now: number): void {
       recordBound(`relay${u.id}`, 'relay', 'circle', p.x, p.y, dr * 2, dr * 2);
     }
     // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
-    const sign = F.hero === 'warder' && sealed(F, u) ? 'board-seal' : F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : '';
+    const sign = F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : ''; // 결계사 인장은 왼쪽 열 원 (sealTimerOf)
     if (sign) {
-      const size = r * (sign === 'board-seal' ? 0.52 : 0.57) * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
-      heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
+      const size = r * 0.57 * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
+      heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, 1, true);
     }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));

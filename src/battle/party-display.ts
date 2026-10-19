@@ -50,6 +50,12 @@ export function guardTimersOf(u: Pick<Unit, 'guardian' | 'redu' | 'immune' | 'sa
 }
 
 /**
+ * 결계사 인장 남은 시간 (2026-10-19 Lim 「인장도 이미지 대신 보호막 유지 시간처럼 단순하게, 유지 시간 표시와 같은 크기」): 결계사 전투에서 인장이 붙어 있으면 남은 초, 아니면 null.
+ * 칸 왼쪽 열에서 보호막 원 · 방어 생존기 원 아래 같은 크기 원 (예전 인장 그림 board-seal은 다른 원과 같이 있을 때 작아져 크기가 들쭉날쭉했음)
+ */
+export const sealTimerOf = (u: Pick<Unit, 'seal'>, t: number, hero: HeroKey): number | null => (hero === 'warder' && u.seal != null && u.seal > t ? u.seal - t : null);
+
+/**
  * 칸 글자 크기 (판 그림 좌표). 모든 판이 5인 던전 칸 모양이라 (2026-10-16 Lim, 레이드 전용 작은 칸 없앰) 대상 폰에서 scale은 50 이상,
  * 10 · 20인은 판 전체를 줄여 그려 글자도 같은 비율로 작아짐
  */
