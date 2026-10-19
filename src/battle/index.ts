@@ -535,6 +535,7 @@ function handleEvents(now: number): void {
       case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now, !!ev.crit); break;
       case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
       case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
+      case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
       case 'death':
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');

@@ -22,7 +22,7 @@ import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
 import { rngFrom } from './rng';
-import { unitDps, unitTick } from './units';
+import { dazed, unitDps, unitTick } from './units';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
@@ -296,8 +296,8 @@ function partyHits(f: Fight): void {
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
     let amt = u.acc, crit = false;
     u.acc = 0;
-    if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감, 공격이 15 넘으면 가끔 세게
-      if (f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
+    if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감 (멍한 동안 더, 99 집중), 공격이 15 넘으면 가끔 세게
+      if (f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
       if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
     }
     land(f, u, amt);

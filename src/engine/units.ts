@@ -76,9 +76,35 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.pulled) pullTick(f, u);
   if (u.debuffs.length && u.debuffs.some(d => d.noMove)) return; // 얼림·삼킴: 제자리
   if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
+  if (u.wob != null && !u.me && focusTick(f, u)) return; // 99 집중: 멍한 동안 반응 · 판단을 미룸
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
   if (f.k % 4 !== 0 || u.moving || u.react) return;
   think(f, u);
+}
+
+/** 99 집중: 지금 멍한가 */
+export const dazed = (f: Fight, u: Unit): boolean => u.dazeUntil != null && f.t < u.dazeUntil;
+
+/**
+ * 99 집중 「멍」: 집중이 15보다 낮으면 전투가 길어질수록 잠깐 딴생각. 다음 멍할 때는 한 번씩만 굴림 (잦기가 커지는 포아송: 누적 잦기 Λ(t) = 잦기 × g(t),
+ * g = 처음 dazeFirst초 0 → dazeRamp초 동안 τ² ÷ 2R → 그 뒤 R/2 + (τ − R)). 멍한 동안이면 true
+ */
+function focusTick(f: Fight, u: Unit): boolean {
+  if (u.dazeNext == null) { if (f.t < STAT_ACT.dazeFirst) return false; u.dazeNext = nextDaze(f, u); } // 처음 20초는 굴리지도 않음 (난수 흐름 그대로)
+  if (f.t >= u.dazeNext) {
+    u.dazeUntil = f.t + STAT_ACT.dazeSec;
+    u.dazeNext = nextDaze(f, u);
+    emit(f, { type: 'daze', id: u.id });
+    if (f.rng() < 0.35) bark(f, u, null, false, 'spaceOut');
+  }
+  return dazed(f, u);
+}
+function nextDaze(f: Fight, u: Unit): number {
+  const r = STAT_ACT.dazeRate * clumsy(u.fmStats?.focus ?? 10), R = STAT_ACT.dazeRamp, first = STAT_ACT.dazeFirst;
+  if (r <= 0) return Infinity;
+  const tau = Math.max(0, f.t - first), g = tau < R ? (tau * tau) / (2 * R) : R / 2 + (tau - R);
+  const G = g - Math.log(1 - f.rng()) / r;
+  return first + (G < R / 2 ? Math.sqrt(2 * R * G) : G - R / 2 + R);
 }
 
 /** 붙어 있는 것 한 틱: 지속 힐 · 보호 효과 시간 · 디버프 (지속 피해 · 끝남). 그 사이 쓰러지면 false */
