@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldLabelText, shieldTimerOf } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -77,6 +77,15 @@ describe('전투 칸 글자 크기', () => {
     expect(hpLabelText(0)).toBe('0');
     expect(hpLabelText(500, true)).toBe('?');
     expect(hpLabelText(1234.5)).not.toMatch(/%/);
+  });
+  it('보호막이 있으면 체력 뒤에 「+보호막」 (남은 흡수량 합, 올림), 없거나 영원한 저녁이면 빈 글자', () => {
+    expect(shieldLabelText(319.2)).toBe('+320');
+    expect(shieldLabelText(0.01)).toBe('+1');
+    expect(shieldLabelText(0)).toBe('');
+    expect(shieldLabelText(null)).toBe('');
+    expect(shieldLabelText(500, true)).toBe('');
+    const u = { mods: [{ k: 'absorb', v: 200.4, until: 9, src: 'healer' }, { k: 'absorb', v: 100, until: 5, src: 'gear' }, { k: 'absorb', v: 50, until: 1, src: 'gear' }] as unknown as Mod[] };
+    expect(shieldLabelText(shieldTimerOf(u, 2)?.amt)).toBe('+301');
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;
