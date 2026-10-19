@@ -12,7 +12,7 @@ import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { CONTENT } from '../data/content';
 import { PARTY_POOL, STORY_NICKS } from '../data/nicknames';
-import { BOND_STEPS, bondLv, bondName, EXPED, FAC, FAC_GOLD, FAC_KEYS, FRIEND_LV, REQ, STORY, type FacKey, type StoryKey, POSTS, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
+import { BOND_STEPS, bondLv, bondName, EXPED, FAC, FAC_GOLD, FAC_KEYS, FRIEND_LV, REQ, STORY, type FacKey, type StoryKey, POSTS, SPONSOR, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
@@ -34,8 +34,9 @@ type Sub = 'home' | 'members' | 'recruit';
 const SUBS: [Sub, string][] = [['home', '현황'], ['members', '길드원'], ['recruit', '영입']];
 /** 열린 시트: 길드원 · 친구 · 공고 지원자 · 명성 지원자 */
 type Sheet = { k: 'mem'; id: number } | { k: 'friend'; nick: string } | { k: 'cand'; i: number } | { k: 'app'; i: number } | null;
+type MemberAction = { kind: 'sponsor' | 'release'; id: number };
 /** tip = 펼친 ⓘ 설명 (판 키 · 'msheet'), pkind = 공고 종류, csel = 큰 그림 칸에서 고른 판 */
-const st: { sub: Sub; sheet: Sheet; msg: string; ask: number | null; role: PostRole; cls: ClassKey; roster: boolean; rrole: PostRole; rfriend: boolean; tip: string | null; pkind: PostKind; csel: string } = { sub: 'home', sheet: null, msg: '', ask: null, role: 'any', cls: 'warrior', roster: false, rrole: 'any', rfriend: false, tip: null, pkind: 'normal', csel: '' };
+const st: { sub: Sub; sheet: Sheet; msg: string; ask: MemberAction | null; role: PostRole; cls: ClassKey; roster: boolean; rrole: PostRole; rfriend: boolean; tip: string | null; pkind: PostKind; csel: string } = { sub: 'home', sheet: null, msg: '', ask: null, role: 'any', cls: 'warrior', roster: false, rrole: 'any', rfriend: false, tip: null, pkind: 'normal', csel: '' };
 
 const memberView: { role: PostRole; sort: 'level' | 'bond'; } = { role: 'any', sort: 'level' };
 let postReplace = false;
@@ -109,7 +110,7 @@ function render(): void {
   const keep = body && body.dataset.view === st.sub ? body.scrollTop : 0;
   const open = guildOpen(G.save);
   if (!open.ok || !G.save.guild.founded) {
-    st.sheet = null;
+    st.sheet = null; st.ask = null;
     s.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body guild g-lock">${hero('길드', false)}${open.ok ? foundHtml() : lockHtml(open.why)}</div>`;
     modal.sync(null, []);
     return;
@@ -117,7 +118,7 @@ function render(): void {
   const hasCta = st.sub === 'home' && (!st.csel || st.csel === 'todo');
   const view = st.sub === 'home' ? homeHtml() : st.sub === 'members' ? membersHtml() : recruitHtml();
   const sheet = sheetHtml();
-  if (!sheet) st.sheet = null;
+  if (!sheet) { st.sheet = null; st.ask = null; }
   s.el.innerHTML = `${topBar({ settings: true })}${tabs()}
     <div class="ns-body guild g-${st.sub}${hasCta ? ' g-with-cta' : ''}">
       ${hero('')}
@@ -126,10 +127,11 @@ function render(): void {
       ${view}
     </div>
     ${hasCta ? `<footer class="ns-foot g-foot">${ctaHtml()}</footer>` : ''}
-    ${sheet}`;
+    ${sheet}${memberConfirmHtml()}`;
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb) { nb.dataset.view = st.sub; nb.scrollTop = keep; }
-  modal.sync(st.sheet ? s.el.querySelector<HTMLElement>('.sheet') : null, st.sheet ? [sheetKey(st.sheet)] : []);
+  modal.sync(st.sheet ? s.el.querySelector<HTMLElement>(st.ask ? '.g-action-confirm' : '.g-msheet') : null,
+    st.sheet ? [sheetKey(st.sheet), ...(st.ask ? [`confirm:${st.ask.kind}`] : [])] : []);
   if (!st.sheet && focusSelector && active?.closest('.ns-body, .subtabs')) s.el.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true });
   st.msg = '';
 }
@@ -227,7 +229,7 @@ function membersSec(): Sec {
     body: `${filters}${sp}<ul class="pcards g-list">${rows.map(memberRow).join('') || '<li class="g-empty0">이 역할의 길드원 없음</li>'}</ul>`,
     tip: `<p>함께 이긴 판마다 레벨 경험치를 얻습니다 (내 레벨까지). 쉬는 길드원은 30%, 후원하면 출전만큼 받습니다.</p>
       <p>능력치는 레벨이 오를 때 오릅니다. 직업 스킬 레벨은 인연 Lv 4 · 6 · 8 · 10에서 오릅니다.</p>
-      <p>하트 옆 숫자 = 인연 Lv. 줄을 누르면 능력치 · 후원 · 보내기.</p>`,
+      <p>하트 옆 숫자 = 인연 Lv. 줄을 누르면 능력치 · 골드 지원 · 내보내기.</p>`,
   };
 }
 
@@ -386,7 +388,7 @@ function sheetHtml(): string {
   return sheetBox(`${m.nick} 상세`, detailHtml(m));
 }
 
-/** 길드원 상세 (시트 안): 레벨 · 인연 막대 → 능력치 · 직업 스킬 · 성격 → 후원 · 보내기. 규칙은 ⓘ */
+/** 길드원 상세 (시트 안): 레벨 · 인연 막대 → 능력치 · 직업 스킬 · 성격 → 골드 지원 · 내보내기. 규칙은 ⓘ */
 function detailHtml(m: GuildMember): string {
   const b = bondOf(G.save, m.nick), star = starOfBond(b), a = ABILITIES[m.ab];
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
@@ -394,34 +396,73 @@ function detailHtml(m: GuildMember): string {
   const fx = a ? starFx(a, star) : null;
   const gold = resourceBalance(G.save, 'gold');
   const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
-  const d = card(m, b, star, true), ask = st.ask === m.id;
+  const d = card(m, b, star, true);
   const meters = `<div class="g-meters">
       <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>
       <p class="g-meter"><span class="k">${bondIconSvg(b)}인연 ${b}</span>${bar(next ? (pt / next) * 100 : 100, `인연 ${Math.floor(pt)} / ${next ?? '최고'}`)}<small>${next ? `${fmt(Math.floor(pt))} / ${fmt(next)}` : '최고'}</small></p></div>`;
-  const act = (attr: string, ic: string, label: string, sub: string, dis: boolean, cls = '', badge = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small>${badge}</button>`;
+  const act = (attr: string, ic: string, label: string, sub: string, dis: boolean) => `<button class="btn" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small></button>`;
   return `${sheetHead(d, 'msheet')}
-    ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 후원하면 출전만큼 (한 번에 5판, 20판까지).</p>
+    ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 골드 지원 중에는 출전만큼 받습니다. 지원은 한 번에 ${SPONSOR.runs}판이며, 남은 횟수를 모두 쓰면 다시 지원할 수 있습니다.</p>
       <p><b>능력치</b> 레벨이 오를 때 오릅니다. 다음 한 칸까지 레벨 ${Math.max(1, Math.ceil((1 - m.sxp) / per - 1e-9))} · 상한 ${cap} · 칸마다 타고난 값에서 +${pot}까지.</p>
       ${a ? `<p><b>직업 스킬 LV ${star} / 5</b>${fx && star ? ` 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}.` : ''} 인연 Lv 4 · 6 · 8 · 10에서 오릅니다.${star >= 5 ? ` LV 5: ${STAR5[a.kind]}` : ''}</p>` : ''}
       <p><b>공략 숙지</b> 함께 이긴 전투마다 그 전투에서 반응 · 회피가 좋아집니다.</p>`)}
     ${meters}
     ${memDetailHtml(d)}
-    ${ask ? `<p class="g-tip">${esc(m.nick)}을 친구 목록으로 보냅니다. 인연과 성장은 유지됩니다.${m.boost ? ` 남은 후원 ${m.boost}판은 돌아오지 않습니다.` : ''}<button type="button" class="btn2" id="cancelRelease">취소</button></p>` : ''}
     <div class="g-acts">
-      ${act('data-sponsor', IC.sponsor(), '5판 후원', sw || `${goldCost(sg)}`, !!sw || gold < sg, '', m.boost ? `<i class="g-runs" aria-label="${m.boost}판 남음">${m.boost}</i>` : '')}
-      ${act('data-release', IC.release(), ask ? '보내기 확인' : '보내기', ask ? (m.boost ? `후원 ${m.boost}판 남음` : '인연 그대로') : '친구 목록으로', !!m.story, ask ? 'danger' : '')}
+      ${act('data-sponsor aria-haspopup="dialog"', IC.sponsor(), m.boost > 0 ? '지원 중' : '골드 지원', m.boost > 0 ? `${m.boost}판 남음` : sw || goldCost(sg), !!sw || gold < sg)}
+      ${act('data-release aria-haspopup="dialog"', IC.release(), '내보내기', '친구 목록으로', !!m.story)}
     </div>`;
+}
+
+/** 상세 위의 확인창: 확인하기 전에는 골드와 길드원 상태를 바꾸지 않는다. */
+function memberConfirmHtml(): string {
+  const action = st.ask, m = action && memberById(action.id);
+  if (!action || !m || st.sheet?.k !== 'mem' || st.sheet.id !== m.id) { st.ask = null; return ''; }
+  const support = action.kind === 'sponsor';
+  const disabled = support ? !!sponsorWhy(G.save, m) || resourceBalance(G.save, 'gold') < sponsorGold(m.lv) : !!m.story;
+  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="확인 취소" tabindex="-1"></button>
+    <section class="sheet g-action-confirm" role="dialog" aria-modal="true" aria-labelledby="guildConfirmTitle" aria-describedby="guildConfirmDesc">
+      <h3 id="guildConfirmTitle">${support ? '골드 지원' : '내보내기'}</h3>
+      <div class="g-action-member"><b>${esc(m.nick)}</b><span>${CLASSES[m.cls].name} · Lv ${m.lv}</span></div>
+      <p id="guildConfirmDesc">${support ? '전투에 참여하지 않아도 경험치를 소량 획득합니다. 후원하시겠습니까?' : '길드에서 내보냅니다.'}</p>
+      ${support ? `<div class="g-action-cost"><span>${SPONSOR.runs}판 지원</span>${goldCost(sponsorGold(m.lv))}</div>` : '<p class="g-action-note">친구 목록으로 이동하며 인연과 성장은 유지됩니다.</p>'}
+      <div class="g-action-buttons"><button type="button" data-shut>취소</button><button type="button" class="${support ? 'primary' : 'danger'}" data-gconfirm${disabled ? ' disabled' : ''}>확인</button></div>
+    </section>`;
+}
+
+function confirmMemberAction(): void {
+  const action = st.ask;
+  st.ask = null;
+  if (!action || st.sheet?.k !== 'mem' || st.sheet.id !== action.id) return;
+  const m = memberById(action.id);
+  if (m) {
+    if (action.kind === 'sponsor') st.msg = sponsor(G.save, m.id) || `골드 지원 · ${m.boost}판 남음`;
+    else if (!m.story && release(G.save, m.id)) {
+      st.sheet = null;
+      st.msg = `${m.nick}(${CLASSES[m.cls].name}) 친구 목록으로 · 인연은 그대로`;
+    }
+    commit();
+  }
+  render();
 }
 
 function openSheet(x: NonNullable<Sheet>, from: string): void {
   s.el.querySelector<HTMLElement>(from)?.focus({ preventScroll: true });
   st.sheet = x; st.ask = null; st.msg = ''; st.tip = null; render();
 }
-function closeSheet(): void { st.sheet = null; st.ask = null; st.tip = null; render(); }
+function closeSheet(): void {
+  if (st.ask) st.ask = null;
+  else { st.sheet = null; st.tip = null; }
+  render();
+}
 
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const save = G.save;
+  if (t.closest('[data-shut]')) { closeSheet(); return; }
+  const confirm = t.closest<HTMLButtonElement>('[data-gconfirm]');
+  if (confirm) { if (!confirm.disabled) confirmMemberAction(); return; }
+  if (st.ask) return;
   const dest = t.closest<HTMLButtonElement>('[data-goto]');
   if (dest) {
     const c = CONTENT.find(c => c.key === dest.dataset.goto);
@@ -431,9 +472,7 @@ s.el.addEventListener('click', e => {
   }
   const mr = t.closest<HTMLButtonElement>('[data-mrole]');
   if (mr) { memberView.role = mr.dataset.mrole as PostRole; render(); return; }
-  if (t.closest('#cancelRelease')) { st.ask = null; render(); return; }
   if (t.closest('#cancelPost')) { postReplace = false; render(); return; }
-  if (t.closest('[data-shut]')) { closeSheet(); return; }
   // ⓘ 설명: 누르면 펼치고 다시 누르면 접음
   const tip = t.closest<HTMLElement>('[data-tip]');
   if (tip) { const k = tip.dataset.tip!; st.tip = st.tip === k ? null : k; render(); return; }
@@ -479,15 +518,9 @@ s.el.addEventListener('click', e => {
   if (ha) { if (!ha.disabled) { const err = hireApp(save, Number(ha.dataset.hireapp)); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
   const x = st.sheet;
   if (x?.k === 'mem' && t.closest('.g-msheet')) {
-    const id = x.id;
-    if (t.closest('[data-sponsor]')) { const m = memberById(id); st.msg = sponsor(save, id) || `후원 · ${m?.boost ?? 0}판 남음`; }
-    else if (t.closest('[data-release]')) {
-      if (st.ask !== id) { st.ask = id; render(); return; }
-      const m = memberById(id);
-      release(save, id); st.sheet = null; st.ask = null;
-      st.msg = m ? `${m.nick}(${CLASSES[m.cls].name}) 친구 목록으로 · 인연은 그대로` : '';
-    } else return;
-    commit(); render(); return;
+    const button = t.closest<HTMLButtonElement>('[data-sponsor], [data-release]');
+    if (button && !button.disabled) { st.ask = { kind: button.hasAttribute('data-sponsor') ? 'sponsor' : 'release', id: x.id }; render(); }
+    return;
   }
   const sub = t.closest<HTMLElement>('[data-sub]');
   if (sub) { st.sub = sub.dataset.sub as Sub; st.sheet = null; st.ask = null; st.tip = null; st.csel = ''; postReplace = false; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }

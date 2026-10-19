@@ -53,8 +53,9 @@ export const APP_DAYS = 3;
 export const rerollGold = (myLv: number) => 60 * myLv;
 /**
  * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 20 골드 = 「후원 5판」. 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
- * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 한 사람에 4번 (20판)까지. 레벨이 오르면 능력치도 (레벨업 능력치)
+ * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 남은 지원이 있으면 추가 지원 불가 (2026-10-19 Lim). 레벨이 오르면 능력치도 (레벨업 능력치)
  */
+// max는 예전에 중첩 결제한 저장의 남은 횟수를 보존하기 위한 읽기 상한이다.
 export const SPONSOR = { per: 20, runs: 5, max: 20 };
 export const sponsorGold = (lv: number) => SPONSOR.per * lv;
 

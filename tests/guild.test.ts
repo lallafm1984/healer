@@ -538,16 +538,22 @@ describe('추천 편성 (93 7-1)', () => {
 });
 
 describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
-  it('그 길드원 Lv × 20 골드 = 5판, 20판까지, 내 레벨과 같으면 안 됨', () => {
+  it('그 길드원 Lv × 20 골드 = 5판, 지원 중에는 중첩 불가, 모두 쓰면 다시 지원 가능', () => {
     const s = save(30, 2000), m = add(s, 'mage', 0, { lv: 20 }), top = add(s, 'mage', 1, { lv: 30 });
     expect(sponsorGold(20)).toBe(400);
     expect(Gd.sponsor(s, m.id)).toBe('');
     expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1600]);
     expect(Gd.sponsorWhy(s, top)).toBe('내 레벨과 같음');
     expect(Gd.sponsor(s, top.id)).toBe('내 레벨과 같음');
-    for (let i = 0; i < 3; i++) Gd.sponsor(s, m.id);
-    expect(m.boost).toBe(SPONSOR.max);
-    expect(Gd.sponsor(s, m.id)).toMatch(/20판까지/);
+    for (const left of [1, 5, 20]) {
+      m.boost = left;
+      expect(Gd.sponsorWhy(s, m)).toBe('지원 중');
+      expect(Gd.sponsor(s, m.id)).toBe('지원 중');
+      expect([m.boost, s.player.gold]).toEqual([left, 1600]);
+    }
+    m.boost = 0;
+    expect(Gd.sponsor(s, m.id)).toBe('');
+    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1200]);
     s.player.gold = 0;
     const n = add(s, 'archer', 0, { lv: 10 });
     expect(Gd.sponsor(s, n.id)).toMatch(/골드 부족/);
@@ -582,5 +588,12 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(SAVE_VERSION).toBe(20);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
+    const gold = s.player.gold;
+    expect(Gd.sponsorRest(s)).toBe('후원할 쉬는 길드원 없음');
+    expect(s.player.gold).toBe(gold);
+    b.boost = 1; c.boost = 0;
+    expect(Gd.restSponsor(s)).toEqual({ ids: [c.id], gold: sponsorGold(c.lv) });
+    expect(Gd.sponsorRest(s)).toBe('');
+    expect([b.boost, c.boost, s.player.gold]).toEqual([1, 5, gold - sponsorGold(c.lv)]);
   });
 });

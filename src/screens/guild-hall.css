@@ -275,7 +275,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-acts .currency-amount { justify-content: center; }
 #s-guild .g-acts > .btn:disabled .g-ai { opacity: 0.55; }
 #s-guild.ns .g-acts > .btn.danger { background: #5a1d17; border-color: #c4553f; color: #ffd9cf; }
-#s-guild .g-runs { position: absolute; top: 4px; right: 6px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: #3a2a0f; border: 1px solid #c99b3f; font: 800 11px/18px var(--font-body); font-style: normal; color: #ffd34d; }
 #s-guild .sheet .g-sact { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #s-guild .sheet .g-sact small { font-size: 11px; opacity: 0.85; }
 #s-guild .sheet .g-smsg { margin: 0; }
@@ -285,6 +284,31 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
   color: var(--gk-head); font-weight: 800; text-shadow: none;
 }
 #s-guild .sheet > .f-shut:active { background: var(--gk-btn-on); }
+
+/* 길드원 작업 확인: 상세를 유지한 채 중앙 팝업에서 취소/확인한다. */
+#app #s-guild .sheet-dim.g-action-dim { z-index: 74; background: #0009; border: 0; padding: 0; }
+#app #s-guild .sheet.g-action-confirm {
+  z-index: 75; top: 50%; bottom: auto; left: 50%; transform: translate(-50%, -50%);
+  width: calc(100% - 32px); max-width: 380px; max-height: calc(100dvh - 96px);
+  padding: 20px; gap: 16px; border: 1px solid var(--gk-edge); border-radius: 12px;
+  background: var(--gk-bg); color: var(--gk-ink); box-shadow: 0 12px 50px #000a;
+  animation: none; overscroll-behavior: contain; word-break: keep-all; overflow-wrap: anywhere;
+}
+#s-guild .g-action-confirm > * { flex-shrink: 0; }
+#s-guild .g-action-confirm h3 { margin: 0; font: 800 22px/1.4 var(--font-display); color: var(--gk-head); }
+#s-guild .g-action-member { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--gk-line); }
+#s-guild .g-action-member b { font-size: 16px; }
+#s-guild .g-action-member span { flex: none; font-size: 12px; color: var(--gk-mute); }
+#s-guild .g-action-confirm p { margin: 0; font-size: 15px; line-height: 1.7; }
+#s-guild .g-action-confirm .g-action-note { color: var(--gk-mute); font-size: 12px; }
+#s-guild .g-action-cost { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--gk-card-bd); border-radius: 8px; background: var(--gk-card); }
+#s-guild .g-action-cost > span:first-child { font-size: 13px; color: var(--gk-ink2); }
+#s-guild .g-action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#app #s-guild .g-action-buttons button { min-height: 48px; padding: 8px; border: 1px solid var(--gk-edge); border-radius: 7px; background: var(--gk-card); color: var(--gk-ink); font: 700 16px var(--font-body); }
+#app #s-guild .g-action-buttons button.primary { background: #71522b; border-color: #d4b06c; color: #fff0cb; }
+#app #s-guild .g-action-buttons button.danger { background: #5a3028; border-color: #bd7864; color: #ffe5db; }
+#s-guild .g-action-buttons button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+#s-guild .g-action-buttons button:disabled { opacity: .5; }
 
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }

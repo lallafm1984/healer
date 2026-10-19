@@ -238,10 +238,10 @@ export function hireApp(save: SaveData, i: number): string {
 // ---------- 관리 ----------
 const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.id === id) || null;
 
-/** 후원 (98): 그 길드원 Lv × 20 골드 = 후원 5판 (20판까지). 내 레벨과 같으면 더 못 오르니 안 됨 */
+/** 골드 지원: 그 길드원 Lv × 20 골드 = 5판. 남은 지원이 있거나 내 레벨과 같으면 안 됨. */
 export function sponsorWhy(save: SaveData, m: GuildMember): string {
+  if (m.boost > 0) return '지원 중';
   if (m.lv >= topLevel(save)) return '내 레벨과 같음';
-  if (m.boost + SPONSOR.runs > SPONSOR.max) return `후원 ${SPONSOR.max}판까지`;
   return '';
 }
 export function sponsor(save: SaveData, id: number): string {
