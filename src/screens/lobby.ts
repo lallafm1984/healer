@@ -9,7 +9,7 @@
  */
 import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { ITEM_GRADES, recommendedFor, REROLL_LEVEL, SLOTS, type ItemGrade } from '../data/equipment';
+import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
 import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { HERO_KEYS, HEROES } from '../data/heroes';
@@ -197,8 +197,8 @@ function raidPlate(): string {
  */
 function forgePlate(): string {
   const n = newGearCount();
-  // 재설정은 Lv 20 (REROLL_LEVEL)부터 (105 QA: Lv 1부터 「옵션 재설정」이라 눌러 보면 잠겨 있었음)
-  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', rerollOpen() ? '옵션 재설정' : `Lv ${REROLL_LEVEL} 재설정`], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
+  // 재설정은 Lv 20 (REROLL_LEVEL)부터라 그 전엔 「장비 판매」 (105 QA: Lv 1부터 「옵션 재설정」이라 눌러 보면 잠겨 있었음, 「Lv 20 재설정」은 좁은 화면 판에서 잘림)
+  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', rerollOpen() ? '옵션 재설정' : '장비 판매'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
 }
 
 /**
