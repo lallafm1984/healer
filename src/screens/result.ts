@@ -308,6 +308,9 @@ function notesHtml(x: Settlement): string {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
     out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    // 레벨업 두 배 (LV_DOUBLE, 103 Lim 「레벨업시 20프로 확률로 2업」): 한 줄로 따로 (길드원 줄은 길어 잘림), 한 판에 두 번이면 ×2
+    const dbl = gd.members.filter(m => m.dbl);
+    if (dbl.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">능력치 +2</i> · ${dbl.map(m => `${esc(m.nick)}${(m.dbl ?? 0) > 1 ? ` ×${m.dbl}` : ''}`).join(' · ')}</span></button>`);
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람

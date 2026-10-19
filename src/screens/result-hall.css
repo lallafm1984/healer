@@ -17,6 +17,8 @@
   background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
 }
 #s-settle .r-note.hi { border-color: var(--gk-edge); }
+/* 길드원 레벨업 두 배 (103 「레벨업시 20% 확률로 2업」): 금빛 작은 글 */
+#s-settle .r-note .r-dbl { font-style: normal; font-weight: 700; color: #8ed99a; white-space: nowrap; }
 #s-settle .r-note b, #s-settle .r-rec > summary { color: var(--gk-head); }
 #s-settle .r-rec > summary::before { color: var(--gk-edge); }
 /* a2-theme.css의 .ns:not(#s-lobby) :is(… .meter …) 나무결보다 세게 (#s-settle.ns) */

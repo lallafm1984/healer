@@ -12,7 +12,7 @@ import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { CONTENT } from '../data/content';
-import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, type GuildMember } from '../data/guild';
+import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, LV_DOUBLE, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
@@ -320,11 +320,11 @@ function detailHtml(m: GuildMember): string {
   const per = statPerLevel(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
   const d = card(m, true);
   const meters = `<div class="g-meters">
-      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p></div>`;
+      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>${m.lastDouble ? '<p class="g-dbl">직전 레벨업 능력치 +2</p>' : ''}</div>`;
   const act = (attr: string, ic: string, label: string, sub: string, dis: boolean) => `<button class="btn" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small></button>`;
   return `${sheetHead(d, 'msheet')}
     ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 골드 지원 중에는 출전만큼 받습니다. 지원은 한 번에 ${SPONSOR.runs}판이며, 남은 횟수를 모두 쓰면 다시 지원할 수 있습니다.</p>
-      <p><b>능력치</b> 레벨이 오를 때마다 오릅니다. 레벨 하나에 ${per.toFixed(2)}점, 1점마다 한 칸 +1 (20까지). 최근 판에서 한 일과 가까운 칸이 더 잘 오릅니다.</p>
+      <p><b>능력치</b> 레벨이 오를 때마다 오릅니다. 레벨 하나에 ${per.toFixed(2)}점 (${Math.round(LV_DOUBLE * 100)}% 확률로 두 배), 1점마다 한 칸 +1 (20까지). 최근 판에서 한 일과 가까운 칸이 더 잘 오릅니다.</p>
       ${a ? `<p><b>직업 스킬 LV ${star} / 5</b>${fx && star ? ` 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}.` : ''} 길드원 Lv 20 · 40 · 60 · 80에서 오릅니다.${star >= 5 ? ` LV 5: ${STAR5[a.kind]}` : ''}</p>` : ''}`)}
     ${meters}
     ${memDetailHtml(d)}

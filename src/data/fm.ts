@@ -139,7 +139,7 @@ export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n 
 /**
  * 레벨업 점수 (2026-10-19 Lim 「40레벨기준 16개 능력치를 39번 랜덤 상승」, 기획 104): 레벨이 하나 오를 때마다 1점 = 오를 칸 하나 +1 (Lv 40 = 39점 · Lv 100 = 99점).
  * 공개모집 (1000명)은 닉네임 씨앗으로 그 레벨까지 굴린 값 (저장 안 함, 레벨이 하나 높으면 같은 줄에서 한 번 더): 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 타고난 값에 더함.
- * 길드원은 합류할 때 이 값을 저장하고, 그 뒤로는 레벨업할 때 실제로 굴려 저장 (학습력 0.9~1.1배, data/guild statPerLevel). 예전 레벨 몫 (102 LV_STAT, 칸 평균 +5)을 바꿈
+ * 길드원은 합류할 때 이 값을 저장하고, 그 뒤로는 레벨업할 때 실제로 굴려 저장 (학습력 0.9~1.1배 · 20% 두 배, data/guild statPerLevel · LV_DOUBLE). 예전 레벨 몫 (102 LV_STAT, 칸 평균 +5)을 바꿈
  */
 export const LV_PTS = 1;
 
