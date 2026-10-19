@@ -217,6 +217,9 @@ export interface Unit {
   /** 능력치 (99 집중): 다음 「멍」 때 · 멍한 끝 (집중 15 밑, 긴 전투일수록 잦음) */
   dazeNext?: number;
   dazeUntil?: number;
+  /** 능력치 (99 맷집): 큰 한 방 뒤 휘청한 끝 (맷집 15 밑) · 버틴 때 (15 넘음, 탱커 강타 1초 위협) */
+  staggerUntil?: number;
+  steadyAt?: number;
   fleeing: boolean;
   sulking: boolean;
   /** 관심종자 삐짐: 이번 전투에 삐진 횟수 · 삐진 때 · 혼자 풀린 때 (SULK) */
@@ -487,6 +490,7 @@ export type FightEvent =
   /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
   | { type: 'miss'; uid: number }
   | { type: 'daze'; id: number }
+  | { type: 'stagger'; id: number; steady?: boolean }
   /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
   | { type: 'parry'; id: number }
   /** 뒤집힌 축복: 치유가 피해로 (말풍선 반응. 숫자는 dmg 사건) */

@@ -2,7 +2,7 @@ import { hexDist } from './board';
 import { threatDps } from './threat';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
+import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, staggered, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, endurable, finishMove, moveTo, pickCell } from './movement';
 import { adjLow, calmFor, renewEnd, talentHot } from './talents';
 import { TX } from '../data/talents';
@@ -76,7 +76,7 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.pulled) pullTick(f, u);
   if (u.debuffs.length && u.debuffs.some(d => d.noMove)) return; // 얼림·삼킴: 제자리
   if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
-  if (u.wob != null && !u.me && focusTick(f, u)) return; // 99 집중: 멍한 동안 반응 · 판단을 미룸
+  if (u.wob != null && !u.me && (focusTick(f, u) || staggered(f, u))) return; // 99 집중: 멍한 동안 · 99 맷집: 휘청하는 동안 반응 · 판단을 미룸
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
   if (f.k % 4 !== 0 || u.moving || u.react) return;
   think(f, u);
@@ -354,6 +354,7 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.sleep != null && f && u.sleep > f.t) return 0; // 점성술사 별의 잠 (79 4-2): 딜 없음
   if (u.moving) return 0; // 움직이는 동안 딜 0 (모든 직업)
+  if (f && u.staggerUntil != null && f.t < u.staggerUntil) return 0; // 99 맷집: 휘청하는 동안 딜 0
   const pos = f?.R.pos ? posDps(f, u) : 1; // 위치 규칙: 근접은 1 · 2열에서만, 원거리는 1 · 2열이면 50%
   if (pos <= 0) return 0;
   let d = u.dps * (u.p.dps || 1) * pos;

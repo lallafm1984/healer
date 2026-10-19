@@ -193,4 +193,9 @@ export const STAT_ACT = {
    * 15 이상은 없음. 15 넘는 쪽은 예전 큰 무대 보너스 (fmFx focus) 그대로
    */
   dazeRate: 1 / 30, dazeFirst: 20, dazeRamp: 150, dazeSec: 1.5, dazeMiss: 0.3,
+  /**
+   * 맷집 (99): 한 방에 최대 체력 bigHit 넘게 맞으면 (틱 피해 빼고), 맷집이 15보다 낮으면 stagger × 서툼 확률로 「휘청」 staggerSec초 (공격 · 새 이동 · 판단 멈춤, 탱커는 위협 쌓기 집중 배율).
+   * 15 넘으면 휘청 없이 잘함 확률로 「버팀」: 탱커는 강타를 맞은 1초 동안에도 위협을 그대로 쌓음
+   */
+  bigHit: 0.25, stagger: 0.7, staggerSec: 1.2,
 };

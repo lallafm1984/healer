@@ -480,3 +480,56 @@ describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있
     expect(run(true)).toBeLessThan(run(false) * 0.8);
   });
 });
+
+describe('맷집 「휘청」 · 「버팀」 (Lim 06:47 「능력치 하나하나 모두 의미있게」)', () => {
+  /** 근접 딜러 (또는 탱커)에게 최대 체력 40% 한 방을 n번 (맞을 때마다 체력 · 휘청을 되돌림) */
+  async function bigHits(st: Partial<Stats>, n: number, nick = '근') {
+    const { damage } = await import('../src/engine/core');
+    const f = nick === '탱' ? fight({ tank: st }) : fight({ st }), u = who(f, nick);
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    let reel = 0, steady = 0;
+    for (let i = 0; i < n; i++) {
+      u.hp = u.max; u.staggerUntil = undefined; u.steadyAt = undefined;
+      damage(f, u, (u.max * 0.4) / f.dmgMult, false, 'fixed');
+      for (const ev of f.events) if (ev.type === 'stagger' && ev.id === u.id) { if (ev.steady) steady++; else reel++; }
+      f.events.length = 0;
+    }
+    return { f, u, reel, steady };
+  }
+  it('맷집이 15보다 낮으면 큰 한 방 뒤 휘청 (1 = 70%), 15는 없음, 15 넘으면 휘청 대신 버팀', async () => {
+    const lo = await bigHits({ tough: 1 }, 300), par = await bigHits({ tough: 15 }, 200), hi = await bigHits({ tough: 20 }, 200);
+    expect(lo.reel / 300).toBeGreaterThan(STAT_ACT.stagger - 0.08); expect(lo.reel / 300).toBeLessThan(STAT_ACT.stagger + 0.08);
+    expect(par.reel + par.steady).toBe(0);
+    expect(hi.reel).toBe(0); expect(hi.steady).toBe(200);
+  });
+  it('작은 피해 · 틱 피해로는 휘청하지 않음', async () => {
+    const { damage, dripDamage } = await import('../src/engine/core');
+    const f = fight({ st: { tough: 1 } }), u = who(f, '근');
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    for (let i = 0; i < 100; i++) { u.hp = u.max; damage(f, u, (u.max * 0.2) / f.dmgMult, false, 'fixed'); dripDamage(f, u, (u.max * 0.4) / f.dmgMult, false, 'fixed'); }
+    expect(f.events.some(ev => ev.type === 'stagger')).toBe(false);
+  });
+  it('휘청하는 동안: 딜 0 · 새 장판 반응을 미룸, 끝나면 그대로', async () => {
+    const { unitDps } = await import('../src/engine/units');
+    const f = fight({ st: { tough: 1 } }), u = who(f, '근');
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    const d0 = unitDps(u, f);
+    u.staggerUntil = f.t + STAT_ACT.staggerSec;
+    expect(d0).toBeGreaterThan(0); expect(unitDps(u, f)).toBe(0);
+    const tel = zoneTel(f, u), r0 = { at: f.t, tel: tel.id };
+    u.react = r0;
+    while (f.t < u.staggerUntil - 1e-9) { E.step(f); f.events.length = 0; expect(u.react).toBe(r0); }
+    for (let i = 0; i < 3; i++) { E.step(f); f.events.length = 0; }
+    expect(u.react).not.toBe(r0);
+  });
+  it('맷집 20 탱커는 강타를 맞은 1초에도 위협을 그대로 쌓음 (버팀)', async () => {
+    const run = async (tough: number) => {
+      const { f, u } = await bigHits({ tough, focus: 1 }, 1, '탱');
+      u.busterAt = f.t;
+      const v0 = f.thr!.v.get(u.id) ?? 0;
+      for (let i = 0; i < 10; i++) { E.step(f); f.events.length = 0; }
+      return (f.thr!.v.get(u.id) ?? 0) - v0 * Math.pow(0.5, 10 * E.DT / THREAT.half);
+    };
+    expect(await run(20)).toBeGreaterThan(await run(15) * 1.3);
+  });
+});
