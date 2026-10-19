@@ -289,6 +289,9 @@ export const SITS = {
   aggroWarn: S('보스', '딜 줄이라고', 'self', 2, 1, '탱커가 위협이 선 가까운 딜러 {ally}에게 딜을 줄이라고 함'),
   aggroRegain: S('보스', '어그로 되찾음', 'self', 1, 0.8, '탱커가 뺏긴 보스를 다시 잡음'),
   aggroHealer: S('보스', '힐 어그로', 'self', 3, 1, '힐러 (나)의 치유 위협이 탱커를 넘어 보스가 힐러를 봄. 탱커가 말함'),
+  aggroHealerHigh: S('보스', '고렙 힐러 어그로', 'self', 2, 1, '힐러 (나)가 판보다 레벨이 훨씬 높아 (탱커보다 10 넘게) 치유 위협만으로 보스를 뺏음. 탱커가 투정보다 감탄 · 농담으로 말함'),
+  aggroDealerHigh: S('보스', '고렙 딜러 어그로', 'self', 2, 1, '탱커보다 레벨이 10 넘게 높은 딜러 {ally}가 보스를 뺏음. 탱커가 말함'),
+  aggroStealHigh: S('보스', '고렙이라 뺏음', 'self', 2, 1, '레벨이 탱커보다 10 넘게 높아 살살 쳐도 보스를 뺏은 딜러가 말함'),
   aggroLevel: S('보스', '너무 세서 못 잡음', 'self', 2, 1, '딜러가 레벨이 훨씬 높아 다섯 번째 되찾는 중. 탱커가 버거워함'),
 
   // ---------- 93 길드 v2 (2026-10-18). 말풍선 감독 (battle/talk)이 판 시작 · 위기 · 예고 · 끝에서 고름 ----------
@@ -320,4 +323,4 @@ export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'
   | 'aggroSteal' | 'aggroEase' | 'aggroWarn' | 'aggroRegain' | 'aggroHealer' | 'aggroLevel'
   | 'foresee' | 'foreseeWrong' | 'hop' | 'endure' | 'edgeStep' | 'freeze' | 'buddyUp' | 'yieldStep' | 'homeBack' | 'standIn' | 'mentor' | 'moodUp'
-  | 'praise' | 'repay' | 'envy' | 'cry' | 'bounce' | 'relief' | 'windUp' | 'vent' | 'burst' | 'breather' | 'timing' | 'gritMax'>;
+  | 'praise' | 'repay' | 'envy' | 'cry' | 'bounce' | 'relief' | 'windUp' | 'vent' | 'burst' | 'breather' | 'timing' | 'gritMax' | 'aggroHealerHigh' | 'aggroDealerHigh' | 'aggroStealHigh'>;

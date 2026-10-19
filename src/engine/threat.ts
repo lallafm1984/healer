@@ -14,6 +14,7 @@ import { hexDist } from './board';
 import { aggroTarget } from './bossParts';
 import { bark, cellOf, DT, emit, living, regrouping, slip } from './core';
 import { dangerAt, moveTo } from './movement';
+import type { BarkSit } from '../data/talk/sits';
 import type { Fight, Unit } from './types';
 
 export interface ThreatState {
@@ -237,7 +238,7 @@ export function threatTick(f: Fight): void {
     else {
       if (r >= THREAT.warn) {
         t.warn.push(u.id);
-        if (f.t - (t.warned.get(u.id) ?? -99) > THREAT.warnGap && !t.steal) { t.warned.set(u.id, f.t); barkWith(f, base, u, 'aggroWarn'); }
+        if (f.t - (t.warned.get(u.id) ?? -99) > THREAT.warnGap && !t.steal) { t.warned.set(u.id, f.t); if (f.rng() <= 0.6) aggroBark(f, base, 'aggroWarn', u); }
       }
       // 딜 줄이기 (판단): 선 가까이 오면 25% 줄이고, 조금 내려가면 다시. 보스를 뺏은 사람은 뺏은 뒤 버릇 (stealHabit, 99 마)대로
       const at = easeAt(u);
@@ -259,7 +260,7 @@ export function threatTick(f: Fight): void {
     if (t.retakeAt != null && f.t + 1e-9 >= t.retakeAt) { // 되찾기 (모든 탱커의 기본 행동, 재사용 8초): 탱커 위협 = 뺏은 사람의 1.1배
       t.v.set(base.id, raw(who) * vT * THREAT.retakeMult);
       t.readyAt = f.t + THREAT.retakeCd; t.retakes++;
-      bark(f, base, null, true, t.retakes >= THREAT.levelBarkAt ? 'aggroLevel' : 'aggroRegain');
+      aggroBark(f, base, !who.me && t.retakes >= THREAT.levelBarkAt ? 'aggroLevel' : 'aggroRegain'); // 「딜러 레벨 차이」 대사는 딜러가 뺏었을 때만
       emit(f, { type: 'aggro', id: base.id, from: s.id });
       endSteal(f);
     }
@@ -279,14 +280,18 @@ export function threatTick(f: Fight): void {
   if (hb && stops && hb.guard > 0 && f.rng() < hb.guard && holdGuard(f, top)) shape = 'guard';
   else if (hb && stops && hb.panic > 0 && !regrouping(f, top)) { top.hesitUntil = f.t + STAT_ACT.hesit * hb.panic; if (hb.panic >= 0.2) { shape = 'panic'; slip(f, top); } }
   else if (hb && !stops && !regrouping(f, top) && f.rng() < STAT_ACT.stealLost * clumsy(stat(top, 'judgment')) * hb.panic && loseSpot(f, top)) { t.steal.breakUntil = f.t + STAT_ACT.breakSec; shape = 'lost'; slip(f, top); }
-  if (top.me) bark(f, base, null, true, 'aggroHealer');
-  else if (slipping(f, base)) bark(f, base, null, true, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
-  else if (shape === 'lost') bark(f, top, null, true, 'aggroLost'); // 99 마: 판단 · 침착 ↓ 딜 끊기고 자리 잃음
-  else if (shape === 'panic') bark(f, top, null, true, 'aggroPanic'); // 99 마: 판단 ↑ · 침착 ↓ 한 대 더 · 머뭇거림
-  else if (stops && addsUp(f, top)) bark(f, top, null, true, 'aggroAdds'); // Codex 검토 반영 2: 멈추는 대신 쫄 · 감옥으로
-  else if (hb && hb.stopFor === Infinity || shape === 'guard') bark(f, top, null, true, 'aggroHold'); // 99 마: 멈추고 기다림 (생존기를 켜고 버팀)
-  else if (hb && hb.stopFor <= 0 && hb.cut < THREAT.ease * 0.5) bark(f, top, null, true, 'aggroIgnore'); // 99 마: 계속 때림
-  else bark(f, top, null, true, 'aggroSteal');
+  const high = lvOf(f, top) - lvOf(f, base) >= THREAT.highLv; // 고렙이 뺏음 (레벨 차이만으로 선을 넘음)
+  if (top.me) aggroBark(f, base, high ? 'aggroHealerHigh' : 'aggroHealer'); // 고렙 힐러: 탱커가 감탄 · 농담
+  else if (slipping(f, base)) aggroBark(f, base, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
+  else {
+    if (high) aggroBark(f, base, 'aggroDealerHigh', top); // 고렙 딜러: 탱커 한마디
+    if (shape === 'lost') aggroBark(f, top, 'aggroLost'); // 99 마: 판단 · 침착 ↓ 딜 끊기고 자리 잃음
+    else if (shape === 'panic') aggroBark(f, top, 'aggroPanic'); // 99 마: 판단 ↑ · 침착 ↓ 한 대 더 · 머뭇거림
+    else if (stops && addsUp(f, top)) aggroBark(f, top, 'aggroAdds'); // Codex 검토 반영 2: 멈추는 대신 쫄 · 감옥으로
+    else if (hb && hb.stopFor === Infinity || shape === 'guard') aggroBark(f, top, 'aggroHold'); // 99 마: 멈추고 기다림 (생존기를 켜고 버팀)
+    else if (hb && hb.stopFor <= 0 && hb.cut < THREAT.ease * 0.5) aggroBark(f, top, 'aggroIgnore'); // 99 마: 계속 때림
+    else aggroBark(f, top, high ? 'aggroStealHigh' : 'aggroSteal');
+  }
   emit(f, { type: 'aggro', id: top.id, from: base.id });
 }
 
@@ -305,11 +310,15 @@ function endSteal(f: Fight): void {
   t.steal = null; t.retakeAt = null;
 }
 
-/** {ally}가 있는 말 (탱커 → 딜러 경고) */
-function barkWith(f: Fight, u: Unit, ally: Unit, sit: 'aggroWarn'): void {
+/**
+ * 어그로 대사 (탱커 · 딜러 모두): 한 사람이 한 판에 첫 talkFirst번은 talkGap초 간격, 그 뒤는 talkLate초에 한 번 talkLateP 확률로만 (2026-10-19 Lim 「계속 어그로 뺏겨서 대사를 난발」).
+ * ally가 있으면 {ally} 자리표시 (탱커 → 딜러)
+ */
+function aggroBark(f: Fight, u: Unit, sit: BarkSit, ally?: Unit): void {
   if (!u.alive || u.me) return;
-  if (f.t - u.barkAt < 4 || f.rng() > 0.6) return;
-  u.barkAt = f.t;
-  const ev = { type: 'bark' as const, id: u.id, text: u.p.barks?.[0] || '', sit, ally: ally.id };
-  emit(f, ev);
+  const n = u.aggroTalk ?? 0, last = u.aggroTalkAt ?? -99;
+  if (n < THREAT.talkFirst ? f.t - last < THREAT.talkGap : f.t - last < THREAT.talkLate || f.rng() >= THREAT.talkLateP) return;
+  u.aggroTalk = n + 1; u.aggroTalkAt = f.t; u.barkAt = f.t;
+  if (!ally) { bark(f, u, null, true, sit); return; }
+  emit(f, { type: 'bark', id: u.id, text: u.p.barks?.[0] || '', sit, ally: ally.id });
 }
