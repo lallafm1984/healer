@@ -72,7 +72,11 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     out.week = true;
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
-  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, save.hero, r);
+  if (!save.weekly.missions.length && lv >= WEEKLY_LV) {
+    // 주 중간에 처음 채울 때 「일일 상자 5번」은 남은 날 · 안 연 상자로 채울 수 있을 때만 (105 QA 2: 목요일 뒤 Lv 10이 되면 못 깸)
+    const left = 7 - daysBetween(save.weekly.week || day, day), chests = (left - 1) + (save.daily.chest ? 0 : 1) + save.daily.banked;
+    save.weekly.missions = pick(WEEKLY.filter(m => (m.key !== 'w_raid3' || lv >= RAID10_LV) && (m.key !== 'w_chest5' || chests >= 5)), WEEKLY_N, lv, save.hero, r);
+  }
   const sn = seasonOf(now).n;
   if (save.pass.season < sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;

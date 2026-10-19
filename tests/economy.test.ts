@@ -310,3 +310,16 @@ describe('105 QA: 탐험 길드파티도 「클리어」 임무 · 길드 주간
     expect(s.weekly.guild.n).toBe(1);
   });
 });
+
+describe('105 QA 2바퀴: 주 중간 첫 주간 임무', () => {
+  it('남은 날 · 안 연 상자로 「일일 상자 5번」을 못 채우면 안 뽑음', () => {
+    for (let i = 0; i < 20; i++) {
+      seed = i + 3;
+      const s = save(9); // 2026-10-07 (수), 주는 월요일 10-05부터
+      s.player.level = 10;
+      rollover(s, T0 + 2 * D, rng); // 금요일에 Lv 10: 남은 날 3 (금 · 토 · 일) → 상자 많아야 3~4개
+      expect(s.weekly.missions.length).toBeGreaterThan(0);
+      expect(s.weekly.missions.some(m => m.key === 'w_chest5')).toBe(false);
+    }
+  });
+});

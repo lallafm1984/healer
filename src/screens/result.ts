@@ -307,7 +307,7 @@ function notesHtml(x: Settlement): string {
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람

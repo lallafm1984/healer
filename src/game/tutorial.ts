@@ -27,7 +27,7 @@ export const DUO_PARTY: RosterEntry[] = [{ role: 'tank', pers: '신중파', nick
 export const TUT_CONTENT: readonly string[] = ['tutorial', 'plateau'];
 export const tutLockedContent = (save: SaveData, content: string): boolean => save.tut < TUT.done && !TUT_CONTENT.includes(content);
 /** 튜토리얼 다시 보기 중 (이미 녹슨 고원을 깨서 한 번 마친 저장): 경험치 · 골드 없음, 다시 보기용 글 (105 QA) */
-export const tutReplay = (save: SaveData): boolean => save.tut < TUT.done && !!save.clears.plateau;
+export const tutReplay = (save: SaveData): boolean => save.tut < TUT.done && (!!save.clears.plateau || save.player.level > 2); // 녹슨 고원 기록이 없는 옛 · 건너뛴 저장도 Lv 3부터 (105 QA 2, 첫 튜토리얼은 Lv 2에 끝남)
 
 /** 정산 때 튜토리얼 단계 넘기기: 탐험 클리어 → 끝. 넘겼으면 true */
 export function advanceTutorial(save: SaveData, content: string, win: boolean): boolean {

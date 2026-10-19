@@ -112,12 +112,12 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     expect(jobsDot(s)).toBe(true);
     const q = s.guild.reqs.list[0], m = s.guild.members.find(x => x.nick === q.nick)!;
     const roster = [{ role: 'ranged' as const, pers: m.pers, nick: m.nick, cls: m.cls, gid: m.id }];
-    expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '쉬움', roster }).reqs).toEqual(q.diff === '쉬움' ? [q.nick] : []);
-    const done = jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster });
+    expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '쉬움', roster }, T).reqs).toEqual(q.diff === '쉬움' ? [q.nick] : []);
+    const done = jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster }, T);
     expect(done.reqs).toEqual([q.nick]);
     expect(done.fame).toBe(0);
     expect(s.guild.fame).toBe(0);
-    expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster }).reqs).toEqual([]);
+    expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster }, T).reqs).toEqual([]);
     expect(s).not.toHaveProperty('users');
     refreshReqs(s, stages, rng, T + 3600e3);
     expect(s.guild.reqs.list[0].done).toBe(true); // 같은 날은 그대로
@@ -136,9 +136,9 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     const sizes = s.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'));
     expect(sizes).toEqual([5, 10, 20]);
     const roster = ms.map(m => ({ role: 'melee' as const, pers: m.pers, nick: m.nick, cls: m.cls, gid: m.id }));
-    expect(jobsAfter(s, { win: true, quit: false, content: s.guild.exped.list[0].content, diff: '쉬움', roster }).exped).toEqual([]);
+    expect(jobsAfter(s, { win: true, quit: false, content: s.guild.exped.list[0].content, diff: '쉬움', roster }, T).exped).toEqual([]);
     let fame = 0;
-    for (const x of s.guild.exped.list) fame += jobsAfter(s, { win: true, quit: false, content: x.content, diff: '보통', roster }).fame;
+    for (const x of s.guild.exped.list) fame += jobsAfter(s, { win: true, quit: false, content: x.content, diff: '보통', roster }, T).fame;
     expect(fame).toBe(EXPED.fame * 3);
     expect(s.guild.fame).toBe(2000 + EXPED.fame * 3);
     expect(expedReady(s)).toBe(true);
@@ -168,5 +168,35 @@ describe('주간 원정 주 중 다시 뽑기 (105 QA)', () => {
     expect(size()).toEqual([5, 10, 5]);
     expect(s.guild.exped.list[1].done).toBe(true);
     expect(new Set(s.guild.exped.list.map(x => x.content)).size).toBe(3);
+  });
+});
+
+describe('105 QA 2바퀴', () => {
+  it('지난 주 원정 · 지난 날 부탁은 정산에서 건너뜀, 다 끝냈는데 못 받은 원정 상자는 주가 바뀌어도 받게 둠', () => {
+    const T = new Date(2026, 9, 7, 12).getTime(), s = save(30), a = add(s, 'warrior', 0), b = add(s, 'mage', 0);
+    refreshExped(s, () => true, T);
+    const roster = [a, b].map(m => ({ role: 'melee' as const, pers: m.pers, nick: m.nick, cls: m.cls, gid: m.id }));
+    const next = T + 7 * 864e5;
+    expect(jobsAfter(s, { win: true, quit: false, content: s.guild.exped.list[0].content, diff: '보통', roster }, next).exped).toEqual([]); // 지난주 목록
+    s.guild.exped.list.forEach(x => { x.done = true; });
+    refreshExped(s, () => true, next);
+    expect(expedReady(s)).toBe(true); // 못 받은 상자는 그대로
+    s.guild.exped.got = true;
+    refreshExped(s, () => true, next);
+    expect(s.guild.exped.list.every(x => !x.done)).toBe(true); // 받은 뒤 새 주
+  });
+  it('내보낸 길드원의 부탁은 지움', () => {
+    const s = save(30), a = add(s, 'warrior', 0), b = add(s, 'mage', 0);
+    s.guild.reqs = { day: '2026-10-07', list: [{ nick: a.nick, content: 'rustfort', diff: '보통', done: false }, { nick: b.nick, content: 'rustfort', diff: '보통', done: false }] };
+    Gd.release(s, a.id);
+    expect(s.guild.reqs.list.map(q => q.nick)).toEqual([b.nick]);
+  });
+  it('결과창 길드원 경험치 = 실제로 오른 값 (내 레벨 상한이면 0)', () => {
+    expect(Gd.gainedXp(5, 10, 5, 40)).toBe(30);
+    const s = save(30), m = add(s, 'warrior', 0, { lv: 30, xp: 0 });
+    const roster = [Gd.memberEntry(s, m), Gd.memberEntry(s, add(s, 'mage', 0, { lv: 30 }))];
+    const r = Gd.guildAfter(s, () => 0.5, { win: true, quit: false, grade: 'A', diff: '보통', stage: 30, raid: 0, content: 'rustfort', kind: 'dungeon', party: [], roster });
+    const before = r.members[0].xp;
+    expect(before).toBe(m.xp); // 0에서 시작, 상한 (내 Lv 30)에서 모아 두기만
   });
 });

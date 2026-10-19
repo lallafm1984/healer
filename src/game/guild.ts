@@ -230,6 +230,7 @@ export function release(save: SaveData, id: number): boolean {
   if (!m) return false;
   g.members = g.members.filter(x => x.id !== id);
   for (const k of Object.keys(g.picks) as (keyof typeof g.picks)[]) g.picks[k] = g.picks[k]!.filter(x => x !== id);
+  g.reqs.list = g.reqs.list.filter(q => q.nick !== m.nick); // 내보낸 사람의 부탁도 (105 QA 2: 「할 일 n개 남음」이 다음 날까지)
   return true;
 }
 
@@ -300,8 +301,12 @@ export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e =>
 export const guildPartyNeed = (size: number) => Math.max(1, Math.ceil((size - 1) / 2));
 /** 지금 길드원으로 이 판 길드파티를 꾸릴 수 있나: 역할 자리로 셈 (min(탱커, 탱커 자리) + min(딜러, 딜러 자리) ≥ 길드파티 인원, 105 QA: 탱커 3 + 딜러 7이면 20인은 9명뿐) */
 export function guildPartyFits(save: SaveData, enc: Encounter): boolean {
+  return guildSeatCount(save, enc) >= guildPartyNeed(slotsOf(enc).tank + slotsOf(enc).dps + 1);
+}
+/** 길드원으로 채울 수 있는 자리 수 (역할 자리로 셈) */
+export function guildSeatCount(save: SaveData, enc: Encounter): number {
   const sl = slotsOf(enc), ms = save.guild.members, tanks = ms.filter(m => CLASSES[m.cls].role === 'tank').length;
-  return Math.min(tanks, sl.tank) + Math.min(ms.length - tanks, sl.dps) >= guildPartyNeed(sl.tank + sl.dps + 1);
+  return Math.min(tanks, sl.tank) + Math.min(ms.length - tanks, sl.dps);
 }
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
@@ -317,6 +322,13 @@ export interface GuildAfter {
 }
 
 /** 레벨 경험치를 더함 (상한 = 내 레벨, 상한에서도 다음 레벨 바로 앞까지 모아 둠: 내가 레벨업하면 다음 판에 바로 따라옴) */
+/** 실제로 오른 경험치 (레벨 · 쌓인 경험치 앞뒤로 셈, 레벨 상한 · 모아 두기 뒤): 결과창 숫자 (105 QA 2: 상한 전 값을 보여 줬음) */
+export function gainedXp(lv0: number, x0: number, lv1: number, x1: number): number {
+  if (lv1 === lv0) return Math.max(0, x1 - x0);
+  let n = xpToNext(lv0) - x0;
+  for (let l = lv0 + 1; l < lv1; l++) n += xpToNext(l);
+  return n + x1;
+}
 export function addMemberXp(m: GuildMember, amt: number, cap: number): number[] {
   const bank = (lv: number, xp: number) => (lv >= MAX_LEVEL ? 0 : Math.min(xp, xpToNext(lv) - 1));
   if (m.lv >= cap) { m.xp = bank(m.lv, m.xp + amt); return []; }
@@ -377,8 +389,8 @@ export function guildAfter(
     went.add(m.id);
     m.runs++;
     // 부탁은 완료한 이번 판의 출전 경험치에만 적용한다. 합산 후 한 번에 레벨업·능력치를 처리한다.
-    const xp = memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1);
-    const ups = addMemberXp(m, xp, cap);
+    const lv0 = m.lv, x0 = m.xp, ups = addMemberXp(m, memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1), cap);
+    const xp = gainedXp(lv0, x0, m.lv, m.xp); // 실제로 오른 값 (내 레벨 상한이면 0)
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
     const add = lvAdds(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', m.lv, m.stats); // 화면 숫자 = 키운 값 + 레벨 몫 (성장 결, 103)
     out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: Math.min(20, Math.round(x.to + add[x.k])) })), lv: m.lv });
@@ -386,7 +398,7 @@ export function guildAfter(
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀
     const boost = m.boost > 0 && m.lv < cap;
-    const xp = Math.round(memberXp(m, o) * (boost ? 1 : REST_SHARE)), ups = addMemberXp(m, xp, cap);
+    const lv0 = m.lv, x0 = m.xp, ups = addMemberXp(m, Math.round(memberXp(m, o) * (boost ? 1 : REST_SHARE)), cap), xp = gainedXp(lv0, x0, m.lv, m.xp);
     if (boost) { m.boost--; out.boosted.push({ nick: m.nick, xp, left: m.boost }); }
     out.rest += xp;
     if (ups.length) growStats(m, ups.length, undefined, r); // 쉬는 판에 오른 레벨도 능력치

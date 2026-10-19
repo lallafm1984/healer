@@ -8,6 +8,7 @@ import { memberEntry, newMember, personOf } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
 import { TUT } from '../src/game/tutorial';
 import { newSave, type SaveData } from '../src/platform/storage';
+import { dayKey } from '../src/game/clock';
 
 const enabled = FEATURES.guild;
 beforeAll(() => { FEATURES.guild = true; });
@@ -19,7 +20,7 @@ function setup(): SaveData {
   s.guild.founded = s.guild.storySeen = true;
   s.guild.members = PARTY_POOL.mage.slice(0, 4).map(p => ({ ...newMember(s, personOf(p.nick)!, 20), id: s.guild.nextId++ }));
   s.guild.members[0].boost = s.guild.members[3].boost = 5;
-  s.guild.reqs.list = [0, 2].map(i => ({ nick: s.guild.members[i].nick, content: 'rustfort', diff: '보통', done: false }));
+  s.guild.reqs = { day: dayKey(), list: [0, 2].map(i => ({ nick: s.guild.members[i].nick, content: 'rustfort', diff: '보통', done: false })) }; // 오늘 부탁 (지난 날 부탁은 정산이 건너뜀, 105 QA 2)
   return s;
 }
 function run(s: SaveData, override: Partial<BattleResult> = {}, ids = [0, 1]) {

@@ -30,6 +30,7 @@ export function refreshReqs(save: SaveData, stagesAll: readonly { content: strin
 export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, now = Date.now()): void {
   const g = save.guild, week = weekKey(now);
   if (!g.founded || g.exped.week > week) return; // 시계를 뒤로 돌린 주는 그대로 (103)
+  if (g.exped.week < week && expedReady(save)) return; // 다 끝냈는데 못 받은 원정 상자는 주가 바뀌어도 받게 둠 (받은 뒤 새 주 목록, 105 QA 2)
   const my = topLevel(save), ok = (c: ContentDef) => c.ready && !c.hidden && open(c, '보통') && stageOf(c, '보통') <= my;
   const best = (xs: ContentDef[]) => xs.filter(ok).sort((a, b) => stageOf(b, '보통') - stageOf(a, '보통'));
   const dungeons = best(CONTENT.filter(c => c.kind === 'dungeon' && c.size('보통') === 5));
@@ -63,16 +64,18 @@ export interface JobsDone {
 }
 
 /** 판 뒤 (이긴 판): 부탁 = 그 사람을 넣고 그 장소를 그 난이도 이상으로 · 원정 = 길드파티로 그 장소 보통 이상. 부탁 대상은 길드 정산에서 경험치 2배, 원정은 명성을 바로 줌 */
-export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; content: string; diff: DiffName; roster: RosterEntry[] }): JobsDone {
+export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; content: string; diff: DiffName; roster: RosterEntry[] }, now = Date.now()): JobsDone {
   const out: JobsDone = { reqs: [], exped: [], expedAll: false, fame: 0 };
   const g = save.guild;
   if (!g.founded || !o.win || o.quit) return out;
   const di = ALL_DIFFS.indexOf(o.diff), went = new Set(o.roster.filter(e => e.gid != null).map(e => e.nick));
-  for (const q of g.reqs.list) {
+  // 지난 날 부탁 · 지난 주 원정은 건너뜀 (105 QA 2: 주가 바뀐 뒤 길드 탭을 안 거치면 지난주 원정이 이어져 「원정 상자 열림」이 뜨고 받지는 못했음)
+  const today = g.reqs.day === dayKey(now), thisWeek = g.exped.week === weekKey(now);
+  for (const q of today ? g.reqs.list : []) {
     if (q.done || q.content !== o.content || di < ALL_DIFFS.indexOf(q.diff) || !went.has(q.nick)) continue;
     q.done = true; out.reqs.push(q.nick);
   }
-  if (isGuildParty(o.roster) && di >= ALL_DIFFS.indexOf('보통')) for (const x of g.exped.list) {
+  if (thisWeek && isGuildParty(o.roster) && di >= ALL_DIFFS.indexOf('보통')) for (const x of g.exped.list) {
     if (x.done || x.content !== o.content) continue;
     x.done = true; out.exped.push(x.content); out.fame += EXPED.fame;
   }
