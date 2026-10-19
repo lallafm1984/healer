@@ -266,9 +266,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-meter .k :is(.g-ic,.bond-icon) { width: 16px; height: 16px; object-fit: contain; }
 #s-guild .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
 #s-guild .sheet .g-tiles { padding: 8px 4px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; }
-#s-guild .g-knows { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; }
-#s-guild .g-kn { padding: 2px 8px; border-radius: 10px; background: #15120e; border: 1px solid var(--gk-card-bd); font-size: 12px; color: var(--gk-ink2); }
-#s-guild .g-kn b { color: var(--gk-num); }
 #s-guild .g-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #s-guild .g-acts > .btn { position: relative; min-height: 78px; margin: 0; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 #s-guild .g-acts .g-ai > .g-ic { width: 30px; height: 30px; object-fit: contain; }

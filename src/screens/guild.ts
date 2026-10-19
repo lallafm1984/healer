@@ -3,7 +3,7 @@
  * #233 모양 그대로 (상점 · 편성과 같은 길드 홀 돌색, guild-hall.css): 위 = 하위 탭 (현황 · 길드원 · 영입) + 길드 홀 그림 머리 (이름 · Lv · 정원 · 명성).
  * 2026-10-19 Lim 「길드컨테츠 ui 디자인이 형편없다 … 필요한 정보만 텍스트」 → C안. 같은 날 추가 요청으로 기록과 스킬 뽑기 제거:
  *  현황 · 영입 = 그림 메뉴 (hub) + 고른 칸의 판 하나. 현황 = 할 일 · 시설 (처음 = 할 일), 영입 = 친구 초대 · 공고 (+ 지원자) · 명성 지원자 · 명부.
- *  길드원 = 판 하나 (편성과 같은 파티원 줄) → 아래 시트 (레벨 · 인연 막대 · 능력치 · 숙지 · 후원 · 보내기).
+ *  길드원 = 판 하나 (편성과 같은 파티원 줄) → 아래 시트 (레벨 · 인연 막대 · 능력치 · 후원 · 보내기).
  *  공통 부품: 판 (.g-card 머리 = 그림 · 제목 · 숫자 · ⓘ), 줄 (.g-row), 숫자 칸 (.g-tiles), 알약 (.g-pill). 규칙 · 긴 설명은 ⓘ를 눌러야 보임.
  * 육성 포인트 · 훈련 · 자질 · 전투력 숫자 · 인연 스카우트는 없앰 (97: 크는 길은 출전 경험뿐).
  */
@@ -12,7 +12,6 @@ import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { CONTENT } from '../data/content';
 import { PARTY_POOL, STORY_NICKS } from '../data/nicknames';
-import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { BOND_STEPS, bondLv, bondName, EXPED, FAC, FAC_GOLD, FAC_KEYS, FRIEND_LV, REQ, STORY, type FacKey, type StoryKey, POSTS, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
@@ -22,7 +21,7 @@ import { claimExped } from '../game/economy';
 import { guideCtx, rankStages, realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
 import { profileOf } from '../data/fm';
-import { bondOf, bondPt, buildFac, capOf, facLv, facWhy, foundGuild, inviteStory, knowStages, personOf, postCands, postCost, restSponsor, sponsor, sponsorRest, sponsorWhy, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, worldLevel } from '../game/guild';
+import { bondOf, bondPt, buildFac, capOf, facLv, facWhy, foundGuild, inviteStory, personOf, postCands, postCost, restSponsor, sponsor, sponsorRest, sponsorWhy, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, worldLevel } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -67,7 +66,6 @@ const IC = {
   release: () => gameIcon('guild-release', uiIcon('arrow')),
   heart: () => bondIconSvg(3),
   heart3: () => bondIconSvg(12),
-  know: () => gameIcon('know', uiIcon('quest')),
   swords: () => gameIcon('a2-swords', uiIcon('battle')),
 };
 const ROLE_PICK: [PostRole, string][] = [['tank', '탱커'], ['melee', '근접'], ['ranged', '원거리'], ['any', '아무나']];
@@ -388,7 +386,7 @@ function sheetHtml(): string {
   return sheetBox(`${m.nick} 상세`, detailHtml(m));
 }
 
-/** 길드원 상세 (시트 안): 레벨 · 인연 막대 → 능력치 · 직업 스킬 · 성격 → 숙지 → 후원 · 보내기. 규칙은 ⓘ */
+/** 길드원 상세 (시트 안): 레벨 · 인연 막대 → 능력치 · 직업 스킬 · 성격 → 후원 · 보내기. 규칙은 ⓘ */
 function detailHtml(m: GuildMember): string {
   const b = bondOf(G.save, m.nick), star = starOfBond(b), a = ABILITIES[m.ab];
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
@@ -396,12 +394,10 @@ function detailHtml(m: GuildMember): string {
   const fx = a ? starFx(a, star) : null;
   const gold = resourceBalance(G.save, 'gold');
   const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
-  const ks = Object.entries(knowStages(m, G.save)).sort((x, y) => y[1] - x[1] || (m.know[y[0]] ?? 0) - (m.know[x[0]] ?? 0));
   const d = card(m, b, star, true), ask = st.ask === m.id;
   const meters = `<div class="g-meters">
       <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>
       <p class="g-meter"><span class="k">${bondIconSvg(b)}인연 ${b}</span>${bar(next ? (pt / next) * 100 : 100, `인연 ${Math.floor(pt)} / ${next ?? '최고'}`)}<small>${next ? `${fmt(Math.floor(pt))} / ${fmt(next)}` : '최고'}</small></p></div>`;
-  const knows = ks.length ? `<p class="g-knows"><span class="g-ri sm">${IC.know()}</span>${ks.slice(0, 3).map(([k, s]) => `<span class="g-kn">${esc(ENCOUNTERS[k as EncounterKey]?.name ?? k)} <b>${s}</b></span>`).join('')}${ks.length > 3 ? `<span class="g-kn">+${ks.length - 3}</span>` : ''}</p>` : '';
   const act = (attr: string, ic: string, label: string, sub: string, dis: boolean, cls = '', badge = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small>${badge}</button>`;
   return `${sheetHead(d, 'msheet')}
     ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 후원하면 출전만큼 (한 번에 5판, 20판까지).</p>
@@ -410,7 +406,6 @@ function detailHtml(m: GuildMember): string {
       <p><b>공략 숙지</b> 함께 이긴 전투마다 그 전투에서 반응 · 회피가 좋아집니다.</p>`)}
     ${meters}
     ${memDetailHtml(d)}
-    ${knows}
     ${ask ? `<p class="g-tip">${esc(m.nick)}을 친구 목록으로 보냅니다. 인연과 성장은 유지됩니다.${m.boost ? ` 남은 후원 ${m.boost}판은 돌아오지 않습니다.` : ''}<button type="button" class="btn2" id="cancelRelease">취소</button></p>` : ''}
     <div class="g-acts">
       ${act('data-sponsor', IC.sponsor(), '5판 후원', sw || `${goldCost(sg)}`, !!sw || gold < sg, '', m.boost ? `<i class="g-runs" aria-label="${m.boost}판 남음">${m.boost}</i>` : '')}

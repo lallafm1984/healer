@@ -18,11 +18,11 @@ export function abHtml(key: string | undefined, star = 0, when = true): string {
     <p class="trait-description">${esc(a.desc)}</p>${when ? `<p class="trait-condition"><span>발동</span><span>${esc(a.when)}</span></p>` : ''}</section>`;
 }
 
-/** 성격 이름과 설명을 분리하고 다루기 난이도는 말로 구분한다. */
+/** 성격은 이름과 효과 설명만 표시한다. */
 function personalityHtml(name: PersName, desc = true): string {
-  const p = PERS[name], difficulty = ['수월', '보통', '까다로움'][p.star - 1];
+  const p = PERS[name];
   return `<section class="member-trait personality" style="--trait-color:${CATS[p.cat]}" aria-label="성격">
-    <div class="trait-heading"><span class="trait-label">성격</span><b class="trait-title">${esc(name)}</b><span class="trait-difficulty" aria-label="다루기 난이도 ${p.star} / 3 · ${difficulty}">다루기 ${difficulty}</span></div>
+    <div class="trait-heading"><span class="trait-label">성격</span><b class="trait-title">${esc(name)}</b></div>
     ${desc ? `<p class="trait-description">${esc(p.desc)}</p>` : ''}</section>`;
 }
 
@@ -86,16 +86,15 @@ export function classIcon(cls: ClassKey): string {
 
 /**
  * 파티원 줄: 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 직업 스킬 이름 · LV · 오른쪽 끝 능력 별.
- * 성격은 분류색 테두리와 전체 이름을 표시한다. 효과와 다루기 난이도는 상세 시트에 둔다.
+ * 성격은 분류색 테두리와 전체 이름을 표시한다. 효과는 상세 시트에 둔다.
  */
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
     ? `<span class="skill-name"><b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
-  const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
-    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b>${m.bond ? bondHtml(m.bond, m.member) : ''}<span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps${hard ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${hard ? '<span class="sr">다루기 어려움 </span>' : ''}${esc(m.pers)}</span></span>
+    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b>${m.bond ? bondHtml(m.bond, m.member) : ''}<span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span>
     <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
