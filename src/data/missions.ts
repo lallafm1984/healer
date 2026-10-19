@@ -84,7 +84,7 @@ export const WEEKLY_N = 3;
 export const WEEKLY_LV = 10;
 
 /** 길드 주간 목표 (13 3장): 길드파티로 클리어 → 명성 + 길드원 전원 훈련 경험치 */
-export const GUILD_GOAL = { need: 10, fame: 5 };
+export const GUILD_GOAL = { need: 10, fame: 10 };
 
 /**
  * 임무 보상 (13 2-1): 1개 = 클리어 골드의 20%, 완료 상자 = 클리어 골드 1판 + 장비 1개. 클리어 골드 1판 = 그 레벨 보통 A (economy runGold).

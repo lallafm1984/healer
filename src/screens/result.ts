@@ -4,7 +4,7 @@
  */
 import { STAT_NAMES } from '../data/fm';
 import { ABILITIES } from '../data/abilities';
-import { EXPED, REQ, STORY } from '../data/guild';
+import { EXPED, guildLvOf, REQ, STORY } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
@@ -54,18 +54,21 @@ function render(): void {
   // 휴식 보너스 연출은 이 판 처음 그릴 때 한 번 (다시 그리면 합계 그대로), 시각 효과 줄이기면 없음
   const anim = won && !!x.restBonus && !G.save.settings.reducedEffects && !restPlayed.has(x);
   if (anim) restPlayed.add(x);
+  const fameAnim = won && !!x.guildFame && !G.save.settings.reducedEffects && !famePlayed.has(x); // 길드 막대 차오름 (103)
+  if (fameAnim) famePlayed.add(x);
   // 위 정보창은 로비 · 출전과 같은 모양 (설정 칸까지, 2026-10-13 Lim 「헤더 정렬」)
   st.el.innerHTML = `${topBar({ settings: true })}
     <div class="ns-body res">
       ${head(r, x, c.key, c.name)}
       ${tipHtml(r, x)}
-      ${won ? lootHtml(r, x, anim) : loseHtml(r, x)}
+      ${won ? lootHtml(r, x, anim, fameAnim) : loseHtml(r, x)}
       ${notesHtml(x)}
       ${recordHtml(r, !won)}
     </div>
     ${footHtml(r, x, tut)}`;
   resultModal.sync(null, []);
   if (anim) playRestBonus(st.el, x);
+  if (fameAnim) playGuildFame(st.el, x);
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
   if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
     ended.add(x);
@@ -77,7 +80,7 @@ function render(): void {
     setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps, r.hero ?? heroNow()); }, 1100);
   }
 }
-const shown = new WeakSet<object>(), ended = new WeakSet<object>(), restPlayed = new WeakSet<object>();
+const shown = new WeakSet<object>(), ended = new WeakSet<object>(), restPlayed = new WeakSet<object>(), famePlayed = new WeakSet<object>();
 
 /**
  * 휴식 보너스 연출 (90 · 2026-10-17 Lim 「결과창에서 휴식보너스가 있으면 휴식 보너스가 적용되어 보너스라고 하면서 적용하자」):
@@ -157,7 +160,7 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 }
 
 /** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄. anim = 휴식 보너스 연출 (기본 값부터 올라감) */
-function lootHtml(r: BattleResult, x: Settlement, anim = false): string {
+function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16에 없앴다가 91에서 다시 (강화석 · 정제 강화석 대신)
   // 휴식 보너스 (90 · 2026-10-17 Lim): 받은 판은 골드 이름 옆 · 경험치 바 아래 남빛 「휴식 보너스 +N」 (받은 보너스 몫, 비례면 그만큼).
@@ -172,6 +175,7 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false): string {
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x, !!r.affixes?.includes('festival'), anim)}
+      ${guildRow(x, fameAnim)}
       ${fx}
     </section>`;
 }
@@ -224,6 +228,47 @@ function xpRow(x: Settlement, fest = false, anim = false): string {
       <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${countUp(x.xp, xb, anim)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
 }
 
+/**
+ * 길드 막대 (2026-10-19 Lim 「명성을 길드레벨의 경험치 개념으로 하여 ui도 경험치 바처럼」, 103): 길드파티로 명성을 얻은 판만, 내 경험치 막대 아래 같은 모양.
+ * 「명성 +N」 · 이 레벨에서 쌓인 것 / 필요량, 레벨이 오르면 「길드 Lv 업!」 + 정원 +N. anim = 판 전 상태에서 차오름 (playGuildFame), 시각 효과 줄이기면 다 오른 모양
+ */
+function guildRow(x: Settlement, anim = false): string {
+  const gf = x.guildFame;
+  if (!gf) return '';
+  const a = guildLvOf(gf.before), b = guildLvOf(gf.before + gf.gain), up = b.lv > a.lv;
+  const pct = (l: ReturnType<typeof guildLvOf>) => (l.need ? Math.min(100, (l.have / l.need) * 100) : 100);
+  const txt = (l: ReturnType<typeof guildLvOf>) => (l.need ? `${fmt(l.have)} / ${fmt(l.need)}` : 'MAX');
+  const end = { lv: b.lv, w: pct(b), em: up ? '길드 Lv 업!' : txt(b) };
+  const start = anim ? { lv: a.lv, w: pct(a), em: txt(a) } : end, show = anim ? start : end;
+  const label = `명성 +${fmt(gf.gain)} · 길드 Lv ${b.lv} · ${b.need ? `명성 ${fmt(b.have)} / ${fmt(b.need)}` : '최고 레벨'}${up ? ` · 정원 +${b.cap - a.cap}` : ''}`;
+  return `<div class="r-xpw r-gxpw${up && !anim ? ' up' : ''}" data-gf-up="${up ? 1 : 0}" data-gf-lv="${b.lv}" data-gf-w="${end.w.toFixed(1)}" data-gf-em="${end.em}"${up ? ` data-gf-from="${a.lv}"` : ''}>
+      <span class="r-lv r-glv" aria-hidden="true"><small>${up && !anim ? `길드 ${a.lv} →` : '길드'}</small><b>${show.lv}</b></span>
+      <div class="r-xpc"><div class="xpbar r-xp r-gxp${up && !anim ? ' up' : ''}" aria-label="${label}"><i style="width:${show.w.toFixed(1)}%"></i><span><b>명성 +<data value="${gf.gain}"${anim ? ` data-gf-to="${gf.gain}"` : ''}>${fmt(anim ? 0 : gf.gain)}</data></b><em>${show.em}</em></span></div>${up ? `<small class="r-gcap${anim ? ' r-rest-pend' : ''}">정원 +${b.cap - a.cap}</small>` : ''}</div></div>`;
+}
+const FAME_FX = { start: 350, count: 650, steps: 13 };
+/** 길드 막대 차오름: 판 전 Lv · 막대에서 명성 +0 → +N, 레벨이 오르면 끝까지 찬 뒤 새 Lv · 「길드 Lv 업!」 · 정원 +N */
+function playGuildFame(root: HTMLElement, x: Settlement): void {
+  const row = root.querySelector<HTMLElement>('.r-gxpw');
+  if (!row) return;
+  const num = row.querySelector<HTMLElement>('[data-gf-to]'), bar = row.querySelector<HTMLElement>('.r-gxp i'), up = row.dataset.gfUp === '1';
+  const live = () => Flow.settle === x && row.isConnected, to = Number(num?.dataset.gfTo ?? 0);
+  setTimeout(() => {
+    if (!live()) return;
+    if (bar) bar.style.width = up ? '100%' : `${row.dataset.gfW}%`;
+    for (let i = 1; i <= FAME_FX.steps; i++) setTimeout(() => { if (live() && num) num.textContent = fmt(Math.round((to * i) / FAME_FX.steps)); }, (FAME_FX.count / FAME_FX.steps) * i);
+    setTimeout(() => {
+      if (!live()) return;
+      const em = row.querySelector<HTMLElement>('.r-gxp em'), lv = row.querySelector<HTMLElement>('.r-glv');
+      if (em) em.textContent = row.dataset.gfEm ?? '';
+      if (!up) return;
+      row.classList.add('up'); row.querySelector('.r-gxp')?.classList.add('up');
+      if (lv) lv.innerHTML = `<small>길드 ${row.dataset.gfFrom} →</small><b>${row.dataset.gfLv}</b>`;
+      if (bar) { bar.style.transition = 'none'; bar.style.width = '0%'; void bar.offsetWidth; bar.style.transition = ''; bar.style.width = `${row.dataset.gfW}%`; }
+      row.querySelector('.r-gcap')?.classList.remove('r-rest-pend');
+    }, FAME_FX.count + 120);
+  }, FAME_FX.start);
+}
+
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
 function loseHtml(r: BattleResult, x: Settlement): string {
   if (r.quit) return '';
@@ -257,7 +302,7 @@ function notesHtml(x: Settlement): string {
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.fame ? ` · 명성 +${gd.fame}` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람

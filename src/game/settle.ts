@@ -92,6 +92,8 @@ export interface Settlement {
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
   /** 길드원 경험치 · 능력치 · 명성 (93 · 97) */
   guild: GuildAfter | null;
+  /** 이 판에 길드파티로 얻은 명성 (승리 · 첫 처치 · 주간 원정, 103 「명성 = 길드 경험치」): before = 판 전 쌓인 명성. 결과창 길드 막대 */
+  guildFame: { before: number; gain: number } | null;
   /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (창단 멤버 닉네임) */
   founded: string[] | null;
   /** 스토리 동료 합류 (93 4-4): 들어옴 · 정원이 차서 기다림 */
@@ -212,8 +214,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
   const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
   const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
+  const fame0 = save.guild.fame;
   const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
   const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs }) : null;
+  const guildFame = save.guild.fame > fame0 ? { before: fame0, gain: save.guild.fame - fame0 } : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
   let chal: Settlement['chal'] = null;
@@ -247,6 +251,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, raidLoot, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, raidLoot, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

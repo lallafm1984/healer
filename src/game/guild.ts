@@ -89,7 +89,7 @@ export function inviteStory(save: SaveData, k: StoryKey): string {
 }
 
 // ---------- 결성 (93 4-1) ----------
-/** 말없는탱과 근접 1명 · 원거리 2명으로 결성한다. */
+/** 말없는탱과 근접 1명으로 결성한다 (정원 2, 103). */
 export function foundGuild(save: SaveData): string[] | null {
   const g = save.guild;
   if (g.founded || !guildOpen(save).ok) return null;
@@ -98,8 +98,9 @@ export function foundGuild(save: SaveData): string[] | null {
   const st = STORY.tank;
   join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), 'tank'));
   out.push(st.nick);
-  const dealers = (['rogue', 'mage', 'archer'] as const).map(cls => PEOPLE.find(p => p.cls === cls && !isIn(save, p.nick))!);
-  for (const p of dealers) { join(save, newMember(save, p, worldLevel(save, p))); out.push(p.nick); }
+  // 정원 = 길드 Lv + 1 (103): 결성은 이야기 탱커 + 딜러 1명 (예전 3명)
+  const p = PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick))!;
+  join(save, newMember(save, p, worldLevel(save, p))); out.push(p.nick);
   return out;
 }
 
@@ -382,7 +383,7 @@ export function guildAfter(
   }
   if (guildParty) {
     g.wins++;
-    out.fame = o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : FAME.win;
+    out.fame = o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : o.kind === 'explore' ? FAME.explore : FAME.dungeon;
     if (first) {
       g.firsts.push(firstKey); out.fame += FAME.first; out.first = true;
       g.firstLog = [...g.firstLog, { key: firstKey, day: dayKey(), sec: Math.round(o.time ?? 0), nicks: out.members.map(x => x.nick) }].slice(-200);
