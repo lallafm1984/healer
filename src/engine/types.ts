@@ -209,6 +209,9 @@ export interface Unit {
   retryAt: number;
   mistakeUntil: number;
   wrongUntil: number;
+  /** 능력치 (99 나): 탱커가 1열을 못 찾고 머뭇거리는 끝 (칸 위 「?」) · 엉뚱한 칸에 한 번 갔음 */
+  lostUntil?: number;
+  lostWrong?: boolean;
   fleeing: boolean;
   sulking: boolean;
   /** 관심종자 삐짐: 이번 전투에 삐진 횟수 · 삐진 때 · 혼자 풀린 때 (SULK) */

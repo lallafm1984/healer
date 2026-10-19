@@ -13,10 +13,10 @@ type F = ReturnType<typeof E.create>;
 const flat = (v: number, more: Partial<Stats> = {}): Stats => ({ ...(Object.fromEntries(STAT_KEYS.map(k => [k, v])) as Stats), ...more });
 const R = (role: RosterEntry['role'], cls: ClassKey, pers: PersName, nick: string, st: Partial<Stats> = {}, steady = 10): RosterEntry =>
   ({ role, cls, pers, nick, ab: role === 'tank' ? `${cls}.taunt` : role === 'melee' ? 'rogue.kick' : 'mage.blink', fm: { stats: flat(10, st), off: 0, steady } });
-const fight = (o: { st?: Partial<Stats>; steady?: number; seed?: number } = {}): F => {
+const fight = (o: { st?: Partial<Stats>; steady?: number; seed?: number; tank?: Partial<Stats>; tankSteady?: number } = {}): F => {
   const f = E.create({
     encounter: 'warden', diff: '보통', seed: o.seed ?? 1, stageLv: 30, heroLv: 30,
-    party: [R('tank', 'warrior', '사교형', '탱'), R('melee', 'rogue', '사교형', '근', o.st, o.steady), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
+    party: [R('tank', 'warrior', '사교형', '탱', o.tank, o.tankSteady), R('melee', 'rogue', '사교형', '근', o.st, o.steady), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
   });
   f.skills.forEach(s => { s.next = Infinity; });
   return f;
@@ -128,5 +128,48 @@ describe('(가) 못 피한 모양', () => {
       if (u.react?.late || (u.moving && tel.cells.has(u.moving.to))) other++;
     }
     expect(other).toBe(0);
+  });
+});
+
+describe('(나) 탱커 자리', () => {
+  const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
+  const front = (f: F, u: Unit) => f.cells[u.moving ? u.moving.to : u.cell].row < f.R.pos!.tankRows;
+  it('전투 시작: 위치 잡기가 낮으면 둘째 줄에서 시작하는 일이 잦고 (그동안 적이 다른 사람을 침), 15 이상은 늘 1열', () => {
+    let lost = 0, lostPar = 0;
+    for (let i = 0; i < 200; i++) {
+      const f = fight({ seed: 2000 + i, tank: { position: 1 } }), tk = who(f, '탱');
+      if (!front(f, tk)) { lost++; expect(tk.lostUntil).toBeGreaterThan(0); }
+      const g = fight({ seed: 2000 + i, tank: { position: 15 } });
+      if (!front(g, who(g, '탱'))) lostPar++;
+    }
+    expect(lost / 200).toBeGreaterThan(STAT_ACT.tankStart - 0.12);
+    expect(lostPar).toBe(0);
+  });
+  it('시작 자리를 못 찾은 탱커: 머뭇거리는 동안 적이 다른 파티원을 노리고 (loose), 끝나면 1열로 나감', () => {
+    for (let i = 0; i < 100; i++) {
+      const f = fight({ seed: 3000 + i, tank: { position: 1, react: 1 } }), tk = who(f, '탱');
+      if (front(f, tk)) continue;
+      steps(f, 0.2);
+      expect(f.loose?.id).not.toBe(tk.id);
+      expect(f.loose).not.toBeNull();
+      steps(f, (tk.lostUntil ?? 0) + 2.5 - f.t);
+      expect(front(f, tk)).toBe(true);
+      return;
+    }
+    throw new Error('시작 자리를 못 찾은 판이 없음');
+  });
+  it('1열이 비면: 위치 잡기 · 반응이 낮으면 머뭇거리고 (「?」), 15 이상은 바로 1열로', () => {
+    const lostFor = (st: Partial<Stats>) => {
+      const f = fight({ seed: 7, tank: st }), tk = who(f, '탱');
+      if (!front(f, tk)) steps(f, 6); // 시작 자리를 못 찾았으면 먼저 1열로
+      const p = f.R.pos!, back = f.cells.find(c => !c.unit && !c.block && c.row === p.tankRows)!;
+      f.cells[tk.cell].unit = null; back.unit = tk; tk.cell = back.i; tk.home = back.i; tk.homeAt = null; tk.lostUntil = undefined;
+      const t0 = f.t;
+      for (let k = 0; k < 200 && !front(f, tk); k++) steps(f, 0.05);
+      return f.t - t0;
+    };
+    const slow = lostFor({ position: 1, react: 1, judgment: 15 }), par = lostFor({ position: 15, react: 15 });
+    expect(par).toBeLessThan(0.5);
+    expect(slow).toBeGreaterThan(par + 0.6);
   });
 });

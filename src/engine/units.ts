@@ -16,6 +16,8 @@ import { frontCell, posDps } from './position';
 import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
+import { clumsy } from '../data/fm';
+import { STAT_ACT } from '../data/rules';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
 const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
@@ -165,7 +167,9 @@ function think(f: Fight, u: Unit): void {
   // 옮겨붙음 본판 (P-JUMP, 46 3-1) · 부풀기 (P-SWELL, 46 4-1): 들면 옆에 아무도 없는 칸으로 비켜 섬 (지워도 옆 사람이 안 맞게)
   if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => awayFrom(x) && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
   // 위치 규칙 (2026-10-13 Lim): 1열에 탱커가 없어 적이 아무나 때리면, 탱커가 비어 있는 안전한 1열 칸으로 바로 나가 다시 잡음 (거기가 새 자리)
+  if (u.lostUntil != null && !f.loose && f.t >= u.lostUntil) { u.lostUntil = undefined; u.lostWrong = false; }
   if (f.loose && u.role === 'tank' && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t)) {
+    if (u.wob != null && tankLost(f, u)) return; // 능력치 (99 나): 머뭇거림 · 엉뚱한 칸
     const c = frontCell(f, u);
     if (c && c.i !== u.cell && moveTo(f, u, c)) { u.home = c.i; u.homeAt = null; return; }
   }
@@ -178,6 +182,30 @@ function think(f: Fight, u: Unit): void {
     } else u.homeAt = null;
   }
   if (u.p.attention) sulkThink(f, u, u.p.attention);
+}
+
+/**
+ * 능력치 (99 나): 1열이 비었을 때 탱커가 머뭇거림 (위치 잡기 · 반응이 15보다 낮을수록 길게, 칸 위 「?」), 끝나면 판단이 낮을수록 엉뚱한 칸 (1열 아님)에 먼저 감.
+ * 아직 기다리면 true (이번 판단은 끝). 15 이상이면 예전처럼 바로 1열로
+ */
+function tankLost(f: Fight, u: Unit): boolean {
+  if (u.lostUntil == null) {
+    const c = (clumsy(u.fmStats?.position ?? 10) + clumsy(u.fmStats?.react ?? 10)) / 2;
+    const sec = STAT_ACT.tankBack * c * (1 + STAT_ACT.react * (u.wob ?? 0) * (2 * f.rng() - 1));
+    if (sec < 0.1) return false;
+    u.lostUntil = f.t + sec; u.lostWrong = false;
+    bark(f, u, null, true, 'tankLost');
+    return true;
+  }
+  if (f.t < u.lostUntil) return true;
+  if (!u.lostWrong && f.rng() < STAT_ACT.tankWrong * clumsy(u.fmStats?.judgment ?? 10)) {
+    u.lostWrong = true;
+    const p = f.R.pos, at = cellOf(f, u);
+    const wrong = f.cells.filter(c => !c.unit && !c.block && !dangerAt(f, c.i) && (!p || c.row >= p.tankRows) && c.i !== u.cell && hexDist(c, at) <= 2);
+    if (wrong.length && moveTo(f, u, wrong[Math.floor(f.rng() * wrong.length)])) { u.lostUntil = f.t + (u.moving?.total ?? 0.4) + 0.4; return true; }
+  }
+  u.lostUntil = undefined;
+  return false;
 }
 
 /** 관심종자 삐짐 (04 4장): attention초 동안 직접 힐을 못 받으면 삐짐 (딜 −25%). 다시 삐짐 · 횟수 · 혼자 풀림은 SULK (2026-10-16) */

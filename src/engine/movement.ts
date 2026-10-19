@@ -241,6 +241,7 @@ function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): bo
     const here = cellOf(f, u), free = f.cells.filter(c => !c.unit && !c.block && tel.cells.has(c.i) && c.i !== u.cell && hexDist(c, here) <= 2);
     if (!free.length) return false;
     moveTo(f, u, free[Math.floor(f.rng() * free.length)]);
+    u.wrongUntil = f.t + 0.6; // 칸 위 「?」
     const [a, b] = STAT_ACT.wrongBack;
     u.retryAt = impact + a + (b - a) * f.rng();
     bark(f, u, null, true, 'wrongDodge');
