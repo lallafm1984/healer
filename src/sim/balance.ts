@@ -77,6 +77,10 @@ export interface Run {
   healerSteals?: number;
   /** 어그로 보정용: 딜러 · 나의 위협 ÷ 탱커 위협 평균 (첫 구간) */
   thrRatio?: { d: number; me: number };
+  /** 진 판: 끝난 구간에 남은 보스 체력 몫 · 살아 있던 딜러 수 (시간 초과가 「못 잡는 보스」인지 「딜러가 다 쓰러지고 탱커 · 힐러만 버팀」인지) */
+  bossLeft?: number;
+  dealersLeft?: number;
+  dealers?: number;
 }
 /** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
 export type SpecMode = 'common' | 'class';
@@ -104,7 +108,7 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
     if (f.thr && !thrRatio && f.thr.acc.dn) thrRatio = { d: f.thr.acc.d / f.thr.acc.dn, me: f.thr.acc.mn ? f.thr.acc.me / f.thr.acc.mn : 0 };
     // 받은 피해 = 그동안 들어간 치유 + 줄어든 체력 (넘친 피해 · 보호막은 빼고)
     heals += (f.stats.healed + hp0 - f.party.reduce((a, u) => a + Math.max(0, u.hp), 0)) / (SKILLS.heal.amt! * f.gear.heal * f.power);
-    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과', heals, steals, healerSteals, thrRatio };
+    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과', heals, steals, healerSteals, thrRatio, bossLeft: f.bossMax > 0 ? f.bossHp / f.bossMax : 0, dealersLeft: f.party.filter(u => u.alive && !u.me && u.role !== 'tank').length, dealers: f.party.filter(u => !u.me && u.role !== 'tank').length };
     carry = restCarry(f, REST);
   }
   return { win: true, time, reason: '', heals, steals, healerSteals, thrRatio };

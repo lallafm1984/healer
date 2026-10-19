@@ -158,6 +158,8 @@ export interface Reaction {
   /** 예언가 (95): 이번엔 틀린 칸으로 감 · 점프광: 나를 안 노리는 예고에 뜀 */
   fore?: boolean;
   hop?: boolean;
+  /** 능력치 (99): 늦게 피함 = 터진 뒤 이 칸들 (예고 칸)에서 뛰어나옴 */
+  late?: Set<number>;
 }
 
 export interface Unit {
@@ -271,6 +273,8 @@ export interface Unit {
   /** 눈치 자질 (17 9-1): 반응 시간 배율, 회피 보정 */
   senseReact: number;
   senseDodge: number;
+  /** 능력치 (99): 순간마다 들쭉날쭉한 폭 (꾸준함 1 · 10 · 20 = 1.6 · 1 · 0.35). 능력치가 없는 사람 (튜토리얼 · 프로토타입)은 없음 = 흔들림 없음 */
+  wob?: number;
   /** 길드원이면 길드원 id */
   gid?: number;
   /** 결계사 인장 (79 5장): 이 시각까지 붙어 있음 */
@@ -330,7 +334,7 @@ export interface RosterEntry {
   /** 공개모집 (97 FM): lv가 그 사람 자기 레벨 (칸 레벨 상한 없음) */
   pub?: boolean;
   /** 능력치 12 (97 FM) · 이번 판 꾸준함 흔들림 (모든 칸에 더함) */
-  fm?: { stats: import('../data/fm').Stats; off: number };
+  fm?: { stats: import('../data/fm').Stats; off: number; steady?: number };
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';

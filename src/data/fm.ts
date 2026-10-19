@@ -122,6 +122,16 @@ export function dayOffset(steady: number, fightSeed: number, nick: string): numb
   return (r() * 2 - 1) * amp;
 }
 
+/**
+ * 능력치 기반 행동 (99) 기준점 = 15 (2026-10-19 Lim 「움직임은 평균 15정도에서 지금처럼 움직여지게 해보자. 지금의 움직임이 너무좋다」):
+ * 새 행동 층 (반응 흔들림 · 못 피한 모양 · 탱커 머뭇거림 · 빗나감 · 스킬 실수 …)은 15 이상이면 예전 그대로, 낮을수록 서툼 (1 = 가장 서툼). 예전 효과 (fmFx, 10 = 예전 값)는 그대로
+ */
+export const ACT_PAR = 15;
+/** 15에서 0 · 1에서 1 (15 넘으면 0) */
+export const clumsy = (s: number): number => Math.max(0, Math.min(1, (ACT_PAR - s) / (ACT_PAR - 1)));
+/** 순간 흔들림 폭 (99): 꾸준함 15 이상 0 · 10 0.57 · 1 1.6 (판마다 흔들림 dayOffset과 따로) */
+export const wobOf = (steady: number): number => 1.6 * clumsy(steady);
+
 /** 1 → 10 → 20 사이를 직선으로 (10 = 예전 값) */
 export function lerp3(s: number, at1: number, at10: number, at20: number): number {
   const x = Math.max(1, Math.min(20, s));

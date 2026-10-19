@@ -18,6 +18,8 @@ import type { BossSkill, Fight } from '../src/engine';
 const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
 /** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
 const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildKnow', 'guildTame', 'guildFirst'];
+/** 99 능력치 기반 행동: 성격 대사는 없어도 됨 (공통 · 역할로 넘김) */
+const STAT99: TalkSit[] = ['lateDodge', 'wrongDodge'];
 const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
@@ -50,6 +52,7 @@ describe('대사 데이터 규칙', () => {
         const only = (SITS[sit] as { pers?: readonly string[] }).pers;
         if (only && !only.includes(p)) expect(lines[sit], `${p}.${sit}`).toBeUndefined();
         else if (AGGRO96.includes(sit)) { if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(5); }
+        else if (STAT99.includes(sit)) { if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(2); }
         else if (GUILD93.includes(sit)) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(3);
         else if (only || !fresh) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(fresh ? 8 : 2);
         else if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
