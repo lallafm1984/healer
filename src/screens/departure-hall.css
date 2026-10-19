@@ -63,12 +63,16 @@
 @media (min-height: 521px) and (max-height: 700px) {
   #s-content .b-gate { min-height: 146px; }
   #s-content .b-scene-rewards { left: 52px; right: 52px; }
+  /* 잠금 안내는 장면 위쪽으로 올려 중앙 장소 이름과 분리한다. */
+  #s-content .b-st { top: 6px; }
 }
 @media (max-height: 520px) {
   :is(#s-content, #s-guild, #s-party) { --departure-height: 52px; }
   #s-content .b-body { grid-template-rows: 44px minmax(60px, 1fr) 44px 44px; }
   #s-content .b-gate { min-height: 60px; }
   #s-content .b-scene-rewards { right: 92px; }
+  /* 커버 화면의 보상 버튼은 44px 유지, 잠금 안내는 권장 레벨 아래 빈칸에 둔다. */
+  #s-content .b-st { top: 23px; left: auto; right: 8px; max-width: 84px; transform: none; }
 }
 :is(#s-content, #s-guild, #s-party) .g-cta {
   isolation: isolate; max-width: 440px; margin-inline: auto;
