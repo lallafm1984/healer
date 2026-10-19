@@ -86,7 +86,7 @@ describe('뺏기 · 되찾기', () => {
     expect((h0 - me.hp) / me.max).toBeLessThanOrEqual(THREAT.healerHit + 1e-6);
   });
 
-  it('침착: 뺏은 뒤 딜을 멈추기까지 (10 = 1초), 탱커가 반응 시간 뒤 되찾음 (위협 = 뺏은 사람 × 1.1, 재사용 8초)', () => {
+  it('침착: 뺏은 뒤 딜을 멈추기까지 (10 = 1초) · 2초 멈춘 뒤 줄여서 침, 탱커가 반응 시간 뒤 되찾음 (위협 = 뺏은 사람 × 1.1, 재사용 8초)', () => {
     const f = fight(), tk = who(f, '탱'), rg = who(f, '근');
     steps(f, 10);
     const t = f.thr!;
@@ -95,6 +95,8 @@ describe('뺏기 · 되찾기', () => {
     expect(threatDps(f, rg)).toBe(1);
     f.t += 1;
     expect(threatDps(f, rg)).toBe(0);
+    f.t += THREAT.stopSec; // 멈춘 뒤엔 되찾을 때까지 줄여서 침 (되찾기가 4~8초라 내내 멈추면 판 딜이 너무 빠짐)
+    expect(threatDps(f, rg)).toBeCloseTo(1 - THREAT.ease);
     setRatio(f, '근', 2);
     f.t = t.retakeAt;
     const v = t.v.get(rg.id)!;
@@ -108,31 +110,58 @@ describe('뺏기 · 되찾기', () => {
     const f = fight(), rg = who(f, '근');
     steps(f, 10);
     f.thr!.steal = { id: rg.id, at: f.t, stopAt: f.t };
+    f.thr!.retakeAt = f.t; // 탱커가 되찾음
     setRatio(f, '근', 0.5);
     threatTick(f);
+    expect(f.thr!.steal).toBeNull();
     expect(rg.thrCool).toBeCloseTo(f.t + THREAT.cool);
     for (let i = 0; i < 40; i++) { setRatio(f, '근', THREAT.leeway['보통'] * 1.5); threatTick(f); f.t += E.DT; }
     expect(f.thr!.steal).toBeNull();
     expect(rg.thrEase).toBe(true);
   });
 
-  it('위협이 식으면 되찾기 없이 보스가 돌아감', () => {
-    const f = fight(), rg = who(f, '근');
+  it('되찾을 때까지는 위협이 식어도 보스가 그 사람을 봄 · 주황 띠도 그 사람 (2026-10-19 Lim 「바로 되찾아 온다」)', () => {
+    const f = fight(), tk = who(f, '탱'), rg = who(f, '근');
+    steps(f, 10);
+    const t = f.thr!;
+    t.steal = { id: rg.id, at: f.t, stopAt: f.t };
+    t.retakeAt = f.t + retakeDelay(f, tk);
+    for (let i = 0; i < 20; i++) { setRatio(f, '근', 0.3); threatTick(f); f.t += E.DT; }
+    expect(t.steal?.id).toBe(rg.id);
+    expect(bossTarget(f)?.id).toBe(rg.id);
+    expect(t.warn).toContain(rg.id);
+    f.t = t.retakeAt!;
+    threatTick(f);
+    expect(t.steal).toBeNull();
+    expect(bossTarget(f)?.id).toBe(tk.id);
+  });
+
+  it('뺏은 딜러가 쓰러지면 보스가 바로 탱커에게', () => {
+    const f = fight(), tk = who(f, '탱'), rg = who(f, '근');
     steps(f, 10);
     f.thr!.steal = { id: rg.id, at: f.t, stopAt: f.t };
-    setRatio(f, '근', 0.5);
+    f.thr!.retakeAt = f.t + 6;
+    rg.alive = false;
     threatTick(f);
     expect(f.thr!.steal).toBeNull();
+    expect(bossTarget(f)?.id).toBe(tk.id);
   });
 });
 
 describe('능력치 · 성격 · 레벨', () => {
-  it('반응 1 → 3초 · 10 → 1.7초 · 20 → 0.5초에 되찾음', () => {
-    expect(retakeDelay(fight({ tank: { st: { react: 1 } } }), who(fight({ tank: { st: { react: 1 } } }), '탱'))).toBeCloseTo(3);
+  it('되찾기까지: 반응 1 → 8초 · 10 → 6초 · 20 → 4초, 기술 숙련 20 = × 0.9, 4~8초', () => {
+    const a = fight({ tank: { st: { react: 1 } } });
+    expect(retakeDelay(a, who(a, '탱'))).toBeCloseTo(8);
     const f = fight();
-    expect(retakeDelay(f, who(f, '탱'))).toBeCloseTo(1.7);
+    expect(retakeDelay(f, who(f, '탱'))).toBeCloseTo(6);
     const g = fight({ tank: { st: { react: 20 } } });
-    expect(retakeDelay(g, who(g, '탱'))).toBeCloseTo(0.5);
+    expect(retakeDelay(g, who(g, '탱'))).toBeCloseTo(4);
+    const h = fight({ tank: { st: { skill: 20 } } });
+    expect(retakeDelay(h, who(h, '탱'))).toBeCloseTo(5.4);
+    const k = fight({ tank: { st: { react: 1, skill: 1 } } });
+    expect(retakeDelay(k, who(k, '탱'))).toBeCloseTo(THREAT.retakeMax);
+    const m = fight({ tank: { st: { react: 20, skill: 20 } } });
+    expect(retakeDelay(m, who(m, '탱'))).toBeCloseTo(THREAT.retakeMin);
   });
 
   it('딜 줄이기 시작: 판단 1 → 안 줄임 · 10 → 85% · 20 → 70%, 딜 욕심쟁이 −5 · 신중파 +5 · 눈치백단 = 20', () => {
