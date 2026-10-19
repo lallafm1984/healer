@@ -1,4 +1,5 @@
 // 주술사: 깊은 물빛 (청록 · 파랑 + 흰 물거품) · 흙빛 돌 · 영혼 남빛. 사제 정화의 하늘빛보다 진하고 물결 · 물줄기 · 돌처럼 무게 있는 모양
+// 2026-10-19 Lim 「주술사의 정화, 연쇄, 잇기, 방울 이펙트도 똑같이 개선」 (결계사 · 점성술사처럼): 칸 가득, 맞는 순간 흰 섬광 + 물빛 · 영혼 남빛 고리, 빛 번짐 물빛 가루 (영혼 남빛 포인트) 1.5배
 import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
 
 const W = { rim: '#08304f', deep: '#1677b8', body: '#3fb0e8', light: '#a8e6ff', foam: '#f0fbff', glow: '#4cc0f0' };
@@ -82,6 +83,33 @@ function pebble(g, x, y, sz, rot, a, n = 6) {
   g.restore();
 }
 const AMBER = { rim: '#5a2a06', body: '#f0a03a', light: '#ffd27a', glow: '#ffb347' };
+/** 맞는 순간: 흰 섬광 + 물빛 번짐 + 퍼지는 물빛 고리 · 영혼 남빛 고리 (sy = 고리 납작함) */
+function impact(g, t, { x = 0, y = 0, t0 = 0, r = 1.15, sy = 0.9, a = 1 } = {}) {
+  const u = seg(t, t0, t0 + 0.45);
+  glow(g, x, y, r * 1.05, W.glow, 0.6 * (1 - E.out2(seg(t, t0, t0 + 0.55))) * a);
+  glow(g, x, y, r * 0.45, '#ffffff', 0.85 * bell(t, t0 - 0.02, t0 + 0.03, t0 + 0.28) * a);
+  if (u > 0 && u < 1) { ringGlow(g, x, y, lerp(0.25, r * 1.2, E.out3(u)), 0.08, W.light, 0.8 * (1 - u) * a, sy); ringGlow(g, x, y, lerp(0.15, r * 0.9, E.out3(seg(t, t0 + 0.06, t0 + 0.5))), 0.06, SPIRIT.light, 0.65 * (1 - u) * a, sy); }
+}
+/** 사방으로 튀는 물빛 가루 (30%는 영혼 남빛) */
+function waterBurst(g, t, seed, n, { x = 0, y = 0, sp = 1.0, sq = 0.8, t0 = 0, a = 1, grav = 0.3 } = {}) {
+  particles(g, t, seed, n, r => ({ t0: t0 + r() * 0.06, life: 0.35 + r() * 0.3, ang: r() * TAU, v: sp * (0.5 + r() * 0.7), sz: 0.018 + r() * 0.026, ph: r() * 9, sp2: r() < 0.3 }), (gg, p, age) => {
+    const d = p.v * E.out3(age), px = x + Math.cos(p.ang) * d, py = y + Math.sin(p.ang) * d * sq + grav * age * age, al = (1 - E.in2(age)) * a;
+    glow(gg, px, py, p.sz * 4, p.sp2 ? SPIRIT.glow : W.glow, 0.45 * al);
+    speck(gg, px, py, p.sz * (1 - 0.4 * age), p.sp2 ? SPIRIT.light : age < 0.4 ? W.foam : W.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
+  });
+}
+/** 발밑에서 돌며 떠오르는 물빛 가루 */
+function waterSwirl(g, t, seed, n, { y0 = 0.75, rise: up = 1.3, rr = 0.95, t0 = 0, span = 0.4, a = 1 } = {}) {
+  particles(g, t, seed, n, r => ({ t0: t0 + r() * span, life: 0.45 + r() * 0.35, a0: r() * TAU, rr: 0.15 + r() * rr, y0: y0 + r() * 0.2, up: up * (0.7 + r() * 0.6), sz: 0.016 + r() * 0.026, spin: (r() < 0.5 ? -1 : 1) * (1.2 + r()), ph: r() * 9, sp2: r() < 0.3 }), (gg, p, age) => {
+    const ang = p.a0 + p.spin * age * 2.4, rad2 = p.rr * (1 - 0.3 * age), x = Math.cos(ang) * rad2, y = p.y0 - p.up * E.out2(age) + Math.sin(ang) * rad2 * 0.22, al = bell(age, 0, 0.12, 1) * a;
+    glow(gg, x, y, p.sz * 4.5, p.sp2 ? SPIRIT.glow : W.glow, 0.4 * al);
+    speck(gg, x, y, p.sz, p.sp2 ? SPIRIT.light : W.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+  });
+}
+/** 차례로 켜지는 물빛 반짝임 (셋 중 하나는 영혼 남빛) */
+function wglints(g, t, seed, n, { t0 = 0.1, step = 0.06, w = 2.0, y0 = 0, h = 1.6, a = 1 } = {}) {
+  particles(g, t, seed, n, (r, i) => ({ t0: t0 + i * step + r() * 0.03, life: 0.28, x: (r() - 0.5) * w, y: y0 + (r() - 0.5) * h, rot: r(), sp2: i % 3 === 1 }), (gg, p, age) => glint(gg, p.x, p.y - age * 0.08, 0.24 * Math.sin(Math.PI * age), p.sp2 ? SPIRIT.glow : W.glow, a, p.rot, 0.13, W.foam));
+}
 
 export default {
   /** 잔물결: 발밑에 물방울이 톡 떨어진 자리에서 위에서 본 납작한 물결 두 겹이 차례로 퍼지고 작은 물방울이 튐.
@@ -126,111 +154,121 @@ export default {
   /** 물방울 (지속): 머리 위에서 큰 물방울 하나가 떨어져 닿는 순간 납작하게 퍼지고, 작은 물방울이 튀고 반짝이가 스며듦.
    *  떨어지는 동안 물방울 자리에서 빛 알갱이가 흩날리고, 닿는 순간 파란 빛 알갱이가 사방으로 퍼짐 (Lim 2026-10-18 「물방울이 떨어지면서 파티클이 퍼지는 연출」) */
   'shaman-droplet': {
-    frames: 22, logical: 88, scope: 'target',
+    frames: 22, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
-      const hit = 0.21, yHit = -0.3, fade = 1 - E.in2(seg(t, 0.55, 1)), fallY = v => lerp(-1.15, yHit, E.in2(seg(v, 0, hit)));
+      const hit = 0.21, yHit = -0.2, fade = 1 - E.in2(seg(t, 0.55, 1)), fallY = v => lerp(-1.3, yHit, E.in2(seg(v, 0, hit)));
       // 떨어지며 흩날린 빛 알갱이 (떨어진 뒤에도 잠깐 남아 옆으로 퍼지며 사라짐)
-      particles(g, t, 31, 28, (r, i) => ({ t0: (i / 28) * hit * 0.95, life: 0.32 + r() * 0.26, dx: (r() - 0.5) * 1.0, dy: (r() - 0.6) * 0.3, sz: 0.016 + r() * 0.022, ph: r() * 9 }), (gg, p, age) => {
+      particles(g, t, 31, 40, (r, i) => ({ t0: (i / 40) * hit * 0.95, life: 0.32 + r() * 0.26, dx: (r() - 0.5) * 1.4, dy: (r() - 0.6) * 0.4, sz: 0.02 + r() * 0.026, ph: r() * 9 }), (gg, p, age) => {
         const x = p.dx * E.out2(age), y = fallY(p.t0) - 0.12 + p.dy * age + 0.14 * age * age;
         rise(gg, x, y, p.sz * (1 - 0.3 * age), (1 - E.in2(age)) * 0.95, 0.5 + 0.5 * Math.sin(p.ph + age * 16));
       });
       if (t < hit) {
         const u = E.in2(seg(t, 0, hit)), y = fallY(t);
-        comet(g, s => ({ x: 0, y: lerp(y - 0.5, y - 0.15, s) }), 0, 1, { w: 0.12, rim: W.rim, body: W.body, core: W.foam, glowCol: W.glow, head: 0, a: 0.8 });
-        drop(g, 0, y, 0.24, 1, 1 + 0.15 * u);
+        comet(g, s => ({ x: 0, y: lerp(y - 0.75, y - 0.25, s) }), 0, 1, { w: 0.2, rim: W.rim, body: W.body, core: W.foam, glowCol: W.glow, head: 0, a: 0.8 });
+        glow(g, 0, y, 0.55, W.glow, 0.5);
+        drop(g, 0, y, 0.42, 1, 1 + 0.15 * u);
         return;
       }
       const u = seg(t, hit, 1);
       // 닿는 순간 사방으로 퍼지는 빛 알갱이 (납작한 원을 따라 바깥으로, 위쪽 반이 더 많고 천천히 가라앉음) + 바깥으로 튀는 작은 물방울
-      ringGlow(g, 0, yHit + 0.1, lerp(0.15, 0.95, E.out3(seg(u, 0, 0.5))), 0.07, W.glow, 0.7 * (1 - seg(u, 0, 0.55)), 0.45);
-      particles(g, u, 33, 52, r => ({ t0: r() * 0.12, life: 0.45 + r() * 0.35, a: r() < 0.7 ? -Math.PI * r() : Math.PI * r(), sp: 0.6 + r() * 0.8, sz: 0.016 + r() * 0.026, ph: r() * 9 }), (gg, p, age) => {
+      impact(g, u, { y: yHit + 0.1, r: 1.25, sy: 0.5 });
+      particles(g, u, 33, 80, r => ({ t0: r() * 0.12, life: 0.45 + r() * 0.35, a: r() < 0.7 ? -Math.PI * r() : Math.PI * r(), sp: 0.8 + r() * 1.1, sz: 0.02 + r() * 0.03, ph: r() * 9 }), (gg, p, age) => {
         const d = p.sp * E.out3(age), x = Math.cos(p.a) * d * 1.1, y = yHit + 0.08 + Math.sin(p.a) * d * 0.55 + 0.3 * age * age;
-        rise(gg, x, y, p.sz * (1 - 0.35 * age), bell(age, 0, 0.08, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 18), Math.sin(p.ph) > 0 ? W.light : W.foam);
+        rise(gg, x, y, p.sz * (1 - 0.35 * age), bell(age, 0, 0.08, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 18), p.ph > 6.3 ? SPIRIT.light : Math.sin(p.ph) > 0 ? W.light : W.foam);
       });
-      particles(g, u, 37, 10, (r, i) => ({ t0: r() * 0.06, life: 0.4 + r() * 0.15, a: rad(-170 + i * 18 + r() * 8), sp: 0.65 + r() * 0.45, sz: 0.035 + r() * 0.02 }), (gg, p, age) => {
+      particles(g, u, 37, 14, (r, i) => ({ t0: r() * 0.06, life: 0.4 + r() * 0.15, a: rad(-170 + i * 13 + r() * 8), sp: 0.9 + r() * 0.6, sz: 0.05 + r() * 0.03 }), (gg, p, age) => {
         const d = p.sp * E.out2(age), x = Math.cos(p.a) * d * 1.15, y = yHit + 0.06 + Math.sin(p.a) * d * 0.5 + 0.9 * age * age;
         drop(gg, x, y, p.sz * (1 - 0.4 * age), (1 - E.in2(age)) * fade);
       });
-      particles(g, u, 35, 6, (r, i) => ({ t0: 0.02 + i * 0.05, life: 0.3, a: rad(-165 + i * 30 + r() * 10), d: 0.45 + r() * 0.3, rot: r() }), (gg, p, age) => glint(gg, Math.cos(p.a) * p.d, yHit + Math.sin(p.a) * p.d * 0.5, 0.17 * Math.sin(Math.PI * age), W.glow, fade, p.rot, 0.13, W.foam));
-      glowOval(g, 0, yHit + 0.1, 0.9, 0.55, W.glow, 0.85 * (1 - E.out2(u)));
-      glow(g, 0, 0.15, 0.95, W.glow, 0.45 * (1 - E.out2(seg(u, 0, 0.7)))); // 몸통까지 스미는 물빛 (사제 기준)
-      glow(g, 0, yHit + 0.05, 0.4, '#ffffff', 1 - E.out3(seg(u, 0, 0.35)));
+      particles(g, u, 35, 8, (r, i) => ({ t0: 0.02 + i * 0.04, life: 0.3, a: rad(-165 + i * 22 + r() * 10), d: 0.6 + r() * 0.45, rot: r(), sp2: i % 3 === 1 }), (gg, p, age) => glint(gg, Math.cos(p.a) * p.d, yHit + Math.sin(p.a) * p.d * 0.5, 0.24 * Math.sin(Math.PI * age), p.sp2 ? SPIRIT.glow : W.glow, fade, p.rot, 0.13, W.foam));
+      glowOval(g, 0, yHit + 0.1, 1.2, 0.7, W.glow, 0.85 * (1 - E.out2(u)));
+      glow(g, 0, 0.15, 1.2, W.glow, 0.45 * (1 - E.out2(seg(u, 0, 0.7)))); // 몸통까지 스미는 물빛 (사제 기준)
+      glow(g, 0, yHit + 0.05, 0.6, '#ffffff', 1 - E.out3(seg(u, 0, 0.35)));
       // 왕관처럼 튀는 짧은 물줄기 + 옅게 퍼지는 물막 (점점 몸에 스며 옅어짐)
       const sq = E.out3(seg(u, 0, 0.3));
-      g.save(); g.translate(0, yHit + 0.12); g.scale(lerp(0.22, 0.62, sq), lerp(0.09, 0.13, sq)); g.globalAlpha = fade * (1 - seg(u, 0.25, 0.8));
+      g.save(); g.translate(0, yHit + 0.12); g.scale(lerp(0.3, 0.95, sq), lerp(0.12, 0.2, sq)); g.globalAlpha = fade * (1 - seg(u, 0.25, 0.8));
       g.beginPath(); g.arc(0, 0, 1, 0, TAU); g.fillStyle = C(W.body, 0.75); g.fill(); g.lineWidth = 0.2; g.strokeStyle = C(W.rim, 0.8); g.stroke(); g.restore();
       for (let i = 0; i < 6; i++) {
-        const a = rad(-90 + (i - 2.5) * 30), L = 0.58 * E.out3(seg(u, 0, 0.35)) * (i % 2 ? 0.75 : 1);
-        lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.08, L, s2) * 1.1, y: yHit + 0.12 + Math.sin(a) * lerp(0.05, L, s2) + 0.25 * u * u * s2 }), 0, 1, uu => 0.1 * (1 - uu * 0.6) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.02 });
+        const a = rad(-90 + (i - 2.5) * 30), L = 0.95 * E.out3(seg(u, 0, 0.35)) * (i % 2 ? 0.75 : 1);
+        lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.1, L, s2) * 1.1, y: yHit + 0.12 + Math.sin(a) * lerp(0.06, L, s2) + 0.3 * u * u * s2 }), 0, 1, uu => 0.15 * (1 - uu * 0.6) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.025 });
       }
-      spray(g, u, 7, 12, 0, yHit + 0.05, { up: 1.2, spread: 1.6, size: 0.06, a: fade });
+      spray(g, u, 7, 18, 0, yHit + 0.05, { up: 1.5, spread: 2.0, size: 0.08, a: fade });
       // 몸으로 스며드는 반짝이
-      particles(g, u, 9, 10, r => ({ t0: 0.15 + r() * 0.4, life: 0.4, x: (r() - 0.5) * 0.9, y: yHit + 0.1 + r() * 0.1 }), (gg, p, age) => speck(gg, p.x * (1 - age * 0.5), p.y + 0.55 * age, 0.02, W.light, (1 - age) * fade));
+      particles(g, u, 9, 16, r => ({ t0: 0.15 + r() * 0.4, life: 0.4, x: (r() - 0.5) * 1.3, y: yHit + 0.1 + r() * 0.1 }), (gg, p, age) => { glow(gg, p.x * (1 - age * 0.5), p.y + 0.7 * age, 0.1, W.glow, 0.4 * (1 - age) * fade); speck(gg, p.x * (1 - age * 0.5), p.y + 0.7 * age, 0.026, W.light, (1 - age) * fade); });
+      waterSwirl(g, u, 11, 30, { t0: 0.2, a: fade });
     },
   },
 
   /** 씻김 (해제, Lim 2026-10-16 「정화 이펙트를 좀더 퀄리티 높게」): 발밑 양옆에서 거품 머금은 굵은 물살 두 가닥이 몸을 감싸며 솟아 머리 위에서 만나고,
    *  어두운 얼룩이 물살에 휩쓸려 올라가 거품으로 부서진 뒤, 머리 위에서 물보라가 왕관처럼 터져 맑은 물방울이 떨어짐 */
   'shaman-washing': {
-    frames: 22, logical: 96, scope: 'target',
+    frames: 22, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
-      const run = E.out2(seg(t, 0, 0.48)), fade = 1 - E.in2(seg(t, 0.62, 1)), by = 0.7, top = -0.95;
-      glowOval(g, 0, by, 0.95, 0.35, W.glow, 0.8 * (1 - E.out2(seg(t, 0, 0.6))));
-      ripple(g, 0, by, lerp(0.3, 0.9, E.out3(seg(t, 0, 0.5))), (1 - seg(t, 0.2, 0.7)) * fade, 0.06);
+      const run = E.out2(seg(t, 0, 0.48)), fade = 1 - E.in2(seg(t, 0.62, 1)), by = 0.92, top = -1.15;
+      glowOval(g, 0, by, 1.2, 0.42, W.glow, 0.8 * (1 - E.out2(seg(t, 0, 0.6))));
+      impact(g, t, { y: by, r: 1.1, sy: 0.32 });
+      ripple(g, 0, by, lerp(0.4, 1.2, E.out3(seg(t, 0, 0.5))), (1 - seg(t, 0.2, 0.7)) * fade, 0.08);
       // 양옆에서 몸을 감싸듯 바깥으로 부풀었다 머리 위에서 만나는 물살 (서로 엇갈리지 않음: 이중 나선은 사제 소생)
-      for (const [sgn, w, foam, back] of [[1, 0.19, 1, true], [-1, 0.23, -1, false]]) {
-        const B = bez([sgn * 0.15, by + 0.02], [sgn * 0.78, by - 0.2], [sgn * 0.72, top + 0.35], [sgn * 0.02, top]), P = s2 => { const p = B(s2), wv = Math.sin(s2 * 9 - t * 18) * 0.05 * Math.sin(Math.PI * s2); return { x: p.x + sgn * wv, y: p.y }; };
+      for (const [sgn, w, foam, back] of [[1, 0.27, 1, true], [-1, 0.32, -1, false]]) {
+        const B = bez([sgn * 0.2, by + 0.02], [sgn * 1.05, by - 0.25], [sgn * 0.98, top + 0.42], [sgn * 0.02, top]), P = s2 => { const p = B(s2), wv = Math.sin(s2 * 9 - t * 18) * 0.05 * Math.sin(Math.PI * s2); return { x: p.x + sgn * wv, y: p.y }; };
         const tail = Math.max(0, run - 0.5 + 0.25 * seg(t, 0.45, 0.85)), thin = 1 - 0.55 * seg(t, 0.55, 1);
         waterRibbon(g, P, tail, Math.max(tail + 0.01, run), u => w * thin * (0.45 + 0.55 * Math.sin(Math.PI * Math.min(1, u * 1.1))), fade * (back ? 0.7 : 1), foam);
-        if (run < 0.97) { const p = P(run); drop(g, p.x, p.y - 0.05, 0.08, fade); }
+        if (run < 0.97) { const p = P(run); glow(g, p.x, p.y, 0.3, W.glow, 0.7 * fade); drop(g, p.x, p.y - 0.05, 0.12, fade); }
         // 물살 속 거품
-        for (let i = 0; i < 4; i++) { const s2 = Math.max(0, run - 0.1 - i * 0.16); if (s2 <= tail) continue; const p = P(s2); bubble(g, p.x + Math.sin(i * 2 + t * 9) * 0.04, p.y, 0.035 + 0.012 * (i % 2), fade * (back ? 0.6 : 1)); }
+        for (let i = 0; i < 6; i++) { const s2 = Math.max(0, run - 0.08 - i * 0.12); if (s2 <= tail) continue; const p = P(s2); bubble(g, p.x + Math.sin(i * 2 + t * 9) * 0.05, p.y, 0.05 + 0.016 * (i % 2), fade * (back ? 0.6 : 1)); }
       }
       // 휩쓸려 올라가는 어두운 얼룩 → 거품으로 부서짐
-      particles(g, t, 12, 4, (r, i) => ({ t0: 0.08 + i * 0.06, life: 0.5, a: r() * TAU, sz: 0.085 + r() * 0.03, rot: r() * 6 }), (gg, p, age) => {
-        const a = p.a + age * 5, rr = 0.45 * (1 - 0.3 * age), x = Math.cos(a) * rr, y = lerp(0.35, -0.75, E.inOut(age)), pop = seg(age, 0.65, 1), k = 1 - pop;
+      particles(g, t, 12, 5, (r, i) => ({ t0: 0.08 + i * 0.05, life: 0.5, a: r() * TAU, sz: 0.12 + r() * 0.04, rot: r() * 6 }), (gg, p, age) => {
+        const a = p.a + age * 5, rr = 0.6 * (1 - 0.3 * age), x = Math.cos(a) * rr, y = lerp(0.45, -0.95, E.inOut(age)), pop = seg(age, 0.65, 1), k = 1 - pop;
         if (k > 0) {
           bloom(gg, h => { h.beginPath(); h.arc(x, y, p.sz * 1.3, 0, TAU); }, '#6a3a90', 0.3 * k, 4);
           gg.save(); gg.translate(x, y); gg.rotate(p.rot + age * 4); gg.scale(p.sz * k, p.sz * k);
           solid(gg, h => { h.beginPath(); for (let j = 0; j < 7; j++) { const aa = (j * TAU) / 7, r2 = 0.75 + 0.3 * Math.sin(j * 2.3 + p.rot); h.lineTo(Math.cos(aa) * r2, Math.sin(aa) * r2); } h.closePath(); }, { hi: '#a46ad0', lo: '#3d1b5a', rim: '#14081e', rimW: 0.16, a: 1, shine: 0.25 }); gg.restore();
         }
-        if (pop > 0) for (let j = 0; j < 4; j++) { const b = (j * TAU) / 4 + p.rot; bubble(gg, x + Math.cos(b) * 0.1 * pop, y + Math.sin(b) * 0.1 * pop - 0.05 * pop, 0.03 * (1 - pop * 0.5), (1 - pop) * fade); }
+        if (pop > 0) for (let j = 0; j < 5; j++) { const b = (j * TAU) / 5 + p.rot; bubble(gg, x + Math.cos(b) * 0.15 * pop, y + Math.sin(b) * 0.15 * pop - 0.05 * pop, 0.042 * (1 - pop * 0.5), (1 - pop) * fade); }
       });
       // 머리 위 왕관 물보라 + 맑은 물방울
       const crown = seg(t, 0.42, 0.85);
       if (crown > 0) {
-        glow(g, 0, top + 0.05, 0.55, W.glow, 0.7 * (1 - crown));
-        for (let i = 0; i < 7; i++) {
-          const a = rad(-90 + (i - 3) * 24), L = 0.42 * E.out3(crown) * (i % 2 ? 0.75 : 1);
-          lightStroke(g, s2 => ({ x: Math.cos(a) * L * s2 * 1.1, y: top + 0.1 + Math.sin(a) * L * s2 + 0.3 * crown * crown * s2 }), 0, 1, u => 0.07 * (1 - u * 0.6) * (1 - crown), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.016 });
+        glow(g, 0, top + 0.05, 0.75, W.glow, 0.7 * (1 - crown));
+        impact(g, crown, { y: top + 0.1, r: 0.9, sy: 0.6 });
+        for (let i = 0; i < 9; i++) {
+          const a = rad(-90 + (i - 4) * 20), L = 0.7 * E.out3(crown) * (i % 2 ? 0.75 : 1);
+          lightStroke(g, s2 => ({ x: Math.cos(a) * L * s2 * 1.1, y: top + 0.1 + Math.sin(a) * L * s2 + 0.35 * crown * crown * s2 }), 0, 1, u => 0.11 * (1 - u * 0.6) * (1 - crown), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.02 });
         }
-        spray(g, crown, 6, 10, 0, top + 0.05, { up: 0.8, spread: 1.8, size: 0.05, a: fade });
+        spray(g, crown, 6, 16, 0, top + 0.05, { up: 1.0, spread: 2.2, size: 0.07, a: fade });
+        waterBurst(g, crown, 8, 36, { y: top + 0.1, sp: 1.2, sq: 0.8, a: fade, grav: 0.6 });
       }
+      waterSwirl(g, t, 13, 30, { t0: 0.35, a: fade });
+      wglints(g, t, 14, 7, { t0: 0.3, a: fade });
     },
   },
   /** 연쇄 치유 (튄 칸마다, Lim 2026-10-16 「순차적으로」): 앞 사람 쪽에서 거품 물살이 휘어 날아와 닿으며 물보라 · 물결이 터짐.
    *  그림은 왼쪽에서 들어오고, 게임이 앞 사람 (첫 대상은 나) 쪽으로 돌려 그리며 튄 순서대로 0.16초씩 늦춤 (battle/index.ts) */
   'shaman-chain': {
-    frames: 16, logical: 100, scope: 'target',
+    frames: 16, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
       const hit = 0.26, fade = 1 - E.in2(seg(t, 0.45, 1));
       const P = bez([-1.5, 0.05], [-1.1, -0.55], [-0.45, -0.5], [0, 0.02]);
       const s = lerp(0.3, 1, E.in2(seg(t, 0, hit)));
-      if (t < hit + 0.12) waterRibbon(g, P, Math.max(0, s - 0.65), Math.max(0.02, s), u => 0.24 * u ** 0.6, 1 - seg(t, hit, hit + 0.12), 1);
-      if (t < hit) { const p = P(s); drop(g, p.x, p.y, 0.14, 1); }
+      if (t < hit + 0.12) waterRibbon(g, P, Math.max(0, s - 0.65), Math.max(0.02, s), u => 0.32 * u ** 0.6, 1 - seg(t, hit, hit + 0.12), 1);
+      if (t < hit) { const p = P(s); glow(g, p.x, p.y, 0.35, W.glow, 0.7); drop(g, p.x, p.y, 0.2, 1); }
       const b = bell(t, hit - 0.04, hit + 0.02, hit + 0.42);
-      glow(g, 0, 0.02, 1.05, W.glow, 0.95 * b);
-      glow(g, 0, 0.02, 0.5, '#ffffff', b);
+      glow(g, 0, 0.02, 1.25, W.glow, 0.95 * b);
+      glow(g, 0, 0.02, 0.65, '#ffffff', b);
+      impact(g, t, { y: 0.05, t0: hit, r: 1.25, sy: 0.85 });
       if (t >= hit) {
         const u = seg(t, hit, 1);
-        ripple(g, 0, 0.08, lerp(0.25, 0.95, E.out3(u)), (1 - u) * fade, 0.095);
+        ripple(g, 0, 0.08, lerp(0.35, 1.3, E.out3(u)), (1 - u) * fade, 0.11);
         // 물보라 (사방으로 짧은 물줄기, 들어온 쪽 반대로 더 길게)
         for (let i = 0; i < 9; i++) {
-          const a = (i * TAU) / 9 + 0.2, L = (0.55 + 0.3 * Math.max(0, Math.cos(a))) * E.out3(seg(u, 0, 0.4));
-          lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.1, L, s2), y: 0.02 + Math.sin(a) * lerp(0.1, L, s2) * 0.8 + 0.2 * u * u * s2 }), 0, 1, uu => 0.14 * (1 - uu) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.022 });
+          const a = (i * TAU) / 9 + 0.2, L = (0.8 + 0.4 * Math.max(0, Math.cos(a))) * E.out3(seg(u, 0, 0.4));
+          lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.12, L, s2), y: 0.02 + Math.sin(a) * lerp(0.12, L, s2) * 0.8 + 0.25 * u * u * s2 }), 0, 1, uu => 0.19 * (1 - uu) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.026 });
         }
-        spray(g, u, 2, 14, 0, 0.02, { up: 0.9, spread: 1.7, size: 0.055, a: fade });
-        for (let i = 0; i < 5; i++) { const a = rad(-140 + i * 55), d = 0.25 + 0.4 * E.out2(u); bubble(g, Math.cos(a) * d, 0.02 + Math.sin(a) * d * 0.7 - 0.25 * u, 0.04, (1 - u) * fade); }
+        spray(g, u, 2, 22, 0, 0.02, { up: 1.1, spread: 2.1, size: 0.07, a: fade });
+        for (let i = 0; i < 8; i++) { const a = rad(-150 + i * 40), d = 0.35 + 0.55 * E.out2(u); bubble(g, Math.cos(a) * d, 0.02 + Math.sin(a) * d * 0.7 - 0.3 * u, 0.055, (1 - u) * fade); }
+        waterBurst(g, u, 4, 44, { y: 0.05, sp: 1.35, sq: 0.85, a: fade });
+        wglints(g, u, 5, 7, { t0: 0.05, a: fade });
       }
     },
   },
@@ -330,20 +368,25 @@ export default {
   },
   /** 영혼 잇기 (붙은 칸마다): 칸을 가로지르는 남빛 영혼 끈 두 줄이 엇갈려 출렁이고 가운데에 마름모 매듭이 빛남 */
   'shaman-link': {
-    frames: 22, logical: 84, scope: 'area',
+    frames: 22, logical: 84, size: 320, scope: 'area',
     draw(g, { t }) {
-      const run = E.out3(seg(t, 0, 0.35)), fade = 1 - E.in2(seg(t, 0.6, 1)), amp = 0.22 * (1 - 0.5 * seg(t, 0.4, 1));
-      glow(g, 0, 0, 0.8, SPIRIT.glow, 0.45 * fade);
+      const run = E.out3(seg(t, 0, 0.35)), fade = 1 - E.in2(seg(t, 0.6, 1)), amp = 0.32 * (1 - 0.5 * seg(t, 0.4, 1));
+      glow(g, 0, 0, 1.05, SPIRIT.glow, 0.5 * fade);
+      glow(g, 0, 0, 0.7, W.glow, 0.3 * fade);
+      impact(g, t, { y: 0.05, t0: 0.3, r: 1.0, sy: 0.75 });
       for (const [ph, body] of [[0, SPIRIT.body], [Math.PI, SPIRIT.light]]) {
         const P = s => ({ x: lerp(-1.25, 1.25, s), y: Math.sin(ph + s * TAU * 1.0 + t * 7) * amp * Math.sin(Math.PI * s) + 0.05 });
-        lightStroke(g, P, 0.5 - run / 2, 0.5 + run / 2, u => 0.1 * Math.sin(Math.PI * u) ** 0.4, { rim: SPIRIT.rim, body, core: '#ffffff', a: fade, rimW: 0.022, coreW: 0.35, glowCol: SPIRIT.glow, glowA: 0.55 });
+        lightStroke(g, P, 0.5 - run / 2, 0.5 + run / 2, u => 0.14 * Math.sin(Math.PI * u) ** 0.4, { rim: SPIRIT.rim, body, core: '#ffffff', a: fade, rimW: 0.026, coreW: 0.38, glowCol: SPIRIT.glow, glowA: 0.7 });
+        for (let k = 0; k < 8; k++) { const s3 = 0.5 + (frac(k / 8 + t * 1.6) - 0.5) * run, q = P(s3); glow(g, q.x, q.y, 0.09, k % 2 ? W.glow : SPIRIT.glow, 0.6 * fade); speck(g, q.x, q.y, 0.024, k % 2 ? W.foam : '#ffffff', 0.95 * fade, k * 0.4); }
       }
       // 마름모 매듭
       const k = E.back(seg(t, 0.1, 0.35), 2);
-      g.save(); g.translate(0, 0.05); g.rotate(t * 1.5); g.scale(0.17 * k, 0.24 * k);
+      glow(g, 0, 0.05, 0.4 * k, SPIRIT.glow, 0.7 * fade);
+      g.save(); g.translate(0, 0.05); g.rotate(t * 1.5); g.scale(0.26 * k, 0.36 * k);
       energy(g, gg => path.diamond(gg, 0.7), { rim: SPIRIT.rim, body: SPIRIT.body, core: '#ffffff', rimW: 0.12, glowCol: SPIRIT.glow, glowR: 0.6, a: fade }); g.restore();
-      glint(g, 0, 0.05, 0.35 * bell(t, 0.25, 0.35, 0.6), SPIRIT.glow, 1, 0, 0.12);
-      particles(g, t, 2, 10, r => ({ t0: 0.2 + r() * 0.4, life: 0.4, x: (r() - 0.5) * 2.0 }), (gg, p, age) => speck(gg, p.x, 0.05 - 0.4 * age, 0.018, SPIRIT.light, (1 - age) * fade));
+      glint(g, 0, 0.05, 0.5 * bell(t, 0.25, 0.35, 0.6), SPIRIT.glow, 1, 0, 0.12);
+      particles(g, t, 2, 34, r => ({ t0: 0.15 + r() * 0.45, life: 0.4, x: (r() - 0.5) * 2.2, sz: 0.018 + r() * 0.02, w2: r() < 0.35 }), (gg, p, age) => { const y = 0.05 - 0.6 * age, al = (1 - age) * fade; glow(gg, p.x, y, p.sz * 4, p.w2 ? W.glow : SPIRIT.glow, 0.45 * al); speck(gg, p.x, y, p.sz, p.w2 ? W.light : SPIRIT.light, al); });
+      waterBurst(g, t, 3, 26, { y: 0.05, sp: 1.0, sq: 0.6, t0: 0.3, a: fade, grav: 0.1 });
     },
   },
   /** 샘 토템 (세운 칸, Lim 2026-10-18 「토템 발동 이펙트 고퀄리티」): 발밑에서 물빛이 번쩍이며 물결이 퍼지고, Codex로 그린 물기둥 (scripts/vfx/assets/shaman-geyser,

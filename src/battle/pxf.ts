@@ -95,12 +95,12 @@ export const PXF = {
   'paladin-beacon-loop': loop(36, 62, 12, 320),
   'paladin-sanctuary-loop': loop(36, 84, 12, 256),
   'shaman-ripple': skill(24, 88),
-  'shaman-droplet': skill(22, 88),
-  'shaman-washing': skill(22, 96),
-  'shaman-chain': skill(16, 100),
+  'shaman-droplet': skill(22, 100, { size: 320 }), // 2026-10-19 Lim 「정화, 연쇄, 잇기, 방울 이펙트도 똑같이 개선」: 칸 가득 · 320px
+  'shaman-washing': skill(22, 100, { size: 320 }),
+  'shaman-chain': skill(16, 100, { size: 320 }),
   'shaman-earth': skill(22, 94),
   'shaman-rain': skill(22, 76),
-  'shaman-link': skill(22, 84),
+  'shaman-link': skill(22, 84, { size: 320 }),
   // 수도사 (2026-10-19 Lim 「형편없다. 성기사 방식을 참고해서 전면 수정」): 굵은 Codex 그림 · 384px
   'monk-palm': skill(14, 90, { size: 384 }),
   'monk-wrap': skill(22, 100, { size: 384 }), // 2026-10-19 Lim 「이미지를 사용하지 말고 이펙트로」: 손바닥 말고 그림 없이 코드로, 칸 가득
