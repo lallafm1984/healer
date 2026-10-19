@@ -110,7 +110,7 @@ export default async function adventureRewards(url,shots) {
             && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘 (장비 · 골드)·상세 팝업 제거`,rewards);
           const mainText=await page.locator('#s-content').innerText();
           ok(!/A\s*평가|보너스 제외|좌우로?\s*넘겨/.test(mainText),`${tag} ${tab}: 보상 기준·지역 넘기기 보조문구를 메인에서 제거`);
-          const selected=await page.locator('#contentGo').innerText(),bad=[];
+          const selected=await page.locator('#contentGo').getAttribute('aria-label'),bad=[];
           for(const reward of rewards) {
             const button=page.locator(`[data-reward="${reward.key}"]`);
             await button.scrollIntoViewIfNeeded();await page.clock.runFor(20);
@@ -132,7 +132,7 @@ export default async function adventureRewards(url,shots) {
             await page.keyboard.press('Escape');await page.clock.runFor(20);
             if(await pop.count() || !await button.evaluate(el=>document.activeElement===el))bad.push({key:reward.key,issue:'Escape or return focus failed'});
           }
-          ok(!bad.length && await page.locator('#contentGo').innerText()===selected,`${tag} ${tab}: 모든 ${rewards.length}개 보상 아이콘 직접 접근·확률·화면 내 팝오버·Esc 복귀`,bad);
+          ok(!bad.length && await page.locator('#contentGo').getAttribute('aria-label')===selected,`${tag} ${tab}: 모든 ${rewards.length}개 보상 아이콘 직접 접근·확률·화면 내 팝오버·Esc 복귀`,bad);
           await page.locator('[data-reward]').first().click();await page.click('[data-reward-close]');
           ok(await page.locator('.b-reward-chance').count()===0,`${tag} ${tab}: 확률 닫기 버튼`);
           await page.locator('[data-reward]').first().click();
@@ -146,7 +146,7 @@ export default async function adventureRewards(url,shots) {
           });
           if(!outside)throw new Error('확률 팝오버 밖의 비조작 영역을 찾지 못함');
           await page.mouse.click(outside.x,outside.y);
-          ok(await page.locator('.b-reward-chance').count()===0 && await page.locator('#contentGo').innerText()===selected,`${tag} ${tab}: 팝오버 바깥 클릭 닫힘·출전 선택 유지`);
+          ok(await page.locator('.b-reward-chance').count()===0 && await page.locator('#contentGo').getAttribute('aria-label')===selected,`${tag} ${tab}: 팝오버 바깥 클릭 닫힘·출전 선택 유지`);
           await page.locator('.b-scene-reward-list').evaluate(el=>{el.scrollLeft=0;});
           await page.screenshot({path:`${shots}/departure-rewards-${tab}-${id}-${width}x${height}.png`});
         }

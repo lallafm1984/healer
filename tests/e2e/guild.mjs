@@ -54,7 +54,7 @@ export default async function guild(url, shots) {
   ok(/주간 목표/.test(await text('#s-guild .g-tip')) && await page.getAttribute('#s-guild .g-card[data-sec="todo"] .g-info', 'aria-expanded') === 'true', 'ⓘ = 설명 펼침');
   await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-tip').count()) === 0, 'ⓘ 다시 = 접힘');
-  ok(/길드파티로 출전/.test(await text('#guildGo')) && /주간 목표 0 \/ 10/.test(await text('#guildGo')), '아래 버튼 「길드파티로 출전」');
+  ok((await text('#guildGo')).trim() === '길드파티로 출전', '아래 버튼 「길드파티로 출전」 한 줄');
 
   // 영입은 공고와 명성 지원자만. 친구·명부·인연 안내가 없다.
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);

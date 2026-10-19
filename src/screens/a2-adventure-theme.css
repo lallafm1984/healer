@@ -183,7 +183,6 @@
 #s-party .sheet > .f-shut { box-shadow: 0 -9px 12px #2d1b12cc; }
 
 /* Reuse the approved crimson button art; no new CSS ornamental shapes. */
-#s-content .g-cta,
 :is(#s-entry, #s-party) .f-go {
   background-color: transparent;
   background-image: url('../art/a2-depart-v3.webp');
@@ -195,8 +194,6 @@
   box-shadow: none;
   color: var(--a2-ink);
 }
-#s-content .g-cta::before,
-#s-content .g-cta::after { content: none; }
 #s-content .g-ct b,
 :is(#s-entry, #s-party) .f-go .f-gt {
   color: var(--a2-ink);

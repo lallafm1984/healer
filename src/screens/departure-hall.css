@@ -53,6 +53,29 @@
 /* ---------- 아래 출전 줄 ---------- */
 #s-content .b-foot { background: linear-gradient(#1b1611, #110e0b); background-blend-mode: normal; border-top: 1px solid var(--gk-line); }
 
+/* 길드·전투 출전 공통: 그림의 좌우 96px 장식은 고정 폭, 가운데만 늘린다.
+ * 전체 그림을 100% 너비로 누르면 끝 장식이 가로로 퍼진다. 별도 레이어로 글자·터치 영역은 유지한다. */
+:is(#s-content, #s-guild) .g-cta {
+  isolation: isolate; max-width: 440px; margin-inline: auto;
+  border-color: transparent; background: none; box-shadow: none;
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 8px; padding-inline: 18px;
+}
+:is(#s-content, #s-guild) .g-cta::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  width: auto; height: auto; margin: 0; transform: none; background: none; border: 0;
+  border-image: url('../art/a2-depart-v3.webp') 0 96 fill / 0 18px / 0 stretch;
+}
+:is(#s-content, #s-guild) .g-cta::after { content: none; }
+:is(#s-content, #s-guild) .g-cta .g-mk { width: 32px; height: 32px; justify-self: center; padding: 2px; box-shadow: none; }
+:is(#s-content, #s-guild) .g-cta .g-ct b { line-height: 1.1; letter-spacing: .04em; }
+:is(#s-content, #s-guild) .g-cta > .g-arrow { width: 36px; height: 28px; object-fit: contain; }
+@media (max-height: 760px) {
+  :is(#s-content, #s-guild) .g-cta .g-mk { width: 28px; height: 28px; }
+}
+@media (max-height: 500px) {
+  :is(#s-content, #s-guild) .g-cta .g-mk { width: 24px; height: 24px; }
+}
+
 /* ---------- 휴식 창 (.admodal.st-modal) ----------
  * 2026-10-16 Lim 「입장 버튼이 팝업과 따로 논다」: 돌 카드 + 분류 칸과 같은 황동 테 그림, 제목 양옆 금줄.
  * 버튼은 결과 · 휴식과 같은 한 벌 (모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛). 빨간 출전 그림 (a2-depart-v3)은 쓰지 않음 */

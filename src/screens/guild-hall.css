@@ -209,15 +209,10 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-cta {
   width: 100%; height: 56px; min-height: 56px; border-color: transparent; box-shadow: none; color: var(--a2-ink, #fff4d5);
-  background: transparent url('../art/a2-depart-v3.webp') 8.695652% 17.1875% / 101.295775% 107.891492% no-repeat; background-origin: border-box;
 }
-#s-guild .g-cta::before, #s-guild .g-cta::after { content: none; }
-#s-guild .g-cta .g-mk { width: 44px; height: 44px; }
 #s-guild .g-cta .g-mk .g-ic { width: 80%; height: 80%; object-fit: contain; }
 #s-guild .g-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-#s-guild .g-ct b { font: 800 22px/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
-#s-guild .g-ct small { font-size: 11px; color: #f3ddb8; }
-#s-guild .g-cta .g-arrow { flex: none; width: 22px; height: 22px; color: #fff4d5; }
+#s-guild .g-ct b { font: 800 clamp(18px, 5vw, 22px)/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
 
 /* ---------- 길드원 시트 (편성 화면 파티원 시트와 같은 바탕) ---------- */
 #app .ns .sheet.g-msheet { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); gap: 10px; word-break: keep-all; overflow-wrap: anywhere; }
@@ -287,7 +282,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }
   #s-guild .g-cta, #s-guild .g-cta { height: 48px; min-height: 48px; }
-  #s-guild .g-cta .g-mk { width: 38px; height: 38px; }
   #s-guild .g-ct b { font-size: 19px; }
 }
 

@@ -107,7 +107,9 @@ export default async function guildExt(url, shots) {
   const req = (await save()).guild.reqs.list.find(q => !q.done);
   if (req) {
     await page.locator('#s-guild .g-job [data-goto]').first().click(); await page.clock.runFor(50);
-    ok(await page.isVisible('#s-content') && !await page.isVisible('#battle') && (await text('#contentGo')).includes(req.diff), '부탁 장소 보기 = 해당 모험 선택, 전투 자동 시작 없음');
+    ok(await page.isVisible('#s-content') && !await page.isVisible('#battle')
+      && await page.getAttribute('#s-content', 'data-selected-content') === req.content
+      && await page.getAttribute('#s-content', 'data-selected-diff') === req.diff, '부탁 장소 보기 = 해당 모험 선택, 전투 자동 시작 없음');
     await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
   }
   // ---- S25 · 울트라 · 플립: 가로 넘침 없음 ----

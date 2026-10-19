@@ -25,7 +25,7 @@ import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
 import { esc, fmt, go, screen, topBar } from './kit';
-import { currencyAmount, gameIcon, LOCK, uiIcon } from './art';
+import { currencyAmount, departureArrow, gameIcon, LOCK, uiIcon } from './art';
 import { sheetDialog } from './dialog';
 
 type Sub = 'home' | 'members' | 'recruit';
@@ -46,7 +46,6 @@ const modal = sheetDialog(s.el, closeSheet);
 /** 출전 문양 (길드 탭 깃발 그림이 없을 때), 오른쪽 화살표 */
 const svg = (d: string, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const FLAG = svg('<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>');
-const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2.4).replace('<svg', '<svg class="g-arrow"');
 const goldCost = (value: number) => currencyAmount('gold', value);
 /** 길드 그림 (2026-10-18 Codex): 모집 공고 · 명성. 없으면 선 아이콘 */
 const IC = {
@@ -218,8 +217,7 @@ function membersSec(): Sec {
 
 /** 아래 붉은 주 버튼 (전투 탭 「출전」과 같은 결) */
 function ctaHtml(): string {
-  const w = G.save.weekly.guild, need = GUILD_GOAL.need;
-  return `<button type="button" class="g-cta" id="guildGo"><span class="g-mk"><span>${IC.flag()}</span></span><span class="g-ct"><b>길드파티로 출전</b><small>주간 목표 ${Math.min(w.n, need)} / ${need}</small></span>${ARROW}</button>`;
+  return `<button type="button" class="g-cta" id="guildGo"><span class="g-mk" aria-hidden="true"><span>${IC.flag()}</span></span><span class="g-ct"><b>길드파티로 출전</b></span>${departureArrow()}</button>`;
 }
 
 /** 스토리 동료 합류 카드 (93 4-4, 결성 이야기와 같은 틀) */
