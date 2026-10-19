@@ -119,7 +119,8 @@ export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n 
 /**
  * 레벨 몫 (2026-10-19 Lim 「능력치가 레벨증가에 따라서 올라가는데 고렙의 파티원이 불리하다. 전체적으로 레벨에 따른 능력치 벨런스」, 기획 102):
  * 모든 파티원 (공개모집 · 길드원) 능력치 12칸에 + LV_STAT × (Lv − 1) ÷ 99 (Lv 1 +0 · 50 +2.5 · 100 +5). Lv 100 공개모집 평균이 15 (능력치 행동 기준점)가 됨.
- * 저장된 값 (타고난 값 · 길드원이 키운 값)에는 안 넣고 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 더함. 능력 ★은 레벨 몫을 빼고 (같은 레벨 사이 재능)
+ * 저장된 값 (타고난 값 · 길드원이 키운 값)에는 안 넣고 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 더함. 능력 ★은 레벨 몫을 빼고 (같은 레벨 사이 재능).
+ * 102 B안: 전투에서는 능력치 행동 층 (실수 · 15 넘는 잘함, u.fmStats)에만 쓰고 예전 효과 (fmFx 딜 · 체력 · 반응 …)에는 안 씀 (장소 보정이 평균 10 파티로 맞춰져 있어 그 몫까지 더하면 너무 쉬워짐)
  */
 export const LV_STAT = 5;
 export const lvStat = (lv?: number): number => (lv ? (LV_STAT * (Math.max(1, Math.min(100, lv)) - 1)) / 99 : 0);

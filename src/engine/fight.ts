@@ -181,9 +181,10 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const lv = role === 'healer' ? f.power : own;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
-    const off = r?.fm ? r.fm.off + lvStat(r.lv) : 0; // 그날 흔들림 (꾸준함) + 레벨 몫 (102)
+    // 그날 흔들림 (꾸준함) · 레벨 몫 (102 B안): 레벨 몫은 능력치 행동 층 (fmStats: 실수 · 15 넘는 잘함)에만, 예전 효과 (fmFx 딜 · 체력 · 반응 …, 10 = 예전 값)에는 안 넣음
+    const off = r?.fm ? r.fm.off : 0, act = off + (r?.fm ? lvStat(r.lv) : 0);
     const fx = r?.fm ? fmFx(r.fm.stats, off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
-    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(r!.fm!.stats.atk + off); } // 99 다: 공격 높은 탱커
+    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(r!.fm!.stats.atk + act); } // 99 다: 공격 높은 탱커
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? habitPers(PERS[pers], r?.habit) : {}, nick, base, max: base, hp: base, dps, alive: true,
@@ -193,7 +194,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       ab: null, mods: [], got: 0, senseReact: fx ? fx.react : 1, senseDodge: fx ? fx.dodge : 0, gid: r?.gid,
     };
     if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }; // 길드원 「한 일」 (97)
-    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
+    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + act])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
     if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
     else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
     units.push(u);

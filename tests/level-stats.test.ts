@@ -28,7 +28,8 @@ describe('레벨 몫 (Lim 「레벨에 따른 능력치 벨런스」)', () => {
     expect(by('근').fmStats!.react).toBeCloseTo(10, 9);
     expect(by('마').fmStats!.react).toBeCloseTo(10 + lvStat(50), 9);
     expect(by('궁').fmStats!.react).toBeCloseTo(10, 9); // 레벨이 없는 사람 (옛 파티 · 시험)은 그대로
-    expect(by('탱').fm!.react).toBeLessThan(by('근').fm!.react); // 예전 효과 (fmFx)도 같은 값을 씀: 반응 빠름
+    expect(by('탱').fm!.react).toBeCloseTo(by('근').fm!.react, 9); // 102 B안: 예전 효과 (fmFx 딜 · 체력 · 반응 …)에는 레벨 몫을 안 넣음
+    expect(by('탱').fm!.dps).toBeCloseTo(by('근').fm!.dps, 9);
   });
   it('화면 숫자는 저장 값 + 레벨 몫 (반올림 · 20까지)', () => {
     const st = flat(10, { atk: 18 });
