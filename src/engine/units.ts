@@ -16,18 +16,27 @@ import { frontCell, posDps } from './position';
 import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
-import { clumsy } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
+/** 99 위치 잡기: 탱커가 아닌 능력치 있는 사람의 위치 잡기 (그 밖은 15 = 예전) */
+export const posOf = (u: Unit): number => (u.wob != null && u.role !== 'tank' && !u.me ? u.fmStats?.position ?? 10 : 15);
 const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
 /**
  * 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾.
  * 작은 판 (5인 10칸)에서 그런 칸이 없으면 옆 사람이 지금보다 적은 칸 중 가장 적은 곳 (2026-10-10)
  */
-export function stepAway(f: Fight, u: Unit, sec: number): boolean {
+export function stepAway(f: Fight, u: Unit, sec: number, sure = false): boolean {
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
-  if (!u.p.calm && ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u))) return false; // 침착함은 꼭 비켜 섬 (75)
+  // 99 위치 잡기: 15보다 낮으면 옆에 사람이 있는데도 붙어 섬 (sure = 위치 잡기 15 넘는 사람이 먼저 떨어져 서는 길, 굴림 없음)
+  const pos = posOf(u);
+  if (!sure && pos < 15 && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1) && f.rng() < STAT_ACT.spreadMiss * clumsy(pos)) {
+    emit(f, { type: 'clump', id: u.id });
+    if (f.rng() < 0.4) bark(f, u, null, false, 'clump');
+    return false;
+  }
+  if (!sure && !u.p.calm && ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u))) return false; // 침착함은 꼭 비켜 섬 (75)
   if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
   const cur = cellOf(f, u);
   const nearAt = (c: Cell) => f.party.filter(v => v !== u && v.alive && hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1).length;
@@ -192,6 +201,7 @@ function think(f: Fight, u: Unit): void {
   }
   // 옮겨붙음 본판 (P-JUMP, 46 3-1) · 부풀기 (P-SWELL, 46 4-1): 들면 옆에 아무도 없는 칸으로 비켜 섬 (지워도 옆 사람이 안 맞게)
   if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => awayFrom(x) && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
+  if (posOf(u) > 15 && spreadAware(f, u)) return; // 99 위치 잡기: 옆 사람이 든 옮겨붙음 · 부풀기에서 먼저 떨어져 섬
   // 위치 규칙 (2026-10-13 Lim): 1열에 탱커가 없어 적이 아무나 때리면, 탱커가 비어 있는 안전한 1열 칸으로 바로 나가 다시 잡음 (거기가 새 자리)
   if (u.lostUntil != null && !f.loose && f.t >= u.lostUntil) { u.lostUntil = undefined; u.lostWrong = false; }
   if (f.loose && u.role === 'tank' && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t)) {
@@ -232,6 +242,33 @@ function tankLost(f: Fight, u: Unit): boolean {
   }
   u.lostUntil = undefined;
   return false;
+}
+
+/** 99 위치 잡기 (15 넘음): 옆 칸 사람이 옮겨붙음 · 부풀기를 들면 잘함 확률로 먼저 떨어져 섬 (디버프마다 한 번만 굴림). 옮겼으면 true */
+function spreadAware(f: Fight, u: Unit): boolean {
+  const at = cellOf(f, u);
+  for (const v of f.party) {
+    if (v === u || !v.alive || hexDist(cellOf(f, v), at) !== 1) continue;
+    const d = v.debuffs.find(awayFrom);
+    if (!d || u.spreadSeen === d.id) continue;
+    u.spreadSeen = d.id;
+    if (f.rng() < sharp(posOf(u)) && stepFrom(f, u, v, d.left)) return true;
+  }
+  return false;
+}
+/** 든 사람 (from) 옆이 아닌 가장 가까운 안전한 빈 칸으로 (같으면 옆 사람이 적은 칸) */
+function stepFrom(f: Fight, u: Unit, from: Unit, sec: number): boolean {
+  const cur = cellOf(f, u), src = f.cells[from.moving ? from.moving.to : from.cell];
+  const near = (c: Cell) => f.party.filter(v => v !== u && v.alive && hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1).length;
+  let best: Cell | null = null, bs = Infinity;
+  for (const c of f.cells) {
+    if (c.block || (c.unit && c.unit !== u) || c.i === u.cell || dangerAt(f, c.i) || hexDist(c, src) <= 1) continue;
+    const sc = hexDist(cur, c) * 10 + near(c);
+    if (sc < bs) { bs = sc; best = c; }
+  }
+  if (!best || !moveTo(f, u, best)) return false;
+  u.awayUntil = f.t + sec + 0.5; u.homeAt = null;
+  return true;
 }
 
 /** 관심종자 삐짐 (04 4장): attention초 동안 직접 힐을 못 받으면 삐짐 (딜 −25%). 다시 삐짐 · 횟수 · 혼자 풀림은 SULK (2026-10-16) */

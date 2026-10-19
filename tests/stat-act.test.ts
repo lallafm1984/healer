@@ -567,3 +567,77 @@ describe('방어 = 막는 솜씨 「자세 놓침」 (Lim 06:47 「능력치 하
     throw new Error('자세 놓침이 한 번도 안 나옴');
   });
 });
+
+describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나하나 모두 의미있게」)', () => {
+  /** 근접 딜러를 마법사 바로 옆 칸에 두고 (빈 칸 남김) 판을 돌릴 준비 */
+  function besideMage(st: Partial<Stats>, seed: number, mageSt: Partial<Stats> = {}) {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱'), R('melee', 'rogue', '신중파', '근', st, 15), R('ranged', 'mage', '신중파', '마', mageSt, 15), R('ranged', 'archer', '신중파', '궁')],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    for (let i = 0; i < 20; i++) { E.step(f); f.events.length = 0; }
+    const u = who(f, '근'), m = who(f, '마');
+    const at = f.cells[m.cell], c = f.cells.find(x => !x.unit && !x.block && hexDist(x, at) === 1)!;
+    if (u.moving) { f.cells[u.moving.to].unit = null; u.moving = null; }
+    f.cells[u.cell].unit = null; c.unit = u; u.cell = c.i; u.home = c.i;
+    return { f, u, m };
+  }
+  const swell = (f: F, u: Unit) => { const { addDebuff } = E as unknown as { addDebuff?: never }; void addDebuff; u.debuffs.push({ id: f.nextId++, name: '부풀기', type: '저주', left: 8, swell: { every: 2, max: 5 } } as never); };
+  it('15보다 낮으면 옮겨붙음 · 부풀기를 든 채 옆 사람에게 붙어 섬 (1 = 50%, 「붙어 섬」), 15는 예전 그대로', () => {
+    const rate = (position: number) => {
+      let clump = 0;
+      for (let s = 0; s < 200; s++) {
+        const { f, u } = besideMage({ position, evade: 15 }, 2000 + s);
+        swell(f, u);
+        for (let i = 0; i < 8; i++) { E.step(f); for (const ev of f.events) if (ev.type === 'clump' && ev.id === u.id) clump++; f.events.length = 0; }
+      }
+      return clump / 200;
+    };
+    const lo = rate(1);
+    expect(lo).toBeGreaterThan(STAT_ACT.spreadMiss - 0.1); expect(lo).toBeLessThan(STAT_ACT.spreadMiss + 0.1);
+    expect(rate(15)).toBe(0);
+  });
+  it('15 넘으면 옆 사람이 부풀기를 들면 먼저 떨어져 섬 (20 = 늘), 15는 그대로', () => {
+    const away = (position: number) => {
+      let n = 0;
+      for (let s = 0; s < 40; s++) {
+        const { f, u, m } = besideMage({ position }, 3000 + s, { position: 15, evade: 1 });
+        m.p = { ...m.p, dist: 1 }; // 든 사람은 안 비킴 (사교형처럼)
+        swell(f, m);
+        for (let i = 0; i < 12; i++) { E.step(f); f.events.length = 0; }
+        if (hexDist(f.cells[u.moving ? u.moving.to : u.cell], f.cells[m.cell]) > 1) n++;
+      }
+      return n / 40;
+    };
+    expect(away(20)).toBe(1);
+    expect(away(15)).toBe(0);
+  });
+  it('15 넘으면 연쇄 번개 대상일 때 알아서 흩어져 섬 (신중파가 아니어도), 15는 예전처럼 안 비킴', async () => {
+    const { chainWarn } = await import('../src/engine/bossParts');
+    // 작은 판 (5인 10칸)이라 옆 사람이 더 적은 칸이 없으면 못 비킴 (예전 stepAway 규칙): 시드 여럿에서 셈
+    const moved = (position: number) => {
+      let n = 0;
+      for (let s = 0; s < 30; s++) {
+        const { f, u } = besideMage({ position }, 11 + s);
+        u.pers = '감사형';
+        chainWarn(f, { id: f.nextId++, units: [u.id], impact: f.t + 2 } as unknown as Telegraph);
+        if (u.moving) n++;
+      }
+      return n;
+    };
+    expect(moved(20)).toBeGreaterThan(10);
+    expect(moved(15)).toBe(0);
+  });
+  it('15보다 낮으면 칸을 고를 때 나쁜 자리도 고름 (흔들림 2 → 22), 15는 늘 같은 칸', async () => {
+    const { pickCell } = await import('../src/engine/movement');
+    const picks = (position: number) => {
+      const { f, u } = besideMage({ position }, 7);
+      const out = new Set<number>();
+      for (let i = 0; i < 60; i++) out.add(pickCell(f, u, { safe: true, home: true })!.i);
+      return out.size;
+    };
+    expect(picks(15)).toBeLessThanOrEqual(2);
+    expect(picks(1)).toBeGreaterThan(picks(15));
+  });
+});

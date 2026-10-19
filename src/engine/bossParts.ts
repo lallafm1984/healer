@@ -14,7 +14,7 @@ import { modsTaken } from './abilities';
 import { hexDist } from './board';
 import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, takenAmt, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
-import { hotTick, stepAway } from './units';
+import { hotTick, posOf, stepAway } from './units';
 import { frontCell, frontTank } from './position';
 import { bossTarget } from './threat';
 import { THREAT } from '../data/rules';
@@ -444,7 +444,9 @@ export function chainFrom(f: Fight, u: Unit, dmg: number, jumps: number, grow: n
 export function chainWarn(f: Fight, tel: Telegraph): void {
   for (const id of tel.units) {
     const u = unitById(f, id);
-    if (u?.alive && !u.me && !u.lift && u.pers === '신중파' && !u.moving) stepAway(f, u, tel.impact - f.t);
+    if (!u?.alive || u.me || u.lift || u.moving) continue;
+    if (u.pers === '신중파') stepAway(f, u, tel.impact - f.t);
+    else if (posOf(u) > 15 && f.rng() < sharp(posOf(u))) stepAway(f, u, tel.impact - f.t, true); // 99 위치 잡기: 알아서 흩어져 섬
   }
 }
 

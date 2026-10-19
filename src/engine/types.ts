@@ -220,6 +220,8 @@ export interface Unit {
   /** 능력치 (99 맷집): 큰 한 방 뒤 휘청한 끝 (맷집 15 밑) · 버틴 때 (15 넘음, 탱커 강타 1초 위협) */
   staggerUntil?: number;
   steadyAt?: number;
+  /** 능력치 (99 위치 잡기): 옆 사람의 옮겨붙음 · 부풀기를 이미 본 디버프 id (15 넘으면 먼저 떨어져 섬, 한 번만 굴림) */
+  spreadSeen?: number;
   fleeing: boolean;
   sulking: boolean;
   /** 관심종자 삐짐: 이번 전투에 삐진 횟수 · 삐진 때 · 혼자 풀린 때 (SULK) */
@@ -493,6 +495,7 @@ export type FightEvent =
   | { type: 'miss'; uid: number }
   | { type: 'daze'; id: number }
   | { type: 'offGuard'; id: number }
+  | { type: 'clump'; id: number }
   | { type: 'stagger'; id: number; steady?: boolean }
   /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
   | { type: 'parry'; id: number }

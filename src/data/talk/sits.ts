@@ -98,6 +98,7 @@ export const SITS = {
   lateDodge: S('장판', '늦게 피함', 'self', 2, 0.8, '반응이 늦어 장판에 맞고 나서야 뛰어나옴'),
   wrongDodge: S('장판', '엉뚱한 쪽', 'self', 2, 0.8, '피한다는 게 장판 안 다른 칸으로 들어감 (판단이 낮음)'),
   whiff: S('보스', '빗나감', 'self', 1, 0.5, '한 방이 빗나감 (기술 숙련이 낮음). 가볍게'),
+  clump: S('장판', '붙어 섬', 'self', 1, 0.5, '옮겨붙음 · 부풀기를 든 채 옆 사람에게서 안 떨어짐 (위치 잡기가 낮음, 옆 사람이 같이 맞음). 가볍게'),
   reel: S('보스', '휘청', 'self', 1, 0.5, '큰 한 방을 맞고 휘청 (맷집이 낮음, 잠깐 공격 · 이동 멈춤). 가볍게'),
   spaceOut: S('보스', '멍', 'self', 1, 0.5, '긴 전투에서 잠깐 딴생각 (집중이 낮음, 그 순간 반응 · 한 방이 나빠짐). 가볍게'),
   skillFumble: S('보스', '스킬 헛씀', 'self', 2, 0.8, '직업 스킬을 썼는데 헛나감 (재사용만 돎, 기술 숙련이 낮음)'),
@@ -309,7 +310,7 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'spaceOut' | 'reel' | 'aggroHold' | 'aggroIgnore' | 'aggroPanic' | 'aggroLost' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'spaceOut' | 'reel' | 'clump' | 'aggroHold' | 'aggroIgnore' | 'aggroPanic' | 'aggroLost' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'
