@@ -6,8 +6,11 @@ const H = 3600e3, D = 24 * H;
 const pad = (n: number) => String(n).padStart(2, '0');
 const key = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parse = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
-/** 오전 6시 전이면 어제로 침 */
-const shifted = (now: number) => new Date(now - RESET_HOUR * H);
+/** 오전 6시 전이면 어제로 침. 벽시계 기준 (절대 시간에서 6시간을 빼면 서머타임이 바뀌는 날 리셋이 1시간 어긋남), 낮 12시로 둬 날짜만 씀 */
+const shifted = (now: number) => {
+  const d = new Date(now);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getHours() < RESET_HOUR ? 1 : 0), 12);
+};
 
 export const dayKey = (now = Date.now()) => key(shifted(now));
 export function weekKey(now = Date.now()): string {
