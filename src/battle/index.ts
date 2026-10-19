@@ -277,7 +277,8 @@ function pressSlot(slot: string): void {
   const key = slotKey(F, slot);
   if (skillUsesSpent(F, key)) return;
   ui.talArmed = null; B.beacon = false; B.coreCell = false;
-  if (SKILLS[key].target === 'none') { doUse(key, 0); return; }
+  // 대상 없는 스킬 · 되살리기 (환생: 탱커 먼저, 엔진 reviveTarget)는 누르면 바로 (2026-10-19 Lim 「버튼을 클릭하면 대상지정없이 살릴수 있게」)
+  if (SKILLS[key].target === 'none' || SKILLS[key].target === 'dead') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
   vibe(8);
 }
@@ -369,9 +370,12 @@ const cv = $('board') as HTMLCanvasElement;
 function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 /**
  * 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL). 칸에 세우는 스킬 (주술사 샘 · 대지 토템)은 빈 칸도 (2026-10-16 Lim).
- * 대상 없는 스킬 (비구름 토템 · 공대 쿨기 · 차 한 잔 · 심판 등)도 빈 칸에서 쓸어 쓸 수 있음 (2026-10-18 Lim 「비구름도 빈칸에서 스와이프되게」, 효과는 칸과 상관없음)
+ * 대상 없는 스킬 (비구름 토템 · 공대 쿨기 · 차 한 잔 · 심판 등)도 빈 칸에서 쓸어 쓸 수 있음 (2026-10-18 Lim 「비구름도 빈칸에서 스와이프되게」, 효과는 칸과 상관없음).
+ * 되살리기 (드루이드 환생, target 'dead')도 어느 칸에서나: 쓰러지면 칸이 비어 쓰러진 칸 · 빈 칸에서 쓸면 막혔음. 대상은 엔진이 탱커 먼저 고름 (reviveTarget)
+ * (2026-10-19 Lim 「빈곳이든 파티원 칸이든 환생쪽으로 스와이프 하면 탱커 우선하여 살릴수 있게」)
  */
-const aimable = (F: Fight, idx: number, key?: SkillKey | null): boolean => (!!key && (SKILLS[key].target === 'cell' || SKILLS[key].target === 'none') && !!F.cells[idx]) || !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
+const ANY_CELL: ReadonlySet<string> = new Set(['cell', 'none', 'dead']);
+const aimable = (F: Fight, idx: number, key?: SkillKey | null): boolean => (!!key && ANY_CELL.has(SKILLS[key].target) && !!F.cells[idx]) || !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
 /** 쓸기 방향의 휠 스킬 */
 const dirKey = (F: Fight, d: ReturnType<typeof swipeDir>): SkillKey | null => { const it = d ? dirSlot(d) : null; return it && it.key ? slotKey(F, it.key) : null; };
 function doUse(key: SkillKey, idx: number): boolean {
