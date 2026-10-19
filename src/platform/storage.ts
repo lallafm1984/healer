@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 23; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99)
+export const SAVE_VERSION = 24; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -642,9 +642,10 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   if (!v || typeof v !== 'object') return d;
   const g = v as Partial<GuildSave> & { scouts?: unknown; pick?: unknown };
   const num = (x: unknown, z = 0) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
+  const fameOf = (x: unknown) => num(x) * (ver < 24 ? 2 : 1); // v24 (103): 명성 값이 두 배가 되어 옛 명성도 × 2
   if (ver < 19) {
     // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 당시 스킬 단계를 보존
-    const out: GuildSave = { ...d, fame: num(g.fame), nextId: num(g.nextId, 1) };
+    const out: GuildSave = { ...d, fame: fameOf(g.fame), nextId: num(g.nextId, 1) };
     for (const raw of Array.isArray(g.members) ? g.members : []) {
       const m = oldMember(raw, out.nextId);
       if (!m) continue;
@@ -669,7 +670,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { cands: mem(g.post.cands) } : null,
     apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? member((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
     appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
-    fame: num(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
+    fame: fameOf(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),
     picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},

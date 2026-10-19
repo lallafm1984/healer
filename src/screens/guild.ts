@@ -12,7 +12,7 @@ import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { CONTENT } from '../data/content';
-import { EXPED, GUILD_STEPS, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, type GuildMember } from '../data/guild';
+import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
@@ -82,14 +82,16 @@ function tabs(): string {
   return `<nav class="subtabs" role="tablist" aria-label="길드 메뉴">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}${extra[k]}</button>`).join('')}</nav>`;
 }
 
-/** 길드 홀 그림 머리 (상점 선반 그림과 같은 .art-hero): 길드 이름 · Lv · 정원 · 명성 (다음 Lv까지 막대). 하위 탭 이름은 탭에만 */
+/**
+ * 길드 홀 그림 머리 (상점 선반 그림과 같은 .art-hero): 길드 이름 · 정원 / 길드 Lv + 명성 막대 (2026-10-19 Lim 「명성을 길드레벨의 경험치 개념으로 하여 ui도 경험치 바처럼」, 103):
+ * 위 정보창 경험치 막대처럼 굵은 막대 하나, 안 글자 「명성 84 / 120」 (이 레벨에서 쌓인 것 / 필요량), Lv 30이면 가득 · MAX. 하위 탭 이름은 탭에만
+ */
 function hero(title: string, stats = true): string {
   const g = G.save.guild, cap = capOf(G.save);
-  const prev = GUILD_STEPS[cap.lv - 1];
-  const pct = cap.next ? Math.min(100, ((g.fame - prev) / (cap.next - prev)) * 100) : 100;
-  const progress = cap.next ? `<span class="gh-bar" role="img" aria-label="길드 Lv ${cap.lv + 1}까지 ${Math.round(pct)}% · 명성 ${fmt(cap.next - g.fame)} 필요"><i style="width:${pct.toFixed(0)}%"></i></span>` : '';
+  const pct = cap.need ? Math.min(100, (cap.have / cap.need) * 100) : 100, txt = cap.need ? `명성 ${fmt(cap.have)} / ${fmt(cap.need)}` : 'MAX';
+  const bar = `<span class="gh-xp" role="img" aria-label="길드 Lv ${cap.lv} · ${cap.need ? `명성 ${fmt(cap.have)} / ${fmt(cap.need)}` : '최고 레벨'}"><i style="width:${pct.toFixed(1)}%"></i><small aria-hidden="true">${txt}</small></span>`;
   return `<header class="art-hero guild-hero${stats ? ' guild-identity' : ''}"><div class="ah-copy">${stats ? '' : '<p class="eyebrow">길드 홀</p>'}<h2>${stats ? esc(g.name) : title}</h2></div>
-    ${stats ? `<div class="gh-stats"><span class="gh-lv">${gameIcon('guild-flag', '')}<span>길드 Lv <b>${cap.lv}</b></span></span><span class="gh-cap"><span>정원 </span><b>${g.members.length}/${cap.cap}</b></span><span class="gh-fame">${IC.fame()}<span>명성 </span><b>${fmt(g.fame)}</b></span></div>${progress}` : ''}</header>`;
+    ${stats ? `<div class="gh-stats"><span class="gh-cap"><span>정원 </span><b>${g.members.length}/${cap.cap}</b></span><span class="gh-xprow"><span class="gh-lv">${gameIcon('guild-flag', '')}<span>길드 Lv <b>${cap.lv}</b></span></span>${bar}</span></div>` : ''}</header>`;
 }
 
 function render(): void {

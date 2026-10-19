@@ -14,17 +14,27 @@ export const memberSkillLevel = (m: Pick<GuildMember, 'lv' | 'skillFloor'>): num
   Math.min(5, Math.max(1, m.skillFloor ?? 1)), SKILL_LEVELS.filter(at => m.lv >= at).length,
 );
 
-// ---------- 길드 Lv · 정원 · 명성 (93 6-1 · 6-2) ----------
-// 레벨/정원 해금 기준이며 명성의 상한이 아니다. 최고 길드 Lv 뒤에도 명성은 계속 누적한다.
-export const GUILD_STEPS = [0, 20, 60, 120, 200, 320, 480, 700, 1200, 2000] as const;
-export const GUILD_CAPS = [6, 7, 8, 10, 12, 14, 16, 19, 22, 25] as const;
-export function guildLvOf(fame: number): { lv: number; cap: number; next: number | null } {
+// ---------- 길드 Lv · 정원 · 명성 (93 6-1 · 6-2 → 2026-10-19 Lim 「명성 탐험 1 · 던전 2 · 10인 4 · 20인 6, 정원 길드 Lv 1에 2명부터 Lv 30까지」 · 「명성을 길드레벨의 경험치 개념으로」, 103) ----------
+/** 길드 Lv 1 ~ 30. 명성 = 길드 경험치: 저장은 쌓인 명성 하나, Lv 30 뒤에도 계속 쌓임 */
+export const GUILD_MAX = 30;
+/**
+ * 레벨마다 다음 레벨까지 필요 명성 (Lv 1 → 2가 [0], Lv 29 → 30이 [28]), 줄지 않게. 하루 1.5시간 · 길잡이 1순위 시뮬 (103 「길드 Lv 30」): 길드 Lv 8 = 내 Lv 41 안팎 · 18 = 내 Lv 75 안팎 · 30 = 내 Lv 100 뒤 4~5주.
+ * (목표 「내 Lv 45 ≈ 8 · 70 ≈ 18」은 초반에 첫 처치로 명성이 빨라서 줄지 않는 필요량으로는 둘 다 못 맞춤, 가운데로)
+ */
+export const GUILD_NEED: readonly number[] = [55, 55, 55, 60, 60, 65, 65, 70, 75, 80, 85, 90, 100, 105, 115, 125, 130, 140, 150, 165, 175, 185, 200, 215, 230, 245, 260, 275, 290];
+/** 그 레벨이 되는 데 쌓인 명성 (Lv 1 = 0) */
+export const GUILD_STEPS: readonly number[] = GUILD_NEED.reduce<number[]>((a, n) => [...a, a[a.length - 1] + n], [0]);
+/** 정원 = 길드 Lv + 1 (Lv 1에 2명 · Lv 30에 31명) */
+export const guildCap = (lv: number) => lv + 1;
+/** 길드 Lv · 정원 · 다음 레벨 문턱 (쌓인 명성), have = 이 레벨에서 쌓인 명성, need = 이 레벨 필요량 (Lv 30이면 null) */
+export function guildLvOf(fame: number): { lv: number; cap: number; next: number | null; have: number; need: number | null } {
   let i = 0;
   for (let k = 1; k < GUILD_STEPS.length; k++) if (fame >= GUILD_STEPS[k]) i = k;
-  return { lv: i + 1, cap: GUILD_CAPS[i], next: i + 1 < GUILD_STEPS.length ? GUILD_STEPS[i + 1] : null };
+  const lv = i + 1, need = lv < GUILD_MAX ? GUILD_NEED[i] : null;
+  return { lv, cap: guildCap(lv), next: need == null ? null : GUILD_STEPS[i + 1], have: fame - GUILD_STEPS[i], need };
 }
-/** 명성: 길드파티로 이김 (파티원 자리 절반 이상이 길드원) · 길드 첫 처치 (던전 · 레이드, 장소 · 난이도마다 한 번) */
-export const FAME = { win: 1, raid10: 2, raid20: 3, first: 3 };
+/** 명성 (길드파티로 이김 = 파티원 자리 절반 이상이 길드원): 탐험 1 · 던전 2 · 10인 4 · 20인 6, 길드 첫 처치 (던전 · 레이드, 장소 · 난이도마다 한 번) +6 */
+export const FAME = { explore: 1, dungeon: 2, raid10: 4, raid20: 6, first: 6 };
 
 // ---------- 영입 (93 4-2) ----------
 /** 모집 공고 하나: 전 직업 무작위 3명 · 내 Lv × 30 골드. 희귀 성격 또는 희귀 스킬 보유자는 지원자당 3%. */
@@ -32,8 +42,8 @@ export const POST = { name: '모집 공고', per: 30, cands: 3, rareChance: 0.03
 export const postGold = (myLv: number) => POST.per * myLv;
 /** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자는 레벨 상관없이 (원석이 섞임) */
 export const POST_LV_GAP = 5;
-/** 명성 지원자: 길드 Lv 2 하루 1명 · Lv 6 2명 · Lv 9 3명, 사흘 동안 머묾 */
-export const appsPerDay = (guildLv: number) => (guildLv >= 9 ? 3 : guildLv >= 6 ? 2 : guildLv >= 2 ? 1 : 0);
+/** 명성 지원자: 길드 Lv 2 ~ 9 하루 1명 · 10 ~ 19 2명 · 20 ~ 30 3명, 사흘 동안 머묾 */
+export const appsPerDay = (guildLv: number) => (guildLv >= 20 ? 3 : guildLv >= 10 ? 2 : guildLv >= 2 ? 1 : 0);
 export const APP_DAYS = 3;
 /** 스킬 다시 뽑기: 내 Lv × 60 골드 (93 5-5) */
 export const rerollGold = (myLv: number) => 60 * myLv;
@@ -150,7 +160,7 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
 /** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 완료한 전투에서 그 길드원의 경험치 ×2 (부탁마다 한 번). 날이 바뀌면 새로 (쌓이지 않음) */
 export const REQ = { perDay: 2, xpMult: 2 };
 /** 주간 원정: 내 레벨에 맞는 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상. 칸마다 명성 +5, 셋 다 = 원정 상자 (클리어 골드 5판 + 장비 1) */
-export const EXPED = { n: 3, fame: 5, chestGold: 5 };
+export const EXPED = { n: 3, fame: 10, chestGold: 5 };
 
 /** 버릇 = 침착 · 판단 (97 · 93 13-1): 두 칸 평균 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3 (길드원만, 공개모집은 그대로) */
 export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.2, 1, 1 / 3);

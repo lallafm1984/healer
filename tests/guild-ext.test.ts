@@ -4,7 +4,7 @@ import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
-import { EXPED, REQ, STORY, type GuildMember } from '../src/data/guild';
+import { EXPED, GUILD_STEPS, REQ, STORY, type GuildMember } from '../src/data/guild';
 import { PARTY_POOL } from '../src/data/nicknames';
 import * as E from '../src/engine';
 import { claimExped } from '../src/game/economy';
@@ -46,7 +46,7 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: 99, post: '5' } } }).player.gold).toBe(s.player.gold + 155000);
   });
   it('명성 지원자는 기본 인원과 사흘 체류를 사용', () => {
-    const s = save(30); s.guild.fame = 480;
+    const s = save(30); s.guild.fame = GUILD_STEPS[9]; // 길드 Lv 10: 하루 2명 (103)
     expect(Gd.postCost(s)).toBe(900);
     Gd.refreshApps(s, rng, new Date(2026, 9, 7, 12).getTime());
     expect(s.guild.apps.length).toBe(2);
@@ -66,7 +66,7 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
     expect(Gd.storyArrive(s, 'blade')).toBe('wait');
     expect(s.guild.storyWait).toEqual(['blade']);
     expect(Gd.inviteStory(s, 'blade')).toMatch(/정원/);
-    s.guild.fame = 20;
+    s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7
     expect(Gd.inviteStory(s, 'blade')).toBe('');
     expect(s.guild.members.some(m => m.nick === '칼날' && m.ab === 'swordsman.flurry')).toBe(true);
     expect(Gd.rerollAbility(s, isle.id, rng)).toMatch(/고유/);
