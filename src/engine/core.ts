@@ -14,6 +14,8 @@ import { talentDeath, talentTaken } from './talents';
 import { coverPart, persDebuff, persDeath, persDispel, persHealed, persHealTaken, persHurt, sturdyTaken } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
+import { clumsy, sharp } from '../data/fm';
+import { STAT_ACT } from '../data/rules';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
@@ -360,6 +362,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.sp) afterHurt(f, u, u.hp + amt);
   if (amt > 0 && f.relay && f.relay.id === u.id) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)
   if (amt > u.max * 0.15) u.flash = 0.35;
+  if (u.hp > 0 && u.wob != null && !u.me && !dripping && amt >= STAT_ACT.bigHit * u.max) bigHit(f, u); // 99 맷집: 휘청 · 버팀
   if (u.hp <= 0) {
     if (u.guardian > 0) {
       u.guardian = 0;
@@ -387,6 +390,22 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     emit(f, { type: 'sound', name: 'death' });
   }
 }
+
+/** 99 맷집: 큰 한 방 뒤. 15 밑은 서툼만큼 「휘청」 (공격 · 새 이동 · 판단 멈춤), 15 넘으면 잘함만큼 「버팀」 (칸 위 글) */
+function bigHit(f: Fight, u: Unit): void {
+  const tough = u.fmStats?.tough ?? 10;
+  if (u.staggerUntil != null && f.t < u.staggerUntil) return;
+  if (f.rng() < STAT_ACT.stagger * clumsy(tough)) {
+    u.staggerUntil = f.t + STAT_ACT.staggerSec;
+    emit(f, { type: 'stagger', id: u.id });
+    if (f.rng() < 0.4) bark(f, u, null, false, 'reel');
+  } else if (sharp(tough) > 0 && f.rng() < sharp(tough)) {
+    u.steadyAt = f.t;
+    emit(f, { type: 'stagger', id: u.id, steady: true });
+  }
+}
+/** 99 맷집: 지금 휘청하는 중 */
+export const staggered = (f: Fight, u: Unit): boolean => u.staggerUntil != null && f.t < u.staggerUntil;
 
 export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   const o: Debuff = { id: f.nextId++, ...d };
