@@ -17,7 +17,7 @@ import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
-import { bark, damageMob, DT, emit } from './core';
+import { bark, damageMob, DT, emit, regrouping } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
@@ -297,7 +297,7 @@ function partyHits(f: Fight): void {
     let amt = u.acc, crit = false;
     u.acc = 0;
     if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감 (멍한 동안 더, 99 집중), 공격이 15 넘으면 가끔 세게
-      if (f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
+      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
       if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
     }
     land(f, u, amt);

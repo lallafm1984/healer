@@ -12,7 +12,7 @@ import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, takenAmt, unitById } from './core';
+import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, regrouping, setMax, slip, spread, takenAmt, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, posOf, stepAway } from './units';
 import { frontCell, frontTank } from './position';
@@ -54,9 +54,9 @@ export function autoHit(f: Fight, tk: Unit, base: number): void {
 export function offGuardRoll(f: Fight, tel: Telegraph): void {
   for (const id of tel.units) {
     const u = unitById(f, id);
-    if (!u || u.wob == null || u.role !== 'tank' || !u.fmStats) continue; // 강타를 받아 내는 자세는 탱커 몫 (탱커가 아닌 사람은 이미 직업군 방어력만큼 더 맞음)
+    if (!u || u.wob == null || u.role !== 'tank' || !u.fmStats || regrouping(f, u)) continue; // 강타를 받아 내는 자세는 탱커 몫 (탱커가 아닌 사람은 이미 직업군 방어력만큼 더 맞음)
     const p = STAT_ACT.offGuard * clumsy(u.fmStats.armor);
-    if (p > 0 && f.rng() < p) { (tel.offGuard ??= []).push(u.id); emit(f, { type: 'offGuard', id: u.id }); }
+    if (p > 0 && f.rng() < p) { (tel.offGuard ??= []).push(u.id); emit(f, { type: 'offGuard', id: u.id }); slip(f, u); }
   }
 }
 /** 99 방어: 자세를 못 잡은 사람이 그 강타를 더 맞는 배율 (예고 숫자 telDmg · 실제 피해 runEffect 'tank' 둘 다) */
@@ -657,7 +657,7 @@ export function soakGo(f: Fight, tel: Telegraph): void {
     for (const u of ok.slice(0, 3)) {
       used.add(u);
       const coop = u.wob != null ? u.fmStats?.coop ?? 10 : 15;
-      if (coop < 15 && f.rng() < STAT_ACT.soakSkip * clumsy(coop)) { emit(f, { type: 'alone', id: u.id }); if (f.rng() < 0.4) bark(f, u, null, false, 'alone'); continue; } // 99 협동: 혼자 놂 (그 자리는 빔)
+      if (coop < 15 && !regrouping(f, u) && f.rng() < STAT_ACT.soakSkip * clumsy(coop)) { emit(f, { type: 'alone', id: u.id }); slip(f, u); if (f.rng() < 0.4) bark(f, u, null, false, 'alone'); continue; } // 99 협동: 혼자 놂 (그 자리는 빔)
       if (coop > 15 && u.did) u.did.help++;
       if (hexDist(cellOf(f, u), at) === 1) { u.padUntil = tel.impact + 0.2; continue; } // 이미 옆
       const c = f.cells.filter(x => !x.unit && !x.block && hexDist(x, at) === 1).sort((a, b) => hexDist(a, cellOf(f, u)) - hexDist(b, cellOf(f, u)))[0];

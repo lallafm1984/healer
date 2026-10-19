@@ -220,20 +220,23 @@ describe('(다) 딜 · 직업 스킬', () => {
     const u = who(f, '궁');
     while (f.t < 12 && !f.over) {
       E.step(f);
-      for (const ev of f.events) if (ev.type === 'ability' && ev.id === u.id) return { t: f.t, fumble: !!ev.fumble };
+      for (const ev of f.events) if (ev.type === 'ability' && ev.id === u.id) return { t: f.t, fumble: !!ev.fumble, weak: ev.weak };
       f.events.length = 0;
     }
-    return { t: Infinity, fumble: false };
+    return { t: Infinity, fumble: false, weak: undefined };
   }
   it('판단이 15보다 낮으면 쓸 때가 돼도 늦게 씀 (1 = 평균 1.2초), 15 이상은 바로 (0.2초 판단 주기)', () => {
     const late = Array.from({ length: 60 }, (_, i) => firstUse({ judgment: 1 }, 40 + i).t), now = Array.from({ length: 30 }, (_, i) => firstUse({ judgment: 15 }, 40 + i).t);
     expect(Math.max(...now)).toBeLessThan(1.3);
     expect(mean(late)).toBeGreaterThan(mean(now) + 0.6);
   });
-  it('기술 숙련이 15보다 낮으면 가끔 헛씀 (재사용만 돎, 1 = 12%), 15 이상은 없음', () => {
-    const lo = Array.from({ length: 300 }, (_, i) => firstUse({ skill: 1, judgment: 15 }, 400 + i)).filter(x => x.fumble).length;
-    const par = Array.from({ length: 100 }, (_, i) => firstUse({ skill: 15, judgment: 15 }, 400 + i)).filter(x => x.fumble).length;
-    expect(lo / 300).toBeGreaterThan(STAT_ACT.fumble - 0.06);
+  it('기술 숙련이 15보다 낮으면 가끔 헛씀 (1 = 12%, 그 가운데 25%만 다 헛씀 · 나머지는 종류대로 어설프게), 15 이상은 없음', () => {
+    const lo = Array.from({ length: 600 }, (_, i) => firstUse({ skill: 1, judgment: 15 }, 400 + i));
+    const par = Array.from({ length: 100 }, (_, i) => firstUse({ skill: 15, judgment: 15 }, 400 + i)).filter(x => x.fumble || x.weak).length;
+    const bad = lo.filter(x => x.fumble || x.weak).length, full = lo.filter(x => x.fumble).length;
+    expect(bad / 600).toBeGreaterThan(STAT_ACT.fumble - 0.05); expect(bad / 600).toBeLessThan(STAT_ACT.fumble + 0.05);
+    expect(full / bad).toBeLessThan(STAT_ACT.fumbleFull + 0.2);
+    expect(lo.filter(x => x.weak).every(x => x.weak === '반만')).toBe(true); // 정조준 = 공격 → 반만 들어감
     expect(par).toBe(0);
   });
 });
@@ -414,7 +417,7 @@ describe('Codex 검토 반영: 버그', () => {
       const t0 = f.t;
       abOnTel(f, tel);
       let at = Infinity;
-      for (let k = 0; k < 40 && at === Infinity; k++) { for (const ev of f.events) if (ev.type === 'ability' && ev.id === tk.id) { at = f.t - t0; if (out && (ev as { fumble?: boolean }).fumble) out.fumble++; } f.events.length = 0; if (f.t < tel.impact) E.step(f); else break; }
+      for (let k = 0; k < 40 && at === Infinity; k++) { for (const ev of f.events) if (ev.type === 'ability' && ev.id === tk.id) { at = f.t - t0; if (out && (ev.fumble || ev.weak)) out.fumble++; } f.events.length = 0; if (f.t < tel.impact) E.step(f); else break; }
       return at;
     };
     const par = Array.from({ length: 30 }, (_, i) => shield(15, 50 + i)), slow = Array.from({ length: 60 }, (_, i) => shield(1, 50 + i));
@@ -491,7 +494,7 @@ describe('맷집 「휘청」 · 「버팀」 (Lim 06:47 「능력치 하나하�
     for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
     let reel = 0, steady = 0;
     for (let i = 0; i < n; i++) {
-      u.hp = u.max; u.staggerUntil = undefined; u.steadyAt = undefined;
+      u.hp = u.max; u.staggerUntil = undefined; u.steadyAt = undefined; u.slips = undefined; u.regroupUntil = undefined; // 수습 틈 (Codex 반영 4) 없이 한 방씩
       damage(f, u, (u.max * 0.4) / f.dmgMult, false, 'fixed');
       for (const ev of f.events) if (ev.type === 'stagger' && ev.id === u.id) { if (ev.steady) steady++; else reel++; }
       f.events.length = 0;
@@ -706,5 +709,59 @@ describe('협동 (예전 쫄 처리, Lim 10-19 07:04 「협동」)', () => {
     const hi = stand(20);
     expect(hi.id).toBe(who(hi.f, '근').id); expect(hi.target).toBe('근');
     expect(stand(15).id).toBeNull();
+  });
+});
+
+describe('Codex 검토 반영 4: 헛씀 종류 · 수습 틈', () => {
+  it('방어 스킬을 어설프게 쓰면 지속이 짧음 (방어 태세 5초 → 2.5초, 「짧게」)', () => {
+    let seen = 0;
+    for (let s = 0; s < 400 && seen < 3; s++) {
+      const f = E.create({
+        encounter: 'warden', diff: '보통', seed: 900 + s, stageLv: 30, heroLv: 30,
+        party: [{ ...R('tank', 'warrior', '사교형', '탱', { skill: 1, judgment: 15 }, 15), ab: 'warrior.defStance' }, R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
+      });
+      f.skills.forEach(x => { x.next = Infinity; });
+      const tk = who(f, '탱');
+      for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+      tk.hp = tk.max * 0.3;
+      for (let i = 0; i < 10; i++) {
+        E.step(f);
+        const ev = f.events.find(e => e.type === 'ability' && e.id === tk.id);
+        f.events.length = 0;
+        if (!ev || ev.type !== 'ability') { tk.hp = tk.max * 0.3; continue; }
+        if (ev.weak) {
+          expect(ev.weak).toBe('짧게');
+          const m = tk.mods.find(x => x.k === 'cut')!;
+          expect(m.until - f.t).toBeCloseTo(5 * STAT_ACT.fumbleShort, 1);
+          seen++;
+        }
+        break;
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  it('한 위기에 실수가 세 번 겹치면 5초 수습 틈 (「정신 차림」): 그동안 새 실수 굴림 (헛씀 · 빗나감)이 없음', async () => {
+    const { slip, regrouping } = await import('../src/engine/core');
+    const f = fight({ st: { skill: 1, focus: 15 } }), u = who(f, '근');
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    slip(f, u); slip(f, u);
+    expect(regrouping(f, u)).toBe(false);
+    slip(f, u);
+    expect(regrouping(f, u)).toBe(true);
+    expect(f.events.some(e => e.type === 'regroup' && e.id === u.id)).toBe(true);
+    f.events.length = 0;
+    let miss = 0;
+    const end = u.regroupUntil! - 0.05;
+    while (f.t < end) { E.step(f); miss += f.events.filter(e => e.type === 'miss' && e.uid === u.id).length; f.events.length = 0; }
+    expect(miss).toBe(0);
+    let after = 0;
+    for (let i = 0; i < 400; i++) { E.step(f); after += f.events.filter(e => e.type === 'miss' && e.uid === u.id).length; f.events.length = 0; }
+    expect(after).toBeGreaterThan(0); // 틈이 끝나면 다시 서툼
+  });
+  it('실수가 띄엄띄엄이면 (8초 넘게 사이) 수습 틈 없음', async () => {
+    const { slip, regrouping } = await import('../src/engine/core');
+    const f = fight({ st: { skill: 1 } }), u = who(f, '근');
+    for (let k = 0; k < 4; k++) { slip(f, u); f.t += STAT_ACT.slipSec / 2 + 0.1; }
+    expect(regrouping(f, u)).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import { hexDist } from './board';
 import { threatDps } from './threat';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, staggered, submerged } from './core';
+import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, regrouping, slip, staggered, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, endurable, finishMove, moveTo, pickCell } from './movement';
 import { adjLow, calmFor, renewEnd, talentHot } from './talents';
 import { TX } from '../data/talents';
@@ -31,8 +31,9 @@ export function stepAway(f: Fight, u: Unit, sec: number, sure = false): boolean 
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
   // 99 위치 잡기: 15보다 낮으면 옆에 사람이 있는데도 붙어 섬 (sure = 위치 잡기 15 넘는 사람이 먼저 떨어져 서는 길, 굴림 없음)
   const pos = posOf(u);
-  if (!sure && pos < 15 && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1) && f.rng() < STAT_ACT.spreadMiss * clumsy(pos)) {
+  if (!sure && pos < 15 && !regrouping(f, u) && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1) && f.rng() < STAT_ACT.spreadMiss * clumsy(pos)) {
     emit(f, { type: 'clump', id: u.id });
+    slip(f, u);
     if (f.rng() < 0.4) bark(f, u, null, false, 'clump');
     return false;
   }
@@ -101,10 +102,13 @@ export const dazed = (f: Fight, u: Unit): boolean => u.dazeUntil != null && f.t 
 function focusTick(f: Fight, u: Unit): boolean {
   if (u.dazeNext == null) { if (f.t < STAT_ACT.dazeFirst) return false; u.dazeNext = nextDaze(f, u); } // 처음 20초는 굴리지도 않음 (난수 흐름 그대로)
   if (f.t >= u.dazeNext) {
-    u.dazeUntil = f.t + STAT_ACT.dazeSec;
     u.dazeNext = nextDaze(f, u);
-    emit(f, { type: 'daze', id: u.id });
-    if (f.rng() < 0.35) bark(f, u, null, false, 'spaceOut');
+    if (!regrouping(f, u)) { // 수습 틈이면 건너뜀
+      u.dazeUntil = f.t + STAT_ACT.dazeSec;
+      emit(f, { type: 'daze', id: u.id });
+      if (f.rng() < 0.35) bark(f, u, null, false, 'spaceOut');
+      slip(f, u);
+    }
   }
   return dazed(f, u);
 }
@@ -205,7 +209,7 @@ function think(f: Fight, u: Unit): void {
   // 위치 규칙 (2026-10-13 Lim): 1열에 탱커가 없어 적이 아무나 때리면, 탱커가 비어 있는 안전한 1열 칸으로 바로 나가 다시 잡음 (거기가 새 자리)
   if (u.lostUntil != null && !f.loose && f.t >= u.lostUntil) { u.lostUntil = undefined; u.lostWrong = false; }
   if (f.loose && u.role === 'tank' && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t)) {
-    if (u.wob != null && tankLost(f, u)) return; // 능력치 (99 나): 머뭇거림 · 엉뚱한 칸
+    if (u.wob != null && !regrouping(f, u) && tankLost(f, u)) return; // 능력치 (99 나): 머뭇거림 · 엉뚱한 칸 (수습 틈이면 바로)
     const c = frontCell(f, u);
     if (c && c.i !== u.cell && moveTo(f, u, c)) { u.home = c.i; u.homeAt = null; return; }
   }
@@ -231,6 +235,7 @@ function tankLost(f: Fight, u: Unit): boolean {
     if (sec < 0.1) return false;
     u.lostUntil = f.t + sec; u.lostWrong = false;
     bark(f, u, null, true, 'tankLost');
+    slip(f, u);
     return true;
   }
   if (f.t < u.lostUntil) return true;

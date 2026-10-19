@@ -1,5 +1,5 @@
 import { hexDist } from './board';
-import { bark, cellOf, living } from './core';
+import { bark, cellOf, living, regrouping, slip } from './core';
 import { abMoved, dodgeMods, guardNow, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
 import { calmDodge } from './talents';
@@ -119,7 +119,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   if (u.fm && u.fm.focus > 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래
   // 능력치 (99 가): 꾸준함이 15보다 낮으면 예고마다 들쭉날쭉 (평균 1, 폭 = wob). 15 이상은 예전처럼 늘 같은 값 (다 같이 정확히)
   // 늦어진 쪽은 터지기 직전 (lastCall초 전)까지만: 예전 시간에 피하던 사람이 흔들림 때문에 맞지는 않게 (늦게 피함은 못 피한 모양에서)
-  if (u.wob && inZ) {
+  if (u.wob && inZ && !regrouping(f, u)) {
     const j = rt * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1));
     rt = Math.max(STAT_ACT.minReact, j > rt ? Math.min(j, Math.max(rt, tel.impact - f.t - STAT_ACT.lastCall)) : j);
   }
@@ -218,7 +218,8 @@ export function doReact(f: Fight, u: Unit): void {
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
-    if (u.wob != null && impact && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
+    if (u.wob != null) slip(f, u); // Codex 검토 반영 4: 실수가 겹치면 수습 틈
+    if (u.wob != null && impact && !regrouping(f, u) && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
     u.retryAt = recoverAt(f, u, impact || f.t); // 침착 (97 FM)
     bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
