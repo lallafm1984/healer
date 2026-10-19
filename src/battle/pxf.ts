@@ -131,14 +131,14 @@ export const PXF = {
   'shaman-rain-loop': loop(36, 75, 12),
   'shaman-sea-loop': loop(36, 84, 12, 256),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
-  'warder-seal': skill(20, 92, { size: 320 }), // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」: Codex 그림이 또렷하게 288 ~ 320px
-  'warder-barrier': skill(22, 96, { size: 320 }),
-  'warder-cleanse': skill(18, 94, { size: 320 }),
-  'warder-circle': skill(20, 82, { size: 288 }),
-  'warder-guard': skill(22, 96, { size: 320 }),
-  'warder-veil': skill(24, 82, { size: 288 }),
-  'warder-hold': skill(20, 92, { size: 320 }),
-  'warder-judgment': skill(18, 88, { size: 288 }),
+  'warder-seal': skill(20, 100, { size: 320 }), // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」 → 「이펙트가 너무 작다, 파티원칸에 가득 차게」: 모두 logical 100 · 320px
+  'warder-barrier': skill(22, 100, { size: 320 }),
+  'warder-cleanse': skill(18, 100, { size: 320 }),
+  'warder-circle': skill(20, 100, { size: 320 }),
+  'warder-guard': skill(22, 100, { size: 320 }),
+  'warder-veil': skill(24, 100, { size: 320 }),
+  'warder-hold': skill(20, 100, { size: 320 }),
+  'warder-judgment': skill(18, 100, { size: 320 }),
   'warder-citadel-loop': loop(36, 84, 12, 256),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': small(11, 74),
