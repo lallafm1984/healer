@@ -135,7 +135,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     slots: slots({ basic: 'sealHeal', fast: 'judgment', hot: 'lightBarrier', aoe: 'wardCircle', dispel: 'wardCleanse', ext: 'guardWard', raid: 'lightVeil', unique: 'wardHold' }),
     tap: ['sealHeal', 'lightBarrier'],
     passives: [
-      { name: '깨진 막의 빛', lv: 4, desc: '내 보호막이 다 깨지면 그 아군 체력을 {150} 회복합니다.' },
+      { name: '깨진 막의 빛', lv: 4, desc: '내 보호막이 다 깨지면 그 아군 체력을 {80} 회복합니다.' },
       { name: '인장의 대가', lv: 10, desc: `심판이 ${WARDER.price.n}명 이상 회복하면 마나를 ${WARDER.price.mana}% 돌려받습니다.` },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },
