@@ -19,7 +19,7 @@ export interface ThreatState {
   /** 보스를 잡은 탱커 */
   holder: number | null;
   /** 보스를 뺏은 사람: at = 뺏은 때, stopAt = 딜러가 딜을 멈추는 때 (침착) */
-  steal: { id: number; at: number; stopAt: number } | null;
+  steal: { id: number; at: number; stopAt: number; stopFor?: number; cut?: number } | null;
   /** 탱커가 되찾는 때 (반응) · 되찾기를 다시 쓸 수 있는 때 · 되찾은 횟수 */
   retakeAt: number | null;
   readyAt: number;
@@ -92,8 +92,17 @@ function noEase(f: Fight, u: Unit): boolean {
 /** 딜러가 보스에게 준 딜 (fight.ts partyHits, 쫄 · 몸통 말고 보스 몫만). 레벨 차이는 비교할 때 곱함 */
 export function dealerThreat(f: Fight, u: Unit, amt: number): void {
   const t = f.thr!;
-  t.v.set(u.id, (t.v.get(u.id) ?? 0) + amt);
+  t.v.set(u.id, (t.v.get(u.id) ?? 0) + amt * (u.wob != null ? 1 + STAT_ACT.dealerThreat * sharp(u.fmStats?.atk ?? 10) : 1)); // 99 마: 압도적으로 센 딜러
   t.inc += amt;
+}
+
+/** 99 마: 뺏은 딜러의 판단 · 침착 평균 → 멈추는 시간 (침착만큼 지난 뒤) · 줄이는 몫. 능력치가 없으면 예전 (stopSec · ease) */
+function stealHabit(u: Unit): { stopFor: number; cut: number } {
+  if (u.wob == null) return { stopFor: THREAT.stopSec, cut: THREAT.ease };
+  const s = (stat(u, 'judgment') + stat(u, 'composure')) / 2;
+  if (s >= 15) return { stopFor: sharp(s) >= 1 ? Infinity : THREAT.stopSec + sharp(s) * 6, cut: THREAT.ease };
+  const c = clumsy(s);
+  return { stopFor: THREAT.stopSec * Math.max(0, 1 - 2 * c), cut: THREAT.ease * (1 - c) };
 }
 
 /** 딜러가 쫄에게 준 딜: 위협은 없고 탱커 위협 바탕 (파티 딜 속도)에만 들어감. 쫄을 치는 동안 보스만 치는 사람 (외골수)이 튀지 않게 */
@@ -174,7 +183,7 @@ export function bossTarget(f: Fight): Unit | null {
 export function threatDps(f: Fight, u: Unit): number {
   const t = f.thr;
   if (!t) return 1;
-  if (t.steal && t.steal.id === u.id && f.t >= t.steal.stopAt) return f.t < t.steal.stopAt + THREAT.stopSec ? 0 : 1 - THREAT.ease;
+  if (t.steal && t.steal.id === u.id && f.t >= t.steal.stopAt) return f.t < t.steal.stopAt + (t.steal.stopFor ?? THREAT.stopSec) ? 0 : 1 - (t.steal.cut ?? THREAT.ease);
   return u.thrEase ? 1 - THREAT.ease : 1;
 }
 
@@ -213,9 +222,10 @@ export function threatTick(f: Fight): void {
         t.warn.push(u.id);
         if (f.t - (t.warned.get(u.id) ?? -99) > THREAT.warnGap && !t.steal) { t.warned.set(u.id, f.t); barkWith(f, base, u, 'aggroWarn'); }
       }
-      // 딜 줄이기 (판단): 선 가까이 오면 25% 줄이고, 조금 내려가면 다시
+      // 딜 줄이기 (판단): 선 가까이 오면 25% 줄이고, 조금 내려가면 다시. 보스를 뺏은 사람은 뺏은 뒤 버릇 (stealHabit, 99 마)대로
       const at = easeAt(u);
-      if (!u.thrEase && r >= at && !noEase(f, u)) {
+      if (t.steal?.id === u.id && u.wob != null) u.thrEase = false;
+      else if (!u.thrEase && r >= at && !noEase(f, u)) {
         u.thrEase = true;
         if (f.t - (t.eased.get(u.id) ?? -99) > THREAT.easeGap) { t.eased.set(u.id, f.t); bark(f, u, null, false, 'aggroEase'); }
       }
@@ -240,12 +250,17 @@ export function threatTick(f: Fight): void {
   }
   if (f.t < THREAT.start || !top) return;
   // 뺏음: 보스가 그 사람을 봄
-  t.steal = { id: top.id, at: f.t, stopAt: top.me ? Infinity : f.t + calmDelay(top) };
-  t.retakeAt = Math.max(f.t + retakeAfter(f, base), t.readyAt);
+  const hb = top.me ? null : stealHabit(top);
+  t.steal = { id: top.id, at: f.t, stopAt: top.me ? Infinity : f.t + calmDelay(top), ...(hb ? hb : {}) };
+  // 99 마: 판단 · 침착이 낮아 계속 때리는 딜러면 탱커가 되찾기 어려움
+  const ign = hb && top.wob != null ? clumsy((stat(top, 'judgment') + stat(top, 'composure')) / 2) : 0;
+  t.retakeAt = Math.max(f.t + retakeAfter(f, base) * (1 + STAT_ACT.ignoreRetake * ign), t.readyAt);
   top.thrEase = false;
   if (top.me) f.stats.healerSteals = (f.stats.healerSteals ?? 0) + 1; else f.stats.steals = (f.stats.steals ?? 0) + 1;
   if (top.me) bark(f, base, null, true, 'aggroHealer');
   else if (slipping(f, base)) bark(f, base, null, true, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
+  else if (hb && hb.stopFor === Infinity) bark(f, top, null, true, 'aggroHold'); // 99 마: 멈추고 기다림
+  else if (hb && hb.stopFor <= 0 && hb.cut < THREAT.ease * 0.5) bark(f, top, null, true, 'aggroIgnore'); // 99 마: 계속 때림
   else bark(f, top, null, true, 'aggroSteal');
   emit(f, { type: 'aggro', id: top.id, from: base.id });
 }
