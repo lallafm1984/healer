@@ -695,7 +695,6 @@ function memberOf(raw: unknown): GuildMember | null {
     skillFloor: Math.max(1, Math.min(5, Math.floor(n(m.skillFloor, 1)))),
     lastStatGains: Array.isArray(m.lastStatGains) ? STAT_KEYS.filter(k => m.lastStatGains!.includes(k)) : [],
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
-    know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
     boost: Math.max(0, Math.min(SPONSOR.max, Math.round(n(m.boost, 0)))),
     runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
   };
@@ -713,7 +712,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
     skillFloor: typeof o.star === 'number' && Number.isFinite(o.star) ? Math.max(1, Math.min(5, Math.floor(o.star))) : 1,
-    lastStatGains: [], sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
+    lastStatGains: [], sxp: 0, votes: [], boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 

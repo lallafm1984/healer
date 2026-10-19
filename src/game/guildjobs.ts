@@ -7,13 +7,11 @@ import type { DiffName } from '../data/difficulty';
 import { EXPED, REQ } from '../data/guild';
 import { topLevel, type SaveData } from '../platform/storage';
 import { dayKey, weekKey } from './clock';
-import { isGuildParty, knowStages } from './guild';
+import { isGuildParty } from './guild';
 import type { RosterEntry } from '../engine/types';
 
-const contentOf = (key: string) => CONTENT.find(c => c.key === key);
-const boss = (c: ContentDef, d: DiffName) => { const f = c.fights(d); return f[f.length - 1]; };
 
-/** 부탁 쪽지: 날이 바뀌면 길드원 2명이 새로 (길잡이 추천 8곳 가운데 그 사람이 숙지 없는 보스 먼저) */
+/** 부탁 쪽지: 날이 바뀌면 길드원 2명이 새로 (길잡이 추천 8곳 가운데 앞 3곳에서 하나) */
 export function refreshReqs(save: SaveData, stagesAll: readonly { content: string; diff: DiffName }[], r: () => number, now = Date.now()): void {
   const g = save.guild, day = dayKey(now);
   if (!g.founded || g.reqs.day === day) return;
@@ -21,9 +19,8 @@ export function refreshReqs(save: SaveData, stagesAll: readonly { content: strin
   const stages = stagesAll.slice(0, 8);
   const pool = g.members.slice();
   for (let i = 0; i < REQ.perDay && pool.length && stages.length; i++) {
-    const m = pool.splice(Math.floor(r() * pool.length), 1)[0], kn = knowStages(m);
-    const fresh = stages.filter(s => { const c = contentOf(s.content); return c && !kn[boss(c, s.diff)]; });
-    const list = fresh.length ? fresh : stages, s = list[Math.floor(r() * Math.min(3, list.length))];
+    const m = pool.splice(Math.floor(r() * pool.length), 1)[0];
+    const s = stages[Math.floor(r() * Math.min(3, stages.length))];
     g.reqs.list.push({ nick: m.nick, content: s.content, diff: s.diff, done: false });
   }
 }
