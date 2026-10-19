@@ -703,8 +703,8 @@ export interface PartyAb {
   /** 도발·눈속임: 보스 아닌 적이 이 사람을 때림 */
   taunt: number;
   tauntUntil: number;
-  /** 칼날폭풍: 보스 아닌 적 초당 최대 체력 비율 피해 */
-  addDot: { rate: number; until: number; by: number } | null;
+  /** 칼날폭풍: 쫄 (보스 전투에 나온 적) 초당 최대 체력 비율 피해. 쓴 사람마다 하나, 쓴 사람이 쓰러지면 멈춤 */
+  addDots: { rate: number; until: number; by: number }[];
 }
 
 export interface Fight {

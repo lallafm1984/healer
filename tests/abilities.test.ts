@@ -7,7 +7,7 @@ import { lvPower } from '../src/data/progression';
 import * as E from '../src/engine';
 import { abCut, abOnTel, addMod } from '../src/engine/abilities';
 import { addDebuff, damage } from '../src/engine/core';
-import type { RosterEntry, Telegraph } from '../src/engine/types';
+import type { Mob, RosterEntry, Telegraph } from '../src/engine/types';
 
 type F = ReturnType<typeof E.create>;
 const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
@@ -200,6 +200,55 @@ describe('쓰는 때와 효과', () => {
     expect(() => damage(f, a, 10, false, 'fixed')).not.toThrow();
     expect(ha - a.hp).toBeCloseTo(10 * f.dmgMult * 2 * 0.5, 5); // 2배로 늘고 반을 b에게
     expect(hb - b.hp).toBeCloseTo(10 * f.dmgMult * 2 * 0.5 * 2, 5); // b는 받은 몫이 다시 2배, 더 나누지 않음
+  });
+});
+
+describe('쫄 피해 능력 (17 「쫄 전체 피해」): 보스 전투에 나온 쫄만', () => {
+  /** 보스 전투에 쫄 하나 (P-ADD, 체력이 커서 파티 딜은 거의 안 보임) */
+  const addMob = (f: F, hp = 1e9): Mob => {
+    const m: Mob = { id: f.nextId++, name: '시험 쫄', elite: false, hp, max: hp, alive: true, add: { short: '쫄', on: f.party[0].id, dmg: 0, every: 0, next: Infinity } };
+    f.mobs.push(m);
+    return m;
+  };
+  const berserkers = (...abs: string[]) => {
+    const list = party5();
+    abs.forEach((ab, i) => { list[1 + i] = P('melee', 'berserker', { ab, star: 0, nick: `광전사${i}`, gid: i === 0 ? 1 : undefined }); });
+    return list;
+  };
+
+  it('일반 · 정예 구간: 칼날폭풍 · 소용돌이를 안 씀 (예전엔 시작하자마자 적 전체 체력 25%를 깎음)', () => {
+    for (const ab of ['berserker.bladestorm', 'berserker.whirl']) {
+      const f = E.create({ encounter: 'gate', diff: '보통', seed: 1, party: berserkers(ab) });
+      expect(f.mobs.filter(m => m.alive && !m.boss).length).toBeGreaterThanOrEqual(2);
+      steps(f, 4);
+      expect(unitOf(f, ab).ab!.uses).toBe(0);
+      expect(f.ab.addDots).toEqual([]);
+    }
+  });
+  it('보스 전투 쫄: 칼날폭풍 6초 동안 쫄마다 최대 체력 25%, 둘이 쓰면 둘 다 들어감, 길드원 「한 일」 쫄에 셈', () => {
+    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserkers('berserker.bladestorm', 'berserker.bladestorm') });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const a = addMob(f), b = addMob(f);
+    steps(f, 0.4);
+    const users = f.party.filter(u => u.ab?.key === 'berserker.bladestorm');
+    expect(users.map(u => u.ab!.uses)).toEqual([1, 1]);
+    expect(f.ab.addDots.length).toBe(2);
+    steps(f, 7);
+    expect(f.ab.addDots).toEqual([]);
+    for (const m of [a, b]) expect(1 - m.hp / m.max).toBeCloseTo(0.5, 3);
+    expect(users[0].did!.adds).toBeGreaterThanOrEqual(0.5 * a.max * 0.999);
+  });
+  it('칼날폭풍은 쓴 사람이 쓰러지면 멈춤', () => {
+    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserkers('berserker.bladestorm') });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const a = addMob(f), b = addMob(f);
+    steps(f, 0.4);
+    const u = unitOf(f, 'berserker.bladestorm');
+    expect(f.ab.addDots.length).toBe(1);
+    u.hp = 0; u.alive = false;
+    steps(f, 7);
+    expect(f.ab.addDots).toEqual([]);
+    for (const m of [a, b]) expect(1 - m.hp / m.max).toBeLessThan(0.25 * 0.2);
   });
 });
 

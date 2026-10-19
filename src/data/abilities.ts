@@ -39,7 +39,7 @@ export type Trig =
  * cut 받는 피해 감소 (hit = 그 예고가 맞을 때까지, magic = 마법 피해만) · immune 모든 피해 무시 · vanish 지정 대상에서 빠지고 피해 무시(또는 감소)
  * untarget 지정 대상에서만 빠짐 · selfHeal 자기 회복 (stop = 멈추는 초, over = 나눠 회복하는 초) · lastStand 최대 체력 늘리고 그만큼 회복
  * rewind 6초 전 체력으로 · absorb 흡수막 · spell 다음 마법 기술 1회 막기 · iceBlock 죽을 피해 막고 얼음 · dps 자기 딜 · allyDps 주변 아군 딜
- * weaken 보스 피해 감소 · taunt 보스 아닌 적을 끌어옴 · handoff 적을 탱커에게 · stunAdd 적 1마리 기절 · stunAdds 모두 얼림 · hitAdds 적 모두 피해 (최대 체력 비율)
+ * weaken 보스 피해 감소 · taunt 보스 아닌 적을 끌어옴 · handoff 적을 탱커에게 · stunAdd 적 1마리 기절 · stunAdds 모두 얼림 · hitAdds 쫄 (보스 전투에 나온 적) 모두 피해 (최대 체력 비율, 쓰는 때 adds도 쫄만 셈)
  * interrupt 끊기 · delay 늦추기 · dodgeNow 장판에서 즉시 빠짐 · smoke 주변 회피 100% · fast 이동 시간 감소 · react 주변 반응 시간 감소
  * cleanse 독·질병 1개 제거 · share 아군 피해 일부를 대신 · protect 물리 피해 무시 · intercept 지정 피해를 대신 · guardAlly 아군 받는 피해 감소
  * auraMagic 옆 아군 마법 피해 감소(상시) · auraDps 옆 원거리 아군 딜(상시) · healTaken 받는 치유 · maxHp 주변 최대 체력 · nofear 겁먹지 않음
@@ -158,17 +158,17 @@ const TABLE: Record<ClassKey, Row[]> = {
     ['reckless', '무모한 희생', 'atk', 60, [T('boss30')], { e: 'dps', v: 0.3, sec: 10, vuln: 0.2 }, '10초 동안 딜이 30% 늘고, 받는 피해가 20% 늘어납니다.', '보스 30%'],
     ['rage', '광폭화', 'def', 45, [T('fear')], { e: 'nofear', sec: 10 }, '10초 동안 겁먹지 않습니다. 도망 같은 성격 위기 행동을 하지 않습니다.', '성격 위기 행동 시작'],
     ['charge', '돌진', 'def', 20, [T('zone')], { e: 'fast', v: 0.5, sec: 6 }, '6초 동안 이동 시간이 50% 줄어듭니다.', '장판 예고'],
-    ['whirl', '소용돌이', 'atk', 20, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스가 아닌 적 모두에게 최대 체력 8%의 피해를 줍니다.', '보스 아닌 적 등장'],
+    ['whirl', '소용돌이', 'atk', 20, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스 전투에 나온 쫄 모두에게 최대 체력 8%의 피해를 줍니다.', '쫄 등장'],
     ['bShout', '위협의 외침', 'sup', 90, [T('aoe')], { e: 'weaken', v: 0.1, sec: 8 }, '8초 동안 보스가 주는 피해가 10% 줄어듭니다.', '광역 예고'],
     ['regen', '재생의 격노', 'heal', ONCE, [LOW(0.3)], { e: 'selfHeal', v: 0.2, over: 6 }, '6초에 걸쳐 자기 체력을 20% 회복합니다.', '체력 30% 아래'],
     ['rally', '재집결의 함성', 'sup', 120, [T('aoe')], { e: 'maxHp', v: 0.1, sec: 10, r: 2 }, '10초 동안 반경 2 아군의 최대 체력이 10% 늘어납니다. 회복은 하지 않습니다.', '광역 예고'],
-    ['bladestorm', '칼날폭풍', 'atk', 60, [{ t: 'adds', n: 2 }], { e: 'hitAdds', v: 0.25, sec: 6 }, '6초 동안 보스가 아닌 적 모두에게 최대 체력 25%의 피해를 나눠 줍니다.', '보스 아닌 적 2마리 이상'],
+    ['bladestorm', '칼날폭풍', 'atk', 60, [{ t: 'adds', n: 2 }], { e: 'hitAdds', v: 0.25, sec: 6 }, '6초 동안 보스 전투에 나온 쫄 모두에게 최대 체력 25%의 피해를 나눠 줍니다.', '쫄 2마리 이상'],
     ['deathWish', '죽음의 소원', 'atk', ALWAYS, [T('always')], { e: 'wish', v: 0.5, vuln: 0.1 }, '체력 30% 아래에서 딜이 50% 늘고, 받는 피해가 10% 늘어납니다.', '상시'],
   ],
   swordsman: [
     ['parry', '받아넘기기', 'def', 30, [T('targeted')], { e: 'cut', v: 0.5, hit: true }, '지정 피해 1회를 50% 줄입니다.', '지정 피해 대상'],
     ['draw', '발도', 'atk', ALWAYS, [T('start'), T('boss30')], { e: 'dps', v: 0.4, sec: 5 }, '5초 동안 딜이 40% 늘어납니다. 전투 시작과 보스 30%에 한 번씩 씁니다.', '전투 시작 · 보스 30%', true],
-    ['wave', '검기', 'atk', 30, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스가 아닌 적 모두에게 최대 체력 8%의 피해를 줍니다.', '보스 아닌 적 등장'],
+    ['wave', '검기', 'atk', 30, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스 전투에 나온 쫄 모두에게 최대 체력 8%의 피해를 줍니다.', '쫄 등장'],
     ['bladeGuard', '칼날 막기', 'def', 45, [T('aoe')], { e: 'cut', v: 0.3, hit: true, magic: true }, '이번 광역 피해를 30% 줄입니다.', '광역 예고'],
     ['kiai', '기합', 'sup', 40, [T('zoneAny')], { e: 'react', v: 0.2, sec: 8, r: 1 }, '8초 동안 옆 아군의 반응 시간이 20% 줄어듭니다.', '장판 예고'],
     ['meditate', '명상', 'heal', ONCE, [LOW(0.35, true)], { e: 'selfHeal', v: 0.2, stop: 3 }, '3초 동안 멈춰서 자기 체력을 20% 회복합니다.', '체력 35% 아래, 장판 밖'],
@@ -190,7 +190,7 @@ const TABLE: Record<ClassKey, Row[]> = {
     ['rewind', '시간 되돌리기', 'heal', ONCE, [LOW(0.25)], { e: 'rewind', v: 0.2 }, '6초 전 체력으로 되돌립니다. 회복은 최대 체력 20%까지입니다.', '체력 25% 아래'],
   ],
   archer: [
-    ['multiShot', '산탄 사격', 'ctl', 30, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스가 아닌 적 모두에게 최대 체력 8%의 피해를 줍니다.', '보스 아닌 적 등장'],
+    ['multiShot', '산탄 사격', 'ctl', 30, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스 전투에 나온 쫄 모두에게 최대 체력 8%의 피해를 줍니다.', '쫄 등장'],
     ['disengage', '철수', 'def', 20, [T('zone')], { e: 'dodgeNow' }, '장판 예고에서 바로 빠져나옵니다.', '장판 예고'],
     ['harass', '견제 사격', 'ctl', 30, [T('cast')], { e: 'interrupt', v: 0.6 }, '끊기 가능 기술을 60% 확률로 끊습니다.', '끊기 가능 기술 시전 시작'],
     ['aimedShot', '정조준', 'atk', 60, [T('ready')], { e: 'dps', v: 0.25, sec: 10 }, '10초 동안 딜이 25% 늘어납니다.', '쿨마다'],

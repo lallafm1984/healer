@@ -3,6 +3,7 @@
  * 보스 특징은 시험 전투 하나 (engine create)의 기술 종류 · 끊기 · 적 · 해제 디버프에서 읽음 (전투마다 한 번, 캐시).
  */
 import { ABILITIES, type AbilityDef } from '../data/abilities';
+import { BOSSES } from '../data/bosses';
 import { CLASSES } from '../data/classes';
 import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { abilityStars } from '../data/fm';
@@ -17,6 +18,17 @@ export type Feature = 'buster' | 'adds' | 'cut' | 'zone' | 'aoe' | 'poison';
 export const FEATURE_NAME: Record<Feature, string> = { buster: '강타', adds: '쫄', cut: '끊을 기술', zone: '장판', aoe: '광역', poison: '독 · 질병' };
 
 const cache = new Map<string, Set<Feature>>();
+/** 보스 전투에 쫄 (P-ADD: 쫄 · 감옥)이 나오는 전투. 쫄 피해 능력 (소용돌이 · 칼날폭풍 …)은 일반 · 정예 구간 적 · 몸통을 안 쳐서 이 전투에만 맞음 */
+const addsCache = new Map<string, boolean>();
+function hasAdds(key: EncounterKey): boolean {
+  let v = addsCache.get(key);
+  if (v == null) {
+    const e = ENCOUNTERS[key];
+    v = e.script !== 'trash' && /"p":"(adds|jail)"/.test(JSON.stringify(BOSSES[e.script] ?? {}));
+    addsCache.set(key, v);
+  }
+  return v;
+}
 /** 그 전투에 있는 것 (보스 기술 종류 · 끊기 ✋ · 판 위 적 · 독 · 질병) */
 export function encFeatures(key: EncounterKey): Set<Feature> {
   let s = cache.get(key);
@@ -59,7 +71,7 @@ export interface RecScore { id: number; score: number; fits: Feature[]; know: nu
 export function recScore(save: SaveData, m: GuildMember, encs: readonly EncounterKey[], stage: number): RecScore {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const feats = new Set(encs.flatMap(k => [...encFeatures(k)]));
-  const a = ABILITIES[m.ab], fits = a ? abilityFeatures(a).filter(x => feats.has(x)) : [];
+  const a = ABILITIES[m.ab], fits = a ? abilityFeatures(a).filter(x => feats.has(x) && (x !== 'adds' || a.fx.e !== 'hitAdds' || encs.some(hasAdds))) : [];
   const kn = knowStages(m, save), boss = encs[encs.length - 1], kb = boss ? kn[boss] ?? 0 : 0;
   const ks = encs.slice(0, -1).reduce((t, k) => t + (kn[k] ?? 0), 0) / Math.max(1, encs.length - 1);
   const star = starOfBond(bondOf(save, m.nick)), p = PERS[m.pers];
