@@ -10,7 +10,7 @@ import type { Encounter } from '../data/encounters';
 import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
-  knowGain, knowStage, memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
+  memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
@@ -47,7 +47,7 @@ const isIn = (save: SaveData, nick: string) => save.guild.members.some(m => m.ni
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
   const prof = profileOf(p.nick, p.pers);
   const stats = { ...prof.stats, ...(story ? STORY[story].boost : {}) };
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -228,15 +228,11 @@ export function release(save: SaveData, id: number): boolean {
 }
 
 // ---------- 길드파티 편성 ----------
-/** 공략 숙지 단계 (전투 키 → 1~3, 0은 뺌) */
-export function knowStages(m: Pick<GuildMember, 'know'>): Record<string, number> {
-  return Object.fromEntries(Object.entries(m.know).map(([k, p]) => [k, knowStage(p)] as const).filter(([, s]) => s > 0));
-}
 /** 전투에 넘기는 길드원: 자기 레벨 · 능력치 (그날 꾸준함 흔들림) · 스킬 레벨 · 버릇 (침착 · 판단) */
 export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEntry {
   return {
     role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: memberSkillLevel(m), lv: m.lv, pub: true,
-    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick), steady: m.steady }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m),
+    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick), steady: m.steady }, habit: habitOf(m.stats), gid: m.id,
   };
 }
 
@@ -295,8 +291,8 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 /** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준) */
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
 export interface GuildAfter {
-  /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) · 오른 보스 공략 숙지 단계 */
-  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[]; know?: { enc: string; stage: number } }[];
+  /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
+  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[] }[];
   /** 쉬는 명단이 받은 경험치 합 · 그 가운데 후원으로 받은 사람 (경험치 · 남은 판) */
   rest: number;
   boosted: { nick: string; xp: number; left: number }[];
@@ -348,7 +344,7 @@ export function growStats(m: GuildMember, levels: number, deed: Deed | undefined
 
 /**
  * 판 뒤 길드 정산 (93 6-1 · 97). party = 전투가 끝날 때 파티원 (deed = 그 판에서 가장 두드러진 일), roster = 전투에 넘긴 편성, kind = 콘텐츠 종류.
- * 이긴 판만: 출전한 길드원 레벨 경험치 (레벨업하면 능력치) · 공략 숙지, 쉬는 명단 레벨 경험치 30%, 길드파티 (자리 절반 이상이 길드원)면 명성 · 길드 첫 처치 · 주간 목표 출전 기록
+ * 이긴 판만: 출전한 길드원 레벨 경험치 (레벨업하면 능력치), 쉬는 명단 레벨 경험치 30%, 길드파티 (자리 절반 이상이 길드원)면 명성 · 길드 첫 처치 · 주간 목표 출전 기록
  */
 export function guildAfter(
   save: SaveData, r: () => number,
@@ -369,11 +365,7 @@ export function guildAfter(
     const xp = memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1);
     const ups = addMemberXp(m, xp, cap);
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
-    // 공략 숙지 (93 5-4): 이긴 판의 전투마다 학습력만큼, 보스 (마지막 전투) 단계가 오르면 결과 줄
-    const boss = o.encs?.[o.encs.length - 1], kb = boss ? knowStage(m.know[boss] ?? 0) : 0;
-    for (const k of new Set(o.encs ?? [])) m.know[k] = Math.round(((m.know[k] ?? 0) + knowGain(m.learn)) * 100) / 100;
-    const ka = boss ? knowStage(m.know[boss]) : 0;
-    out.members.push({ nick: m.nick, xp, ups, stats, ...(boss && ka > kb ? { know: { enc: boss, stage: ka } } : {}) });
+    out.members.push({ nick: m.nick, xp, ups, stats });
   }
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀

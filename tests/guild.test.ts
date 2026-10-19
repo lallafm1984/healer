@@ -9,14 +9,14 @@ import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
+  deedOf, FAME, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
 import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
-import { takenAmt } from '../src/engine/core';
+
 import { claimGuildGoal, rollover } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
 import { abilityFeatures, encFeatures, REC, recommendPick, recScore } from '../src/game/recommend';
@@ -464,47 +464,6 @@ describe('저장 v19 (길드 v2)', () => {
   });
 });
 
-describe('공략 숙지 (93 5-4): 전투마다 함께 이긴 만큼, 학습력이 빠르기', () => {
-  it('점수 0.5 · 3 · 6에서 1 · 2 · 3단계, 한 판에 학습력 1 → 0.7 · 10 → 1 · 20 → 1.4', () => {
-    expect([0, 0.49, 0.5, 2.99, 3, 6, 50].map(x => knowStage(x))).toEqual([0, 0, 1, 1, 2, 3, 3]);
-    expect([1, 10, 20].map(l => +knowGain(l).toFixed(2))).toEqual([0.7, 1, 1.4]);
-  });
-  it('이긴 판의 전투마다 쌓이고, 보스 (마지막 전투) 단계가 오르면 결과에, 진 판은 안 쌓임', () => {
-    const s = save(30), a = add(s, 'warrior', 0, { learn: 10 }), b = add(s, 'mage', 0, { learn: 10 });
-    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
-    const o = { win: true, quit: false, grade: 'A' as const, diff: '보통' as const, stage: 30, raid: 0 as const, content: 'rustfort', kind: 'dungeon', party: [], roster, encs: ['gate', 'warden'] };
-    const r1 = Gd.guildAfter(s, rng, o);
-    expect(a.know).toEqual({ gate: 1, warden: 1 });
-    expect(r1.members[0].know).toEqual({ enc: 'warden', stage: 1 });
-    Gd.guildAfter(s, rng, o);
-    const r3 = Gd.guildAfter(s, rng, o);
-    expect([a.know.warden, r3.members[0].know]).toEqual([3, { enc: 'warden', stage: 2 }]);
-    expect(Gd.guildAfter(s, rng, o).members[0].know).toBeUndefined(); // 4번째: 단계 그대로
-    Gd.guildAfter(s, rng, { ...o, win: false });
-    expect(a.know.warden).toBe(4);
-    expect(Gd.memberEntry(s, a).know).toEqual({ gate: 2, warden: 2 });
-  });
-  it('엔진: 그 전투에서만 반응 시간 × · 회피 + · 받는 피해 ×, 공개모집은 없음', () => {
-    const s = save(30), m = add(s, 'warrior', 0);
-    m.know = { warden: 6 };
-    const e = Gd.memberEntry(s, m);
-    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, party: [e, ...E.recruitParty('warden', 1, { abilities: true }).slice(1)], stageLv: 30 });
-    const g = E.create({ encounter: 'warden', diff: '보통', seed: 1, party: [{ ...e, know: undefined }, ...E.recruitParty('warden', 1, { abilities: true }).slice(1)], stageLv: 30 });
-    const u = f.party.find(x => x.gid === m.id)!, v = g.party.find(x => x.gid === m.id)!;
-    expect(u.know).toBe(3);
-    expect(u.senseReact / v.senseReact).toBeCloseTo(KNOW.react[3]);
-    expect(u.senseDodge - v.senseDodge).toBeCloseTo(KNOW.dodge[3]);
-    expect(takenAmt(f, u, 100, false, 'fixed') / takenAmt(g, v, 100, false, 'fixed')).toBeCloseTo(KNOW.taken[3]);
-    const h = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: [e, ...E.recruitParty('scrap', 1, { abilities: true }).slice(1)], stageLv: 30 });
-    expect(h.party.find(x => x.gid === m.id)!.know).toBeUndefined();
-  });
-  it('저장: 숙지는 그대로, 이상한 값은 버림', () => {
-    const s = save(30), m = add(s, 'warrior', 0);
-    m.know = { warden: 3.5, plague: -1, x: Number.NaN };
-    expect(migrate(JSON.parse(JSON.stringify(s))).guild.members[0].know).toEqual({ warden: 3.5 });
-  });
-});
-
 describe('추천 편성 (93 7-1)', () => {
   it('보스 특징: 역병 군주 = 독 · 질병 · 끊기 · 광역 · 장판, 일반 구간 = 쫄', () => {
     const p = encFeatures('plague');
@@ -514,7 +473,7 @@ describe('추천 편성 (93 7-1)', () => {
     expect(abilityFeatures(ABILITIES['paladin.avenger'])).toEqual(['cut']);
     expect(abilityFeatures(ABILITIES['warrior.shieldBlock'])).toEqual(['buster']);
   });
-  it('특징에 맞는 스킬 · 숙지가 점수를 올리고 이유 칩, 다루기 어려운 성격은 버릇을 고친 만큼 덜 깎음, 레벨이 모자라면 깎음', () => {
+  it('특징에 맞는 스킬이 점수를 올리고 이유 칩, 다루기 어려운 성격은 버릇을 고친 만큼 덜 깎음, 레벨이 모자라면 깎음 (공략 숙지는 없앰, 99)', () => {
     const s = save(30);
     const flat = (v: number) => Object.fromEntries(Object.keys(add(save(), 'mage').stats).map(k => [k, v])) as GuildMember['stats'];
     const a = add(s, 'paladin', 0, { ab: 'paladin.devotion', pers: '신중파', stats: flat(10), lv: 30 });
@@ -522,10 +481,8 @@ describe('추천 편성 (93 7-1)', () => {
     const r = recommendPick(s, ENCOUNTERS.warden, ['plague'], 30);
     expect(r.pick[0]).toBe(b.id);
     expect(r.why).toContain('독 · 질병 → 독소 정화');
-    a.know = { plague: 6 };
-    const r2 = recommendPick(s, ENCOUNTERS.warden, ['plague'], 30);
-    expect(r2.pick[0]).toBe(a.id); // 숙지 3단계 (+2.4)가 스킬 맞춤 (+1.2)보다 큼
-    expect(r2.why[0]).toBe(`공략 숙지 3단계 · ${a.nick}`);
+    expect(r.why.some(w => /숙지/.test(w))).toBe(false);
+    expect(a.id).not.toBe(r.pick[0]);
     const hard = (Object.keys(PERS) as (keyof typeof PERS)[]).find(k => PERS[k].star === 3 && !('tankOnly' in PERS[k]))!;
     const c = add(s, 'mage', 1, { pers: hard, stats: flat(10) }), calm = add(s, 'mage', 2, { pers: hard, ab: c.ab, stats: { ...flat(10), composure: 20, judgment: 20 } });
     expect(recScore(s, calm, ['plague'], 30).score).toBeGreaterThan(recScore(s, c, ['plague'], 30).score + REC.hard3 * 0.7);
@@ -597,11 +554,14 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
 
 describe('v21 친구·인연 제거 저장 이전', () => {
   it('기존 스킬 단계 · 능력치 · 후원 · 상승 표시를 보존하고 연회장 골드를 한 번 환급한다', () => {
-    const s = save(50), m = add(s, 'mage', 0, { lv: 19, xp: 11, boost: 10, lastStatGains: ['atk'], know: { warden: 6 } });
+    const s = save(50), m = add(s, 'mage', 0, { lv: 19, xp: 11, boost: 10, lastStatGains: ['atk'] });
+    (m as GuildMember & { know?: Record<string, number> }).know = { warden: 6 }; // 옛 저장의 공략 숙지 (99에서 없앰)
     const old = { ...s, v: 20, users: { [m.nick]: { pt: 110 } }, guild: { ...s.guild, fac: { war: 2, post: 3, feast: 3 }, away: [m] } };
     const d = migrate(old), kept = d.guild.members[0];
     expect(memberSkillLevel(kept)).toBe(4);
-    expect(kept).toMatchObject({ id: m.id, lv: 19, xp: 11, boost: 10, stats: m.stats, lastStatGains: ['atk'], know: { warden: 6 } });
+    expect(kept).toMatchObject({ id: m.id, lv: 19, xp: 11, boost: 10, stats: m.stats, lastStatGains: ['atk'] });
+    expect(kept).not.toHaveProperty('know'); // 공략 숙지 저장 필드는 버림
+    expect(Gd.memberEntry(d, kept)).not.toHaveProperty('know');
     expect(d.player.gold).toBe(s.player.gold + 35000 + 15000 + 35000);
     expect(d.guild).not.toHaveProperty('fac');
     expect(d).not.toHaveProperty('users');

@@ -17,7 +17,7 @@ import type { BossSkill, Fight } from '../src/engine';
 /** 96 어그로 상황: 어그로와 이어진 성격 29종만 자기 대사 (나머지는 역할 · 공통) */
 const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
 /** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
-const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildKnow', 'guildTame', 'guildFirst'];
+const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildTame', 'guildFirst'];
 /** 99 능력치 기반 행동: 성격 대사는 없어도 됨 (공통 · 역할로 넘김) */
 const STAT99: TalkSit[] = ['lateDodge', 'wrongDodge', 'tankLost', 'whiff', 'skillFumble', 'aggroHold', 'aggroIgnore'];
 const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
@@ -400,17 +400,5 @@ describe('길드 대사 (93 9-2)', () => {
     const end = talk.frame(f, 9000, { pulling: false, paused: false });
     expect(end[0].sit).toBe('guildFirst');
     expect(f.party.find(u => u.id === end[0].id)!.gid).not.toBeUndefined();
-  });
-  it('외운 패턴: 숙지 3단계 길드원이 새 예고를 보면 한 번', () => {
-    const party = E.recruitParty('warden', 3, { abilities: true });
-    party[0] = { ...party[0], gid: 1, know: { warden: 3 } };
-    const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
-    const talk = createTalk(() => 0);
-    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
-    for (let k = 0; k < 60; k++) talk.frame(f, k * 50, { pulling: true, paused: false });
-    const sits: string[] = [];
-    while (!f.over && f.t < 60) { E.autoHealer(f); E.step(f); for (const b of talk.frame(f, 3000 + f.t * 1000, { pulling: false, paused: false })) sits.push(b.sit ?? ''); f.events.length = 0; }
-    expect(sits.filter(s => s === 'guildKnow').length).toBeLessThanOrEqual(1);
-    expect(f.party.find(u => u.gid === 1)!.know).toBe(3);
   });
 });

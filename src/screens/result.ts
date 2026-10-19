@@ -4,7 +4,6 @@
  */
 import { STAT_NAMES } from '../data/fm';
 import { ABILITIES } from '../data/abilities';
-import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { EXPED, REQ, STORY } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
@@ -261,9 +260,6 @@ function notesHtml(x: Settlement): string {
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람
     if (gd.boosted.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></button>`);
-    // 공략 숙지 (93 5-4): 「공략 숙지 2단계: 역병 군주 · 방패든양 · 불꽃남자」 (가장 높이 오른 단계)
-    const kn = gd.members.filter(m => m.know), top = Math.max(0, ...kn.map(m => m.know!.stage));
-    if (top) { const who = kn.filter(m => m.know!.stage === top); out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('know', uiIcon('quest'))}<span><b>공략 숙지 ${top}단계: ${esc(ENCOUNTERS[who[0].know!.enc as EncounterKey]?.name ?? '')}</b> · ${who.map(m => esc(m.nick)).join(' · ')}</span></button>`); }
   }
   const q = x.heroQuest;
   if (q) {
