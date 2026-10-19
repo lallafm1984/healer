@@ -1,5 +1,5 @@
 // 길드 v2 (93 · FM 97, 2026-10-18 사슬 4번, 상점 · 편성과 같은 길드 홀 돌색 #233): 잠금 → 결성 (말없는탱 + 인연 높은 딜러) → 결성 이야기 →
-// 영입 탭 친구 초대 (범위 능력치) · 모집 공고 (역할) · 지원자 시트 (능력 ★만) → 영입 → 길드원 시트 (능력치 숫자 · 스킬 다시 뽑기 · 보내기)
+// 영입 탭 친구 초대 (범위 능력치) · 모집 공고 (역할) · 지원자 시트 (능력 ★만) → 영입 → 길드원 시트 (능력치 숫자 · 후원 · 보내기)
 // → 「길드파티로 출전」 = 전투 탭 → 편성이 길드파티 → 출발 → 보상에 길드원 경험치 · 명성 · 첫 처치 → S25 · 울트라 · 플립 넘침 · 성격 칩이 직업 · Lv를 안 덮음
 // 꺼 두면 guild-off.mjs.
 import { chromium } from 'playwright';
@@ -53,16 +53,14 @@ export default async function guild(url, shots) {
   await page.screenshot({ path: `${shots}/guild_founded.png` });
   await page.click('#storyOk'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-story').count()) === 0 && (await save()).guild.storySeen, '「확인」 = 이야기 카드 닫힘 (한 번만)');
-  // 현황 = 큰 그림 칸 셋 (할 일 · 시설 · 기록, 2026-10-19 Lim 「C안」), 처음엔 할 일. 길드원 줄은 길드원 탭에만
+  // 현황 = 그림 칸 둘 (할 일 · 시설, 기록 제거), 처음엔 할 일. 길드원 줄은 길드원 탭에만
   const hubs = await page.locator('#s-guild .g-hub [data-csel]').evaluateAll(els => els.map(e => [e.dataset.csel, e.getAttribute('aria-selected')]));
-  ok(JSON.stringify(hubs) === JSON.stringify([['todo', 'true'], ['fac', 'false'], ['rec', 'false']]) && (await page.locator('#s-guild [data-mem]').count()) === 0 && /0 \/ 10/.test(await text('#s-guild .g-goal')), `현황: 칸 셋 (할 일 고름) · 길드원 줄 없음 · 주간 목표 0 / 10 ${JSON.stringify(hubs)}`);
-  await page.click('#s-guild [data-csel="rec"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-card[data-sec="rec"] .g-tiles li').count()) === 5 && (await page.locator('#s-guild .g-card').count()) === 1, '기록 칸: 숫자 다섯 · 판은 고른 칸 하나만');
-  await page.click('#s-guild .g-card[data-sec="rec"] .g-info'); await page.clock.runFor(50);
-  ok(/처음 깨면/.test(await text('#s-guild .g-tip')) && await page.getAttribute('#s-guild .g-card[data-sec="rec"] .g-info', 'aria-expanded') === 'true', 'ⓘ = 설명 펼침');
-  await page.click('#s-guild .g-card[data-sec="rec"] .g-info'); await page.clock.runFor(50);
+  ok(JSON.stringify(hubs) === JSON.stringify([['todo', 'true'], ['fac', 'false']]) && (await page.locator('#s-guild [data-mem]').count()) === 0 && /0 \/ 10/.test(await text('#s-guild .g-goal')), `현황: 칸 둘 (할 일 고름) · 길드원 줄 없음 · 주간 목표 0 / 10 ${JSON.stringify(hubs)}`);
+  ok((await page.locator('#s-guild [data-csel="rec"], .g-firsts').count()) === 0, '현황 기록 메뉴 제거');
+  await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
+  ok(/주간 목표/.test(await text('#s-guild .g-tip')) && await page.getAttribute('#s-guild .g-card[data-sec="todo"] .g-info', 'aria-expanded') === 'true', 'ⓘ = 설명 펼침');
+  await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-tip').count()) === 0, 'ⓘ 다시 = 접힘');
-  await page.click('#s-guild [data-csel="todo"]'); await page.clock.runFor(50);
   ok(/길드파티로 출전/.test(await text('#guildGo')) && /주간 목표 0 \/ 10/.test(await text('#guildGo')), '아래 버튼 「길드파티로 출전」');
 
   // ---- 영입: 친구 초대 (93 4-2 ①) ----
@@ -98,21 +96,20 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [data-csel="friend"]'); await page.clock.runFor(50);
   ok(await page.isDisabled('#s-guild [data-invite="컨트롤장인"]') && postOff, '정원 가득 = 초대 · 공고 꺼짐');
 
-  // ---- 길드원 시트: 능력치 숫자 · 스킬 다시 뽑기 · 보내기 ----
+  // ---- 길드원 시트: 능력치 숫자 · 후원 · 보내기 ----
   await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   ok(/정원 6\/6/.test(await text('#s-guild .guild-hero')) && (await page.locator('#s-guild [data-mem]').count()) === 6, '길드원 탭 줄 6 · 머리 정원 6/6');
   const tank = sv.guild.members.find(m => m.story === 'tank');
   await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid:not(.fog) li').count()) === 12, '길드원 시트: 능력치 12칸 숫자');
-  ok(await page.isDisabled('#s-guild [data-reroll]') && await page.isDisabled('#s-guild [data-release]') && /고유 스킬/.test(await text('#s-guild [data-reroll]')), '말없는탱: 스킬 다시 뽑기 · 보내기 없음 (스토리 동료)');
-  ok((await page.locator('#s-guild .g-msheet .g-meter').count()) === 2 && !/직업 스킬 ★/.test(await text('#s-guild .g-msheet')), '레벨 · 인연 막대 둘, 규칙 글은 ⓘ 전엔 안 보임');
+  ok((await page.locator('#s-guild [data-reroll]').count()) === 0 && await page.isDisabled('#s-guild [data-release]'), '스킬 뽑기 제거 · 스토리 동료 보내기 금지 유지');
+  ok((await page.locator('#s-guild .g-msheet .g-meter').count()) === 2 && !/직업 스킬 LV/.test(await text('#s-guild .g-msheet')), '레벨 · 인연 막대 둘, 규칙 글은 ⓘ 전엔 안 보임');
   await page.click('#s-guild .g-msheet [data-tip="msheet"]'); await page.clock.runFor(50);
-  ok(/직업 스킬 ★1\/5/.test(await text('#s-guild .g-msheet .g-tip')), 'ⓘ: 직업 스킬 ★1/5 (인연 Lv 3)');
+  ok(/직업 스킬 LV 1 \/ 5/.test(await text('#s-guild .g-msheet .g-tip')), 'ⓘ: 직업 스킬 LV 1 / 5 (인연 Lv 3)');
   await shut();
   await page.click(`#s-guild [data-mem="${hired.id}"] .f-mt`); await page.clock.runFor(50);
-  const g0 = (await save()).player.gold;
-  await page.click('#s-guild [data-reroll]'); await page.clock.runFor(50);
-  ok((await save()).player.gold === g0 - 1800 && /새 스킬/.test(await text('#s-guild .g-msheet')), '스킬 다시 뽑기 = 내 Lv × 60 (1,800)');
+  ok((await page.locator('#s-guild .g-acts > button').count()) === 2 && (await page.locator('#s-guild .g-msheet .g-tiles').count()) === 0, '길드원 상세: 후원 · 보내기 두 버튼, 기록 통계 제거');
+  ok((await text('#s-guild .g-msheet .pab .skill-level')) === 'LV 1' && !/★/.test(await text('#s-guild .g-msheet .pab')), '직업 스킬: 별 대신 LV 1 표시');
   await page.locator('#s-guild .g-msheet').screenshot({ path: `${shots}/guild_member.png` });
   // 후원 (98): 그 길드원 Lv × 20 골드 = 5판, 내 레벨과 같으면 버튼 대신 「내 레벨과 같음」
   await shut();
@@ -172,19 +169,14 @@ export default async function guild(url, shots) {
   ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
 
-  // ---- 기록판 · 명부 (93 9-3 · 3-4) ----
+  // ---- 기록 제거 · 명부 유지 ----
   await patch(() => {});
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
-  await page.click('#s-guild [data-csel="rec"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-first').count()) === 1 && /녹슨 요새/.test(await text('#s-guild .g-firsts')), '기록 칸: 길드 첫 처치 (장소 · 난이도 · 날짜)');
-  await page.click('#s-guild .g-first'); await page.clock.runFor(50);
-  ok(/\d:\d\d · /.test(await text('#s-guild .g-first')), '첫 처치 줄을 누르면 걸린 시간 · 함께한 길드원');
-  await page.click('#s-guild .g-card[data-sec="rec"] .g-info'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-raid tbody tr').count()) >= 1, 'ⓘ: 레이드 진척 표');
+  ok((await page.locator('#s-guild [data-csel="rec"]').count()) === 0, '클리어 후에도 기록 메뉴 없음');
   const mem1 = (await save()).guild.members[1];
   await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   await page.click(`#s-guild [data-mem="${mem1.id}"] .f-mt`); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-msheet .g-tiles li').count()) === 4 && /함께 이김/.test(await text('#s-guild .g-msheet .g-tiles')) && /딜 1등/.test(await text('#s-guild .g-msheet .g-tiles')), '길드원 기록 숫자 칸: 함께 이김 · 살려 줌 · 딜 1등 · 숙지');
+  ok((await page.locator('#s-guild .g-msheet .g-tiles').count()) === 0 && !/함께 이김|살려 줌|딜 1등/.test(await text('#s-guild .g-msheet')), '길드원 상세 기록 통계 제거');
   await shut();
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-csel="roster"]'); await page.clock.runFor(50);
@@ -198,8 +190,15 @@ export default async function guild(url, shots) {
   await page.click('#rfriend'); await page.clock.runFor(50);
   await page.click('#roster'); await page.clock.runFor(50);
 
-  // ---- S25 · 울트라 · 플립: 가로 넘침 없음, 출전 버튼 탭 위, 이름 안 잘림, 성격 칩이 직업 · Lv를 안 덮음 (보상 화면엔 탭 막대가 없어 다시 읽음) ----
-  await patch(() => {});
+  // ---- 반별 · 높은 스킬/인연 상태를 포함한 반응형 검수 ----
+  await patch(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.guild.members.forEach((m, i) => {
+      for (const k of Object.keys(m.stats)) m.stats[k] = i === 0 ? 13 : 20;
+      s.users[m.nick].pt = i === 0 ? 8 : 330;
+    });
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
   for (const [w, h, name] of [[360, 780, 's25'], [384, 824, 'ultra'], [412, 915, 'ultra-wide'], [360, 880, 'flip'], [768, 920, 'fold']]) {
     await page.setViewportSize({ width: w, height: h });
     await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
@@ -214,6 +213,14 @@ export default async function guild(url, shots) {
     }));
     const bad = rows.filter(r => r.capCut || r.overlap || r.nickCut);
     ok(await fit() && !bad.length, `${name}: 길드원 줄 가로 넘침 없음 · 이름 · 직업 · Lv 안 잘림 · 성격 칩 안 겹침 ${JSON.stringify(bad)}`);
+    const rating = await page.locator(`#s-guild [data-mem="${tank.id}"] .ability-stars`).getAttribute('aria-label');
+    ok(rating === '별 3.5 / 5' && (await page.locator('#s-guild [data-mem] .rating-star.half').count()) === 1 && !/½|★/.test(await text('#s-guild .g-list')), `${name}: 3.5 능력 반별 그림, 목록의 별 문자 제거`);
+    ok((await page.locator(`#s-guild [data-mem="${tank.id}"] .skill-level`).textContent()) === 'LV 1' && (await page.locator('#s-guild [data-mem] .bond.gold .bond-icon').count()) >= 1, `${name}: 스킬 LV 1 · 단짝 인연 아이콘`);
+    const indicators = await page.locator('#s-guild [data-mem] .f-l2').evaluateAll(els => els.every(el => {
+      const skill = el.querySelector('.f-ab').getBoundingClientRect(), rating = el.querySelector('.f-fm').getBoundingClientRect(), level = el.querySelector('.skill-level').getBoundingClientRect();
+      return skill.right <= rating.left + 1 && level.left >= skill.left - 1 && level.right <= skill.right + 1 && el.scrollWidth <= el.clientWidth + 1;
+    }));
+    ok(indicators, `${name}: 스킬과 능력 별이 겹치거나 넘치지 않음`);
     await page.screenshot({ path: `${shots}/guild_members_${name}.png` });
     await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
     const rrows = await page.locator('#s-guild .g-list .pcard').evaluateAll(els => els.filter(el => {

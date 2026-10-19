@@ -166,18 +166,23 @@
 .f-ps i { width: 16px; height: 16px; display: grid; place-items: center; border-radius: 3px; font: normal 900 10px var(--font-body); color: #12100C; }
 .f-ps em { margin-left: 1px; font: normal 900 12px var(--font-body); color: #FF8A70; }
 .f-star { flex: none; font-size: 11px; letter-spacing: -1px; color: var(--gold-hi); }
-/* 능력 ★ (97 FM): 공개모집 파티원 능력치 합, 둘째 줄 오른쪽 끝 (스킬 이름이 길면 스킬 이름이 줄어듦). 별은 직업 스킬 ★ (.f-star)와 같은 금빛, 반 별은 ½ */
-.f-fm { flex: none; margin-left: auto; white-space: nowrap; }
-.f-fm b, .f-det .pfm b { font-weight: 400; letter-spacing: -1px; color: var(--gold-hi); }
+/* 능력은 금빛 별 (0.5 단위), 스킬은 LV로 구분한다. */
+.f-fm { flex: none; display: inline-flex; align-items: center; gap: 3px; margin-left: auto; white-space: nowrap; }
+.f-fm b, .f-det .pfm b { display: inline-flex; align-items: center; font-weight: 400; color: var(--gold-hi); vertical-align: middle; }
+.ability-stars { display: inline-flex; align-items: center; gap: 0; vertical-align: middle; line-height: 1; }
+.rating-star { display: block; width: 13px; height: 13px; flex: none; }
+.f-det .rating-star { width: 17px; height: 17px; }
+.skill-level { display: inline-block; margin-left: 4px; color: #d2c3a0; font: 700 10px/1.4 var(--font-body); font-variant-numeric: tabular-nums; letter-spacing: .2px; white-space: nowrap; }
+.f-det .skill-level, .pab .skill-level { padding: 0 4px; border: 1px solid #86704b; border-radius: 3px; background: #30271c; font-size: 11px; vertical-align: 1px; }
 .f-det .pfm { margin: 0 0 4px; font-size: 12px; color: var(--mute); }
 .f-det .pfm small { margin-left: 6px; font-size: 11px; }
-/* 인연 하트 (93 3-3): 아는 사이 빈 하트 · 친구 · 길드원 붉은 하트 + 인연 Lv · 단짝 금빛 */
-.bond { flex: none; display: inline-flex; align-items: baseline; gap: 1px; margin-left: -2px; font: 900 13px/1 var(--font-body); }
-.bond.line { color: #c9a9a0; }
-.bond.red { color: #ff6f61; }
-.bond.gold { color: #ffd34d; text-shadow: 0 0 4px #ffd34d88; }
+/* 인연: 그림 장식 대신 작은 황동 테 하트와 같은 톤의 숫자. */
+.bond { flex: none; display: inline-flex; align-items: center; gap: 3px; padding: 1px 4px; border: 1px solid #8d755143; border-radius: 5px; background: #251e1780; font: 800 11px/1 var(--font-body); }
+.bond.line { color: #b3a18a; }
+.bond.red { color: #d1b293; }
+.bond.gold { color: #ead08b; border-color: #b7914e80; }
 .bond small { font: 800 10px/1 var(--font-body); color: inherit; }
-.bond > .g-ic { width: 15px; height: 15px; object-fit: contain; align-self: center; }
+.bond-icon { display: inline-block; width: 14px; height: 14px; flex: none; vertical-align: middle; }
 /* 능력치 세 묶음 × 네 줄 (97): 1~5 회색 · 6~10 흰색 · 11~15 초록 · 16~20 금빛, 역할 핵심 굵게 */
 .fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 4px; }
 .fm-grid section { min-width: 0; }
@@ -194,7 +199,9 @@
 .fm-grid li.b4 > b { color: #ffd34d; }
 .fm-grid.fog li > b { font-size: 12px; letter-spacing: -0.5px; }
 .f-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--mute); }
-.f-ab { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.f-ab { display: inline-flex; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+.skill-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-ab > .skill-level { flex: none; }
 #s-party .f-ab b { font-weight: 700; }
 .f-tr { flex: none; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; border: 1px solid var(--frame-hi); font: 700 11px/18px var(--font-body); color: var(--gold-hi); }
 /* 파티원 상세 시트 */

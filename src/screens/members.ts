@@ -1,19 +1,19 @@
-/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬, 등급 색 + ★) · 능력치 (97, 인연 안개) · 인연 하트 · 성격 (17 11장) */
+/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬, 등급 색 + LV) · 능력치 (97, 인연 안개) · 인연 하트 · 성격 (17 11장) */
 import { ABILITIES, AB_GRADE, AB_KIND } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { bondName } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { abilityStars, ROLE_CORE, seedOf, STAT_GROUPS, STAT_NAMES, starText, type Stats } from '../data/fm';
+import { abilityStars, ROLE_CORE, seedOf, STAT_GROUPS, STAT_NAMES, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
-import { gameIcon } from './art';
+import { bondIconSvg, ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
 
-/** 능력 한 줄: 종류 아이콘 + 이름 + ★ + 등급 + 효과 (+ 쓰는 때) */
+/** 능력 한 줄: 종류 아이콘 + 이름 + LV + 등급 + 효과 (+ 쓰는 때) */
 export function abHtml(key: string | undefined, star = 0, when = true): string {
   const a = key ? ABILITIES[key] : null;
   if (!a) return '';
   const g = AB_GRADE[a.grade];
-  return `<p class="pab" style="--gc:${g.color}"><b>${AB_KIND[a.kind].icon} ${esc(a.name)}${star ? ` <span class="star">${'★'.repeat(star)}</span>` : ''}</b><i>${g.name}</i> ${esc(a.desc)}${when ? ` <small>· ${esc(a.when)}</small>` : ''}</p>`;
+  return `<p class="pab" style="--gc:${g.color}"><b>${AB_KIND[a.kind].icon} ${esc(a.name)}${star ? ` <span class="skill-level">LV ${star}</span>` : ''}</b><i>${g.name}</i> ${esc(a.desc)}${when ? ` <small>· ${esc(a.when)}</small>` : ''}</p>`;
 }
 
 /**
@@ -31,12 +31,12 @@ export function statsHtml(nick: string, stats: Stats, role: 'tank' | 'melee' | '
   return `<div class="fm-grid${fog === 'range' ? ' fog' : ''}">${STAT_GROUPS.map(g => `<section><h5>${g.name}</h5><ul>${g.keys.map(cell).join('')}</ul></section>`).join('')}</div>`;
 }
 
-/** 인연 하트 (93 3-3): 아는 사이 = 빈 하트 · 친구 · 길드원 = 하트 (+ 인연 Lv) · 단짝 = 금빛 하트. 그림 (icon-bond-*)은 6번 PR */
+/** 인연: 아는 사이 = 윤곽 · 친구/길드원 = 적동 하트 · 단짝 = 금빛. 숫자는 인연 Lv. */
 export function bondHtml(lv: number, member = false): string {
   if (lv <= 0) return '';
   const cls = lv >= 12 ? 'gold' : lv >= 2 ? 'red' : 'line';
   const name = lv >= 12 || member ? bondName(lv) : lv >= 2 ? '친구' : '아는 사이'; // 길드 밖 사람은 인연 Lv가 높아도 「친구」
-  const icon = gameIcon(lv >= 12 ? 'bond-3' : lv >= 2 ? 'bond-2' : 'bond-1', lv >= 2 ? '♥' : '♡'); // 그림 (93 11장), 없으면 글자 하트
+  const icon = bondIconSvg(lv);
   return `<span class="bond ${cls}" role="img" aria-label="인연 ${name}${lv >= 3 ? ` Lv ${lv}` : ''}">${icon}${lv >= 3 ? `<small>${lv}</small>` : ''}</span>`;
 }
 
@@ -56,7 +56,7 @@ export interface CardData {
 }
 
 /** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 능력치 합. 능력치가 없는 사람 (길드원 · 옛 파티)은 빈 글 */
-const fmStars = (m: CardData): string => (m.fm ? starText(abilityStars(m.fm.stats, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged')) : '');
+const fmStars = (m: CardData): string => (m.fm ? ratingStarsHtml(abilityStars(m.fm.stats, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged')) : '');
 
 /** 역할 아이콘 (27 시안 Party27): 탱커 방패 · 근접 칼 · 원거리 화살 */
 const roleSvg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -81,7 +81,7 @@ export function classIcon(cls: ClassKey): string {
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」${m.star ? `<span class="f-star"> ${'★'.repeat(m.star)}</span>` : ''}`
+    ? `<span class="skill-name">「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」</span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>

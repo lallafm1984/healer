@@ -142,7 +142,7 @@ export default async function guildExt(url, shots) {
     await page.click('#s-guild [data-csel="fac"]'); await page.clock.runFor(50);
     const cut2 = await out('#s-guild .g-fac, #s-guild .g-fac > .btn, #s-guild .g-fac .g-lockt');
     const hub = await page.locator('#s-guild .g-hubt').evaluateAll(els => els.filter(e => e.scrollWidth > e.clientWidth + 1).length);
-    ok(await fit() && !cut1 && !cut2 && !hub, `${name} ${w}×${h}: 현황 (칸 셋 · 부탁 · 원정 · 시설) 가로 넘침 없음 ${JSON.stringify({ cut1, cut2, hub })}`);
+    ok(await fit() && !cut1 && !cut2 && !hub, `${name} ${w}×${h}: 현황 (칸 둘 · 부탁 · 원정 · 시설) 가로 넘침 없음 ${JSON.stringify({ cut1, cut2, hub })}`);
     await page.screenshot({ path: `${shots}/guild_ext_${name}.png`, fullPage: true });
     await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
     ok(await fit(), `${name}: 영입 가로 넘침 없음`);

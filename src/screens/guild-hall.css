@@ -2,7 +2,7 @@
  * 길드 (2026-10-18 Lim 「길드컨텐츠의 페이지부터 관련된 모든것의 ui를 다른컨텐츠와 일관성을 유지하면서 개선」).
  * 나무 게시판 · 양피지 쪽지 대신 상점 · 임무 · 편성과 같은 길드 홀 돌색 한 벌 (--gk-*, guide-sheet.css).
  * 판 · 줄 · 버튼 · 하위 탭은 service-hall.css 목록에 #s-guild를 넣어 상점과 똑같이 받고, 여기는 길드에만 있는 것:
- * 길드 홀 그림 머리 (ui-guild) · 편성과 같은 파티원 줄 · 결성 이야기 · 주간 목표 · 기록 · 공고 고르기 · 아래 붉은 출전 (전투 탭 「출전」 그림) · 길드원 시트 (길드 v2, 93 · 97).
+ * 길드 홀 그림 머리 (ui-guild) · 편성과 같은 파티원 줄 · 결성 이야기 · 주간 목표 · 공고 고르기 · 아래 붉은 출전 (전투 탭 「출전」 그림) · 길드원 시트 (길드 v2, 93 · 97).
  * main.ts에서 service-hall.css 다음에 읽음.
  */
 
@@ -101,7 +101,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-row:first-child { border-top: 0; }
 #s-guild .g-tiles + .g-rows { border-top: 1px solid var(--gk-line); }
 #s-guild .g-row.done { opacity: 0.6; }
-#s-guild .g-first { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
 #s-guild .g-row.tap { cursor: pointer; }
 #s-guild .g-row.tap:active { background: #ffffff08; }
 #s-guild .g-row.tap:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
@@ -119,7 +118,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-rs > .btn { flex: none; width: auto; min-height: 40px; margin: 0; }
 #s-guild .g-num { font: 800 16px/1 var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
 #s-guild .g-num small { font-size: 12px; font-weight: 600; color: var(--gk-mute); }
-#s-guild .g-date { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
 #s-guild .g-bar { display: block; height: 8px; border: 1px solid var(--gk-card-bd); border-radius: 4px; background: #0d0b08; overflow: hidden; }
 #s-guild .g-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
 /* 알약 */
@@ -197,7 +195,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-postgo > .btn small { font-size: 11px; }
 #s-guild .g-postgo .currency-amount { justify-content: center; }
 #s-guild .g-full { text-align: center; }
-/* 큰 그림 칸 (2026-10-19 Lim 「C안」): 현황 셋 (할 일 · 시설 · 기록) 한 줄, 영입 넷 2 × 2. 고른 칸 = 금테 + 아래 판 하나 */
+/* 큰 그림 칸 (2026-10-19 Lim 「C안」): 현황 둘 (할 일 · 시설) 한 줄, 영입 넷 2 × 2. 고른 칸 = 금테 + 아래 판 하나 */
 #s-guild .g-hub { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 #s-guild .g-hub.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #s-guild .g-hubt {
@@ -221,12 +219,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-subh small { margin-left: auto; font-size: 12px; color: var(--gk-mute); }
 #s-guild .g-subh + .pcards .pcard.f-mem:first-child { border-top: 1px solid var(--gk-line); }
 /* 레이드 진척 (ⓘ 안) */
-#s-guild .g-raid { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
-#s-guild .g-raid th { padding: 2px 0; font: 600 11px var(--font-body); color: var(--gk-mute); text-align: center; }
-#s-guild .g-raid tbody th { text-align: left; color: var(--gk-ink2); }
-#s-guild .g-raid td { padding: 3px 0; text-align: center; color: var(--gk-ink2); border-top: 1px solid var(--gk-line); }
-#s-guild .g-raid td.some { color: var(--gk-ink); font-weight: 700; }
-#s-guild .g-raid td.all { color: #ffd34d; font-weight: 800; }
 /* 잠김 */
 #s-guild .g-lockp .g-hd h3 { font-size: 15px; }
 
@@ -265,19 +257,19 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 #s-guild .sheet .fm-grid h5 { color: var(--gk-mute); }
 #s-guild .sheet .f-det .f-star { letter-spacing: 0; }
-/* 시트: 레벨 · 인연 막대, 숫자 칸, 숙지, 동작 셋 (같은 크기 돌 버튼) */
+/* 시트: 레벨 · 인연 막대, 숙지, 동작 둘 (같은 크기 돌 버튼) */
 #s-guild .sheet .h-rule .g-info { margin: -10px -8px -10px 0; }
 #s-guild .sheet .g-tip { border: 1px solid var(--gk-line); border-radius: 10px; }
 #s-guild .g-meters { display: flex; flex-direction: column; gap: 6px; }
 #s-guild .g-meter { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; }
 #s-guild .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
-#s-guild .g-meter .k .g-ic { width: 16px; height: 16px; object-fit: contain; }
+#s-guild .g-meter .k :is(.g-ic,.bond-icon) { width: 16px; height: 16px; object-fit: contain; }
 #s-guild .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
 #s-guild .sheet .g-tiles { padding: 8px 4px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; }
 #s-guild .g-knows { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; }
 #s-guild .g-kn { padding: 2px 8px; border-radius: 10px; background: #15120e; border: 1px solid var(--gk-card-bd); font-size: 12px; color: var(--gk-ink2); }
 #s-guild .g-kn b { color: var(--gk-num); }
-#s-guild .g-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+#s-guild .g-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #s-guild .g-acts > .btn { position: relative; min-height: 78px; margin: 0; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 #s-guild .g-acts .g-ai > .g-ic { width: 30px; height: 30px; object-fit: contain; }
 #s-guild .g-acts .g-ai > svg { width: 22px; height: 22px; }
