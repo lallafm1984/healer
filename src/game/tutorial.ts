@@ -20,6 +20,13 @@ export type CoachKey = 'duo' | 'explore';
 /** 첫 전투 파티: 탱커 1명. 성격은 가장 순한 신중파 */
 export const DUO_PARTY: RosterEntry[] = [{ role: 'tank', pers: '신중파', nick: '방패든양', cls: 'warrior' }];
 
+/**
+ * 튜토리얼 판 (2026-10-19 103 다른 문제점 2): 첫 전투 · 탐험 「녹슨 고원」만. 튜토리얼 중 (처음 · 다시 보기)에는 이 둘만 출전하고 (content cta),
+ * 정산도 이 둘만 튜토리얼 보상 (휴식 안 씀 · 레이드 주 첫 표 없음). 다시 보기 중 전투 탭에서 다른 판을 고르면 휴식 없이 휴식 판 1.5배를 받던 것
+ */
+export const TUT_CONTENT: readonly string[] = ['tutorial', 'plateau'];
+export const tutLockedContent = (save: SaveData, content: string): boolean => save.tut < TUT.done && !TUT_CONTENT.includes(content);
+
 /** 정산 때 튜토리얼 단계 넘기기: 탐험 클리어 → 끝. 넘겼으면 true */
 export function advanceTutorial(save: SaveData, content: string, win: boolean): boolean {
   if (!win || save.tut !== TUT.explore || content !== 'plateau') return false;

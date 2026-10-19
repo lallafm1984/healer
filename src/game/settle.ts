@@ -9,7 +9,7 @@ import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
-import { advanceTutorial, TUT } from './tutorial';
+import { advanceTutorial, TUT, TUT_CONTENT } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
 import type { StoryKey } from '../data/guild';
@@ -137,7 +137,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const c = contentOf(r.content);
   const hero = r.hero ?? save.hero;
   // 튜토리얼이 끝난 뒤부터 재화·임무 (자동 힐러로 구경한 판은 임무에 안 셈)
-  const play = save.tut >= TUT.done;
+  const play = save.tut >= TUT.done || !TUT_CONTENT.includes(c.key); // 튜토리얼 보상은 튜토리얼 판만 (103)
   if (play) rollover(save, now, rng);
   const p = save.player;
   const tot = r.healed + r.overheal;

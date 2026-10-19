@@ -77,7 +77,7 @@ const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = re
 const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
 
 /**
- * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 전 레벨에서 둘 수 있는 최대 (6명·12명), 길드를 빼 두면 그 줄 없음.
+ * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 min(정원, 10인 9 · 20인 19명) (#302 정원 = 길드 Lv + 1), 길드를 빼 두면 그 줄 없음.
  * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
@@ -187,7 +187,7 @@ function raidPlate(): string {
   const last = s.last && contentOf(s.last.content as ContentKey);
   const tab = last?.kind === 'raid' ? adventureTabOf(last) : both ? 'raid20' : 'raid10';
   return plate(`lb-raid${open ? '' : ' lock'}`, ` data-go="s-content" data-arg="${tab}"`, gameIcon(both ? 'raid20' : 'raid', uiIcon('star')), '레이드',
-    [both ? '10인 · 20인' : '10인 레이드', !open ? `Lv ${r10.unlockLv}에 열림` : got ? `주간 장비 ${got}` : '주 1회 장비']);
+    [both ? '10인 · 20인' : '10인 레이드', !open ? `Lv ${r10.unlockLv}에 열림` : got ? `주 첫 보상 ${got}` : '매 판 장비']); // #301 「주 첫 판만 크게」: 매 판 장비, 칸마다 주 첫 판은 레이드 표 (103 다른 문제점 7, 판 한 줄 6자 안팎)
 }
 
 /**

@@ -115,7 +115,7 @@ export default async function guild(url, shots) {
   ok((await text('#s-guild [data-sponsor] b')) === '골드 지원' && (await text('#s-guild [data-release] b')) === '내보내기', '길드원 작업 버튼: 골드 지원 · 내보내기');
   ok((await text('#s-guild [data-release] small')) === '길드에서 제외' && !/친구 목록/.test(await text('#s-guild .g-msheet')), '내보내기 버튼에 친구 목록 대신 길드에서 제외 표시');
   await page.click('#s-guild [data-sponsor]'); await page.clock.runFor(50);
-  ok((await text('#guildConfirmDesc')) === '전투에 참여하지 않아도 경험치를 소량 획득합니다. 후원하시겠습니까?' && (await save()).player.gold === g1 && (await save()).guild.members.find(m => m.id === low.id).boost === 0, '골드 지원 첫 누름: 요청 문구의 확인 팝업만, 골드·후원 유지');
+  ok((await text('#guildConfirmDesc')) === '전투에 참여하지 않아도 출전과 같은 경험치를 받습니다. 후원하시겠습니까?' && (await save()).player.gold === g1 && (await save()).guild.members.find(m => m.id === low.id).boost === 0, '골드 지원 첫 누름: 요청 문구의 확인 팝업만, 골드·후원 유지');
   ok(await page.locator('#s-guild .g-msheet').evaluate(el => el.inert) && await page.locator('#s-guild .g-action-confirm').evaluate(el => el.contains(document.activeElement)), '확인창을 여는 동안 상세 비활성화 · 팝업에 포커스');
   await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
   ok(await page.locator('#s-guild [data-gconfirm]').evaluate(el => el === document.activeElement), '확인 팝업 안에서 Tab 포커스 순환');

@@ -16,11 +16,11 @@ export interface BattleDialogs {
 
 export function battleConfirmation(kind: BattleConfirmKind): { title: string; message: string; action: string; detail?: string } {
   if (kind === 'restart') return {
-    title: '처음부터 다시 시작할까요?', action: '전체 구간 다시 시작',
+    title: '처음부터 다시 시작', action: '전체 구간 다시 시작',
     message: '이번 도전의 모든 구간 진행과 전투 기록을 초기화하고, 같은 파티로 첫 구간부터 다시 시작합니다.',
   };
   if (kind === 'quit') return {
-    title: '보상 없이 나갈까요?', action: '보상 없이 나가기',
+    title: '보상 없이 나가기', action: '보상 없이 나가기',
     message: '이번 도전을 종료하고 보상 없이 나갑니다.',
   };
   return {

@@ -176,7 +176,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const units: Unit[] = [];
   const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
-    // 길드원은 자기 레벨 배율 (적 레벨 위로는 안 감, 34 4장 8번), 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
+    // 공개모집 · 길드원 (pub)은 자기 레벨 배율 그대로 (97 FM), 레벨만 있는 옛 편성은 적 레벨 위로 안 감 (34 4장 8번), 레벨이 없으면 콘텐츠 단계 배율
     const own = r?.lv ? f.R.lv(r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) * f.R.enemy : f.scale; // 공개모집은 자기 레벨 그대로 (97 FM)
     const lv = role === 'healer' ? f.power : own;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;

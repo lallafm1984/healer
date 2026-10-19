@@ -124,8 +124,12 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     refreshReqs(s, stages, rng, T + 864e5);
     expect(s.guild.reqs.list.every(x => !x.done)).toBe(true);
   });
-  it('원정: 주마다 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상 = 칸마다 명성 +5, 셋 다 = 상자 (골드 5판 + 장비 1)', () => {
+  it('원정: 주마다 3곳 (5인 · 10인 · 20인, 안 열렸거나 길드파티 인원이 모자라면 던전), 길드파티로 보통 이상 = 칸마다 명성 +10, 셋 다 = 상자 (골드 5판 + 장비 1)', () => {
+    const few = save(80); [add(few, 'warrior', 0), add(few, 'mage', 0), add(few, 'mage', 1)];
+    refreshExped(few, () => true, T);
+    expect(few.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'))).toEqual([5, 5, 5]); // 길드원 3명: 10인 (5명) · 20인 (10명) 길드파티 안 됨 (103)
     const s = save(80), ms = [add(s, 'warrior', 0), add(s, 'mage', 0), add(s, 'mage', 1)];
+    for (let i = 2; i < 9; i++) add(s, 'archer', i); // 10명 = 20인 길드파티
     s.guild.fame = 2000;
     refreshExped(s, () => true, T);
     expect(s.guild.exped.list.length).toBe(EXPED.n);

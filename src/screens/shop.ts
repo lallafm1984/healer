@@ -110,7 +110,7 @@ function passRewards(lv: number, row: (level: number) => string): string {
 
 /** 직업 상품 한 줄 설명 (캐릭터 → 직업 목록과 같은 말) */
 const JOB_LINE: Record<string, string> = {
-  shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 공격 치유',
+  shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 인장 치유',
 };
 
 /** 상품 탭 (81 3장 · 90): 휴식 충전 · 광고 제거 패키지 (그림 icon-noads, 81 4장) · 직업 4종 */

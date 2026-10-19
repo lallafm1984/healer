@@ -10,7 +10,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { GUILD_NAME, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
+import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -642,10 +642,11 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   if (!v || typeof v !== 'object') return d;
   const g = v as Partial<GuildSave> & { scouts?: unknown; pick?: unknown };
   const num = (x: unknown, z = 0) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
-  const fameOf = (x: unknown) => num(x) * (ver < 24 ? 2 : 1); // v24 (103): 명성 값이 두 배가 되어 옛 명성도 × 2
+  // v24 (103): 명성 값이 두 배가 되어 옛 명성도 × 2. 정원이 길드 Lv + 1로 줄어 옛 길드원이 넘치지 않게, 그 인원이 다 들어가는 길드 Lv의 누적 명성까지는 올림 (103 다른 문제점 3)
+  const fameOf = (x: unknown, members: number) => (ver < 24 ? Math.max(num(x) * 2, GUILD_STEPS[Math.min(GUILD_MAX - 1, Math.max(0, members - 2))]) : num(x));
   if (ver < 19) {
     // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 당시 스킬 단계를 보존
-    const out: GuildSave = { ...d, fame: fameOf(g.fame), nextId: num(g.nextId, 1) };
+    const out: GuildSave = { ...d, fame: 0, nextId: num(g.nextId, 1) };
     for (const raw of Array.isArray(g.members) ? g.members : []) {
       const m = oldMember(raw, out.nextId);
       if (!m) continue;
@@ -654,6 +655,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
       m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick), legacySkillAt(m.lv * 5));
     }
     out.founded = out.members.length > 0; out.storySeen = out.founded;
+    out.fame = fameOf(g.fame, out.members.length);
     if (Array.isArray(g.pick)) out.picks['5'] = (g.pick as unknown[]).filter((x): x is number => typeof x === 'number' && out.members.some(m => m.id === x));
     return out;
   }
@@ -663,14 +665,15 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     return m;
   };
   const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => member(r)).filter((m): m is GuildMember => !!m) : []);
+  const members = mem(g.members);
   return {
     name: typeof g.name === 'string' ? g.name : d.name,
     founded: !!g.founded, storySeen: !!g.storySeen,
-    members: mem(g.members),
+    members,
     post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { cands: mem(g.post.cands) } : null,
     apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? member((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
     appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
-    fame: fameOf(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
+    fame: fameOf(g.fame, members.length), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),
     picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},

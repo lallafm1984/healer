@@ -98,8 +98,9 @@ export function foundGuild(save: SaveData): string[] | null {
   const st = STORY.tank;
   join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), 'tank'));
   out.push(st.nick);
-  // 정원 = 길드 Lv + 1 (103): 결성은 이야기 탱커 + 딜러 1명 (예전 3명)
-  const p = PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick))!;
+  // 정원 = 길드 Lv + 1 (103): 결성은 이야기 탱커 + 딜러 1명 (예전 3명). 딜러는 나와 함께 크는 사람 (빠르기 0.95 이상 = 내 레벨 근처, 103 다른 문제점 4:
+  // 첫 도적 감자도적은 빠르기 0.225라 내 Lv 15에 Lv 3, 정원 2/2라 공고도 못 내는데 길드파티엔 꼭 넣어야 했음)
+  const p = PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick) && x.fm.speed >= 0.95) ?? PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick))!;
   join(save, newMember(save, p, worldLevel(save, p))); out.push(p.nick);
   return out;
 }
@@ -154,7 +155,7 @@ export function refreshApps(save: SaveData, r: () => number, now = Date.now()): 
   const g = save.guild, day = dayKey(now);
   if (!g.founded) return;
   g.apps = g.apps.filter(a => a.until >= day && !isIn(save, a.m.nick));
-  if (g.appsDay === day) return;
+  if (g.appsDay >= day) return; // 더 늦은 날만 (103)
   g.appsDay = day;
   const n = appsPerDay(capOf(save).lv), taken = new Set(g.apps.map(a => a.m.nick));
   for (let i = 0; i < n; i++) {
@@ -295,6 +296,8 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 // ---------- 판 뒤 ----------
 /** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준) */
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
+/** 길드파티가 되는 길드원 수 (자리 = 인원 − 나): 탐험 1 · 5인 2 · 10인 5 · 20인 10 (isGuildParty와 같은 셈) */
+export const guildPartyNeed = (size: number) => Math.max(1, Math.ceil((size - 1) / 2));
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
   members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string; shown?: number }[]; lv?: number }[];

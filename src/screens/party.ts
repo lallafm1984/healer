@@ -14,7 +14,7 @@ import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, guildNicks, guildOpen, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
+import { autoPick, guildNicks, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -114,9 +114,11 @@ function guildPickHtml(stage: number): string {
   const fill = Flow.party!.filter(e => e.gid == null);
   const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
   const under = picked.filter(m => m!.lv < stage).length;
-  return `<p class="pickhead"><b>길드원 ${picked.length}/${sl.tank + sl.dps}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
+  const need = guildPartyNeed(sl.tank + sl.dps + 1); // 길드파티 = 자리 절반 이상이 길드원 (명성 · 원정 · 첫 처치, 103 다른 문제점 5)
+  return `<p class="pickhead"><b>길드파티 ${picked.length}/${need}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
     ${recWhy.length ? `<p class="f-why" aria-label="추천 이유">${recWhy.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</p>` : ''}
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
+    ${picked.length < need ? `<p class="warnbox">길드원 ${need}명부터 길드파티: 명성 · 원정 · 첫 처치</p>` : ''}
     ${under ? `<p class="warnbox">권장 레벨(Lv ${stage})보다 낮은 길드원 ${under}명: 체력·딜이 낮음</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);

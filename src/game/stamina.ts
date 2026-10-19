@@ -31,9 +31,10 @@ export function staminaCost(c: ContentDef, chal = 0): number {
 export function syncStamina(save: SaveData, now: number): boolean {
   const s = save.stamina, max = staminaMax(save), day = dayKey(now);
   let changed = false;
-  if (s.day !== day) { s.day = day; s.ads = 0; changed = true; }
+  if (s.day < day) { s.day = day; s.ads = 0; changed = true; } // 더 늦은 날만 (시계를 뒤로 갔다 와도 광고 횟수 그대로, 103)
+  if (now < s.at) { s.at = now; changed = true; } // 시계가 미래였다 바로잡히면 그 미래까지 안 차던 것: 지금부터 다시 셈 (채워 주지는 않음)
   if (s.n >= max) {
-    // 가득 찼으면 시계를 멈춰 둠: 쓰고 나서 15분을 처음부터 셈. 시계를 되돌렸으면 at은 그대로 (그 시각까지 안 참)
+    // 가득 찼으면 시계를 멈춰 둠: 쓰고 나서 15분을 처음부터 셈
     if (now > s.at) { s.at = now; changed = true; }
     return changed;
   }

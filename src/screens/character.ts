@@ -811,7 +811,7 @@ function placeTalentSheet(): void {
 /** 직업 한 줄 플레이 방식. 아직 켜지 않은 79 직업은 「곧 열림」 칸에 이 줄만 (출시일·가격·해금 레벨은 표시하지 않는다) */
 const HERO_STYLE: Record<HeroKey, string> = {
   priest: '균형 치유 · 성언', druid: '지속 치유 · 군락', paladin: '탱커 보호 · 봉화',
-  shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 공격 치유',
+  shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 인장 치유',
 };
 /** 아직 켜지 않은 직업 (직업 PR마다 ready로 켬, 79 6-2) */
 const upcomingHeroes = () => ALL_HERO_KEYS.filter(k => !HEROES[k].ready);
