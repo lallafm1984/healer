@@ -72,7 +72,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
     if (opts.home && c.i === u.home) s += 60;
     if (u.p.follow) s += followPref(f, u, c) / 2; // 따라쟁이: 피할 때도 탱커 옆 (75)
     if (u.ps) s += persPosPref(f, u, c, opts.safe === true); // 앞장이 · 뒷줄파 · 짝꿍 · 모서리파 · 양보왕 · 집돌이 (95)
-    s += f.rng() * 2;
+    s += f.rng() * (2 + (u.wob != null && u.role !== 'tank' && !u.me ? STAT_ACT.posNoise * clumsy(u.fmStats?.position ?? 10) : 0)); // 99 위치 잡기: 15 밑은 나쁜 자리도 고름
     if (s > bs) { bs = s; best = c; }
   }
   return best;
