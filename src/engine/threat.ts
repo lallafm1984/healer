@@ -12,7 +12,7 @@ import { clumsy, lerp3, sharp } from '../data/fm';
 import { holdGuard } from './abilities';
 import { hexDist } from './board';
 import { aggroTarget } from './bossParts';
-import { bark, cellOf, DT, emit, living } from './core';
+import { bark, cellOf, DT, emit, living, regrouping, slip } from './core';
 import { dangerAt, moveTo } from './movement';
 import type { Fight, Unit } from './types';
 
@@ -273,8 +273,8 @@ export function threatTick(f: Fight): void {
   if (top.me) f.stats.healerSteals = (f.stats.healerSteals ?? 0) + 1; else f.stats.steals = (f.stats.steals ?? 0) + 1;
   let shape: 'guard' | 'panic' | 'lost' | null = null; // Codex 검토 반영 1: 판단 × 침착 네 모양
   if (hb && stops && hb.guard > 0 && f.rng() < hb.guard && holdGuard(f, top)) shape = 'guard';
-  else if (hb && stops && hb.panic > 0) { top.hesitUntil = f.t + STAT_ACT.hesit * hb.panic; if (hb.panic >= 0.2) shape = 'panic'; }
-  else if (hb && !stops && f.rng() < STAT_ACT.stealLost * clumsy(stat(top, 'judgment')) * hb.panic && loseSpot(f, top)) { t.steal.breakUntil = f.t + STAT_ACT.breakSec; shape = 'lost'; }
+  else if (hb && stops && hb.panic > 0 && !regrouping(f, top)) { top.hesitUntil = f.t + STAT_ACT.hesit * hb.panic; if (hb.panic >= 0.2) { shape = 'panic'; slip(f, top); } }
+  else if (hb && !stops && !regrouping(f, top) && f.rng() < STAT_ACT.stealLost * clumsy(stat(top, 'judgment')) * hb.panic && loseSpot(f, top)) { t.steal.breakUntil = f.t + STAT_ACT.breakSec; shape = 'lost'; slip(f, top); }
   if (top.me) bark(f, base, null, true, 'aggroHealer');
   else if (slipping(f, base)) bark(f, base, null, true, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
   else if (shape === 'lost') bark(f, top, null, true, 'aggroLost'); // 99 마: 판단 · 침착 ↓ 딜 끊기고 자리 잃음

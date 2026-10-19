@@ -5,7 +5,7 @@
  */
 import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
+import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd, regrouping, slip } from './core';
 import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
@@ -220,11 +220,17 @@ function poll(f: Fight, u: Unit): void {
  */
 function tryUse(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx): boolean {
   const s = u.ab!;
-  if (u.wob != null && a.cd > 0 && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) {
-    s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
-    emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
-    bark(f, u, null, true, 'skillFumble');
-    return false;
+  if (u.wob != null && a.cd > 0 && !regrouping(f, u) && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) {
+    slip(f, u);
+    if (f.rng() < STAT_ACT.fumbleFull) { // 다 헛씀 (예전): 재사용만 돎
+      s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
+      emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
+      bark(f, u, null, true, 'skillFumble');
+      return false;
+    }
+    use(f, u, a, ctx, 1, a.kind === 'def' ? '짧게' : a.kind === 'atk' ? '반만' : '약하게'); // Codex 검토 반영 4: 종류대로 어설프게
+    if (f.rng() < 0.5) bark(f, u, null, true, 'skillFumble');
+    return true;
   }
   use(f, u, a, ctx);
   return true;
@@ -244,7 +250,7 @@ function pendTick(f: Fight, u: Unit): void {
 /** 능력치 (99 다): 이번 판단 (0.2초마다)에 쓰나. 늦게 쓰는 평균 abLate × 판단 서툼 (15 이상 바로) */
 function actNow(f: Fight, u: Unit): boolean {
   const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
-  return tau < 0.05 || f.rng() < 1 - Math.exp(-0.2 / tau);
+  return tau < 0.05 || regrouping(f, u) || f.rng() < 1 - Math.exp(-0.2 / tau);
 }
 
 function ready(f: Fight, u: Unit, a: AbilityDef, i: number): boolean {
@@ -357,7 +363,7 @@ export function abOnTel(f: Fight, tel: Telegraph): void {
       if (!ready(f, u, a, i) || !f.tels.includes(tel)) return;
       const hit = telMatch(f, u, a, tr, tel);
       if (!hit || u.ab!.pend) return;
-      if (u.wob != null) { // 능력치 (99, Codex 검토 B): 판단이 15보다 낮으면 예고를 보고도 늦게 (평균 abLate × 서툼초, 터지기 전에 못 쓰면 놓침)
+      if (u.wob != null && !regrouping(f, u)) { // 능력치 (99, Codex 검토 B): 판단이 15보다 낮으면 예고를 보고도 늦게 (평균 abLate × 서툼초, 터지기 전에 못 쓰면 놓침)
         const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
         if (tau >= 0.05) {
           const d = -tau * Math.log(1 - f.rng());
@@ -526,17 +532,21 @@ export function abHurt(f: Fight, u: Unit): void {
 }
 
 // ---------- 사용 ----------
-interface Ctx { tel?: Telegraph; target?: Unit }
+interface Ctx { tel?: Telegraph; target?: Unit; /** 어설프게 (방어): 예고 하나만 막는 것도 터지기 직전에 꺼짐 */ short?: boolean }
 
 /** boost = 성격이 키운 효과 (아슬아슬 딱 맞춤). 쿨 아끼미는 위기에만 쓰므로 늘 ×hoard.boost */
-function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1): void {
+function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1, weak?: '짧게' | '반만' | '약하게'): void {
   const s = u.ab!, st = starFx(a, s.star);
   s.uses++;
   if (a.cd > 0) s.ready = f.t + a.cd * st.cd * (u.fm?.cd ?? 1); // 기술 숙련 (97 FM)
   f.stats.abUses = (f.stats.abUses || 0) + 1;
-  emit(f, { type: 'ability', id: u.id, name: a.name });
+  emit(f, { type: 'ability', id: u.id, name: a.name, ...(weak ? { weak } : {}) });
   if (u.p.hoard) { boost *= u.p.hoard.boost; bark(f, u, null, false, 'hoardUse'); }
-  apply(f, u, a, a.fx, st.eff * boost, ctx);
+  // 어설프게 (Codex 검토 반영 4): 방어 = 지속 짧게 (지속이 없으면 효과를 약하게, 예고 하나만 막는 것은 터지기 직전에 꺼짐) · 공격 = 반만 · 그 밖 = 약하게
+  const sec = (a.fx as { sec?: number }).sec;
+  const fx = weak === '짧게' && typeof sec === 'number' ? ({ ...a.fx, sec: sec * STAT_ACT.fumbleShort } as Fx) : a.fx;
+  const k = weak === '반만' ? STAT_ACT.fumbleHalf : weak === '약하게' || (weak === '짧게' && typeof sec !== 'number') ? STAT_ACT.fumbleWeak : 1;
+  apply(f, u, a, fx, st.eff * boost * k, weak === '짧게' ? { ...ctx, short: true } : ctx);
 }
 
 // ---------- 95 1차: 손버릇 (쿨 아끼미 · 스킬 난사) · 탱커 (미리미리 · 아슬아슬) ----------
@@ -626,7 +636,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
   };
   switch (fx.e) {
     case 'cut': {
-      const until = fx.hit && ctx.tel ? ctx.tel.impact + 0.1 : f.t + (fx.sec ?? 2);
+      const until = fx.hit && ctx.tel ? ctx.tel.impact + (ctx.short ? -0.3 : 0.1) : f.t + (fx.sec ?? 2); // 어설프게: 일찍 켜서 강타 직전에 꺼짐
       const v = Math.min(0.9, fx.v * e);
       addMod(u, { k: fx.magic ? 'mcut' : 'cut', v, until, src });
       if (fx.nodps) addMod(u, { k: 'nodps', v: 1, until, src });

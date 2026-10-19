@@ -217,6 +217,9 @@ export interface Unit {
   /** 능력치 (99 집중): 다음 「멍」 때 · 멍한 끝 (집중 15 밑, 긴 전투일수록 잦음) */
   dazeNext?: number;
   dazeUntil?: number;
+  /** 능력치 (99, Codex 검토 반영 4): 최근 실수 시각 · 수습 틈 끝 (그동안 새 실수 굴림 없음) */
+  slips?: number[];
+  regroupUntil?: number;
   /** 능력치 (99 맷집): 큰 한 방 뒤 휘청한 끝 (맷집 15 밑) · 버틴 때 (15 넘음, 탱커 강타 1초 위협) */
   staggerUntil?: number;
   steadyAt?: number;
@@ -512,7 +515,8 @@ export type FightEvent =
   | { type: 'bossHeal'; amt: number; name: string }
   | { type: 'mobDown'; id: number; name: string }
   /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
-  | { type: 'ability'; id: number; name: string; fumble?: boolean }
+  | { type: 'ability'; id: number; name: string; fumble?: boolean; weak?: '짧게' | '반만' | '약하게' }
+  | { type: 'regroup'; id: number }
   /** 파티원 능력 회복 (연두색 숫자, 내 힐과 구분) */
   | { type: 'aheal'; id: number; amt: number }
   /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, on = 그 사람·영혼 (to = 날아가는 곳. id라 하지 않음: 'id' in ev 로 사람을 찾는 곳이 많음), all = 살아 있는 모두, 아무것도 없으면 보스 */

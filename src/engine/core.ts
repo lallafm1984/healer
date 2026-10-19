@@ -412,8 +412,9 @@ function coopStandIn(f: Fight): void {
 function bigHit(f: Fight, u: Unit): void {
   const tough = u.fmStats?.tough ?? 10;
   if (u.staggerUntil != null && f.t < u.staggerUntil) return;
-  if (f.rng() < STAT_ACT.stagger * clumsy(tough)) {
+  if (!regrouping(f, u) && f.rng() < STAT_ACT.stagger * clumsy(tough)) {
     u.staggerUntil = f.t + STAT_ACT.staggerSec;
+    slip(f, u);
     emit(f, { type: 'stagger', id: u.id });
     if (f.rng() < 0.4) bark(f, u, null, false, 'reel');
   } else if (sharp(tough) > 0 && f.rng() < sharp(tough)) {
@@ -421,6 +422,20 @@ function bigHit(f: Fight, u: Unit): void {
     emit(f, { type: 'stagger', id: u.id, steady: true });
   }
 }
+/** 99 · Codex 검토 반영 4: 수습 틈 (새 실수 굴림 없음) */
+export const regrouping = (f: Fight, u: Unit): boolean => u.regroupUntil != null && f.t < u.regroupUntil;
+/** 실수 하나 (능력치 행동 층). 한 위기에 slipSec초 안 slipN번 겹치면 regroupSec초 수습 틈 (칸 위 「정신 차림」) */
+export function slip(f: Fight, u: Unit): void {
+  if (u.wob == null || u.me || regrouping(f, u)) return;
+  const xs = (u.slips ?? []).filter(t => f.t - t < STAT_ACT.slipSec);
+  xs.push(f.t);
+  u.slips = xs;
+  if (xs.length < STAT_ACT.slipN) return;
+  u.slips = []; u.regroupUntil = f.t + STAT_ACT.regroupSec;
+  emit(f, { type: 'regroup', id: u.id });
+  if (f.rng() < 0.5) bark(f, u, null, false, 'regroup');
+}
+
 /** 99 맷집: 지금 휘청하는 중 */
 export const staggered = (f: Fight, u: Unit): boolean => u.staggerUntil != null && f.t < u.staggerUntil;
 

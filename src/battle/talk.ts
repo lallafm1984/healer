@@ -17,7 +17,7 @@ const EMOTES: Record<string, TalkSit[]> = {
   sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce', 'lateDodge', 'aggroPanic'],
   heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare', 'buddyUp', 'repay', 'relief'],
   sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean', 'praise', 'windUp', 'timing'],
-  note: ['idle', 'allFull', 'hello', 'moodUp', 'breather'],
+  note: ['idle', 'allFull', 'hello', 'moodUp', 'breather', 'regroup'],
   question: ['clump', 'alone', 'wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff', 'aggroLost'],
   anger: ['aggroIgnore', 'sulk', 'stubborn', 'jealous', 'noHeal', 'envy', 'vent'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown', 'cry'],

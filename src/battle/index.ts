@@ -539,6 +539,7 @@ function handleEvents(now: number): void {
       case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
       case 'clump': if (u) fxNote(u, '붙어 섬', 0xd9b38c, now); break; // 99 위치 잡기
       case 'alone': if (u) fxNote(u, '혼자 놂', 0xb7b1c9, now); break; // 99 협동
+      case 'regroup': if (u) fxNote(u, '정신 차림', 0x9ad1b0, now); break; // Codex 검토 반영 4: 수습 틈
       case 'stagger': if (u) fxNote(u, ev.steady ? '버팀' : '휘청', ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);
@@ -558,6 +559,7 @@ function handleEvents(now: number): void {
       case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
         if (!u) break;
         if (ev.fumble) { fxNote(u, `${ev.name} 헛씀`, 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
+        if (ev.weak) fxNote(u, `${ev.name} ${ev.weak}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
         fxAbility(u, ev.name, now);
         const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
         if (fx) fxPxf(u, fx, now);
