@@ -39,7 +39,7 @@ export type Trig =
  * cut 받는 피해 감소 (hit = 그 예고가 맞을 때까지, magic = 마법 피해만) · immune 모든 피해 무시 · vanish 지정 대상에서 빠지고 피해 무시(또는 감소)
  * untarget 지정 대상에서만 빠짐 · selfHeal 자기 회복 (stop = 멈추는 초, over = 나눠 회복하는 초) · lastStand 최대 체력 늘리고 그만큼 회복
  * rewind 6초 전 체력으로 · absorb 흡수막 · spell 다음 마법 기술 1회 막기 · iceBlock 죽을 피해 막고 얼음 · dps 자기 딜 · allyDps 주변 아군 딜
- * weaken 보스 피해 감소 · taunt 보스 아닌 적을 끌어옴 · handoff 적을 탱커에게 · stunAdd 적 1마리 기절 · stunAdds 모두 얼림 · hitAdds 쫄 (보스 전투에 나온 적) 모두 피해 (최대 체력 비율, 쓰는 때 adds도 쫄만 셈) · storm 공격할 때마다 보스가 아닌 적 모두에게 그 피해 × v
+ * weaken 보스 피해 감소 · taunt 보스 아닌 적을 끌어옴 · handoff 적을 탱커에게 · stunAdd 적 1마리 기절 · stunAdds 모두 얼림 · hitAdds 쫄 (보스 전투에 나온 적) 모두 피해 (최대 체력 비율, 쓰는 때 adds도 쫄만 셈) · storm 공격할 때마다 추가타 (지금 치는 적에게 그 피해 × v)
  * interrupt 끊기 · delay 늦추기 · dodgeNow 장판에서 즉시 빠짐 · smoke 주변 회피 100% · fast 이동 시간 감소 · react 주변 반응 시간 감소
  * cleanse 독·질병 1개 제거 · share 아군 피해 일부를 대신 · protect 물리 피해 무시 · intercept 지정 피해를 대신 · guardAlly 아군 받는 피해 감소
  * auraMagic 옆 아군 마법 피해 감소(상시) · auraDps 옆 원거리 아군 딜(상시) · healTaken 받는 치유 · maxHp 주변 최대 체력 · nofear 겁먹지 않음
@@ -163,7 +163,7 @@ const TABLE: Record<ClassKey, Row[]> = {
     ['bShout', '위협의 외침', 'sup', 90, [T('aoe')], { e: 'weaken', v: 0.1, sec: 8 }, '8초 동안 보스가 주는 피해가 10% 줄어듭니다.', '광역 예고'],
     ['regen', '재생의 격노', 'heal', ONCE, [LOW(0.3)], { e: 'selfHeal', v: 0.2, over: 6 }, '6초에 걸쳐 자기 체력을 20% 회복합니다.', '체력 30% 아래'],
     ['rally', '재집결의 함성', 'sup', 120, [T('aoe')], { e: 'maxHp', v: 0.1, sec: 10, r: 2 }, '10초 동안 반경 2 아군의 최대 체력이 10% 늘어납니다. 회복은 하지 않습니다.', '광역 예고'],
-    ['bladestorm', '칼날폭풍', 'atk', 60, [{ t: 'adds', n: 2 }], { e: 'storm', v: 1, sec: 6 }, '6초 동안 공격할 때마다 보스가 아닌 적 모두에게 같은 피해를 줍니다.', '보스 아닌 적 2마리 이상'],
+    ['bladestorm', '칼날폭풍', 'atk', 60, [{ t: 'adds', n: 2 }], { e: 'storm', v: 1, sec: 6 }, '6초 동안 공격할 때마다 추가타를 1번 더 넣습니다.', '보스 아닌 적 2마리 이상'],
     ['deathWish', '죽음의 소원', 'atk', ALWAYS, [T('always')], { e: 'wish', v: 0.5, vuln: 0.1 }, '체력 30% 아래에서 딜이 50% 늘고, 받는 피해가 10% 늘어납니다.', '상시'],
   ],
   swordsman: [

@@ -222,37 +222,41 @@ describe('쫄 피해 능력 · 칼날폭풍 (2026-10-19 Lim 「순식간에 25%�
     steps(f, 4);
     expect(unitOf(f, 'berserker.whirl').ab!.uses).toBe(0);
   });
-  it('칼날폭풍: 일반 · 정예 구간에서도 씀, 6초 동안 공격이 보스 아닌 적 모두에게 (자기 딜만큼, 최대 체력 25%를 깎지 않음)', () => {
+  /** sec초 동안 그 사람의 공격 (hit 사건) 양 */
+  const hitsOf = (f: F, uid: number, sec: number) => {
+    const out: number[] = [], end = f.t + sec;
+    while (f.t < end - 1e-9 && !f.over) { E.step(f); for (const ev of f.events) if (ev.type === 'hit' && ev.uid === uid) out.push(ev.amt); f.events.length = 0; }
+    return out;
+  };
+  it('칼날폭풍 (2026-10-19 Lim 「추가타」): 일반 · 정예 구간에서도 씀, 6초 동안 공격할 때마다 같은 양 추가타 1번, 6초 뒤 끝', () => {
     const f = E.create({ encounter: 'gate', diff: '보통', seed: 1, party: berserker('berserker.bladestorm') });
     const u = unitOf(f, 'berserker.bladestorm');
     steps(f, 0.4);
     expect(u.ab!.uses).toBe(1);
-    expect(u.mods.find(m => m.k === 'storm')!.until).toBeCloseTo(f.t + 6, 0);
-    const last = f.mobs[f.mobs.length - 1], hp0 = last.hp; // 맨 뒤 적: 파티 딜은 아직 안 감
-    steps(f, 7);
-    const lost = hp0 - last.hp;
-    expect(lost).toBeGreaterThan(0);
-    expect(lost).toBeLessThanOrEqual(u.dps * 7 * 1.01);
-    expect(lost / last.max).toBeLessThan(0.25);
-    expect(u.mods.some(m => m.k === 'storm')).toBe(false);
+    const until = u.mods.find(m => m.k === 'storm')!.until;
+    expect(until).toBeCloseTo(f.t + 6, 0);
+    const during = hitsOf(f, u.id, until - f.t - 0.01);
+    expect(during.length).toBeGreaterThanOrEqual(6);
+    expect(during.length % 2).toBe(0);
+    for (let i = 0; i < during.length; i += 2) expect(during[i + 1]).toBeCloseTo(during[i], 6);
+    steps(f, 0.1);
+    const after = hitsOf(f, u.id, 4);
+    expect(after.length).toBeGreaterThan(0);
+    expect(after.length).toBeLessThan(during.length * 4 / 6);
   });
-  it('칼날폭풍 · 보스 전투 쫄: 공격 한 번마다 쫄마다 같은 피해, 6초 뒤 끝, 길드원 「한 일」 쫄에 셈', () => {
+  it('칼날폭풍 · 보스 전투 쫄: 추가타도 평소 공격과 같은 적에게 (뒤 쫄에게 퍼지지 않음)', () => {
     const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserker('berserker.bladestorm') });
     f.skills.forEach(s => { s.next = Infinity; });
     const u = unitOf(f, 'berserker.bladestorm');
     const a = addMob(f), b = addMob(f);
     steps(f, 0.4);
     expect(u.ab!.uses).toBe(1);
-    const d0 = u.dealt, b0 = b.hp;
-    steps(f, 6);
-    const stormB = b0 - b.hp; // 뒤 쫄은 칼날폭풍으로만 맞음 (딜러는 앞 쫄부터)
-    expect(stormB).toBeGreaterThan(0);
-    expect(u.dealt - d0).toBeCloseTo(3 * stormB, 3); // 평소 공격 1 + 칼날폭풍 앞 쫄 1 + 뒤 쫄 1
-    expect(u.did!.adds).toBeGreaterThanOrEqual(2 * stormB);
-    const b1 = b.hp;
-    steps(f, 3);
-    expect(b.hp).toBe(b1);
-    expect(a.alive && b.alive).toBe(true);
+    const d0 = u.dealt, a0 = a.hp, b0 = b.hp;
+    const hits = hitsOf(f, u.id, 5.5);
+    const sum = hits.reduce((x, y) => x + y, 0);
+    expect(u.dealt - d0).toBeCloseTo(sum, 3);
+    expect(a0 - a.hp).toBeGreaterThanOrEqual(sum * 0.999); // 앞 쫄: 광전사 평소 + 추가타 (다른 딜러 몫도)
+    expect(b.hp).toBe(b0); // 보스는 탱커가 침
   });
 });
 
