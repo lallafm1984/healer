@@ -76,11 +76,12 @@ function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
   const tankless = f.t < f.enc.enrage;
   if (tankless) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
-  // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4). 시각 광폭화도 ENRAGE.after초 뒤부터 세짐 (끝없이 버티지 않게)
+  // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4).
+  // 레이드 시각 광폭화는 딜러가 다 쓰러진 뒤부터 세짐 (탱커 · 힐러만 같은 광역을 끝없이 버티지 않게, ENRAGE). 딜러가 남은 판은 그대로
   let n = 0, k = 0;
-  const at = f.t;
   skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) {
-    const m = tankless ? 1 + NO_TANK_RAMP * n++ : !f.cfg.proto && f.t - at >= ENRAGE.after ? 1 + ENRAGE.step * ++k : 1;
+    const alone = !f.cfg.proto && f.party.length >= ENRAGE.party && !living(f).some(u => u.role !== 'tank' && !u.me);
+    const m = tankless ? 1 + NO_TANK_RAMP * n++ : alone ? 1 + ENRAGE.step * ++k : 1;
     for (const u of living(f)) damage(f, u, dmg * m, true);
   } });
 }
