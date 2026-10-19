@@ -26,7 +26,7 @@ import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
-  bossFx, bossHealNum, fitBossTitle, LOCK_SVG, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
+  bossFx, bossHealNum, fitBossTitle, LOCK_SVG, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, missNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateStage, updateWheel,
 } from './hud';
 
@@ -532,7 +532,8 @@ function handleEvents(now: number): void {
         break;
       }
       case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
-      case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now); break;
+      case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now, !!ev.crit); break;
+      case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
       case 'death':
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');

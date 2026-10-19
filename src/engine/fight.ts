@@ -9,7 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { clumsy, dayOffset, fmFx, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
+import { clumsy, dayOffset, fmFx, memberLevel, sharp, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { KNOW } from '../data/guild';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
@@ -18,7 +18,7 @@ import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
-import { damageMob, DT, emit } from './core';
+import { bark, damageMob, DT, emit } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
@@ -183,7 +183,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
     const fx = r?.fm ? fmFx(r.fm.stats, r.fm.off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
-    if (fx) { base *= fx.hp; dps *= fx.dps; }
+    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(r!.fm!.stats.atk + r!.fm!.off); } // 99 다: 공격 높은 탱커
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? habitPers(PERS[pers], r?.habit) : {}, nick, base, max: base, hp: base, dps, alive: true,
@@ -297,10 +297,14 @@ function partyHits(f: Fight): void {
     if (f.invuln && !(u.role !== 'tank' && f.mobs.some(m => m.alive && m.add))) continue; // 인터미션 무적: 딜러는 판 위 적 (감옥)만 침
     u.acc += unitDps(u, f) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
-    const amt = u.acc;
+    let amt = u.acc, crit = false;
     u.acc = 0;
+    if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감, 공격이 15 넘으면 가끔 세게
+      if (f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
+      if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
+    }
     land(f, u, amt);
-    emit(f, { type: 'hit', uid: u.id, amt });
+    emit(f, { type: 'hit', uid: u.id, amt, ...(crit ? { crit } : {}) });
     const storm = u.mods.length ? u.mods.find(m => m.k === 'storm' && m.until > f.t) : undefined;
     if (storm && f.bossHp > 0) { land(f, u, amt * storm.v); emit(f, { type: 'hit', uid: u.id, amt: amt * storm.v }); } // 칼날폭풍: 추가타
   }

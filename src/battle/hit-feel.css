@@ -84,3 +84,5 @@
   /* 작은 화면은 판 테를 18px로 그림 (3~9px 안), 판 높이 64: 버튼 44px · 오른쪽 12px */
   #battle #pauseBtn { width: 44px; height: 44px; margin-right: 12px; }
 }
+/* 능력치 (99 다): 빗나감 = 회색 작은 글자 */
+#battle #dmgNums span.miss { color: #b9b1a2; font-size: 17px; letter-spacing: 0; }

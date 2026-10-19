@@ -90,6 +90,8 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
     party[0] = { ...party[0], cls: 'warrior', ab: 'warrior.holdFast' };
     party[1] = { ...party[1], cls: 'archer', ab: 'archer.mend', role: 'ranged' };
     party[2] = { ...party[2], cls: 'swordsman', ab: 'swordsman.flurry', role: 'melee' };
+    // 99 다: 판단 · 기술 숙련이 15보다 낮으면 스킬을 늦게 쓰거나 헛씀. 여기서는 효과만 보게 15로
+    for (const i of [0, 1, 2]) if (party[i].fm) party[i] = { ...party[i], fm: { ...party[i].fm!, stats: { ...party[i].fm!.stats, judgment: 15, skill: 15 }, off: 0 } };
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
     expect(f.party.filter(u => u.ab).map(u => u.ab!.key)).toEqual(expect.arrayContaining(['archer.mend', 'swordsman.flurry', 'warrior.holdFast']));
     expect(ABILITIES['archer.mend'].fx).toEqual({ e: 'healAlly', v: 0.15 });

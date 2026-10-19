@@ -129,6 +129,8 @@ export function dayOffset(steady: number, fightSeed: number, nick: string): numb
 export const ACT_PAR = 15;
 /** 15에서 0 · 1에서 1 (15 넘으면 0) */
 export const clumsy = (s: number): number => Math.max(0, Math.min(1, (ACT_PAR - s) / (ACT_PAR - 1)));
+/** 15에서 0 · 20에서 1 (15 밑이면 0): 15 넘으면 조금 더 잘 */
+export const sharp = (s: number): number => Math.max(0, Math.min(1, (s - ACT_PAR) / (20 - ACT_PAR)));
 /** 순간 흔들림 폭 (99): 꾸준함 15 이상 0 · 10 0.57 · 1 1.6 (판마다 흔들림 dayOffset과 따로) */
 export const wobOf = (steady: number): number => 1.6 * clumsy(steady);
 

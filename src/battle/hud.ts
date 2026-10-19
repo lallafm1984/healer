@@ -314,18 +314,30 @@ export function resetDmgNums(): void {
   for (const s of dmg.els) s.className = '';
   dmg.avg = 0; dmg.i = 0; dmg.hurtAt = 0;
 }
-export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
+export function dmgNum(u: Unit | undefined, amt: number, now: number, crit = false): void {
   if (S.reducedEffects) return;
   if (!dmg.els.length) resetDmgNums();
   const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
   const n = Math.max(1, Math.round(amt));
   dmg.avg = dmg.avg ? dmg.avg * 0.9 + amt * 0.1 : amt;
   el.textContent = String(n);
-  el.className = `${u ? u.role : ''}${amt > dmg.avg * 1.6 ? ' big' : ''}`;
+  el.className = `${u ? u.role : ''}${crit || amt > dmg.avg * 1.6 ? ' big' : ''}`;
   el.style.setProperty('--jx', `${Math.round(Math.random() * 12 - 6)}px`);
   void el.offsetWidth;
   el.classList.add('go');
   if (now - dmg.hurtAt > 160) { dmg.hurtAt = now; const a = $('bossArt'); a.classList.remove('hurt'); void a.offsetWidth; a.classList.add('hurt'); }
+}
+
+/** 능력치 (99 다): 파티원 한 방이 빗나감 = 보스 초상에 회색 「빗나감」 (숫자 자리 돌림판 그대로) */
+export function missNum(u: Unit | undefined): void {
+  if (S.reducedEffects) return;
+  if (!dmg.els.length) resetDmgNums();
+  const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
+  el.textContent = '빗나감';
+  el.className = `miss${u ? ` ${u.role}` : ''}`;
+  el.style.setProperty('--jx', `${Math.round(Math.random() * 12 - 6)}px`);
+  void el.offsetWidth;
+  el.classList.add('go');
 }
 
 /** 치유하는 쫄이 보스를 회복 (35 3-I): 보스 그림 옆 초록 +숫자 */

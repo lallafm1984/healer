@@ -8,7 +8,7 @@
  * 튜토리얼 · 프로토타입 · 파티원 능력이 없는 판 (옛 시드 파티) · 일반 · 정예 구간 · 탱커 없는 파티는 끔.
  */
 import { STAT_ACT, THREAT } from '../data/rules';
-import { clumsy, lerp3 } from '../data/fm';
+import { clumsy, lerp3, sharp } from '../data/fm';
 import { aggroTarget } from './bossParts';
 import { bark, DT, emit, living } from './core';
 import type { Fight, Unit } from './types';
@@ -126,7 +126,7 @@ export function slipping(f: Fight, u: Unit): boolean {
 /** 탱커 한 틱 위협 배율 (보통 탱커 = 1): 기술 숙련 × 집중 (이동 · 생존기 · 강타 1초 동안) × 어그로 흘림 (딴생각 동안 0) */
 function tankMult(f: Fight, u: Unit): number {
   if (!u.alive || u.lift || (u.sleep != null && u.sleep > f.t) || slipping(f, u)) return 0;
-  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? 1 - STAT_ACT.tankThreat * clumsy(stat(u, 'skill')) : 1); // 99 나: 15보다 낮으면 초보만큼 덜 쌓음
+  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? (1 - STAT_ACT.tankThreat * clumsy(stat(u, 'skill'))) * (1 + STAT_ACT.tankDps * sharp(u.fmStats?.atk ?? 10)) : 1); // 99 나: 15보다 낮으면 초보만큼 덜 쌓음 · 99 다: 딜 잘하는 탱커는 그만큼 더
   const focus = busy(f, u) ? lerp3(stat(u, 'focus'), THREAT.focus[0], THREAT.focus[1], 1) : 1;
   return skill * focus * (u.p.slip?.dps ?? 1);
 }
