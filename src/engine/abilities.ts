@@ -172,13 +172,9 @@ export function abTick(f: Fight): void {
     }
     u.mods = u.mods.filter(m => m.until > f.t);
   }
-  const dot = f.ab.addDot;
-  if (dot) {
-    if (dot.until <= f.t) f.ab.addDot = null;
-    else {
-      const by = f.party.find(x => x.id === dot.by);
-      for (const m of f.mobs) if (m.alive && !m.boss) { const x = Math.min(m.hp, m.max * dot.rate * DT); if (by) by.dealt += x; damageMob(f, m, x); }
-    }
+  if (f.ab.addDots.length) { // 칼날폭풍: 쓴 사람마다, 쓴 사람이 쓰러지면 멈춤
+    f.ab.addDots = f.ab.addDots.filter(d => d.until > f.t && f.party.some(x => x.id === d.by && x.alive));
+    for (const d of f.ab.addDots) hitAddsBy(f, f.party.find(x => x.id === d.by)!, d.rate * DT);
   }
   if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
   for (const u of f.party) { // 일섬 연격이 끝남: 옆 아군 딜 (93 4-4)
@@ -245,7 +241,7 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
     case 'start': return f.t >= 0.5 && f.t < 6 ? true : null;
     case 'boss30': return !f.invuln && f.bossHp > 0 && f.bossHp <= f.bossMax * 0.3 ? true : null;
     case 'ready': return f.t >= 1 && f.bossHp > 0 ? true : null;
-    case 'adds': return addsN(f) >= tr.n ? true : null;
+    case 'adds': return addsN(f, a.fx.e === 'hitAdds') >= tr.n ? true : null;
     case 'addsHit': return addsHit(f) ? true : null;
     case 'allyLow': {
       const c = cellOf(f, u);
@@ -269,7 +265,21 @@ function pickAlly(u: Unit, list: Unit[]): Unit | null {
   return list.reduce((a, b) => (pct(b) < pct(a) ? b : a));
 }
 
-function addsN(f: Fight): number { return f.mobs.filter(m => m.alive && !m.boss).length; }
+/** 보스 아닌 적 수. onlyAdds = 보스 전투에 나온 쫄 (P-ADD)만 (쫄 피해 능력: 일반 · 정예 구간 적 · 몸통은 그 판 체력이라 안 셈) */
+function addsN(f: Fight, onlyAdds = false): number { return f.mobs.filter(m => m.alive && !m.boss && (!onlyAdds || m.add)).length; }
+/**
+ * 쫄 피해 능력 (소용돌이 · 칼날폭풍 · 검기 · 산탄 사격, 17 「쫄 전체 피해」): 보스 전투에 나온 쫄 (P-ADD)에게 최대 체력 × rate.
+ * 일반 · 정예 구간의 적 · 몸통 (성가대)은 그 판 체력 자체라 안 침 (예전엔 쳐서 칼날폭풍이 시작하자마자 판 체력 25%를 깎음)
+ */
+function hitAddsBy(f: Fight, u: Unit, rate: number): void {
+  for (const m of f.mobs) {
+    if (!m.alive || !m.add) continue;
+    const x = Math.min(m.hp, m.max * rate);
+    u.dealt += x;
+    if (u.did) u.did.adds += x; // 길드원 「한 일」: 쫄을 많이 잡음
+    damageMob(f, m, x);
+  }
+}
 /** 보스 아닌 적이 탱커 아닌 사람을 때리는 중 (쥐떼 포함) */
 function addsHit(f: Fight): boolean {
   if (f.ab.tauntUntil > f.t) return false;
@@ -610,8 +620,8 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       for (const m of f.mobs) if (m.alive && !m.boss) { m.stun = f.t + fx.sec * e; f.tels = f.tels.filter(t => t.skill.mob !== m.id); }
       break;
     case 'hitAdds':
-      if (fx.sec) f.ab.addDot = { rate: (fx.v * e) / fx.sec, until: sec(fx.sec), by: u.id };
-      else for (const m of f.mobs) if (m.alive && !m.boss) { const x = Math.min(m.hp, m.max * fx.v * e); u.dealt += x; damageMob(f, m, x); }
+      if (fx.sec) { f.ab.addDots = f.ab.addDots.filter(d => d.by !== u.id); f.ab.addDots.push({ rate: (fx.v * e) / fx.sec, until: sec(fx.sec), by: u.id }); }
+      else hitAddsBy(f, u, fx.v * e);
       break;
     case 'delay': if (ctx.tel) ctx.tel.impact += fx.sec * e; break;
     case 'dodgeNow': {
