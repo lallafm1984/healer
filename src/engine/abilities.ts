@@ -176,6 +176,7 @@ export function abTick(f: Fight): void {
     u.mods = u.mods.filter(m => m.until > f.t);
   }
   if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
+  for (const u of f.party) if (u.ab?.pend) pendTick(f, u); // 늦게 쓰는 예고 반응 (99, Codex 검토 B)
   for (const u of f.party) { // 일섬 연격이 끝남: 옆 아군 딜 (93 4-4)
     const af = u.ab?.after;
     if (!af || f.t < af.at) continue;
@@ -208,14 +209,36 @@ function poll(f: Fight, u: Unit): void {
     if (!hit) return;
     if (u.wob != null && !actNow(f, u)) return; // 능력치 (99 다): 판단이 낮으면 쓸 때가 돼도 늦게 (다음 판단에 다시)
     if (a.each) s.fired.push(i);
-    if (u.wob != null && a.cd > 0 && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) { // 헛씀: 재사용만 돌고 효과 없음
-      s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
-      emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
-      bark(f, u, null, true, 'skillFumble');
-      return;
-    }
-    use(f, u, a, { target: hit === true ? undefined : hit });
+    tryUse(f, u, a, { target: hit === true ? undefined : hit });
   });
+}
+
+/**
+ * 능력치 판정을 거쳐 씀 (99): 기술 숙련이 15보다 낮으면 헛씀 (재사용 능력만, 재사용만 돌고 효과 없음). 상태 판단 (poll) · 예고 반응 (abOnTel) 두 길이 씀.
+ * 판정 예외 (Codex 검토 B): 성격 전용 길 (덜렁이 엉뚱한 때 · 스킬 난사 · 미리미리 · 아슬아슬)은 성격 자체가 버릇이라 그대로, 죽을 피해 (abLethal) · 겁먹음 (abFear) ·
+ * 이동 뒤 (abMoved)는 순간 반사라 그대로, 끊기 (tryCut)는 성공 확률에 기술 숙련이 이미 들어가 있어 그대로
+ */
+function tryUse(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx): boolean {
+  const s = u.ab!;
+  if (u.wob != null && a.cd > 0 && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) {
+    s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
+    emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
+    bark(f, u, null, true, 'skillFumble');
+    return false;
+  }
+  use(f, u, a, ctx);
+  return true;
+}
+
+/** 예고 반응을 판단만큼 늦게 (Codex 검토 B): 기다린 때가 되면 그 예고가 아직 있을 때만 씀 (터지고 나면 놓침) */
+function pendTick(f: Fight, u: Unit): void {
+  const p = u.ab!.pend!;
+  if (f.t < p.at) return;
+  u.ab!.pend = undefined;
+  const tel = f.tels.find(t => t.id === p.tel), a = DEF(u);
+  if (!tel || !u.alive || hasMod(u, 'stop') || !ready(f, u, a, p.i)) return;
+  if (a.each) u.ab!.fired.push(p.i);
+  tryUse(f, u, a, { tel, target: p.target != null ? f.party.find(v => v.id === p.target) : undefined });
 }
 
 /** 능력치 (99 다): 이번 판단 (0.2초마다)에 쓰나. 늦게 쓰는 평균 abLate × 판단 서툼 (15 이상 바로) */
@@ -333,9 +356,17 @@ export function abOnTel(f: Fight, tel: Telegraph): void {
     a.trig.forEach((tr, i) => {
       if (!ready(f, u, a, i) || !f.tels.includes(tel)) return;
       const hit = telMatch(f, u, a, tr, tel);
-      if (!hit) return;
+      if (!hit || u.ab!.pend) return;
+      if (u.wob != null) { // 능력치 (99, Codex 검토 B): 판단이 15보다 낮으면 예고를 보고도 늦게 (평균 abLate × 서툼초, 터지기 전에 못 쓰면 놓침)
+        const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
+        if (tau >= 0.05) {
+          const d = -tau * Math.log(1 - f.rng());
+          if (f.t + d < tel.impact) u.ab!.pend = { tel: tel.id, at: f.t + d, i, target: hit === true ? undefined : hit.id };
+          return;
+        }
+      }
       if (a.each) u.ab!.fired.push(i);
-      use(f, u, a, { tel, target: hit === true ? undefined : hit });
+      tryUse(f, u, a, { tel, target: hit === true ? undefined : hit });
     });
   }
 }
