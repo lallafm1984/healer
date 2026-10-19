@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, ALWAYS_FX, BEACON_RING, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_LOOP_FX, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, TOTEM_STAND, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, ALWAYS_FX, BEACON_RING, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_LOOP_FX, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, TOTEM_STAND, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey, HERO_TALENT_FX } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
@@ -58,7 +58,8 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
       expect(artSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
       expect(c.size * c.cols).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안
       const uses = Object.values(SKILL_PXF).filter(s => s!.fx === k);
-      expect(uses.length).toBe(ALWAYS_FX.has(k) || f.loop ? 0 : 1); // 판 위 물건 루프는 스킬 기록이 아님 (board.ts 선 물건)
+      const talentFx = Object.values(HERO_TALENT_FX).includes(k);
+      expect(uses.length).toBe(ALWAYS_FX.has(k) || f.loop || talentFx ? 0 : 1); // 판 위 물건 루프 · 특성 버튼 발동 (talent 사건)은 스킬 기록이 아님
       if (uses.length) expect(uses[0]!.scope).toBe(f.scope);
     });
   }
@@ -84,8 +85,8 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect([loopFrame(c, 0), loopFrame(c, (c.frames - 0.5) / c.fps), loopFrame(c, c.frames / c.fps), loopFrame(c, -0.01)]).toEqual([0, c.frames - 1, 0, c.frames - 1]);
   });
   it('전투마다 지금 직업 것만 읽음 (하나에 2–5MB)', () => {
-    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity', 'priest-shelter-loop']);
-    expect(heroSkillFx('druid')).toHaveLength(9); // 스킬 8 + 이끼 자리 루프
+    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity', 'priest-shelter-loop', 'priest-talent']);
+    expect(heroSkillFx('druid')).toHaveLength(10); // 스킬 8 + 이끼 자리 루프 + 특성 버튼 발동
     for (const k of heroSkillFx('monk')) expect(k.startsWith('monk-')).toBe(true);
     // 전투 공통 효과 · 파티원 능력은 직업과 상관없이 늘 읽어 둠
     expect([...ALWAYS_FX].sort()).toEqual([...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)].sort());

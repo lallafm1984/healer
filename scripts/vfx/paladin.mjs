@@ -1,7 +1,7 @@
 // 성기사: 따뜻한 금빛 · 흰빛 + 호박 · 주황 강조 (사제의 하늘빛 대신), 희생은 진홍. 원뿔 빛 · 룬 · 문장처럼 굵고 단단한 모양.
 // 2026-10-18 Lim 「성기사 스킬 이펙트를 전체 재생성, 퀄리티를 올려주고 힐 계열은 모두 파티클, 이펙트는 전체적으로 파티클 활용을 많이」:
 // 모양은 Codex로 그린 그림 (scripts/vfx/assets/paladin-*), 움직임 · 빛 · 금빛 반짝이 가루는 코드. 봉화 대상 칸 둘레는 루프 (paladin-beacon-loop)
-import { asset, bell, C, comet, E, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, C, comet, E, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, talentFx, TAU } from './lib.mjs';
 
 const AU = { rim: '#4a2a06', deep: '#c47a12', body: '#ffc94a', light: '#ffe9a0', core: '#fffaf0', glow: '#ffb84a', amber: '#ff9a2a' };
 const RED = { rim: '#2a0606', deep: '#8a1020', body: '#d8283a', light: '#ff7a6a', glow: '#ff4a3a' };
@@ -427,6 +427,8 @@ export default {
       loopGlints(g, t, [[0, -0.86], [-0.26, -0.2], [0.32, -0.16], [0, -0.34], [-0.4, 0.1], [0.36, 0.12]], { size: 0.255, col: AU.core, glowCol: AU.glow });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'pillar' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'paladin-talent': talentFx({ rim: '#4a2a06', body: '#ffc94a', light: '#ffe9a0', core: '#fffaf0', glow: '#ffb84a', acc: '#ffffff', accGlow: '#ff9a2a' }, 'pillar'),
 };
 /** 봉화 루프 고리 반지름 (프레임 반 = 1). board.ts BEACON_RING과 같게 (tests/pxf.test.ts) */
 export const RING = 0.72;

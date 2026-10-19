@@ -24,7 +24,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_TALENT_FX, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
   bossFx, bossHealNum, fitBossTitle, LOCK_SVG, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, missNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateStage, updateWheel,
@@ -510,6 +510,14 @@ function handleEvents(now: number): void {
         if (!u) break;
         fxHeal(u, ev.eff, ev.amt, ev.crit, now + (later.get(ev.id) ?? 0), plain.has(ev.id));
         if (ev.crit) critSnd = true; else healSnd = true;
+        break;
+      }
+      case 'talent': { // 특성 버튼 발동 (2026-10-19 Lim): 칸 특성 = 고른 칸, 봄비 = 살아 있는 모두, 고목 = 받는 사람, 나머지 = 내 칸
+        const fx = HERO_TALENT_FX[F.hero];
+        if (!fx) break;
+        if (ev.cell != null) fxPxfCell(ev.cell, fx, now);
+        else if (ev.key === 'springRain') for (const v of F.party) { if (v.alive) fxPxf(v, fx, now); }
+        else { const v = ev.uid != null ? F.party.find(x => x.id === ev.uid) : F.me; if (v) fxPxf(v, fx, now); }
         break;
       }
       case 'tick': if (u) fxHeal(u, ev.eff, ev.amt, ev.crit, now, true, true); break; // 지속 · 간접 회복: 직접 힐과 같은 숫자 · 같은 자리 (빛 · 소리 없음)

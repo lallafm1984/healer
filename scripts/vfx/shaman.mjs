@@ -1,7 +1,7 @@
 // 주술사: 깊은 물빛 (청록 · 파랑 + 흰 물거품) · 흙빛 돌 · 영혼 남빛. 사제 정화의 하늘빛보다 진하고 물결 · 물줄기 · 돌처럼 무게 있는 모양
 // 2026-10-19 Lim 「주술사의 정화, 연쇄, 잇기, 방울 이펙트도 똑같이 개선」 (결계사 · 점성술사처럼): 칸 가득, 맞는 순간 흰 섬광 + 물빛 · 영혼 남빛 고리, 빛 번짐 물빛 가루 (영혼 남빛 포인트) 1.5배
 // → 같은 날 「방울이 떨어질때의 모양이 퀄리티가 낮다. 모범사례는 수도사이다. 비슷한 형식으로 잇기, 방울, 연쇄, 정화를 개선」: 만화 물방울 · 물살 도형 대신 수도사처럼 빛 띠 (wchi) · 빛나는 머리 (whead) · 물안개 (foam) · 파티클만
-import { asset, bell, bez, bloom, C, E, energy, glint, rng, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, bez, bloom, C, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, rng, seg, solid, speck, talentFx, TAU } from './lib.mjs';
 
 const W = { rim: '#08304f', deep: '#1677b8', body: '#3fb0e8', light: '#a8e6ff', foam: '#f0fbff', glow: '#4cc0f0' };
 const STONE = { rim: '#1f160c', dark: '#6b5636', mid: '#9a8358', light: '#d2c08e' };
@@ -499,4 +499,6 @@ export default {
       glint(g, 0.2, -0.2, 0.14 * bell(frac(t * 2 + 0.8), 0, 0.12, 0.3), W.glow, 1, 0.6, 0.13, W.foam);
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'geyser' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'shaman-talent': talentFx({ rim: '#08304f', body: '#3fb0e8', light: '#a8e6ff', core: '#f0fbff', glow: '#4cc0f0', acc: '#c8ccff', accGlow: '#8a8ff8' }, 'geyser'),
 };

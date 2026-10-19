@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf } from '../src/battle/party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod, Unit } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -99,6 +99,12 @@ describe('전투 칸 글자 크기', () => {
     expect(starMarkTimerOf(u, 'astrologer')).toBe(7.5);
     expect(starMarkTimerOf(u, 'priest')).toBeNull();
     expect(hotTimersOf(u).map(h => h.key)).toEqual(['droplet']);
+  });
+  it('특성 버튼 지속 효과: 켜진 자기 강화 특성만 내 칸 원, 칸 특성은 그 칸 물건 남은 시간 (2026-10-19 Lim 「지속시간 표시도 필요」)', () => {
+    expect(talentBuffTimers({ zenith: { left: 12.4 }, scatter: { left: 0 }, shelter: { left: 9 }, miracle: { left: 0 } } as never)).toEqual([{ key: 'zenith', left: 12.4 }]);
+    expect(talentObjectTimers(4, 9, [{ kind: 'sea', cell: 7, until: 15 }, { kind: 'spring', cell: 2, until: 30 }, { kind: 'citadel', cell: 3, until: 9 }], 10))
+      .toEqual([{ cell: 4, key: 'shelter', left: 9 }, { cell: 7, key: 'sea', left: 5 }]);
+    expect(talentObjectTimers(-1, 0, [], 0)).toEqual([]);
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;

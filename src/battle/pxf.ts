@@ -73,6 +73,7 @@ export const PXF = {
   'priest-hymn': skill(20, 70),
   'priest-serenity': skill(24, 100),
   'priest-relay': skill(20, 92),
+  'priest-talent': skill(20, 100, { size: 320 }), // 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트」): 직업마다 하나, battle/index.ts talent 사건
   'priest-shelter-loop': loop(36, 87, 12, 256), // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게」): board.ts putArtLoop, 그림 한 변 × logical / 62
   'druid-sprout': skill(20, 80),
   'druid-growth': skill(20, 88),
@@ -82,6 +83,7 @@ export const PXF = {
   'druid-bark': skill(24, 92),
   'druid-quietwood': skill(24, 72),
   'druid-rebirth': skill(24, 98),
+  'druid-talent': skill(20, 100, { size: 320 }),
   'druid-moss-loop': loop(36, 87, 12, 256),
   'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
   'paladin-beacon': skill(20, 100, { size: 384 }), // 봉화 그릇 · 불꽃 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim)
@@ -93,6 +95,7 @@ export const PXF = {
   'paladin-hand-guard': skill(24, 94),
   // 봉화 대상 칸 둘레에서 도는 루프 (스킬 기록이 아니라 board.ts, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프」)
   'paladin-beacon-loop': loop(36, 62, 12, 320),
+  'paladin-talent': skill(20, 100, { size: 320 }),
   'paladin-sanctuary-loop': loop(36, 84, 12, 256),
   'shaman-ripple': skill(24, 88),
   'shaman-droplet': skill(22, 100, { size: 320 }), // 2026-10-19 Lim 「정화, 연쇄, 잇기, 방울 이펙트도 똑같이 개선」: 칸 가득 · 320px
@@ -112,6 +115,7 @@ export const PXF = {
   'monk-tea': skill(24, 100, { size: 384 }),
   'monk-pool-loop': loop(36, 84, 12, 256),
   'monk-mist-loop': loop(36, 80, 12, 256),
+  'monk-talent': skill(20, 100, { size: 320 }),
   // 점성술사 (2026-10-19 Lim 「퀄리티 및 파티클 보강, 전면 개편」): Codex 그림이 또렷하게 프레임 256 ~ 384px
   'astro-star': skill(20, 100, { size: 320 }), // 2026-10-19 Lim 「크고 화려하게」: 기억 말고 모두 logical 100
   'astro-twinkle': skill(16, 100, { size: 320 }),
@@ -123,6 +127,7 @@ export const PXF = {
   'astro-polaris': skill(22, 100, { size: 384 }),
   'astro-nova-loop': loop(36, 84, 12, 256),
   'astro-sleep-loop': loop(36, 74, 12, 256),
+  'astro-talent': skill(20, 100, { size: 320 }),
   'shaman-spring': skill(24, 92),
   // 판 위 토템이 서 있는 동안 도는 루프 (스킬 기록이 아니라 board.ts 선 물건): 3초 한 바퀴
   'shaman-spring-loop': loop(36, 64, 12),
@@ -130,6 +135,7 @@ export const PXF = {
   // 판 오른쪽 위 비구름 토템 (구름만) 위에서 도는 루프: 비는 이 이펙트로 (그림 한 변 × 75/62, 가운데가 그림보다 한 변의 반 아래)
   'shaman-rain-loop': loop(36, 75, 12),
   'shaman-sea-loop': loop(36, 84, 12, 256),
+  'shaman-talent': skill(20, 100, { size: 320 }),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
   'warder-seal': skill(20, 100, { size: 320 }), // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」 → 「이펙트가 너무 작다, 파티원칸에 가득 차게」: 모두 logical 100 · 320px
   'warder-barrier': skill(22, 100, { size: 320 }),
@@ -140,6 +146,7 @@ export const PXF = {
   'warder-hold': skill(20, 100, { size: 320 }),
   'warder-judgment': skill(18, 100, { size: 320 }),
   'warder-citadel-loop': loop(36, 84, 12, 256),
+  'warder-talent': skill(20, 100, { size: 320 }),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': small(11, 74),
   'common-crit': small(12, 66),
@@ -239,7 +246,11 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
  * 그 직업 스킬의 손그림풍 이펙트 (224px 격자 띠라 하나에 2–5MB): 전투마다 지금 직업 것만 읽어 두고 다른 직업 것은 내려 놓음 (board.ts resetBoardFx)
  */
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
-  [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? [])])];
+  [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? []), ...(HERO_TALENT_FX[hero] ? [HERO_TALENT_FX[hero]!] : [])])];
+/** 직업별 특성 버튼 발동 이펙트 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트」): 그 직업 특성 버튼 모두 같은 이펙트 하나 */
+export const HERO_TALENT_FX: Partial<Record<HeroKey, PxfKey>> = {
+  priest: 'priest-talent', druid: 'druid-talent', paladin: 'paladin-talent', shaman: 'shaman-talent', monk: 'monk-talent', astrologer: 'astro-talent', warder: 'warder-talent',
+};
 /** 직업별 판 위 선 물건 루프 (스킬 기록이 아님): 그 직업 전투에서만 같이 읽어 둠 */
 export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = {
   priest: ['priest-shelter-loop'], druid: ['druid-moss-loop'], paladin: ['paladin-beacon-loop', 'paladin-sanctuary-loop'],

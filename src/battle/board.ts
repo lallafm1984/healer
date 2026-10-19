@@ -23,7 +23,7 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf, type GuardTimerKey } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers, type GuardTimerKey, type TalentObjectKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -1225,6 +1225,12 @@ const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
 const SEAL_COLOR: [number, number] = [0xffd51f, 0x3d2a00];
 /** 점성술사 별자리 표식 남은 시간 원 [채움, 숫자 색]: 점성술사 호박 + 짙은 갈색 숫자 (2026-10-19 Lim, 예전 표식 그림 대신) */
 const STAR_MARK_COLOR: [number, number] = [0xe8b04a, 0x3a2108];
+/** 특성 버튼 지속 효과 원 [채움, 숫자 색] (2026-10-19 Lim): 내 칸 = 직업 색, 판 위 물건 칸 = 그 물건 색 */
+const TALENT_COLOR: Record<HeroKey, [number, number]> = {
+  priest: [0xfff1b0, 0x3a2a08], druid: [0x8fe05a, 0x10300f], paladin: [0xffb84a, 0x3a2006], shaman: [0x3fb0e8, 0xffffff],
+  monk: [0x22d39a, 0x062a1e], astrologer: [0x8a7cf0, 0xffffff], warder: [0xfff8d0, 0x3d2a00],
+};
+const TALENT_OBJECT_COLOR: Record<TalentObjectKey, [number, number]> = { shelter: [0xfff1b0, 0x3a2a08], sea: [0x3fb0e8, 0xffffff], mist: [0x22d39a, 0x062a1e], citadel: [0xfff8d0, 0x3d2a00] };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤.
@@ -1968,13 +1974,15 @@ export function render(now: number): void {
   // 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」
   const shortBadge = measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; shield?: boolean; x: number; y: number; w: number; h: number; sx: number }[] = [];
+  const objTimers = talentObjectTimers(F.tx.shelter, F.tx.act.shelter?.left ?? 0, F.totems, F.t); // 특성 판 위 물건 남은 시간 (2026-10-19 Lim)
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     const hots = hotTimersOf(u), hasHot = hots.length > 0;
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
     // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
-    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0);
+    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), buffs = u.me ? talentBuffTimers(F.tx.act) : [], objs = objTimers.filter(o => o.cell === u.cell);
+    const leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0) + buffs.length + objs.length;
     const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
@@ -2060,6 +2068,8 @@ export function render(now: number): void {
         ...guards.map(g => ({ key: `guard${u.id}-${g.key}`, kind: 'guard', left: g.left, fill: GUARD_COLOR[g.key][0], fg: GUARD_COLOR[g.key][1] })),
         ...(sealLeft != null ? [{ key: `seal${u.id}`, kind: 'seal', left: sealLeft, fill: SEAL_COLOR[0], fg: SEAL_COLOR[1] }] : []),
         ...(markLeft != null ? [{ key: `starmark${u.id}`, kind: 'starmark', left: markLeft, fill: STAR_MARK_COLOR[0], fg: STAR_MARK_COLOR[1] }] : []),
+        ...buffs.map(b => ({ key: `tbuff${u.id}-${b.key}`, kind: 'talent', left: b.left, fill: TALENT_COLOR[F.hero][0], fg: TALENT_COLOR[F.hero][1] })),
+        ...objs.map(o => ({ key: `tobj${u.id}-${o.key}`, kind: 'talent', left: o.left, fill: TALENT_OBJECT_COLOR[o.key][0], fg: TALENT_OBJECT_COLOR[o.key][1] })),
       ];
       col.forEach((c, i) => {
         const px = start.x, py = start.y + i * shieldLayout.step;
@@ -2188,6 +2198,18 @@ export function render(now: number): void {
   }
   // 표시된 글자 bounds만 노출한다. 값이 바뀔 때만 기록하며 전투/입력 상태에는 관여하지 않는다.
   let neighborGap = Infinity;
+  // 사람이 없는 칸의 특성 물건 (쉼터 · 바다 샘 · 안개 샘 · 성채) 남은 시간: 칸 왼쪽 위, 사람 칸 왼쪽 열과 같은 자리 · 크기
+  for (const o of objTimers) {
+    const c = F.cells[o.cell];
+    if (!c || (c.unit && c.unit.alive)) continue;
+    const lay = shieldTimerLayout(s, 1), sr = lay.radius, p0 = center(o.cell), p = hotCenter(p0.x + lay.x, p0.y + lay.y, sr + 0.75, sr + 0.75), [fill, fg] = TALENT_OBJECT_COLOR[o.key];
+    badgeG.circle(p.x, p.y, sr).fill({ color: fill }).stroke({ width: 1.5, color: C.line });
+    const label = badgeLabels.put(`tobjc${o.cell}`, String(Math.ceil(o.left)), { size: Math.max(8, sr * 1.05), fill: fg }, p.x, p.y + 0.5);
+    label.scale.set(1);
+    if (label.width > sr * 1.65) label.scale.x = sr * 1.65 / label.width;
+    fitLabel(label, `tobjc${o.cell}-text`, 'talent');
+    recordBound(`tobjc${o.cell}`, 'talent', 'circle', p.x, p.y, sr * 2 + 1.5, sr * 2 + 1.5);
+  }
   for (let i = 0; i < hpBounds.length; i++) for (let j = i + 1; j < hpBounds.length; j++) {
     const a = hpBounds[i], b = hpBounds[j];
     if (hexDist(F.cells[a.cell], F.cells[b.cell]) !== 1 || Math.abs(a.y - b.y) >= (a.h + b.h) / 2) continue;

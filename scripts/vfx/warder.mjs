@@ -4,7 +4,7 @@
 // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」: 모양은 Codex 그림 (scripts/vfx/assets/warder-*), 움직임 · 빛 · 노란 빛가루는 코드
 // 2026-10-19 Lim 「모든 스킬의 이펙트가 너무 작다. 파티원칸에 가득 차게, 너무 노란색만 말고 약간의 포인트 색상, 더 많은 파티클로 화려하게」:
 // 주인공 그림이 칸 지름만큼 (반지름 1 안팎), 포인트 색은 맑은 하늘빛 (AQ: 레몬 노랑의 반대쪽 차가운 빛, 수도사 비취 · 주술사 물빛보다 옅고 밝게) 가루 · 고리 · 반짝임, 가루는 1.5배 · 빛 번짐
-import { asset, bell, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
+import { asset, bell, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, talentFx, TAU, wave } from './lib.mjs';
 
 const Y = { rim: '#3d2a00', deep: '#c99600', body: '#ffd51f', light: '#fff06a', core: '#fffde8', glow: '#ffe23a' };
 /** 포인트 색 (2026-10-19): 맑은 하늘빛 */
@@ -296,4 +296,6 @@ export default {
       loopGlints(g, t, [[0, -0.96], [-0.6, -0.6], [0.64, -0.6], [-0.3, -0.75], [0.32, -0.72]], { size: 0.255, col: Y.core, glowCol: Y.glow });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'rings' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'warder-talent': talentFx({ rim: '#3d2a00', body: '#ffd51f', light: '#fff06a', core: '#fffde8', glow: '#ffe23a', acc: '#9af0ff', accGlow: '#5fd6ff' }, 'rings'),
 };
