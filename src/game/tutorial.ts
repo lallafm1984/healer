@@ -26,6 +26,8 @@ export const DUO_PARTY: RosterEntry[] = [{ role: 'tank', pers: '신중파', nick
  */
 export const TUT_CONTENT: readonly string[] = ['tutorial', 'plateau'];
 export const tutLockedContent = (save: SaveData, content: string): boolean => save.tut < TUT.done && !TUT_CONTENT.includes(content);
+/** 튜토리얼 다시 보기 중 (이미 녹슨 고원을 깨서 한 번 마친 저장): 경험치 · 골드 없음, 다시 보기용 글 (105 QA) */
+export const tutReplay = (save: SaveData): boolean => save.tut < TUT.done && !!save.clears.plateau;
 
 /** 정산 때 튜토리얼 단계 넘기기: 탐험 클리어 → 끝. 넘겼으면 true */
 export function advanceTutorial(save: SaveData, content: string, win: boolean): boolean {

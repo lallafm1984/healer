@@ -298,6 +298,11 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
 /** 길드파티가 되는 길드원 수 (자리 = 인원 − 나): 탐험 1 · 5인 2 · 10인 5 · 20인 10 (isGuildParty와 같은 셈) */
 export const guildPartyNeed = (size: number) => Math.max(1, Math.ceil((size - 1) / 2));
+/** 지금 길드원으로 이 판 길드파티를 꾸릴 수 있나: 역할 자리로 셈 (min(탱커, 탱커 자리) + min(딜러, 딜러 자리) ≥ 길드파티 인원, 105 QA: 탱커 3 + 딜러 7이면 20인은 9명뿐) */
+export function guildPartyFits(save: SaveData, enc: Encounter): boolean {
+  const sl = slotsOf(enc), ms = save.guild.members, tanks = ms.filter(m => CLASSES[m.cls].role === 'tank').length;
+  return Math.min(tanks, sl.tank) + Math.min(ms.length - tanks, sl.dps) >= guildPartyNeed(sl.tank + sl.dps + 1);
+}
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
   members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string; shown?: number }[]; lv?: number }[];
@@ -358,14 +363,14 @@ export function growStats(m: GuildMember, levels: number, deed: Deed | undefined
  */
 export function guildAfter(
   save: SaveData, r: () => number,
-  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number; requestNicks?: readonly string[] },
+  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number; requestNicks?: readonly string[]; /** 판 전 내 레벨 (낮은 장소 판정, 105 QA: 판 뒤 레벨이면 레벨업한 판이 낮은 장소가 됨) */ myLv?: number; /** 주간 도전 판 (길드 첫 처치 없음) */ chal?: boolean },
 ): GuildAfter {
   const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false, low: false };
   if (o.quit || !o.win) return out;
   const cap = topLevel(save), went = new Set<number>(), requests = new Set(o.requestNicks);
   const firstKey = `${o.content}|${o.diff}`;
-  const guildParty = isGuildParty(o.roster), low = guildParty && o.stage < cap - FAME_LOW_GAP; // 낮은 장소: 명성 · 첫 처치 없음 (103)
-  const first = guildParty && !low && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey);
+  const guildParty = isGuildParty(o.roster), low = guildParty && o.stage < (o.myLv ?? cap) - FAME_LOW_GAP; // 낮은 장소: 명성 · 첫 처치 없음 (103), 판 전 레벨로
+  const first = guildParty && !low && !o.chal && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey); // 주간 도전은 첫 처치 아님 (105 QA)
   for (const e of o.roster) {
     const m = e.gid != null ? g.members.find(x => x.id === e.gid) : null;
     if (!m) continue;

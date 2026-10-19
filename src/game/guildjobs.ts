@@ -7,7 +7,8 @@ import type { DiffName } from '../data/difficulty';
 import { EXPED, REQ } from '../data/guild';
 import { topLevel, type SaveData } from '../platform/storage';
 import { dayKey, weekKey } from './clock';
-import { guildPartyNeed, isGuildParty } from './guild';
+import { guildPartyFits, isGuildParty } from './guild';
+import { ENCOUNTERS } from '../data/encounters';
 import type { RosterEntry } from '../engine/types';
 
 
@@ -28,12 +29,26 @@ export function refreshReqs(save: SaveData, stagesAll: readonly { content: strin
 /** 주간 원정: 주가 바뀌면 내 레벨에 맞는 3곳 (5인 던전 · 10인 · 20인 레이드, 안 열렸으면 던전), 보통 이상 */
 export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, now = Date.now()): void {
   const g = save.guild, week = weekKey(now);
-  if (!g.founded || g.exped.week >= week) return; // 더 늦은 주만 (103)
+  if (!g.founded || g.exped.week > week) return; // 시계를 뒤로 돌린 주는 그대로 (103)
   const my = topLevel(save), ok = (c: ContentDef) => c.ready && !c.hidden && open(c, '보통') && stageOf(c, '보통') <= my;
   const best = (xs: ContentDef[]) => xs.filter(ok).sort((a, b) => stageOf(b, '보통') - stageOf(a, '보통'));
   const dungeons = best(CONTENT.filter(c => c.kind === 'dungeon' && c.size('보통') === 5));
-  // 원정은 길드파티로만 (103 다른 문제점 5): 길드원이 길드파티 인원 (10인 5 · 20인 10명)보다 적으면 그 칸은 던전으로
-  const raid = (n: number) => (g.members.length >= guildPartyNeed(n) ? best(CONTENT.filter(c => c.kind === 'raid' && c.size('보통') === n))[0] : undefined);
+  // 원정은 길드파티로만 (103 다른 문제점 5 · 105 QA): 지금 길드원으로 그 레이드 길드파티를 못 꾸리면 (역할 자리로 셈) 그 칸은 던전으로
+  const fits = (c: ContentDef) => c.kind !== 'raid' || guildPartyFits(save, ENCOUNTERS[c.fights('보통')[0]]);
+  if (g.exped.week === week) {
+    // 같은 주: 주 중에 길드원이 줄어 못 깨게 된 안 깬 레이드 칸만 던전으로 다시 뽑음
+    const used = new Set(g.exped.list.map(x => x.content));
+    g.exped.list = g.exped.list.map(x => {
+      const c = CONTENT.find(k => k.key === x.content);
+      if (x.done || !c || fits(c)) return x;
+      const d = dungeons.find(k => !used.has(k.key));
+      if (!d) return x;
+      used.add(d.key);
+      return { content: d.key, done: false };
+    });
+    return;
+  }
+  const raid = (n: number) => best(CONTENT.filter(c => c.kind === 'raid' && c.size('보통') === n)).find(fits);
   const picks = [dungeons[0], raid(10) ?? dungeons[1], raid(20) ?? dungeons[2]].filter((c, i, a): c is ContentDef => !!c && a.indexOf(c) === i);
   g.exped = { week, list: picks.slice(0, EXPED.n).map(c => ({ content: c.key, done: false })), got: false };
 }

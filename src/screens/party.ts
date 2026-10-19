@@ -26,6 +26,7 @@ import { classEmblem, departureArrow, floorArtOf, gameIcon, LOCK, uiIcon } from 
 import { afxRows, afxTags, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
+import { FAME_LOW_GAP } from '../data/guild';
 
 const s = screen('s-party', '파티 편성', {
   enter() {
@@ -115,7 +116,7 @@ function guildPickHtml(stage: number): string {
   const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
   const under = picked.filter(m => m!.lv < stage).length;
   const need = guildPartyNeed(sl.tank + sl.dps + 1); // 길드파티 = 자리 절반 이상이 길드원 (명성 · 원정 · 첫 처치, 103 다른 문제점 5)
-  return `<p class="pickhead"><b>길드파티 ${picked.length}/${need}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
+  return `<p class="pickhead"><b>${picked.length >= need ? '길드파티 ✓' : `길드파티 ${picked.length}/${need}`}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
     ${recWhy.length ? `<p class="f-why" aria-label="추천 이유">${recWhy.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</p>` : ''}
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
     ${picked.length < need ? `<p class="warnbox">길드원 ${need}명부터 길드파티: 명성 · 원정 · 첫 처치</p>` : ''}
@@ -256,7 +257,8 @@ export function depart(): string {
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
-    guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
+    // 「길드 첫 킬!」 대사: 정산의 첫 처치와 같은 조건 (낮은 장소 · 주간 도전은 아님, 105 QA)
+    guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !Flow.chal && m.stage >= G.save.player.level - FAME_LOW_GAP && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
     party: Flow.party!, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     onEnd(r) {
       Flow.result = r;

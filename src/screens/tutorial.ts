@@ -8,7 +8,7 @@ import { addXp, xpToNext } from '../data/progression';
 import { recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { commit, G, healerLevel } from '../game/state';
-import { DUO_PARTY, TUT } from '../game/tutorial';
+import { DUO_PARTY, TUT, tutReplay } from '../game/tutorial';
 import { battle, go, screen } from './kit';
 import { depart } from './party';
 import { classEmblem, gameIcon, placeArt } from './art';
@@ -79,7 +79,7 @@ const card = screen('s-tut', '튜토리얼', {
     card.el.style.setProperty('--tut-art', next ? `url('${next}')` : 'none');
     card.el.innerHTML = `<div class="ns-body story">
       <h2 class="h">첫 파티 성공!</h2>
-      <section class="panel learn"><span class="learn-art">${gameIcon('renew', '', 'skill')}</span><div><h2>Lv ${G.save.player.level} · 새 스킬 「소생」</h2>
+      <section class="panel learn"><span class="learn-art">${gameIcon('renew', '', 'skill')}</span><div><h2>${tutReplay(G.save) ? '다시 보기 · 스킬 「소생」' : `Lv ${G.save.player.level} · 새 스킬 「소생」`}</h2>
         <p>칸에 걸어 두면 9초 동안 저절로 차는 힐. 칸에서 휠과 같은 방향으로 쓸어서도 쓸 수 있음.</p></div></section>
       <p>다음은 <b>3인 탐험 「녹슨 고원」</b>. 파티 찾기로 두 명이 들어옴.</p>
     </div>

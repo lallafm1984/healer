@@ -300,3 +300,13 @@ describe('보상 넷 (103 「넷 다」 2 · 4)', () => {
     expect(runGold(70)).toBe(clearGold(70, '보통', 'A', 20));
   });
 });
+
+describe('105 QA: 탐험 길드파티도 「클리어」 임무 · 길드 주간 목표', () => {
+  it('길드파티로 클리어 · 주간 목표는 탐험 길드파티도 셈', () => {
+    const g2 = DAILY.find(m => m.key === 'guild2')!;
+    expect(g2.run!(ev({ dungeon: false, explore: true, pub: false }))).toBe(1);
+    const s = save(20);
+    onRun(s, ev({ dungeon: false, explore: true, pub: false }));
+    expect(s.weekly.guild.n).toBe(1);
+  });
+});

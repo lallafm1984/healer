@@ -34,13 +34,17 @@ describe('휴식 회복 (90)', () => {
     expect(staminaView(s, T0 + 24 * H).n).toBe(96);
     expect(staminaView(s, T0 + 25 * H).n).toBe(100);
   });
-  it('시계가 미래였다 바로잡히면 지금부터 다시 셈 (채워 주지는 않음, 103: 예전엔 그 미래 시각까지 안 참)', () => {
+  it('기기 시계를 되돌리면 그 시각이 다시 올 때까지 차지 않음 (105 QA: 지금으로 당기면 시계를 뒤로 갔다 오는 것만으로 +96)', () => {
     const s = fresh();
     s.stamina = { n: 40, at: T0 + 2 * H, day: '', ads: 0 };
     expect(staminaView(s, T0).n).toBe(40);
     syncStamina(s, T0);
-    expect(s.stamina.at).toBe(T0);
-    expect(staminaView(s, T0 + 15 * M).n).toBe(41);
+    expect(s.stamina.at).toBe(T0 + 2 * H);
+    expect(staminaView(s, T0 + 2 * H + 15 * M).n).toBe(41);
+    // 24시간 뒤로 갔다 돌아와도 공짜로 안 참
+    const t = fresh(); t.stamina = { n: 10, at: T0, day: '', ads: 0 };
+    syncStamina(t, T0 - 24 * H); syncStamina(t, T0);
+    expect(t.stamina.n).toBe(10);
   });
 });
 

@@ -9,19 +9,19 @@
  */
 import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
+import { ITEM_GRADES, recommendedFor, REROLL_LEVEL, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
 import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { HERO_KEYS, HEROES } from '../data/heroes';
 import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
-import { capOf } from '../game/guild';
+import { guildPartyNeed } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { guide } from '../game/guide';
 import { chalGate } from '../game/runmode';
-import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
+import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay, rerollOpen } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
@@ -53,7 +53,7 @@ function goals(): Goal[] {
   const out: Goal[] = [];
   const lvNow = G.save.player.level;
   // 처음 깨는 칸이면 「클리어 0/1」, 다시 도는 칸이면 「추천 Lv n」(적 레벨)
-  const g = guide();
+  const g = G.save.tut < TUT.done ? { content: 'plateau' as ContentKey, diff: '쉬움' as DiffName } : guide(); // 튜토리얼 중엔 튜토리얼 탐험 (105 QA)
   if (g) {
     const c = contentOf(g.content), first = !G.save.clears[c.key]?.[g.diff];
     out.push({ title: c.name, tag: g.diff, sub: first ? '클리어' : '추천', prog: first ? '0/1' : `Lv ${stageOf(c, g.diff)}`, to: g });
@@ -77,7 +77,7 @@ const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = re
 const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
 
 /**
- * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 min(정원, 10인 9 · 20인 19명) (#302 정원 = 길드 Lv + 1), 길드를 빼 두면 그 줄 없음.
+ * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 레이드 길드파티 인원 (10인 5 · 20인 10명, guildPartyNeed), 길드를 빼 두면 그 줄 없음.
  * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
@@ -89,7 +89,7 @@ function gateTracker(): string {
   const lv = G.save.player.level;
   const g = GATES.find(x => lv >= x.from && lv < x.lv);
   if (!g || G.save.tut < TUT.done) return '';
-  const need = Math.min(capOf(G.save).cap, g.lv >= 70 ? 19 : 9), have = G.save.guild.members.length; // 레이드를 길드원만으로 (93 6-2), 정원까지
+  const need = guildPartyNeed(g.lv >= 70 ? 20 : 10), have = G.save.guild.members.length; // 레이드 길드파티 인원 (10인 5 · 20인 10명, 105 QA: 정원 = 길드 Lv + 1이 되며 min(정원, 9)가 「길드원 2명」이 됐음)
   const gi = ITEM_GRADES.indexOf(g.grade);
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;
   const rows: [boolean, string, string, string][] = [
@@ -126,6 +126,7 @@ function tracker(): string {
  * 예전엔 지난 판 그대로 → 레벨이 올라도 같은 곳을 가리켰음) → 지난 판 → 녹슨 요새
  */
 function dest(): { content: ContentKey; diff: DiffName } {
+  if (G.save.tut < TUT.done) return { content: 'plateau', diff: '쉬움' }; // 튜토리얼 중 (다시 보기에서 지거나 포기한 뒤 포함)엔 튜토리얼 탐험 (105 QA: 고레벨 판을 가리키는데 출전은 꺼져 있었음)
   if (firstDungeonNow()) return { content: 'rustfort', diff: '쉬움' };
   const g = guide();
   if (g) return g;
@@ -196,7 +197,8 @@ function raidPlate(): string {
  */
 function forgePlate(): string {
   const n = newGearCount();
-  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', '옵션 재설정'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
+  // 재설정은 Lv 20 (REROLL_LEVEL)부터 (105 QA: Lv 1부터 「옵션 재설정」이라 눌러 보면 잠겨 있었음)
+  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', rerollOpen() ? '옵션 재설정' : `Lv ${REROLL_LEVEL} 재설정`], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
 }
 
 /**

@@ -95,7 +95,7 @@ function bump(list: MissionSave[], f: (m: MissionDef) => number): string[] {
 /** 판이 끝나면 임무 진행. 다 채운 임무 이름을 돌려줌 (결과 화면) */
 export function onRun(save: SaveData, e: RunEvent): string[] {
   const done = [...bump(save.daily.missions, m => (m.run ? m.run(e) : 0)), ...bump(save.weekly.missions, m => (m.run ? m.run(e) : 0))];
-  if (e.win && e.dungeon && !e.pub && !save.weekly.guild.got) save.weekly.guild.n = Math.min(GUILD_GOAL.need, save.weekly.guild.n + 1);
+  if (e.win && (e.dungeon || e.explore) && !e.pub && !save.weekly.guild.got) save.weekly.guild.n = Math.min(GUILD_GOAL.need, save.weekly.guild.n + 1); // 길드 주간 목표: 탐험 길드파티도 (105 QA)
   return done;
 }
 
@@ -147,7 +147,7 @@ export function chestState(save: SaveData): { today: boolean; banked: number } {
 }
 export function claimChest(save: SaveData, r: () => number, now: number, double = false): Gain | string {
   const st = chestState(save);
-  if (!st.today && !st.banked && !double) return '임무 5개를 다 받으면 열림';
+  if (!st.today && !st.banked && !double) return `임무 ${save.daily.missions.length}개를 다 받으면 열림`; // Lv 1~4는 4개 (105 QA)
   if (double) {
     if (!save.daily.chest || save.daily.chest2) return '오늘 상자를 먼저 받기';
     save.daily.chest2 = true;

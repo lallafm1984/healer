@@ -214,7 +214,7 @@ export default async function lobbyA2(url, shots) {
           const before = await readSave(page);
           await page.locator('#lbClaim').tap(); await tick(page);
           const after = await readSave(page);
-          ok(after.daily.missions.every(m => m.got) && after.player.gold > before.player.gold && /일일 5\/5/.test(await page.textContent(`${lobby} .lb-missions`)), '임무 일괄 수령 후 골드·진행 즉시 갱신');
+          ok(after.daily.missions.every(m => m.got) && after.player.gold > before.player.gold && new RegExp(`일일 ${after.daily.missions.length}/${after.daily.missions.length}`).test(await page.textContent(`${lobby} .lb-missions`)), '임무 일괄 수령 후 골드·진행 즉시 갱신');
           ok(after.daily.chest && await page.locator('#lbClaim').count() === 0, '「!」 한 번에 일일 상자까지 열림 (일일 상자를 임무에 합침)');
           await page.locator('#lbChal').tap(); await tick(page);
           ok((await readSave(page)).chalChest === 0 && await page.locator('#lbChal').count() === 0, '주간 도전 상자 수령 후 기본 바로가기 복구');

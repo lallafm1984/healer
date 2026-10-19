@@ -38,9 +38,19 @@ export default async function guild(url, shots) {
   ok(await page.isVisible('#found') && (await page.locator('#s-guild .subtabs').count()) === 0, 'Lv 30 · 결성 전 = 결성 이야기 카드 (하위 탭 없음)');
   await page.click('#found'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.guild.founded && JSON.stringify(sv.guild.members.map(m => m.nick)) === JSON.stringify(['말없는탱', '감자도적', '불꽃남자', '딜미터1등']), `결성: 말없는탱 + 근접 1명 · 원거리 2명 ${sv.guild.members.map(m => m.nick)}`);
+  ok(sv.guild.founded && JSON.stringify(sv.guild.members.map(m => m.nick)) === JSON.stringify(['말없는탱', '뒤통수전문']), `결성: 말없는탱 + 근접 1명 (정원 2, 103) ${sv.guild.members.map(m => m.nick)}`);
+  ok(/정원 2\/2/.test(await text('#s-guild .guild-hero')) && /명성 0 \/ 55/.test(await text('#s-guild .guild-hero')), '결성 직후 머리: 정원 2/2 · 명성 0 / 55');
+  // 아래 장면 (예전 결성 4명 · 정원 6)을 그대로 보려고 길드원 둘과 길드 Lv 5 (명성 225 · 정원 6)를 넣음
+  await patch(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save')), base = s.guild.members[1];
+    for (const [nick, cls, ab] of [['불꽃남자', 'mage', 'mage.blink'], ['딜미터1등', 'archer', 'archer.snipe']]) s.guild.members.push({ ...base, id: s.guild.nextId++, nick, cls, ab });
+    s.guild.fame = 225;
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
+  await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
+  sv = await save();
   const hero = await text('#s-guild .guild-hero');
-  ok(/해바라기 원정대/.test(hero) && /길드 Lv 1/.test(hero) && /정원 4\/6/.test(hero) && /명성 0/.test(hero), '머리: 이름 · 길드 Lv 1 · 정원 4/6 · 명성 0');
+  ok(/해바라기 원정대/.test(hero) && /길드 Lv 5/.test(hero) && /정원 4\/6/.test(hero) && /명성 0 \/ 60/.test(hero), '머리: 이름 · 길드 Lv 5 · 정원 4/6 · 명성 막대 0 / 60 (103)');
   const tabs = await page.locator('#s-guild .subtabs [role="tab"]').evaluateAll(els => els.map(e => [e.dataset.sub, e.getAttribute('aria-selected')]));
   ok(JSON.stringify(tabs) === JSON.stringify([['home', 'true'], ['members', 'false'], ['recruit', 'false']]), `하위 탭 셋 (현황 고름) ${JSON.stringify(tabs)}`);
   ok(/말없는탱/.test(await text('#s-guild .g-story')), '현황 맨 위 결성 이야기 (창단 멤버 이름)');
@@ -59,7 +69,7 @@ export default async function guild(url, shots) {
   // 영입은 공고와 명성 지원자만. 친구·명부·인연 안내가 없다.
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-csel="friend"], #s-guild [data-csel="roster"], #s-guild [data-friend]').count()) === 0 && !/친구|인연|명부/.test(await text('#s-guild .g-recruit')), '친구 초대 · 명부 · 인연 안내 제거');
-  ok((await page.locator('#s-guild .g-hub').count()) === 0 && await page.isVisible('#s-guild [data-sec="post"]'), '길드 Lv 1: 모집 공고를 바로 표시');
+  ok(await page.isVisible('#s-guild [data-sec="post"]'), '모집 공고 판이 보임 (길드 Lv 5: 명성 지원자 칸과 함께)');
   ok((await page.locator('#s-guild [data-pkind], #s-guild [data-role], #s-guild [data-pickcls]').count()) === 0 && !/명문 공고/.test(await text('#s-guild .g-recruit')), '명문 · 역할 · 직업 선택 제거');
   ok(/모든 직업 무작위/.test(await text('#s-guild .g-post-summary')) && /희귀 등장 3%/.test(await text('#s-guild .g-post-summary')), '통합 공고: 전 직업 무작위 · 희귀 3% 안내');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
@@ -158,6 +168,7 @@ export default async function guild(url, shots) {
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.guild.reqs.list = [{ nick: '말없는탱', content: 'rustfort', diff: '쉬움', done: false }];
+    s.player.level = 15; // 녹슨 요새 (적 Lv 5 ~ 11)가 「낮은 장소」 (내 Lv − 10 밑, 103)가 아니게
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
@@ -197,12 +208,12 @@ export default async function guild(url, shots) {
   ok(await page.isVisible('#s-settle'), '던전 클리어');
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   const rw = await text('#s-settle .r-notes');
-  ok(/길드원 경험치 \+\d/.test(rw) && /명성 \+4/.test(rw) && /길드 첫 처치/.test(rw), '결과: 길드원 경험치 · 명성 +4 · 길드 첫 처치');
+  ok(/길드원 경험치 \+\d/.test(rw) && /길드 첫 처치/.test(rw) && /명성 \+8/.test(await text('#s-settle .r-gxpw')), '결과: 길드원 경험치 · 길드 첫 처치 · 길드 막대 명성 +8 (던전 2 + 첫 처치 6, 103)');
   ok(!/인연|새 친구/.test(rw) && !(await save()).users, '결과와 저장에 인연 보상 없음');
   ok(/부탁 완료 · 말없는탱 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
   sv = await save();
   ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === (inFight.some(m => m.nick === '불꽃남자') ? 5 : 4), '출전 여부에 따른 후원 횟수 차감');
-  ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
+  ok(sv.guild.fame === 225 + 8 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 225 + 8 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
 
   // ---- 기록 · 명부 제거 유지 ----
