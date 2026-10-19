@@ -173,3 +173,75 @@ describe('(나) 탱커 자리', () => {
     expect(slow).toBeGreaterThan(par + 0.6);
   });
 });
+
+describe('(다) 딜 · 직업 스킬', () => {
+  /** 근접 (도적) 한 사람의 n초 동안 한 방 · 빗나감 · 세게 */
+  function swings(st: Partial<Stats>, sec: number, seed = 1) {
+    const f = fight({ st, seed }), u = who(f, '근');
+    f.bossHp = f.bossMax = 1e9;
+    let hit = 0, miss = 0, crit = 0;
+    const end = f.t + sec;
+    while (f.t < end && !f.over) {
+      E.step(f);
+      for (const ev of f.events) {
+        if (ev.type === 'hit' && ev.uid === u.id) { hit++; if (ev.crit) crit++; }
+        if (ev.type === 'miss' && ev.uid === u.id) miss++;
+      }
+      f.events.length = 0;
+    }
+    return { hit, miss, crit };
+  }
+  it('기술 숙련이 15보다 낮으면 한 방이 빗나감 (1 = 15%), 15 이상은 늘 들어감', () => {
+    const lo = swings({ skill: 1 }, 400), par = swings({ skill: 15 }, 200);
+    expect(lo.miss / (lo.hit + lo.miss)).toBeGreaterThan(STAT_ACT.miss - 0.05);
+    expect(lo.miss / (lo.hit + lo.miss)).toBeLessThan(STAT_ACT.miss + 0.05);
+    expect(par.miss).toBe(0);
+  });
+  it('공격이 15 넘으면 가끔 세게 (20 = 8% × 1.5), 15 이하는 없음', () => {
+    const hi = swings({ atk: 20 }, 400), par = swings({ atk: 15 }, 200);
+    expect(hi.crit / hi.hit).toBeGreaterThan(STAT_ACT.crit - 0.04);
+    expect(par.crit).toBe(0);
+  });
+  /** 궁수 정조준 (쿨마다, t ≥ 1초): 처음 쓴 때 · 헛씀 */
+  function firstUse(st: Partial<Stats>, seed: number) {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱'), R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), { ...R('ranged', 'archer', '사교형', '궁', st), ab: 'archer.aimedShot' }],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const u = who(f, '궁');
+    while (f.t < 12 && !f.over) {
+      E.step(f);
+      for (const ev of f.events) if (ev.type === 'ability' && ev.id === u.id) return { t: f.t, fumble: !!ev.fumble };
+      f.events.length = 0;
+    }
+    return { t: Infinity, fumble: false };
+  }
+  it('판단이 15보다 낮으면 쓸 때가 돼도 늦게 씀 (1 = 평균 1.2초), 15 이상은 바로 (0.2초 판단 주기)', () => {
+    const late = Array.from({ length: 60 }, (_, i) => firstUse({ judgment: 1 }, 40 + i).t), now = Array.from({ length: 30 }, (_, i) => firstUse({ judgment: 15 }, 40 + i).t);
+    expect(Math.max(...now)).toBeLessThan(1.3);
+    expect(mean(late)).toBeGreaterThan(mean(now) + 0.6);
+  });
+  it('기술 숙련이 15보다 낮으면 가끔 헛씀 (재사용만 돎, 1 = 12%), 15 이상은 없음', () => {
+    const lo = Array.from({ length: 300 }, (_, i) => firstUse({ skill: 1, judgment: 15 }, 400 + i)).filter(x => x.fumble).length;
+    const par = Array.from({ length: 100 }, (_, i) => firstUse({ skill: 15, judgment: 15 }, 400 + i)).filter(x => x.fumble).length;
+    expect(lo / 300).toBeGreaterThan(STAT_ACT.fumble - 0.06);
+    expect(par).toBe(0);
+  });
+});
+
+describe('(다) 탱커 딜', () => {
+  it('공격 20 탱커는 서툰 딜러 (공격 · 기술 숙련 1 사냥꾼)보다 딜을 더 넣음, 공격 15 이하 탱커는 예전 그대로', () => {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed: 11, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱', { atk: 20 }), R('melee', 'rogue', '사교형', '근'), R('ranged', 'hunter', '사교형', '사', { atk: 1, skill: 1 }), R('ranged', 'archer', '사교형', '궁')],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    f.bossHp = f.bossMax = 1e9;
+    const end = f.t + 120;
+    while (f.t < end && !f.over) { E.step(f); f.events.length = 0; }
+    expect(who(f, '탱').dealt).toBeGreaterThan(who(f, '사').dealt);
+    const g = fight({ tank: { atk: 15 } }), h = fight({ tank: { atk: 10 } });
+    expect(who(g, '탱').dps).toBeCloseTo(who(h, '탱').dps * (1.075 / 1), 1); // 공격 15 = 예전 배율 (fmFx 1 → 1.15 사이) 그대로, 새 보너스 없음
+  });
+});

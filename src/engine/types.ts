@@ -478,7 +478,9 @@ export type FightEvent =
   | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
-  | { type: 'hit'; uid: number; amt: number }
+  | { type: 'hit'; uid: number; amt: number; crit?: boolean }
+  /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
+  | { type: 'miss'; uid: number }
   /** 뒤집힌 축복: 치유가 피해로 (말풍선 반응. 숫자는 dmg 사건) */
   | { type: 'hurt'; id: number; amt: number }
   /**
@@ -491,7 +493,7 @@ export type FightEvent =
   | { type: 'bossHeal'; amt: number; name: string }
   | { type: 'mobDown'; id: number; name: string }
   /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
-  | { type: 'ability'; id: number; name: string }
+  | { type: 'ability'; id: number; name: string; fumble?: boolean }
   /** 파티원 능력 회복 (연두색 숫자, 내 힐과 구분) */
   | { type: 'aheal'; id: number; amt: number }
   /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, on = 그 사람·영혼 (to = 날아가는 곳. id라 하지 않음: 'id' in ev 로 사람을 찾는 곳이 많음), all = 살아 있는 모두, 아무것도 없으면 보스 */

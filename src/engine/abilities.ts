@@ -10,6 +10,8 @@ import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
+import { clumsy } from '../data/fm';
+import { STAT_ACT } from '../data/rules';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
 const pos = (u: Unit) => (u.moving ? u.moving.to : u.cell);
@@ -203,9 +205,22 @@ function poll(f: Fight, u: Unit): void {
     if (!u.ab || !ready(f, u, a, i)) return;
     const hit = check(f, u, a, tr);
     if (!hit) return;
+    if (u.wob != null && !actNow(f, u)) return; // 능력치 (99 다): 판단이 낮으면 쓸 때가 돼도 늦게 (다음 판단에 다시)
     if (a.each) s.fired.push(i);
+    if (u.wob != null && a.cd > 0 && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) { // 헛씀: 재사용만 돌고 효과 없음
+      s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
+      emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
+      bark(f, u, null, true, 'skillFumble');
+      return;
+    }
     use(f, u, a, { target: hit === true ? undefined : hit });
   });
+}
+
+/** 능력치 (99 다): 이번 판단 (0.2초마다)에 쓰나. 늦게 쓰는 평균 abLate × 판단 서툼 (15 이상 바로) */
+function actNow(f: Fight, u: Unit): boolean {
+  const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
+  return tau < 0.05 || f.rng() < 1 - Math.exp(-0.2 / tau);
 }
 
 function ready(f: Fight, u: Unit, a: AbilityDef, i: number): boolean {
