@@ -118,25 +118,23 @@ export const WARDER = {
   circle: { sec: 10 },
   shieldCap: 0.6,
   /** 수호 결계 (82): 받는 피해 −40% → 대상 최대 체력 hp만큼 보호막 + 인장 */
-  guard: { hp: 0.5, sec: 8 }, // 10-19 막 너프 몫 0.3 → 0.5
+  guard: { hp: 0.3, sec: 8 },
   /** 빛의 장막 (82): 범위 피해 감소 → 파티 전원 보호막 (SKILLS.lightVeil.amt) + 인장, sec초. 장막의 숨 · 함께 드는 짐은 쓴 뒤 after초 */
   veil: { sec: 12, after: 10 },
   /** 결계 굳히기 (빛의 창 대신, 84): 내 보호막 남은 시간 + 초 (두께는 SKILLS.wardHold.amt) */
   hold: { ext: 8 },
   judge: { n: 6 },
-  broken: 150, // 깨진 막의 빛: 10-19 막이 얇아져 자주 깨지는 대신 80 → 150
-  price: { n: 2, mana: 2 }, // 10-19 4 → 2: 심판 인원을 줄여 10 · 20인에서 안 걸리던 것을 모든 판에서
+  broken: 80,
+  price: { n: 4, mana: 2 },
   /** 20인 레이드 보정 (드루이드 들꽃 군락처럼): 심판 회복 인원 · 결계 원 범위 +칸 */
-  big: { judge: 3, circle: 0 }, // 10-19 막 너프 뒤 인장 치유가 빨라져 20인이 세져서 6 → 3 · +1칸 → 없음
+  big: { judge: 6, circle: 1 },
   /** 레이드 보정: 심판 회복 인원 (10인) */
-  raid: { judge: 2 }, // 10-19 4 → 2 (같은 까닭)
+  raid: { judge: 4 },
   /** 5인 던전 보정: 심판 회복 인원 */
-  five: { judge: 4 }, // 10-19 3 → 4 (막 너프 몫)
+  five: { judge: 3 },
 };
 
 /** 심판 회복 인원 문장 (스킬 · 직업 설명 공통, 84) */
-export const judgeText = (): string => WARDER.five.judge === WARDER.raid.judge && WARDER.raid.judge === WARDER.big.judge
-  ? `${WARDER.five.judge}명`
-  : WARDER.five.judge === WARDER.raid.judge
+export const judgeText = (): string => WARDER.five.judge === WARDER.raid.judge
   ? `${WARDER.five.judge}명 (20인 레이드 ${WARDER.big.judge}명)`
   : `${WARDER.five.judge}명 (10인 레이드 ${WARDER.raid.judge}명, 20인 레이드 ${WARDER.big.judge}명)`;
