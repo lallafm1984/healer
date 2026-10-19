@@ -51,7 +51,7 @@ export const STAT_KEYS: StatKey[] = ['int', 'hp', 'crit', 'haste', 'spirit', 'en
 /** 추가 옵션 한 줄의 영웅 최대값 (34 6-4) · 합 상한 */
 export const STATS: Record<StatKey, { name: string; max: number; cap?: number }> = {
   int: { name: '지능', max: 0.05 },
-  hp: { name: '체력', max: 0.07 },
+  hp: { name: '체력', max: 0.045 }, // 103 ③: 0.07 → 0.045 (힐러 체력이 탱커를 넘지 않게)
   crit: { name: '치명타', max: 0.04, cap: 0.5 },
   haste: { name: '가속', max: 0.05, cap: 0.5 },
   spirit: { name: '정신력', max: 0.08 },
@@ -71,7 +71,8 @@ export const LINE_MULT: Record<ItemGrade, number> = { '일반': 0.7, '고급': 0
  * 주 옵션 (예전 주 능력치, 34 6-5): 무기 · 머리 · 손 = 지능, 몸통 = 체력, 장신구는 없음. 옵션 첫 줄, 기준값 = 영웅 (× 등급 배율) × 굴림.
  * 예전 방어구 칸마다 지능 + 체력을 머리 · 손 지능, 몸통 체력으로 나눔
  */
-export const MAIN_OPT: Partial<Record<SlotKey, { stat: StatKey; v: number }>> = { weapon: { stat: 'int', v: 0.12 }, head: { stat: 'int', v: 0.1 }, hands: { stat: 'int', v: 0.1 }, chest: { stat: 'hp', v: 0.18 } };
+/** 몸통 체력 0.18 → 0.12 (2026-10-19 Lim 「Lv 100 영웅 몸통 … 힐러 체력이 탱커보다 높아짐」, 103 ③) */
+export const MAIN_OPT: Partial<Record<SlotKey, { stat: StatKey; v: number }>> = { weapon: { stat: 'int', v: 0.12 }, head: { stat: 'int', v: 0.1 }, hands: { stat: 'int', v: 0.1 }, chest: { stat: 'hp', v: 0.12 } };
 /** 종류 · 무작위 옵션 한 줄 부위 배율: 무기 · 방어구는 줄 수가 주 옵션만큼 적어서 한 줄이 큼 (영웅 장비 부위 세기는 예전과 같게) */
 export const SLOT_MULT: Record<SlotGroup, number> = { weapon: 1.3, armor: 1.3, acc: 1 };
 /** 특수능력 굴림: 그 특수능력 최대값의 ROLL_MIN ~ 100% (91: 옵션은 넓은 굴림 rollOpt, 특수능력은 그대로) */
@@ -730,14 +731,14 @@ export interface OptionRow { stat: StatKey; v: number; line: number | null; roll
 export function optionsOf(it: GearItem, level: number): OptionRow[] {
   const up = ilvBonus(it.lv);
   return optionBase(it).map(o => {
-    const x = o.base * up * statMult(o.stat, it.lv, level);
+    const x = o.base * (o.stat === 'hp' ? 1 : up) * statMult(o.stat, it.lv, level); // 체력은 예전 강화 몫 (ilvBonus)을 안 곱함 (103 ③)
     return { stat: o.stat, line: o.line, roll: o.roll, v: x * o.roll, lo: x * OPT_ROLL.lo, hi: x * OPT_ROLL_MAX };
   });
 }
 /** 주 옵션 · 종류 옵션 값 (optionsOf의 앞줄) */
 export const fixedOf = (it: GearItem, level: number) => optionsOf(it, level).filter(o => o.line == null);
 /** 무작위 옵션 한 줄의 값 (아이템 레벨 배율 포함, 재설정 후보 글자) */
-export const lineValue = (it: GearItem, l: GearLine, level: number) => RANDOM_BASE * lineMax(l.stat, it.slot, it.grade) * l.roll * statMult(l.stat, it.lv, level) * ilvBonus(it.lv);
+export const lineValue = (it: GearItem, l: GearLine, level: number) => RANDOM_BASE * lineMax(l.stat, it.slot, it.grade) * l.roll * statMult(l.stat, it.lv, level) * (l.stat === 'hp' ? 1 : ilvBonus(it.lv));
 /** 굴림 막대 채움 (0~1): 특수능력 굴림 (최소 굴림 = 0, 최대 = 1). 옵션 줄은 optFill */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
 
@@ -780,11 +781,11 @@ export const gearStatsOf = (eq: Equipped, level: number): GearStats => statsToGe
  * ilv = 아이템 레벨 (그 장소 적 레벨, % 옵션 배율 pctLvMult). 지능 · 체력은 내 레벨과 같은 아이템 레벨이라 배율 1
  */
 export function presetStats(grade: ItemGrade, mult: number, ilv?: number): StatSet {
-  const s = noStats(), up = mult;
-  const m = (k: StatKey) => (isPointStat(k) ? 1 : pctLvMult(ilv)) * up;
+  const s = noStats(), upOf = (k: StatKey) => (k === 'hp' ? 1 : mult); // 체력은 예전 강화 몫 (mult = ilvBonus 자리)을 안 곱함 (103 ③, 실제 장비와 같게)
+  const m = (k: StatKey) => (isPointStat(k) ? 1 : pctLvMult(ilv)) * upOf(k);
   for (const x of SLOTS) {
     const ks = kindsOf(x.key), w = 1 / ks.length, main = MAIN_OPT[x.key];
-    if (main) s[main.stat] += main.v * LINE_MULT[grade] * up;
+    if (main) s[main.stat] += main.v * LINE_MULT[grade] * upOf(main.stat);
     for (const kd of ks) {
       for (const f of kindStats(kd).slice(0, kindLines(kd, grade))) s[f] += w * lineMax(f, x.key, grade) * m(f);
       const others = STAT_KEYS.filter(k => !takenStats(kd).includes(k)), n = randomLines(kd, grade);
@@ -828,7 +829,7 @@ export const SPEC_SCORE = 1.3;
 export function itemScore(it: GearItem | undefined, level: number): number {
   if (!it) return 0;
   const up = ilvBonus(it.lv), uq = it.uniqueMult ?? UNIQUE_MULT;
-  const opts = optionBase(it).reduce((a, o) => a + (o.base * o.roll * up) / STATS[o.stat].max, 0);
+  const opts = optionBase(it).reduce((a, o) => a + (o.base * o.roll * (o.stat === 'hp' ? 1 : up)) / STATS[o.stat].max, 0); // 체력은 실제 값처럼 ilvBonus 없이 (103 ③)
   const specs = (it.specs ?? []).reduce((a, l) => a + SPEC_SCORE * (l.legend ? uq : 1), 0) + (it.unique ? SPEC_SCORE * uq : 0) + (it.named ? SPEC_SCORE * UNIQUE_MULT : 0);
   return (opts + specs) * ilvMult(it.lv, level);
 }
@@ -837,13 +838,17 @@ export const avgScore = (eq: Equipped, level: number) => SLOTS.reduce((a, s) => 
 export function presetScore(grade: ItemGrade, mult: number, specLines = 0): number {
   let sum = 0;
   for (const x of SLOTS) {
+    // 체력 줄은 mult (예전 강화 몫 = ilvBonus 자리)를 안 곱함 (103 ③, itemScore · 실제 장비와 같게)
+    let vm = 0, v1 = 0;
+    const add = (stat: StatKey, val: number) => { if (stat === 'hp') v1 += val; else vm += val; };
     const ks = kindsOf(x.key), main = MAIN_OPT[x.key];
-    let v = main ? (main.v * LINE_MULT[grade]) / STATS[main.stat].max : 0;
+    if (main) add(main.stat, (main.v * LINE_MULT[grade]) / STATS[main.stat].max);
     for (const kd of ks) {
-      const kinds = kindStats(kd).slice(0, kindLines(kd, grade)).reduce((a, f) => a + lineMax(f, x.key, grade) / STATS[f].max, 0);
-      v += (kinds + randomLines(kd, grade) * RANDOM_BASE * SLOT_MULT[groupOf(x.key)] * LINE_MULT[grade]) / ks.length;
+      for (const f of kindStats(kd).slice(0, kindLines(kd, grade))) add(f, lineMax(f, x.key, grade) / STATS[f].max / ks.length);
+      const others = STAT_KEYS.filter(k => !takenStats(kd).includes(k)), n = randomLines(kd, grade);
+      for (const k of others) add(k, (n * RANDOM_BASE * lineMax(k, x.key, grade)) / STATS[k].max / others.length / ks.length);
     }
-    sum += v * mult + specLines * SPEC_SCORE;
+    sum += vm * mult + v1 + specLines * SPEC_SCORE;
   }
   return sum / SLOTS.length;
 }
