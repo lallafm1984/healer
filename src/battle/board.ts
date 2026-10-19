@@ -1299,7 +1299,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   paladin: ['board-sanctuary'],
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-spring-aura', 'board-totem-earth-aura', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
-  astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
+  astrologer: ['board-star', 'board-star-mark', 'board-supernova'],
   warder: ['board-citadel'],
 };
 /**
@@ -1308,7 +1308,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
 const HERO_ART_BOX: Record<string, [number, number]> = {
   'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」)
   'board-mist': [0.98, 0.49],
-  'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
+  'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], // 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
 const CHARGE_STARS: [number, number][][] = [
@@ -1705,7 +1705,8 @@ export function render(now: number): void {
     // 결계사 보호막 (막 · 장막 · 결계)은 걸 때 이펙트만, 걸린 동안 칸을 감싸는 금빛 막 · 루프는 없음 (2026-10-19 Lim 「발동 이팩트만 나오고 유지되는 이펙트는 제거」, 보호막 원 · 파란 체력은 그대로)
     const mist = u.hots.find(h => h.key === 'wanderMist' && h.left > 0);
     if (mist) { const side = heroArt(statusArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7); putArtLoop(statusArt, 'monk-mist-loop', x, y + r * 0.55, side, mist.left < 2 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
-    if (asleep(F, u)) { const side = heroArt(statusArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9); putArtLoop(statusArt, 'astro-sleep-loop', x, y, side, u.sleep! - F.t < 1 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
+    // 별의 잠 (2026-10-19 Lim 「잠 같은 경우처럼 이미지 한장이 유지되는 경우는 피하자」): 고치 그림 없이 별빛 루프만 (둘레를 도는 별 · 별가루 · 반짝임), 시간은 왼쪽 보라 원
+    if (asleep(F, u)) putArtLoop(statusArt, 'astro-sleep-loop', x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37);
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
