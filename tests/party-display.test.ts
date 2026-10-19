@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf } from '../src/battle/party-display';
-import type { Debuff, Hot, Mod } from '../src/engine/types';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf } from '../src/battle/party-display';
+import type { Debuff, Hot, Mod, Unit } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
 const hot = (key: Hot['key'], left: number): Hot => ({ key, left, name: key, every: 2, tick: 2, per: 10, i: 0, rest: 30 });
@@ -93,6 +93,12 @@ describe('전투 칸 글자 크기', () => {
     expect(sealTimerOf({ seal: 9.9 }, 10, 'warder')).toBeNull();
     expect(sealTimerOf({}, 10, 'warder')).toBeNull();
     expect(sealTimerOf({ seal: 18 }, 10, 'priest')).toBeNull();
+  });
+  it('점성술사 별자리 표식은 오른쪽 지속 힐 원이 아니라 왼쪽 열 원 + 남은 초 (2026-10-19 Lim 「표식 스킬도 보호막처럼 지속시간을 숫자로」)', () => {
+    const u = { hot: 0, hots: [{ key: 'starMark', left: 7.5 }, { key: 'droplet', left: 3 }] } as unknown as Unit;
+    expect(starMarkTimerOf(u, 'astrologer')).toBe(7.5);
+    expect(starMarkTimerOf(u, 'priest')).toBeNull();
+    expect(hotTimersOf(u).map(h => h.key)).toEqual(['droplet']);
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;

@@ -9,9 +9,9 @@ const hotTimerOrder = (key: string) => {
   return index < 0 ? HOT_TIMER_ORDER.length : index;
 };
 
-/** 모든 직업 공통: 효과별 시간을 분리하고, 갱신·남은 시간 때문에 순서를 바꾸지 않습니다. */
+/** 모든 직업 공통: 효과별 시간을 분리하고, 갱신·남은 시간 때문에 순서를 바꾸지 않습니다. 점성술사 별자리 표식은 왼쪽 열 원 (starMarkTimerOf)이라 뺀다 */
 export function hotTimersOf(u: Pick<Unit, 'hot' | 'hots'>): { key: string; left: number }[] {
-  return [...(u.hot > 0 ? [{ key: 'renew', left: u.hot }] : []), ...u.hots.filter(h => h.left > 0)]
+  return [...(u.hot > 0 ? [{ key: 'renew', left: u.hot }] : []), ...u.hots.filter(h => h.left > 0 && h.key !== 'starMark')]
     .sort((a, b) => hotTimerOrder(a.key) - hotTimerOrder(b.key) || a.key.localeCompare(b.key));
 }
 
@@ -54,6 +54,15 @@ export function guardTimersOf(u: Pick<Unit, 'guardian' | 'redu' | 'immune' | 'sa
  * 칸 왼쪽 열에서 보호막 원 · 방어 생존기 원 아래 같은 크기 원 (예전 인장 그림 board-seal은 다른 원과 같이 있을 때 작아져 크기가 들쭉날쭉했음)
  */
 export const sealTimerOf = (u: Pick<Unit, 'seal'>, t: number, hero: HeroKey): number | null => (hero === 'warder' && u.seal != null && u.seal > t ? u.seal - t : null);
+/**
+ * 점성술사 별자리 표식 남은 시간 (2026-10-19 Lim 「표식 스킬도 보호막처럼 지속시간을 숫자로」): 칸 왼쪽 열에서 결계사 인장처럼 보호막 원과 같은 크기 원 + 남은 초.
+ * 예전 별자리 표식 그림 (board-star-mark)과 오른쪽 지속 힐 원은 없앰
+ */
+export const starMarkTimerOf = (u: Pick<Unit, 'hots'>, hero: HeroKey): number | null => {
+  if (hero !== 'astrologer') return null;
+  const m = u.hots.find(h => h.key === 'starMark' && h.left > 0);
+  return m ? m.left : null;
+};
 
 /**
  * 칸 글자 크기 (판 그림 좌표). 모든 판이 5인 던전 칸 모양이라 (2026-10-16 Lim, 레이드 전용 작은 칸 없앰) 대상 폰에서 scale은 50 이상,
