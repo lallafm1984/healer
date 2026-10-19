@@ -14,11 +14,11 @@ export interface TalkBubble { id: number; text: string; life: number; sit: TalkS
 /** 감정 아이콘 (43 4장 B): 아이콘 → 붙는 상황. 표에 없는 상황은 아이콘 없이 뜸 */
 const EMOTES: Record<string, TalkSit[]> = {
   alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake', 'cutTry', 'foreseeWrong', 'burst'],
-  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce', 'lateDodge'],
+  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce', 'lateDodge', 'aggroPanic'],
   heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare', 'buddyUp', 'repay', 'relief'],
   sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean', 'praise', 'windUp', 'timing'],
   note: ['idle', 'allFull', 'hello', 'moodUp', 'breather'],
-  question: ['wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff'],
+  question: ['wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff', 'aggroLost'],
   anger: ['aggroIgnore', 'sulk', 'stubborn', 'jealous', 'noHeal', 'envy', 'vent'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown', 'cry'],
   dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze'],
