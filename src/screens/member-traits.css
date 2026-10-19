@@ -1,0 +1,20 @@
+/* 길드 · 편성의 같은 스킬/성격 정보: 제목, 효과, 발동 조건을 분리한다. */
+.ns .member-trait {
+  min-width: 0;
+  margin: 4px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid #8d77514d;
+  text-align: left;
+}
+.ns .member-trait .trait-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; margin-bottom: 6px; }
+.ns .member-trait .trait-label { flex: none; margin-right: 2px; color: #b8ab91; font: 600 10px/1.4 var(--font-body); }
+:is(#s-guild,#s-party) .member-trait .trait-title { color: var(--trait-color); font: 800 14px/1.4 var(--font-body); overflow-wrap: anywhere; }
+.ns .member-trait .skill-level { flex: none; margin: 0; padding: 1px 5px; border: 1px solid #8f794e; border-radius: 4px; background: #2b241a; color: #f0d99d; font: 800 10px/1.4 var(--font-body); }
+.ns .member-trait .trait-grade { margin-left: auto; color: var(--trait-color); font: 600 10px/1.4 var(--font-body); white-space: nowrap; }
+:is(#s-guild,#s-party) .f-det .member-trait .trait-description { margin: 0; color: #e6dcc7; font: 400 12px/1.65 var(--font-body); word-break: keep-all; overflow-wrap: anywhere; }
+:is(#s-guild,#s-party) .f-det .member-trait .trait-condition { display: flex; align-items: baseline; gap: 7px; margin: 6px 0 0; color: #c2b79f; font: 400 11px/1.5 var(--font-body); }
+.ns .member-trait .trait-condition > span:first-child { flex: none; color: #a9997b; font-size: 10px; }
+.ns .member-trait .trait-difficulty { margin-left: auto; padding: 1px 5px; border: 1px solid #8d77514d; border-radius: 4px; color: #c6b99c; font: 500 10px/1.5 var(--font-body); white-space: nowrap; }
+/* 목록에서도 성격 분류색은 얇은 테와 글자로만 사용한다. */
+:is(#s-guild,#s-party).ns .pcard.f-mem .f-ps { padding: 3px 6px; background: #211d17; background-image: none; border: 1px solid #84755880; border-left: 2px solid var(--pers-color); border-radius: 4px; color: var(--pers-color); font-weight: 700; text-shadow: none; }
+:is(#s-guild,#s-party).ns .pcard.f-mem .f-ab > .skill-level { padding: 0 4px; border: 1px solid #89724966; border-radius: 3px; color: #dac79e; background: #292217; }

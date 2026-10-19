@@ -1,5 +1,5 @@
 /** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬, 등급 색 + LV) · 능력치 (97, 인연 안개) · 인연 하트 · 성격 (17 11장) */
-import { ABILITIES, AB_GRADE, AB_KIND } from '../data/abilities';
+import { ABILITIES, AB_GRADE } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { bondName } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
@@ -8,12 +8,22 @@ import { classGlyphSvg } from './class-icons';
 import { bondIconSvg, ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
 
-/** 능력 한 줄: 종류 아이콘 + 이름 + LV + 등급 + 효과 (+ 쓰는 때) */
+/** 스킬 정보: 이름 · LV · 등급, 효과, 발동 조건을 각각 읽는다. */
 export function abHtml(key: string | undefined, star = 0, when = true): string {
   const a = key ? ABILITIES[key] : null;
   if (!a) return '';
   const g = AB_GRADE[a.grade];
-  return `<p class="pab" style="--gc:${g.color}"><b>${AB_KIND[a.kind].icon} ${esc(a.name)}${star ? ` <span class="skill-level">LV ${star}</span>` : ''}</b><i>${g.name}</i> ${esc(a.desc)}${when ? ` <small>· ${esc(a.when)}</small>` : ''}</p>`;
+  return `<section class="member-trait pab" style="--trait-color:${g.color}" aria-label="직업 스킬">
+    <div class="trait-heading"><span class="trait-label">스킬</span><b class="trait-title">${esc(a.name)}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}<span class="trait-grade">${g.name}</span></div>
+    <p class="trait-description">${esc(a.desc)}</p>${when ? `<p class="trait-condition"><span>발동</span><span>${esc(a.when)}</span></p>` : ''}</section>`;
+}
+
+/** 성격 이름과 설명을 분리하고 다루기 난이도는 말로 구분한다. */
+function personalityHtml(name: PersName, desc = true): string {
+  const p = PERS[name], difficulty = ['수월', '보통', '까다로움'][p.star - 1];
+  return `<section class="member-trait personality" style="--trait-color:${CATS[p.cat]}" aria-label="성격">
+    <div class="trait-heading"><span class="trait-label">성격</span><b class="trait-title">${esc(name)}</b><span class="trait-difficulty" aria-label="다루기 난이도 ${p.star} / 3 · ${difficulty}">다루기 ${difficulty}</span></div>
+    ${desc ? `<p class="trait-description">${esc(p.desc)}</p>` : ''}</section>`;
 }
 
 /**
@@ -75,13 +85,13 @@ export function classIcon(cls: ClassKey): string {
 }
 
 /**
- * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 직업 스킬 「이름」 · 오른쪽 끝 능력 ★ (97, 공개모집). 설명은 누르면 시트 (memDetailHtml).
- * 성격은 분류색 바탕에 전체 이름만 표시한다. 다루기 ★ 개수는 상세 시트에 둔다.
+ * 파티원 줄: 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 직업 스킬 이름 · LV · 오른쪽 끝 능력 별.
+ * 성격은 분류색 테두리와 전체 이름을 표시한다. 효과와 다루기 난이도는 상세 시트에 둔다.
  */
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `<span class="skill-name">「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」</span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
+    ? `<span class="skill-name"><b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
@@ -89,20 +99,20 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
     <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
-/** 파티원 상세 (편성 · 길드 줄을 누르면 시트): 능력 ★ · (인연에 따라) 능력치 · 직업 스킬 · 성격 (다루기 ★) */
+/** 파티원 상세: 능력 별 · (인연에 따라) 능력치 · 스킬 · 성격 */
 export function memDetailHtml(m: CardData): string {
-  const p = PERS[m.pers], b = m.bond ?? 0, role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
+  const b = m.bond ?? 0, role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const fog = m.member ? 'exact' : b >= 2 ? 'range' : null;
   const how = m.member ? '' : b >= 2 ? '<small>친구: 범위만 · 길드에 들어오면 숫자</small>' : '<small>친구가 되면 능력치가 보임</small>';
   return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${m.bond != null ? how : ''}</p>${fog ? statsHtml(m.nick, m.fm.stats, role, fog) : ''}` : ''}${abHtml(m.ab, m.star || 0)}
-    <p><b class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</b> <span class="f-star"><span class="sr">다루기 난이도 </span>${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div>`;
+    ${personalityHtml(m.pers)}</div>`;
 }
 
 /** 카드 본문 (역할 원 + 글). extra = 오른쪽 끝 버튼 등 */
 export function cardHtml(m: CardData, o: { attrs?: string; extra?: string; cls?: string; desc?: boolean } = {}): string {
-  const c = CLASSES[m.cls], p = PERS[m.pers];
+  const c = CLASSES[m.cls];
   return `<li class="pcard${o.cls ? ` ${o.cls}` : ''}" ${o.attrs || ''}><span class="prole two" style="background:${ROLE[c.role].color}">${c.short}</span>
     <div><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}</small>
     ${abHtml(m.ab, m.star || 0, o.desc !== false)}
-    <p><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span> <span class="star">${'★'.repeat(p.star)}</span>${o.desc !== false ? ` · ${esc(p.desc)}` : ''}</p></div>${o.extra || ''}</li>`;
+    ${personalityHtml(m.pers, o.desc !== false)}</div>${o.extra || ''}</li>`;
 }
