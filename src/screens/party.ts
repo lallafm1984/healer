@@ -124,7 +124,7 @@ function guildPickHtml(stage: number): string {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
       const ks = e.know?.[boss] ?? 0; // 이 보스 공략 숙지 (93 7-1)
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `${gameIcon('know', '')}숙지 ${ks}` : '', gold: m.boost ? `후원 ${m.boost}` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `${gameIcon('know', '숙지 ')}${ks}<span class="sr">단계 공략 숙지</span>` : '', gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage, bond: bondOf(G.save, m.nick) }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
