@@ -218,12 +218,19 @@ export function doReact(f: Fight, u: Unit): void {
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
     if (u.wob != null && impact && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
-    u.retryAt = (impact || f.t) + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1); // 침착 (97 FM)
+    u.retryAt = recoverAt(f, u, impact || f.t); // 침착 (97 FM)
     bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
 }
 
 const st = (u: Unit, k: 'react' | 'judgment') => u.fmStats?.[k] ?? 10;
+/**
+ * 못 피한 뒤 다시 움직이는 때 (99, Codex 검토 A): 멈칫 · 늦게 피함 · 엉뚱한 쪽 모두 같은 침착 중심 식 (예전 멈칫 식 그대로).
+ * 반응은 예고를 보고 언제 움직이기 시작하는지 (scheduleReaction), 침착은 실수 뒤 수습 속도. 예전엔 늦게 피함이 터진 뒤 0.3~0.9초에 나와 멈칫 (1.5~4초)보다 빨라 반응 낮은 쪽이 유리했음
+ */
+export function recoverAt(f: Fight, u: Unit, impact: number): number {
+  return impact + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1);
+}
 /**
  * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응이 낮을수록) = 터진 뒤 뛰어나옴, 엉뚱한 쪽 (판단이 낮을수록) = 장판 안 다른 칸으로 갔다가 터진 뒤 다시,
  * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true
@@ -233,8 +240,7 @@ function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): bo
   if (late + wrong <= 0) return false;
   const x = f.rng();
   if (x < late) {
-    const [[a1, b1], [a2, b2]] = STAT_ACT.lateSec, lo = a2 + (a1 - a2) * cr, hi = b2 + (b1 - b2) * cr;
-    const at = impact + lo + (hi - lo) * f.rng();
+    const at = recoverAt(f, u, impact); // 늦게 피함도 멈칫과 같은 때에 벗어남 (먼저 벗어나지 않게), 대신 맞는 칸 (안전한 칸)으로
     u.react = { at, tel: tel.id, late: new Set(tel.cells) };
     u.retryAt = at + 0.4;
     return true;
@@ -244,8 +250,7 @@ function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): bo
     if (!free.length) return false;
     moveTo(f, u, free[Math.floor(f.rng() * free.length)]);
     u.wrongUntil = f.t + 0.6; // 칸 위 「?」
-    const [a, b] = STAT_ACT.wrongBack;
-    u.retryAt = impact + a + (b - a) * f.rng();
+    u.retryAt = recoverAt(f, u, impact);
     bark(f, u, null, true, 'wrongDodge');
     return true;
   }

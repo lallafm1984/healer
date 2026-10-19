@@ -327,3 +327,54 @@ describe('(라) 방어 · 회피 · 나머지', () => {
     expect(go(f1) / go(f15)).toBeGreaterThan(1 + STAT_ACT.slowMove);
   });
 });
+
+describe('Codex 검토 반영: 버그', () => {
+  it('A: 못 피한 뒤 다시 움직이는 때는 세 모양 모두 같은 침착 식 (늦게 피함 · 엉뚱한 쪽이 멈칫보다 먼저 벗어나지 않음)', () => {
+    const late: number[] = [], wrong: number[] = [], freeze: number[] = [];
+    for (let i = 0; i < 400; i++) {
+      const f = fight({ st: { react: 1, judgment: 1 }, seed: 7000 + i }), u = who(f, '근');
+      u.senseDodge = -2;
+      const tel = zoneTel(f, u);
+      u.react = { at: f.t, tel: tel.id };
+      const c0 = u.cell;
+      doReact(f, u);
+      if (u.react?.late) late.push(u.react.at - tel.impact);
+      else if (u.moving && tel.cells.has(u.moving.to)) wrong.push(u.retryAt - tel.impact);
+      else if (!u.moving && u.cell === c0) freeze.push(u.retryAt - tel.impact);
+    }
+    expect(late.length).toBeGreaterThan(30); expect(wrong.length).toBeGreaterThan(30); expect(freeze.length).toBeGreaterThan(30);
+    expect(Math.min(...late)).toBeGreaterThanOrEqual(1.5 * 0.99); // 침착 10 (× 1)에서 가장 빨라도 1.5초
+    expect(mean(late)).toBeGreaterThan(mean(freeze) - 0.25);
+    expect(mean(wrong)).toBeGreaterThan(mean(freeze) - 0.25);
+  });
+  it('B: 예고 반응 생존기도 판단이 낮으면 늦게 쓰거나 놓치고, 15 이상은 예고가 뜨자마자', async () => {
+    const { abOnTel } = await import('../src/engine/abilities');
+    const shield = (judgment: number, seed: number, skill = 15, out?: { fumble: number }) => {
+      const f = E.create({
+        encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+        party: [{ ...R('tank', 'warrior', '사교형', '탱', { judgment, skill }, 15), ab: 'warrior.shieldBlock' }, R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
+      });
+      f.skills.forEach(s => { s.next = Infinity; });
+      for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+      const tk = who(f, '탱');
+      const tel = { id: telId++, kind: 'buster', cells: new Set([tk.cell]), units: [tk.id], impact: f.t + 1.5, skill: { key: 't', name: '시험 강타', kind: 'buster', dmg: 10, hit: () => {} } } as unknown as Telegraph;
+      f.tels.push(tel);
+      const t0 = f.t;
+      abOnTel(f, tel);
+      let at = Infinity;
+      for (let k = 0; k < 40 && at === Infinity; k++) { for (const ev of f.events) if (ev.type === 'ability' && ev.id === tk.id) { at = f.t - t0; if (out && (ev as { fumble?: boolean }).fumble) out.fumble++; } f.events.length = 0; if (f.t < tel.impact) E.step(f); else break; }
+      return at;
+    };
+    const par = Array.from({ length: 30 }, (_, i) => shield(15, 50 + i)), slow = Array.from({ length: 60 }, (_, i) => shield(1, 50 + i));
+    expect(par.every(t => t === 0)).toBe(true);
+    expect(slow.filter(t => t === 0).length).toBe(0);
+    expect(slow.some(t => t > 0 && t < Infinity)).toBe(true); // 늦게 씀
+    expect(slow.some(t => t === Infinity)).toBe(true); // 놓침
+    const o = { fumble: 0 };
+    for (let i = 0; i < 80; i++) shield(15, 50 + i, 1, o);
+    expect(o.fumble).toBeGreaterThan(0); // 예고 반응도 기술 숙련이 낮으면 헛씀
+    const p = { fumble: 0 };
+    for (let i = 0; i < 80; i++) shield(15, 50 + i, 15, p);
+    expect(p.fumble).toBe(0);
+  });
+});

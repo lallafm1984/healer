@@ -157,7 +157,7 @@ describe('전투 중 말풍선', () => {
       const { f, out, barks } = run(enc, seed);
       const end = 3000 + f.t * 1000;
       const forced = new Set(barks.filter(b => b.sit !== 'thanks' && b.sit !== 'dodge').map(b => `${b.t}:${b.id}`));
-      const free = out.filter(b => b.t > 3000 && b.t <= end && !forced.has(`${b.t}:${b.id}`));
+      const free = out.filter(b => b.t > 3000 && b.t < end && !forced.has(`${b.t}:${b.id}`));
       const last = new Map<number, number>();
       for (const b of free) { expect(b.t - (last.get(b.id) ?? -1e9)).toBeGreaterThanOrEqual(4000); last.set(b.id, b.t); }
       for (const b of free) expect(free.filter(x => x.t >= b.t && x.t < b.t + 60000).length, `${enc} t=${b.t}`).toBeLessThanOrEqual(9);

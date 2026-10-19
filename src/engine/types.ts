@@ -308,6 +308,8 @@ export interface AbState {
   odd?: number;
   /** 능력치 (99 라): 이번 판 생존기 체력 기준 흔들림 (꾸준함) */
   gj?: number;
+  /** 능력치 (99, Codex 검토 B): 예고 반응을 판단만큼 늦게 쓰려고 기다리는 중 (예고 id · 쓸 때 · 쓰는 때 번호 · 대상) */
+  pend?: { tel: number; at: number; i: number; target?: number };
   /** 거합 반격 간격 */
   lastCounter: number;
   /** 이 능력으로 회복한 양 */
