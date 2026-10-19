@@ -10,9 +10,9 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, LV_DOUBLE, SPONSOR, statPerLevel, statWeights, STORY, type GuildMember, type StoryKey } from '../data/guild';
+import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, LV_DOUBLE, SPONSOR, spendPoints, statPerLevel, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
-import { birthV25, lvAdds, pickStat, profileOf, seedOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { birthV25, lvAdds, profileOf, seedOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 27; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함 (103, doubleV27)
+export const SAVE_VERSION = 27; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -702,18 +702,20 @@ export function statsV26(m: GuildMember): Stats {
 }
 
 /**
- * v27 (103 Lim 「레벨업시 20프로 확률로 2업」): 이미 있는 길드원은 지난 레벨마다 20% (LV_DOUBLE)를 다시 굴려 두 배 몫 (학습력만큼)을 더함, 깎지 않음.
+ * v27 (103 Lim 「레벨업시 20프로 확률로 2업」 · 「각각 다른 능력치 랜덤 업」): 이미 있는 길드원은 지난 레벨마다 20% (LV_DOUBLE)를 다시 굴려 두 배 몫 (학습력만큼)을 더함, 깎지 않음.
+ * 그 레벨의 평소 점수는 저장 값 (v26 = 공개모집 레벨업 굴림)에 이미 들어 있어, 더하는 1점은 그 레벨에 공개모집 굴림이 올린 칸을 빼고 고름 (= 다른 두 칸).
  * 합류한 레벨은 저장에 없어 길드가 열리는 Lv 15 뒤 레벨만 (그 전은 공개모집 그대로). 씨앗 = 닉네임, 오를 칸은 레벨업과 같은 무게 · 20까지, 남는 점수는 3점까지 모아 둠
  */
 export function doubleV27(m: GuildMember): void {
-  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', r = rngFrom(seedOf(`v27:${m.nick}`));
-  let add = 0;
-  for (let lv = 16; lv <= m.lv; lv++) if (r() < LV_DOUBLE) add += statPerLevel(m.learn);
-  m.sxp = Math.round((m.sxp + add) * 1000) / 1000;
-  while (m.sxp + 1e-9 >= 1) {
-    const k = pickStat(statWeights(m, role), s => m.stats[s], r);
-    if (!k) { m.sxp = Math.min(m.sxp, 3); break; }
-    m.stats[k]++; m.sxp = Math.round((m.sxp - 1) * 1000) / 1000;
+  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', r = rngFrom(seedOf(`v27:${m.nick}`)), per = statPerLevel(m.learn);
+  const birth = { ...profileOf(m.nick, m.pers, role).stats, ...(m.story ? STORY[m.story].boost : {}) };
+  let prev = lvAdds(m.nick, m.pers, role, 15, birth);
+  for (let lv = 16; lv <= m.lv; lv++) {
+    const cur = lvAdds(m.nick, m.pers, role, lv, birth), raised = STAT_KEYS.filter(k => cur[k] > prev[k]);
+    prev = cur;
+    if (r() >= LV_DOUBLE) continue;
+    m.sxp = Math.round((m.sxp + per) * 1000) / 1000;
+    spendPoints(m, role, r, raised);
   }
 }
 
@@ -736,6 +738,8 @@ function memberOf(raw: unknown, ver: number): GuildMember | null {
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? (m.votes.filter(Array.isArray).slice(-5) as string[][]).map(v => v.map(k => (k === 'adds' ? 'coop' : k)).filter((k): k is StatKey => (STAT_KEYS as readonly string[]).includes(k))) : [],
     boost: Math.max(0, Math.min(SPONSOR.max, Math.round(n(m.boost, 0)))),
     runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
+    // 직전 레벨업 두 배 (103, #318 뒤): 두 배가 있을 때만 · 오른 칸은 서로 다른 능력치 키만
+    ...(n(m.lastDouble, 0) >= 1 ? { lastDouble: Math.round(n(m.lastDouble, 0)), lastDoubleStats: Array.isArray(m.lastDoubleStats) ? [...new Set(m.lastDoubleStats.filter((k): k is StatKey => (STAT_KEYS as readonly string[]).includes(k)))] : [] } : {}),
   };
 }
 

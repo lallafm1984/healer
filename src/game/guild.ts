@@ -10,7 +10,7 @@ import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
-  memberSkillLevel, LV_DOUBLE, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
+  memberSkillLevel, LV_DOUBLE, spendPoints, STORY, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
@@ -314,7 +314,7 @@ export function guildSeatCount(save: SaveData, enc: Encounter): number {
 }
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
-  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string; shown?: number }[]; lv?: number; /** 두 배 (LV_DOUBLE)가 나온 레벨 수 */ dbl?: number }[];
+  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string; shown?: number }[]; lv?: number; /** 두 배 (LV_DOUBLE)가 나온 레벨 수 · 마지막 두 배 레벨에 오른 칸 */ dbl?: number; dblStats?: StatKey[] }[];
   /** 쉬는 명단이 받은 경험치 합 · 그 가운데 후원으로 받은 사람 (경험치 · 남은 판) */
   rest: number;
   boosted: { nick: string; xp: number; left: number }[];
@@ -350,32 +350,31 @@ export function memberXp(m: Pick<GuildMember, 'lv'>, o: { stage: number; diff: D
 
 /** 타고난 능력치 = Lv 1 바탕 (1000명 줄의 그 사람, 스토리 동료는 고정 능력치를 덧씀) */
 export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'story' | 'cls'>): Stats => ({ ...profileOf(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged').stats, ...(m.story ? STORY[m.story].boost : {}) });
-/** 모아 두는 점수 (오를 칸이 없을 때, 레벨 상한이 오르면 씀) */
-const SXP_BANK = 3;
 
 /**
  * 능력치는 레벨업할 때 (Lim 10-18 · 104): 오른 레벨마다 학습력만큼 점수 (0.9~1.1), 레벨 하나가 20% 확률로 두 배 (LV_DOUBLE, Lim 10-20 · 103),
- * 1점마다 오를 칸 하나 +1 (성장 결 무게 × 최근 「한 일」 표, 97 · 103).
+ * 1점마다 오를 칸 하나 +1 (성장 결 무게 × 최근 「한 일」 표, 97 · 103). 레벨마다 차례로: 한 레벨에서 오르는 칸은 서로 다름 (두 배 = 다른 두 칸, Lim 10-20).
  * deed = 출전한 판에서 한 일 (쉬는 판은 표 없음). 20인 칸은 안 오르고, 오를 칸이 없으면 점수를 3점까지 모아 둠
  */
 export function growStats(m: GuildMember, levels: number, deed: Deed | undefined, r: () => number): { k: StatKey; to: number; why: string }[] {
   if (deed) m.votes = [...m.votes, DEED_STATS[deed]].slice(-VOTE_KEEP);
-  let dbl = 0;
-  for (let i = 0; i < levels; i++) if (r() < LV_DOUBLE) dbl++;
-  m.sxp = Math.round((m.sxp + (levels + dbl) * statPerLevel(m.learn)) * 1000) / 1000;
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', out: { k: StatKey; to: number; why: string }[] = [];
-  while (m.sxp + 1e-9 >= 1) {
-    const w = statWeights(m, role), tot = STAT_KEYS.reduce((a, k) => a + w[k], 0);
-    if (tot <= 0) { m.sxp = Math.min(m.sxp, SXP_BANK); break; }
-    let x = r() * tot, k: StatKey = STAT_KEYS[0];
-    for (const s of STAT_KEYS) { x -= w[s]; if (x <= 0) { k = s; break; } }
-    m.sxp = Math.round((m.sxp - 1) * 1000) / 1000; m.stats[k]++;
-    out.push({ k, to: m.stats[k], why: deed && DEED_STATS[deed].includes(k) ? DEED_WHY[deed] : '' });
+  const per = statPerLevel(m.learn);
+  let dbl = 0, dblStats: StatKey[] = [];
+  for (let i = 0; i < levels; i++) {
+    const two = r() < LV_DOUBLE;
+    if (two) dbl++;
+    m.sxp = Math.round((m.sxp + (two ? 2 : 1) * per) * 1000) / 1000;
+    const got = spendPoints(m, role, r, []);
+    for (const k of got) out.push({ k, to: m.stats[k], why: deed && DEED_STATS[deed].includes(k) ? DEED_WHY[deed] : '' });
+    if (two) dblStats = got;
   }
-  if (levels > 0) { m.lastStatGains = [...new Set(out.map(x => x.k))]; m.lastDouble = dbl; }
+  if (levels > 0) {
+    m.lastStatGains = [...new Set(out.map(x => x.k))];
+    if (dbl) { m.lastDouble = dbl; m.lastDoubleStats = dblStats; } else { delete m.lastDouble; delete m.lastDoubleStats; }
+  }
   return out;
 }
-
 /**
  * 판 뒤 길드 정산 (93 6-1 · 97). party = 전투가 끝날 때 파티원 (deed = 그 판에서 가장 두드러진 일), roster = 전투에 넘긴 편성, kind = 콘텐츠 종류.
  * 이긴 판만: 출전한 길드원 레벨 경험치 (레벨업하면 능력치), 쉬는 명단 레벨 경험치 30%, 길드파티 (자리 절반 이상이 길드원)면 명성 · 길드 첫 처치 · 주간 목표 출전 기록
@@ -399,7 +398,7 @@ export function guildAfter(
     const lv0 = m.lv, x0 = m.xp, ups = addMemberXp(m, memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1), cap);
     const xp = gainedXp(lv0, x0, m.lv, m.xp); // 실제로 오른 값 (내 레벨 상한이면 0)
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
-    out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: x.to })), lv: m.lv, ...(ups.length && m.lastDouble ? { dbl: m.lastDouble } : {}) }); // 저장 값 = 화면 숫자 (레벨업 점수까지 듦, 104)
+    out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: x.to })), lv: m.lv, ...(ups.length && m.lastDouble ? { dbl: m.lastDouble, dblStats: m.lastDoubleStats ?? [] } : {}) }); // 저장 값 = 화면 숫자 (레벨업 점수까지 듦, 104)
   }
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀
