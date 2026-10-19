@@ -225,7 +225,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
   const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
   const fame0 = save.guild.fame;
-  const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
+  const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }, now) : null;
   const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs, myLv: levelBefore, chal: !!r.chal }) : null;
   const guildFame = save.guild.fame > fame0 ? { before: fame0, gain: save.guild.fame - fame0 } : null;
 

@@ -4,7 +4,7 @@ import { CLASSES } from '../src/data/classes';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import * as E from '../src/engine';
-import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT, tutLockedContent } from '../src/game/tutorial';
+import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT, tutLockedContent, tutReplay } from '../src/game/tutorial';
 import { settle } from '../src/game/settle';
 import { migrate, newSave } from '../src/platform/storage';
 
@@ -117,5 +117,14 @@ describe('튜토리얼 다시 보기 (105 QA)', () => {
     const again = newSave(1); again.tut = TUT.intro; again.player.level = 40; again.clears.plateau = { 쉬움: { stars: 3, grade: 'S', best: 60, n: 1 } };
     const b = run(again);
     expect([b.xp, b.gold, b.tutReplay]).toEqual([0, 0, true]);
+  });
+});
+
+describe('다시 보기 판정 (105 QA 2)', () => {
+  it('녹슨 고원 기록이 없는 옛 · 건너뛴 저장도 Lv 3부터는 다시 보기', () => {
+    const s = newSave(1); s.tut = TUT.intro; s.player.level = 30;
+    expect(tutReplay(s)).toBe(true);
+    s.player.level = 2;
+    expect(tutReplay(s)).toBe(false);
   });
 });

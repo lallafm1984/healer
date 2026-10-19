@@ -15,7 +15,7 @@ import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy
 import { HERO_KEYS, HEROES } from '../data/heroes';
 import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
-import { guildPartyNeed } from '../game/guild';
+import { guildPartyNeed, guildSeatCount } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
@@ -30,6 +30,7 @@ import { currencyIcon, gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
 import { passReady } from './tabs';
 import { mountVillage } from './village';
+import { ENCOUNTERS } from '../data/encounters';
 
 /** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
 const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
@@ -89,7 +90,8 @@ function gateTracker(): string {
   const lv = G.save.player.level;
   const g = GATES.find(x => lv >= x.from && lv < x.lv);
   if (!g || G.save.tut < TUT.done) return '';
-  const need = guildPartyNeed(g.lv >= 70 ? 20 : 10), have = G.save.guild.members.length; // 레이드 길드파티 인원 (10인 5 · 20인 10명, 105 QA: 정원 = 길드 Lv + 1이 되며 min(정원, 9)가 「길드원 2명」이 됐음)
+  // 레이드 길드파티 인원 (10인 5 · 20인 10명), 길드원은 역할 자리로 셈 (105 QA 2: 탱커 3 + 딜러 7도 「10명 ✓」였음)
+  const enc = ENCOUNTERS[contentOf(g.lv >= 70 ? 'cathedral1' : 'abyss1').fights('보통')[0]], need = guildPartyNeed(g.lv >= 70 ? 20 : 10), have = guildSeatCount(G.save, enc);
   const gi = ITEM_GRADES.indexOf(g.grade);
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;
   const rows: [boolean, string, string, string][] = [
