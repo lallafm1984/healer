@@ -113,12 +113,12 @@ export const PXF = {
   'monk-pool-loop': loop(36, 84, 12, 256),
   'monk-mist-loop': loop(36, 80, 12, 256),
   // 점성술사 (2026-10-19 Lim 「퀄리티 및 파티클 보강, 전면 개편」): Codex 그림이 또렷하게 프레임 256 ~ 384px
-  'astro-star': skill(20, 88, { size: 288 }),
-  'astro-twinkle': skill(16, 86, { size: 256 }),
-  'astro-mark': skill(20, 88, { size: 288 }),
-  'astro-clear': skill(20, 92, { size: 320 }),
-  'astro-fall': skill(20, 90, { size: 320 }),
-  'astro-sleep': skill(24, 92, { size: 320 }),
+  'astro-star': skill(20, 100, { size: 320 }), // 2026-10-19 Lim 「크고 화려하게」: 기억 말고 모두 logical 100
+  'astro-twinkle': skill(16, 100, { size: 320 }),
+  'astro-mark': skill(20, 100, { size: 320 }),
+  'astro-clear': skill(20, 100, { size: 320 }),
+  'astro-fall': skill(20, 100, { size: 320 }),
+  'astro-sleep': skill(24, 100, { size: 320 }),
   'astro-memory': skill(22, 84, { size: 288 }),
   'astro-polaris': skill(22, 100, { size: 384 }),
   'astro-nova-loop': loop(36, 84, 12, 256),
