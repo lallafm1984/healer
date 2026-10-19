@@ -203,52 +203,56 @@ describe('쓰는 때와 효과', () => {
   });
 });
 
-describe('쫄 피해 능력 (17 「쫄 전체 피해」): 보스 전투에 나온 쫄만', () => {
-  /** 보스 전투에 쫄 하나 (P-ADD, 체력이 커서 파티 딜은 거의 안 보임) */
+describe('쫄 피해 능력 · 칼날폭풍 (2026-10-19 Lim 「순식간에 25%는 버그성, 재구성」)', () => {
+  /** 보스 전투에 쫄 하나 (P-ADD, 체력이 커서 안 쓰러짐) */
   const addMob = (f: F, hp = 1e9): Mob => {
     const m: Mob = { id: f.nextId++, name: '시험 쫄', elite: false, hp, max: hp, alive: true, add: { short: '쫄', on: f.party[0].id, dmg: 0, every: 0, next: Infinity } };
     f.mobs.push(m);
     return m;
   };
-  const berserkers = (...abs: string[]) => {
+  const berserker = (ab: string) => {
     const list = party5();
-    abs.forEach((ab, i) => { list[1 + i] = P('melee', 'berserker', { ab, star: 0, nick: `광전사${i}`, gid: i === 0 ? 1 : undefined }); });
+    list[1] = P('melee', 'berserker', { ab, star: 0, nick: '광전사', gid: 1 });
     return list;
   };
 
-  it('일반 · 정예 구간: 칼날폭풍 · 소용돌이를 안 씀 (예전엔 시작하자마자 적 전체 체력 25%를 깎음)', () => {
-    for (const ab of ['berserker.bladestorm', 'berserker.whirl']) {
-      const f = E.create({ encounter: 'gate', diff: '보통', seed: 1, party: berserkers(ab) });
-      expect(f.mobs.filter(m => m.alive && !m.boss).length).toBeGreaterThanOrEqual(2);
-      steps(f, 4);
-      expect(unitOf(f, ab).ab!.uses).toBe(0);
-      expect(f.ab.addDots).toEqual([]);
-    }
+  it('일반 · 정예 구간: 소용돌이 (쫄 최대 체력 %)는 안 씀', () => {
+    const f = E.create({ encounter: 'gate', diff: '보통', seed: 1, party: berserker('berserker.whirl') });
+    expect(f.mobs.filter(m => m.alive && !m.boss).length).toBeGreaterThanOrEqual(2);
+    steps(f, 4);
+    expect(unitOf(f, 'berserker.whirl').ab!.uses).toBe(0);
   });
-  it('보스 전투 쫄: 칼날폭풍 6초 동안 쫄마다 최대 체력 25%, 둘이 쓰면 둘 다 들어감, 길드원 「한 일」 쫄에 셈', () => {
-    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserkers('berserker.bladestorm', 'berserker.bladestorm') });
-    f.skills.forEach(s => { s.next = Infinity; });
-    const a = addMob(f), b = addMob(f);
-    steps(f, 0.4);
-    const users = f.party.filter(u => u.ab?.key === 'berserker.bladestorm');
-    expect(users.map(u => u.ab!.uses)).toEqual([1, 1]);
-    expect(f.ab.addDots.length).toBe(2);
-    steps(f, 7);
-    expect(f.ab.addDots).toEqual([]);
-    for (const m of [a, b]) expect(1 - m.hp / m.max).toBeCloseTo(0.5, 3);
-    expect(users[0].did!.adds).toBeGreaterThanOrEqual(0.5 * a.max * 0.999);
-  });
-  it('칼날폭풍은 쓴 사람이 쓰러지면 멈춤', () => {
-    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserkers('berserker.bladestorm') });
-    f.skills.forEach(s => { s.next = Infinity; });
-    const a = addMob(f), b = addMob(f);
-    steps(f, 0.4);
+  it('칼날폭풍: 일반 · 정예 구간에서도 씀, 6초 동안 공격이 보스 아닌 적 모두에게 (자기 딜만큼, 최대 체력 25%를 깎지 않음)', () => {
+    const f = E.create({ encounter: 'gate', diff: '보통', seed: 1, party: berserker('berserker.bladestorm') });
     const u = unitOf(f, 'berserker.bladestorm');
-    expect(f.ab.addDots.length).toBe(1);
-    u.hp = 0; u.alive = false;
+    steps(f, 0.4);
+    expect(u.ab!.uses).toBe(1);
+    expect(u.mods.find(m => m.k === 'storm')!.until).toBeCloseTo(f.t + 6, 0);
+    const last = f.mobs[f.mobs.length - 1], hp0 = last.hp; // 맨 뒤 적: 파티 딜은 아직 안 감
     steps(f, 7);
-    expect(f.ab.addDots).toEqual([]);
-    for (const m of [a, b]) expect(1 - m.hp / m.max).toBeLessThan(0.25 * 0.2);
+    const lost = hp0 - last.hp;
+    expect(lost).toBeGreaterThan(0);
+    expect(lost).toBeLessThanOrEqual(u.dps * 7 * 1.01);
+    expect(lost / last.max).toBeLessThan(0.25);
+    expect(u.mods.some(m => m.k === 'storm')).toBe(false);
+  });
+  it('칼날폭풍 · 보스 전투 쫄: 공격 한 번마다 쫄마다 같은 피해, 6초 뒤 끝, 길드원 「한 일」 쫄에 셈', () => {
+    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: berserker('berserker.bladestorm') });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const u = unitOf(f, 'berserker.bladestorm');
+    const a = addMob(f), b = addMob(f);
+    steps(f, 0.4);
+    expect(u.ab!.uses).toBe(1);
+    const d0 = u.dealt, b0 = b.hp;
+    steps(f, 6);
+    const stormB = b0 - b.hp; // 뒤 쫄은 칼날폭풍으로만 맞음 (딜러는 앞 쫄부터)
+    expect(stormB).toBeGreaterThan(0);
+    expect(u.dealt - d0).toBeCloseTo(3 * stormB, 3); // 평소 공격 1 + 칼날폭풍 앞 쫄 1 + 뒤 쫄 1
+    expect(u.did!.adds).toBeGreaterThanOrEqual(2 * stormB);
+    const b1 = b.hp;
+    steps(f, 3);
+    expect(b.hp).toBe(b1);
+    expect(a.alive && b.alive).toBe(true);
   });
 });
 

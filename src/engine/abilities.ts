@@ -162,7 +162,7 @@ export function allyHeal(f: Fight, u: Unit, amt: number, by: Unit = u): number {
 }
 
 // ---------- 매 틱 ----------
-/** 효과 시간, 나눠 회복, 칼날폭풍, 0.2초마다 능력 판단 */
+/** 효과 시간, 나눠 회복, 0.2초마다 능력 판단 */
 export function abTick(f: Fight): void {
   for (const u of f.party) {
     if (!u.mods.length) continue;
@@ -171,10 +171,6 @@ export function abTick(f: Fight): void {
       if (m.until <= f.t && m.k === 'hp') endHp(u, m);
     }
     u.mods = u.mods.filter(m => m.until > f.t);
-  }
-  if (f.ab.addDots.length) { // 칼날폭풍: 쓴 사람마다, 쓴 사람이 쓰러지면 멈춤
-    f.ab.addDots = f.ab.addDots.filter(d => d.until > f.t && f.party.some(x => x.id === d.by && x.alive));
-    for (const d of f.ab.addDots) hitAddsBy(f, f.party.find(x => x.id === d.by)!, d.rate * DT);
   }
   if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
   for (const u of f.party) { // 일섬 연격이 끝남: 옆 아군 딜 (93 4-4)
@@ -268,8 +264,8 @@ function pickAlly(u: Unit, list: Unit[]): Unit | null {
 /** 보스 아닌 적 수. onlyAdds = 보스 전투에 나온 쫄 (P-ADD)만 (쫄 피해 능력: 일반 · 정예 구간 적 · 몸통은 그 판 체력이라 안 셈) */
 function addsN(f: Fight, onlyAdds = false): number { return f.mobs.filter(m => m.alive && !m.boss && (!onlyAdds || m.add)).length; }
 /**
- * 쫄 피해 능력 (소용돌이 · 칼날폭풍 · 검기 · 산탄 사격, 17 「쫄 전체 피해」): 보스 전투에 나온 쫄 (P-ADD)에게 최대 체력 × rate.
- * 일반 · 정예 구간의 적 · 몸통 (성가대)은 그 판 체력 자체라 안 침 (예전엔 쳐서 칼날폭풍이 시작하자마자 판 체력 25%를 깎음)
+ * 쫄 피해 능력 (소용돌이 · 검기 · 산탄 사격, 17 「쫄 전체 피해」): 보스 전투에 나온 쫄 (P-ADD)에게 최대 체력 × rate.
+ * 일반 · 정예 구간의 적 · 몸통 (성가대)은 그 판 체력 자체라 안 침 (예전엔 쳐서 칼날폭풍이 시작하자마자 판 체력 25%를 깎음, #263)
  */
 function hitAddsBy(f: Fight, u: Unit, rate: number): void {
   for (const m of f.mobs) {
@@ -620,9 +616,9 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       for (const m of f.mobs) if (m.alive && !m.boss) { m.stun = f.t + fx.sec * e; f.tels = f.tels.filter(t => t.skill.mob !== m.id); }
       break;
     case 'hitAdds':
-      if (fx.sec) { f.ab.addDots = f.ab.addDots.filter(d => d.by !== u.id); f.ab.addDots.push({ rate: (fx.v * e) / fx.sec, until: sec(fx.sec), by: u.id }); }
-      else hitAddsBy(f, u, fx.v * e);
+      hitAddsBy(f, u, fx.v * e);
       break;
+    case 'storm': addMod(u, { k: 'storm', v: fx.v * e, until: sec(fx.sec), src }); break; // 칼날폭풍: 공격이 퍼짐 (fight.ts stormHit), ⚔ ★5 지속 +50%
     case 'delay': if (ctx.tel) ctx.tel.impact += fx.sec * e; break;
     case 'dodgeNow': {
       const tel = ctx.tel;
