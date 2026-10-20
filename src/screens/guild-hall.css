@@ -166,23 +166,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-postgo > .btn small { font-size: 11px; }
 #s-guild .g-postgo .currency-amount { justify-content: center; }
 #s-guild .g-full { text-align: center; }
-/* 큰 그림 칸 (2026-10-19 Lim 「C안」): 현황 둘 (할 일 · 시설) 한 줄, 영입은 공고 · 명성 지원자. 고른 칸 = 금테 + 아래 판 하나 */
-#s-guild .g-hub { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-#s-guild .g-hub.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-#s-guild .g-hubt {
-  position: relative; width: 100%; min-height: 104px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; box-sizing: border-box;
-  background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); cursor: pointer;
-}
-#s-guild .g-hub.n4 .g-hubt { min-height: 92px; }
-#s-guild .g-hubt[aria-selected="true"] { background: linear-gradient(#2f271d, #241e17); border-color: var(--gk-head); box-shadow: inset 0 0 0 1px #ffd34d55, 0 2px 6px #0007; }
-#s-guild .g-hubt:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
-#s-guild .g-hubi { width: 52px; height: 52px; display: grid; place-items: center; }
-#s-guild .g-hub.n4 .g-hubi { width: 44px; height: 44px; }
-#s-guild .g-hubi > .g-ic { width: 100%; height: 100%; object-fit: contain; }
-#s-guild .g-hubi > svg { width: 26px; height: 26px; color: var(--gk-head); }
-#s-guild .g-hubt b { font: 800 15px/1.2 var(--font-display); color: var(--gk-head); white-space: nowrap; }
-#s-guild .g-hubt small { font: 700 12px/1.2 var(--font-body); color: var(--gk-ink2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-#s-guild .g-hubt > .rdot { position: absolute; top: 8px; right: 8px; }
 /* 공고 판 안 지원자 머리 */
 #s-guild .g-subh { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 12px; border-top: 1px solid var(--gk-line); background: #15120e66; }
 #s-guild .g-subh .g-ic { width: 24px; height: 24px; object-fit: contain; }
@@ -295,13 +278,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 /* 2026-10-19 읽기·선택 흐름: C안의 그림 메뉴를 유지하고 본문 공간 확보. */
 /* 스크롤 본문 안의 카드/메뉴가 축소되면 다음 카드와 겹친다. */
 #s-guild .ns-body.guild > * { flex-shrink: 0; }
-#s-guild .g-hub { gap: 6px; }
-#s-guild .g-hub.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-#s-guild .g-hubt, #s-guild .g-hub.n4 .g-hubt { min-height: 84px; padding: 7px 3px; gap: 3px; }
-#s-guild .g-hubi, #s-guild .g-hub.n4 .g-hubi { width: 36px; height: 36px; }
-#s-guild .g-hub.n4 .g-hubt b { font-size: 12px; }
-#s-guild .g-hub.n4 .g-hubt small { font-size: 11px; }
-#s-guild .g-hubt > .rdot { top: 5px; right: 5px; }
 #s-guild .g-card { flex: none; }
 #s-guild .g-rewards { display: flex; align-items: center; gap: 5px; }
 #s-guild .g-goal, #s-guild .g-exped { align-items: flex-start; }
@@ -326,10 +302,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-smsg { position: sticky; bottom: 48px; z-index: 2; }
 
 /* 길드 Lv 1: 공고 하나만 열려 있으면 빈 두 번째 칸 없이 짧은 한 줄. */
-#s-guild .g-hub.n1 { grid-template-columns: minmax(0, 1fr); }
-#s-guild .g-hub.n1 .g-hubt { min-height: 56px; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 8px 14px; }
-#s-guild .g-hub.n1 .g-hubi { width: 32px; height: 32px; }
-#s-guild .g-hub.n1 .g-hubt small { margin-left: auto; margin-right: 12px; }
 
 /* 현황은 할 일만: 오늘/이번 주로 나누고 바로 내용을 읽는다. */
 #s-guild .g-job-group { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 10px 12px 8px; border-top: 1px solid var(--gk-line); background: #15120e66; color: var(--gk-head); font: 700 12px var(--font-body); }
@@ -376,12 +348,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-recruit { --g-recruit-action-width: 96px; gap: 0; }
 #s-guild .g-recruit > .g-card { margin-top: 8px; }
 #s-guild .g-recruit > .warnbox, #s-guild .g-recruit > .g-story-wait { margin-block: 10px; }
-#s-guild .g-hub { display: flex; gap: 4px; padding-top: 8px; border-bottom: 1px solid var(--gk-edge); }
-#s-guild .g-hubt { flex: 1 1 0; width: auto; min-height: 44px; flex-direction: row; gap: 5px; padding: 8px 12px; border-radius: 8px 8px 0 0; border-bottom: 0; box-shadow: none; }
-#s-guild .g-hubt[aria-selected="true"] { background: var(--gk-btn-on); border-color: var(--gk-edge); box-shadow: none; }
-#s-guild .g-hubt b { font-size: 14px; }
-#s-guild .g-hubt small { color: inherit; }
-#s-guild .g-hubt > .rdot { top: 5px; right: 5px; }
 #s-guild .g-post-offer { display: flex; align-items: center; gap: 8px; min-height: 80px; padding: 8px 4px; box-sizing: border-box; }
 #s-guild .g-post-copy { flex: 1; min-width: 0; }
 #s-guild .g-offer-title { display: flex; align-items: center; gap: 2px; min-height: 36px; }
@@ -393,7 +359,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-post-action { flex: 0 0 var(--g-recruit-action-width); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #s-guild .g-post-action > .btn, #s-guild .g-candidates .g-side > .btn { width: var(--g-recruit-action-width); min-width: var(--g-recruit-action-width); min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }
 #s-guild .g-post-action > small { font: 600 12px/1.3 var(--font-body); color: var(--gk-ink2); }
-#s-guild .g-app-title { justify-content: space-between; min-height: 48px; padding-inline: 4px; }
 #s-guild .g-flat .g-empty0 { padding: 18px 8px; border-top: 1px solid var(--gk-line); line-height: 1.6; }
 #s-guild .g-flat .g-empty0 small { display: block; }
 

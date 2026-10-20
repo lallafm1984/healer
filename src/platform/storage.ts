@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 28; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림)
+export const SAVE_VERSION = 29; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림). v29: 명성 지원자 없앰 (Lim 10-20, guild.apps · appsDay 버림)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -113,9 +113,6 @@ export interface GuildSave {
   members: GuildMember[];
   /** 낸 공고의 지원자 (고를 때까지 남음). 옛 명문·직업 공고 지원자도 보존한다. */
   post: { cands: GuildMember[] } | null;
-  /** 명성 지원자 (until = 떠나는 날 YYYY-MM-DD) · 마지막으로 채운 날 */
-  apps: { m: GuildMember; until: string }[];
-  appsDay: string;
   /** 명성 (쌓이기만) · 길드파티로 이긴 판 · 길드 첫 처치 (장소|난이도) */
   fame: number;
   wins: number;
@@ -134,7 +131,7 @@ export interface GuildSave {
   exped: { week: string; list: { content: string; done: boolean }[]; got: boolean };
 }
 
-export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
+export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], post: null, fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
   storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
 
 /** 임무 하나: 진행 · 보상 받음 */
@@ -652,8 +649,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     founded: !!g.founded, storySeen: !!g.storySeen,
     members,
     post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { cands: mem(g.post.cands) } : null,
-    apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? member((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
-    appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
+    // v29 (Lim 10-20 「길드원 모집은 새공고만 있게, 명성에따른 지원은 없다」): 옛 명성 지원자 (apps · appsDay)는 버림 (아래 반환에 안 넣음)
     fame: fameOf(g.fame, members.length), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),

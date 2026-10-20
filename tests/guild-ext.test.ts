@@ -45,12 +45,13 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: NaN, post: -3 } } }).player.gold).toBe(s.player.gold);
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: 99, post: '5' } } }).player.gold).toBe(s.player.gold + 155000);
   });
-  it('명성 지원자는 기본 인원과 사흘 체류를 사용', () => {
-    const s = save(30); s.guild.fame = GUILD_STEPS[9]; // 길드 Lv 10: 하루 2명 (103)
+  it('명성 지원자는 없음 (2026-10-20 Lim 「길드원 모집은 새공고만 있게」): 옛 저장 (v28)의 지원자는 버림, 공고 값은 그대로', () => {
+    const s = save(30); s.guild.fame = GUILD_STEPS[9];
     expect(Gd.postCost(s)).toBe(900);
-    Gd.refreshApps(s, rng, new Date(2026, 9, 7, 12).getTime());
-    expect(s.guild.apps.length).toBe(2);
-    expect(s.guild.apps[0].until).toBe('2026-10-09');
+    const m = Gd.newMember(s, Gd.personOf(PARTY_POOL.mage[0].nick)!, 30);
+    const d = migrate({ ...JSON.parse(JSON.stringify(s)), v: 28, guild: { ...JSON.parse(JSON.stringify(s.guild)), apps: [{ m, until: '2026-10-09' }], appsDay: '2026-10-07' } });
+    expect(['apps' in d.guild, 'appsDay' in d.guild]).toEqual([false, false]);
+    expect('refreshApps' in Gd).toBe(false);
   });
 });
 

@@ -1,5 +1,5 @@
 /**
- * 길드 v2 (93 · 97, 사슬 4번): 결성 · 모집 공고 · 명성 지원자 영입 · 보내기 · 스킬 다시 뽑기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
+ * 길드 v2 (93 · 97, 사슬 4번): 결성 · 모집 공고 영입 (명성 지원자는 2026-10-20 없앰) · 보내기 · 스킬 다시 뽑기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
 import { resourceBalance, spendResource } from './resources';
@@ -9,7 +9,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
+  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
   memberSkillLevel, LV_DOUBLE, spendPoints, STORY, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -60,12 +60,11 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
   const nm: GuildMember = { ...m, id: g.nextId++, joined: Date.now() };
   g.members.push(nm);
-  // 다른 경로에도 같은 사람이 기다릴 수 있다. 합류한 사람만 빼고 나머지 지원자는 유지한다.
+  // 합류한 사람만 공고 지원자에서 빼고 나머지 지원자는 유지한다.
   if (g.post) {
     g.post.cands = g.post.cands.filter(c => c.nick !== m.nick);
     if (!g.post.cands.length) g.post = null;
   }
-  g.apps = g.apps.filter(a => a.m.nick !== m.nick);
   return nm;
 }
 
@@ -149,35 +148,6 @@ export function hire(save: SaveData, i: number): string {
   if (!c) return '지원자 없음';
   if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
   join(save, c);
-  return '';
-}
-
-// ---------- 명성 지원자 (93 4-2 ③) ----------
-const addDays = (day: string, n: number) => { const d = new Date(`${day}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-/** 하루에 한 번: 떠날 날이 지난 사람은 떠나고, 길드 Lv만큼 새 지원자 (길드에 적은 역할부터, 레벨 상관없이) */
-export function refreshApps(save: SaveData, r: () => number, now = Date.now()): void {
-  const g = save.guild, day = dayKey(now);
-  if (!g.founded) return;
-  g.apps = g.apps.filter(a => a.until >= day && !isIn(save, a.m.nick));
-  if (g.appsDay >= day) return; // 더 늦은 날만 (103)
-  g.appsDay = day;
-  const n = appsPerDay(capOf(save).lv), taken = new Set(g.apps.map(a => a.m.nick));
-  for (let i = 0; i < n; i++) {
-    const count = (role: string) => g.members.filter(m => CLASSES[m.cls].role === role).length + g.apps.filter(a => CLASSES[a.m.cls].role === role).length;
-    const role = (['tank', 'melee', 'ranged'] as const).slice().sort((a, b) => count(a) / want(a) - count(b) / want(b))[0];
-    const p = drawOne(strangers(save, x => CLASSES[x.cls].role === role, taken), r);
-    if (!p) break;
-    taken.add(p.nick);
-    g.apps.push({ m: newMember(save, p, worldLevel(save, p)), until: addDays(day, APP_DAYS - 1) });
-  }
-}
-/** 역할 비율 (파티 구성 탱커 25 · 근접 30 · 원거리 45%) */
-const want = (role: string) => (role === 'tank' ? 0.25 : role === 'melee' ? 0.3 : 0.45);
-export function hireApp(save: SaveData, i: number): string {
-  const a = save.guild.apps[i];
-  if (!a) return '지원자 없음';
-  if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
-  join(save, a.m);
   return '';
 }
 

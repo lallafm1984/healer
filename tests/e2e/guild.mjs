@@ -66,10 +66,10 @@ export default async function guild(url, shots) {
   ok((await page.locator('#s-guild .g-tip').count()) === 0, 'ⓘ 다시 = 접힘');
   ok((await text('#guildGo')).trim() === '길드파티로 출전', '아래 버튼 「길드파티로 출전」 한 줄');
 
-  // 영입은 공고와 명성 지원자만. 친구·명부·인연 안내가 없다.
+  // 영입은 모집 공고 하나 (명성 지원자는 2026-10-20 없앰). 친구·명부·인연 안내가 없다.
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-csel="friend"], #s-guild [data-csel="roster"], #s-guild [data-friend]').count()) === 0 && !/친구|인연|명부/.test(await text('#s-guild .g-recruit')), '친구 초대 · 명부 · 인연 안내 제거');
-  ok(await page.isVisible('#s-guild [data-sec="post"]'), '모집 공고 판이 보임 (길드 Lv 5: 명성 지원자 칸과 함께)');
+  ok(await page.isVisible('#s-guild [data-sec="post"]') && (await page.locator('#s-guild [data-csel], #s-guild [data-sec="app"], #s-guild .g-hub').count()) === 0 && !/명성 지원자/.test(await text('#s-guild .g-recruit')), '모집 공고 판 하나만 (길드 Lv 5여도 명성 지원자 없음)');
   ok((await page.locator('#s-guild [data-pkind], #s-guild [data-role], #s-guild [data-pickcls]').count()) === 0 && !/명문 공고/.test(await text('#s-guild .g-recruit')), '명문 · 역할 · 직업 선택 제거');
   ok(/모든 직업 무작위/.test(await text('#s-guild .g-post-summary')) && /희귀 등장 3%/.test(await text('#s-guild .g-post-summary')), '통합 공고: 전 직업 무작위 · 희귀 3% 안내');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
