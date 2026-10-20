@@ -66,6 +66,13 @@ export const starMarkTimerOf = (u: Pick<Unit, 'hots'>, hero: HeroKey): number | 
 };
 
 /**
+ * 사제 빛의 전이 남은 시간 (2026-10-20 Lim 「사제 전이도 이미지빼고 왼쪽에 지속시간으로」): 빛이 깃든 칸이면 전이 전체의 남은 초, 아니면 null.
+ * 옮겨 가는 동안 (flyUntil 전)도 이미 새 칸 몫이라 원이 바로 따라간다 (예전 빛 구슬 그림 · 깃듦 · 옮겨 감 · 사라짐 그림은 없앰)
+ */
+export const relayTimerOf = (relay: { id: number; until: number } | null | undefined, u: Pick<Unit, 'id'>, t: number): number | null =>
+  relay && relay.id === u.id && relay.until > t ? relay.until - t : null;
+
+/**
  * 특성 버튼 지속 효과 남은 시간 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트와 지속시간 표시도 필요하다」): 켜져 있는 자기 강화 특성 (기도의 정점 · 숲의 기억 · 은하수 등)마다
  * 내 칸 왼쪽 열 원 + 남은 초. 칸을 고르는 특성 (쉼터 · 바다의 자리 · 모이는 안개 · 성채)은 그 칸에 (talentObjectTimers). 버튼의 금빛 테 · 남은 초는 그대로
  */

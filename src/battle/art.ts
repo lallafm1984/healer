@@ -16,7 +16,7 @@ const SKILL_MARK: Record<SlotName, string> = {
   raid: '<path d="M9 17V5l11-3v13M9 7l11-3"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="17" cy="16" rx="3" ry="3"/>',
   unique: '<path d="M12 3v15M7 8l5-5 5 5M4 15v6h16v-6"/>',
 };
-/** 사제 빛의 전이 모양 (빛 구슬 혜성) (24칸 판, 그림 skill-relay · fx-relay가 오기 전): 휠 칸 · 판 위 깃든 표시가 같이 씀 */
+/** 사제 빛의 전이 모양 (빛 구슬 혜성) (24칸 판, 그림 skill-relay가 오기 전): 휠 칸 (판 위 깃든 표시는 2026-10-20부터 왼쪽 원 + 남은 초) */
 export const RELAY_D = 'M20 8.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 1 1 9 0zM11 13 3.5 20.5M9.5 10.5 5 15M13.5 14.5 9 19';
 const RELAY_MARK = `<path d="${RELAY_D}"/>`;
 export function skillMark(key: SkillKey): string {

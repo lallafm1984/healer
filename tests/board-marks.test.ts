@@ -7,7 +7,7 @@ const has = (name: string) => existsSync(`src/art/${name}.webp`) || existsSync(`
 
 describe('전투판 칸 테두리 · 표식 그림', () => {
   it('미리 읽는 그림 · 디버프 종류 띠 · 기믹 그림 파일이 모두 있음', () => {
-    const names = [...MARK_ART, ...Object.values(DEBUFF_EDGE), ...GIM_ICON.map(([, n]) => n), 'fx-swell-bubble', 'board-spore-puff', 'fx-melt-embers', 'fx-relay'];
+    const names = [...MARK_ART, ...Object.values(DEBUFF_EDGE), ...GIM_ICON.map(([, n]) => n), 'fx-swell-bubble', 'board-spore-puff', 'fx-melt-embers'];
     expect(names.filter(n => !has(n))).toEqual([]);
   });
   it('해제 종류 넷은 각자 다른 띠', () => {

@@ -1,4 +1,4 @@
-// 사제 빛의 전이 (휠 8번째 칸, Lim 2026-10-11 「슬롯 한자리가 빈다」): 휠에 빈 칸 없음 · 빛이 깃든 사람 칸에 표시가 판 안, 이름·체력·배지와 안 겹침. 대상 폰 크기
+// 사제 빛의 전이 (휠 8번째 칸, Lim 2026-10-11 「슬롯 한자리가 빈다」): 휠에 빈 칸 없음 · 빛이 깃든 사람 칸 왼쪽 원 (2026-10-20 Lim 「이미지빼고 왼쪽에 지속시간으로」)이 판 안, 이름·체력·배지와 안 겹침. 대상 폰 크기
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
 import { departGo, patchSave, toParty } from './nav.mjs';
@@ -56,13 +56,13 @@ export default async function relay(url, shots) {
       });
     };
     const plain = await look();
-    ok(!!plain.mark && plain.inside && plain.hits.length === 0, `${tag}: 탱커 칸 빛의 전이 표시가 판 안, 다른 표시와 안 겹침 (칸 왼쪽 위)`, plain);
+    ok(!!plain.mark && plain.inside && plain.hits.length === 0 && plain.mark.shape === 'circle', `${tag}: 탱커 칸 빛의 전이 남은 시간 원이 판 안, 다른 표시와 안 겹침 (칸 왼쪽 열)`, plain);
     await page.locator('#board').screenshot({ path: `${shots}/relay_${party.n}_${width}x${height}.png` });
     const busy = await look({ deb: true, hot: true });
     ok(!!busy.mark && busy.inside && busy.hits.length === 0, `${tag}: 디버프 배지 · 지속 힐이 함께 있어도 빛의 전이 표시가 안 겹침`, busy);
     await page.locator('#board').screenshot({ path: `${shots}/relay_busy_${party.n}_${width}x${height}.png` });
     const fly = await look({ flying: true });
-    ok(!fly.mark, `${tag}: 옮겨 가는 중에는 깃든 표시 없음 (연출만)`);
+    ok(!!fly.mark, `${tag}: 옮겨 가는 중에도 새 칸에 남은 시간 원 (옮겨 가는 그림은 없음)`, fly);
     await ctx.close();
   }
   await browser.close();
