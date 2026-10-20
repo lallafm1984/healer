@@ -62,7 +62,7 @@ export function threatInit(f: Fight): void {
   } : null;
 }
 
-/** 여유 (뺏는 선 = 탱커 위협 × 여유): 쉬움 · 3인 1.4, 보통 1.3, 어려움 1.2, 악몽 1.1 */
+/** 여유 (뺏는 선 = 탱커 위협 × 여유): 쉬움 · 3인 1.4, 보통 1.3, 어려움 1.2, 악몽 1.15 (THREAT.leeway) */
 export function leewayOf(f: Fight): number {
   if (f.party.length <= 3) return THREAT.leeway['쉬움'];
   return THREAT.leeway[f.cfg.diff];

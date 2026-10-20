@@ -79,7 +79,7 @@ const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon(
 
 /**
  * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 레이드 길드파티 인원 (10인 5 · 20인 10명, guildPartyNeed), 길드를 빼 두면 그 줄 없음.
- * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
+ * (권장 파티 전투력 줄은 없음: 전투력 숫자는 길드 v2에서 없앰)
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
   { lv: RAID10_LV, from: RAID10_LV - 10, name: '심연의 탑', grade: '희귀' }, // 10인 열림은 레벨표를 따라감 (69)
@@ -139,7 +139,7 @@ function dest(): { content: ContentKey; diff: DiffName } {
   }
   return { content: 'rustfort', diff: '쉬움' };
 }
-/** 출전 · 다음 목표: 그 장소 · 난이도를 골라 둔 모험 선택 화면으로 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」). 그 화면 「출전」 → 입장 확인 → 편성 (81 · 90) */
+/** 출전 · 다음 목표: 그 장소 · 난이도를 골라 둔 모험 선택 화면으로 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」). 그 화면 「출전」 → 편성 (입장 확인 팝업은 2026-10-17 없앰) */
 function toAdventure(to: { content: ContentKey; diff: DiffName }): void {
   go('s-content', to);
 }

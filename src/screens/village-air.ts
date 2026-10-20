@@ -8,9 +8,10 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import { VILLAGE, type VillageGust } from '../data/village';
 
-const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
-const smoothstep = (lo: number, hi: number, v: number) => { const t = clamp((v - lo) / (hi - lo || 1)); return t * t * (3 - 2 * t); };
-const mod = (v: number, n: number) => ((v % n) + n) % n;
+/** 마을 움직임 공용 셈 (village.ts도 씀) */
+export const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
+export const smoothstep = (lo: number, hi: number, v: number) => { const t = clamp((v - lo) / (hi - lo || 1)); return t * t * (3 - 2 * t); };
+export const mod = (v: number, n: number) => ((v % n) + n) % n;
 /** 정수 → 0~1 (돌풍 시각·잎 자리처럼 순서마다 같은 값이 필요할 때) */
 const hash = (n: number) => mod(Math.sin(n * 127.1 + 311.7) * 43758.5453, 1);
 /** 씨앗 고정 난수 (mulberry32) */
