@@ -46,19 +46,28 @@ describe('등급 확률: 그 레벨 어려움 바탕 표 + 영웅 (Lv 45부터, 
 });
 
 describe('사기', () => {
-  it('고른 부위 · 종류, 장비 레벨 = 내 레벨, 골드를 값만큼 쓰고 가방에', () => {
+  it('고른 부위, 장비 레벨 = 내 레벨, 골드를 값만큼 쓰고 가방에', () => {
     const s = at(60, 20000), r = rngFrom(7);
-    const it = buyUnknown(s, 'neck', 'pendant', r);
+    const it = buyUnknown(s, 'neck', r);
     if (typeof it === 'string') throw new Error(it);
-    expect(it.slot).toBe('neck'); expect(it.kind).toBe('pendant'); expect(it.lv).toBe(60);
+    expect(it.slot).toBe('neck'); expect(it.lv).toBe(60);
     expect(s.player.gold).toBe(20000 - merchantGold(60));
     expect(s.gear.bag.some(b => b.id === it.id)).toBe(true);
+  });
+  it('종류는 그 부위 다섯 가지 중 고르게 (Lim 「부위만 고르게」)', () => {
+    const s = at(60, 1e8), r = rngFrom(3), n = 2500, count: Record<string, number> = {};
+    for (let i = 0; i < n; i++) {
+      const it = buyUnknown(s, 'weapon', r);
+      if (typeof it === 'string') throw new Error(it);
+      count[it.kind] = (count[it.kind] ?? 0) + 1;
+    }
+    expect(Object.keys(count).sort()).toEqual(kindsOf('weapon').map(k => k.key).sort());
+    for (const k of kindsOf('weapon')) { expect(count[k.key] / n).toBeGreaterThan(0.16); expect(count[k.key] / n).toBeLessThan(0.24); }
   });
   it('여러 번 사면 등급 비율이 확률표와 맞음 (Lv 100 영웅 8% 안팎, 전설 없음)', () => {
     const s = at(100, 1e8), r = rngFrom(11), n = 4000, count: Record<string, number> = {};
     for (let i = 0; i < n; i++) {
-      const sl = SLOTS[i % SLOTS.length].key, k = kindsOf(sl)[i % 5].key;
-      const it = buyUnknown(s, sl, k, r);
+      const it = buyUnknown(s, SLOTS[i % SLOTS.length].key, r);
       if (typeof it === 'string') throw new Error(it);
       count[it.grade] = (count[it.grade] ?? 0) + 1;
     }
@@ -67,17 +76,17 @@ describe('사기', () => {
   });
   it('골드가 모자라면 안 사짐 (골드 그대로), 개발 골드 무제한이면 잔액을 안 씀', () => {
     const s = at(50, merchantGold(50) - 1);
-    expect(buyUnknown(s, 'weapon', 'staff', rngFrom(1))).toBe('골드 부족');
+    expect(buyUnknown(s, 'weapon', rngFrom(1))).toBe('골드 부족');
     expect(s.player.gold).toBe(merchantGold(50) - 1);
     s.settings.devGold = true;
-    expect(typeof buyUnknown(s, 'weapon', 'staff', rngFrom(1))).toBe('object');
+    expect(typeof buyUnknown(s, 'weapon', rngFrom(1))).toBe('object');
     expect(s.player.gold).toBe(merchantGold(50) - 1);
   });
-  it('Lv 10 전 · 튜토리얼 중엔 잠김, 없는 종류는 안 됨', () => {
+  it('Lv 10 전 · 튜토리얼 중엔 잠김, 없는 부위는 안 됨', () => {
     expect(merchantOffer(at(9)).lock).toBe('Lv 10에 열림');
     const t = at(30); t.tut = TUT.explore;
     expect(merchantOffer(t).open).toBe(false);
-    expect(buyUnknown(at(30), 'weapon', 'ring', rngFrom(1))).toBe('없는 장비');
+    expect(buyUnknown(at(30), 'tail' as never, rngFrom(1))).toBe('없는 부위');
     expect(merchantOffer(at(10)).ok).toBe(true);
   });
 });

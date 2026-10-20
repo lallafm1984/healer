@@ -1,9 +1,9 @@
 /**
  * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「로비에 디아블로2 갬블 요소 처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처 용도」): 미확인 장비.
- * 부위 · 종류를 골라 골드를 내면 그때 등급 · 옵션 · 특수능력을 굴림. 저장할 것 없음 (하루 횟수 · 진열 목록 · 천장 없음). 수치는 data/economy MERCHANT
+ * 부위를 골라 골드를 내면 그때 종류 (그 부위 다섯 가지 중 고르게) · 등급 · 옵션 · 특수능력을 굴림 (2026-10-20 Lim 「부위만 고르게」). 저장할 것 없음 (하루 횟수 · 진열 목록 · 천장 없음). 수치는 data/economy MERCHANT
  */
 import { merchantGold, MERCHANT } from '../data/economy';
-import { descending, dropTable, heroRamp, ITEM_GRADES, kindsOf, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
+import { descending, dropTable, heroRamp, ITEM_GRADES, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
 import { noteSpecs, type SaveData } from '../platform/storage';
 import { resourceBalance, spendResource } from './resources';
 import { TUT } from './tutorial';
@@ -32,13 +32,13 @@ export function merchantOffer(save: SaveData): MerchantOffer {
   return { lv, gold, open: !lock, lock, ok: !why, why };
 }
 
-/** 미확인 장비 사기: 그 부위 · 종류로 등급을 굴려 가방에 넣음. 성공 = 장비, 아니면 이유 */
-export function buyUnknown(save: SaveData, slot: SlotKey, kind: string, r: () => number = Math.random): GearItem | string {
-  if (!SLOTS.some(s => s.key === slot) || !kindsOf(slot).some(k => k.key === kind)) return '없는 장비';
+/** 미확인 장비 사기: 그 부위로 종류 · 등급을 굴려 가방에 넣음. 성공 = 장비, 아니면 이유 */
+export function buyUnknown(save: SaveData, slot: SlotKey, r: () => number = Math.random): GearItem | string {
+  if (!SLOTS.some(s => s.key === slot)) return '없는 부위';
   const o = merchantOffer(save);
   if (!o.ok) return o.why;
   spendResource(save, 'gold', o.gold);
-  const it = makeItem(r, slot, rollGrade(r, merchantOdds(o.lv)), save.nextId++, kind, { hero: save.hero, classLoot: true, lv: o.lv }); // 지금 직업 전용 70% (72)
+  const it = makeItem(r, slot, rollGrade(r, merchantOdds(o.lv)), save.nextId++, undefined, { hero: save.hero, classLoot: true, lv: o.lv }); // 지금 직업 전용 70% (72)
   save.gear.bag.push(it);
   noteSpecs(save, [it]);
   return it;

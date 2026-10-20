@@ -1,11 +1,11 @@
 /**
  * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「로비에 디아블로2 갬블 요소 처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처 용도」): 로비 오른쪽 팻말에서 들어오는 화면.
- * 위 = 부위 탭 (상점 · 길드와 같은 하위 탭), 가운데 = 그 부위 다섯 종류 (종류 그림 · 고정 능력치), 아래 = 사기 (값 · 등급 확률).
+ * 가운데 = 부위 카드 6 (Lim 「부위만 고르게」: 종류는 그 부위 다섯 가지 중 무작위), 아래 = 사기 (값 · 등급 확률).
  * 사면 봉인 꾸러미 (icon-merchant)가 흔들리다 풀리고 장비 카드 (영웅 · 품질은 결과창과 같은 빛기둥) → 상세 · 판매 · 한 번 더.
  * 탭 막대 없이 「← 로비」 (상점과 같은 하위 화면). 규칙 · 수치는 game/merchant.ts · data/economy MERCHANT
  */
 import { art } from '../art';
-import { GRADE_STYLE, HERO_FROM, ITEM_GRADES, kindOf, kindsOf, qualityOf, sellGold, slotName, SLOTS, STATS, takenStats, type ItemGrade, type SlotKey } from '../data/equipment';
+import { GRADE_STYLE, HERO_FROM, ITEM_GRADES, kindOf, kindsOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
 import { scoreOf, specName } from '../game/charinfo';
 import { buyUnknown, merchantOdds, merchantOffer } from '../game/merchant';
 import { resourceBalance } from '../game/resources';
@@ -19,38 +19,34 @@ import { esc, fmt, screen, topBar } from './kit';
 /** 등급 글자 색 (결과 · 장비 상세와 같은 값) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
 
-/** slot = 고른 부위, pick = 부위마다 고른 종류, got = 방금 산 장비 (감정 결과 창), fresh = 그 창의 봉인 풀기 연출을 아직 안 보여 줌, msg = 한 줄 알림 */
-const st: { slot: SlotKey; pick: Partial<Record<SlotKey, string>>; got: number | null; fresh: boolean; msg: string } = { slot: 'weapon', pick: {}, got: null, fresh: false, msg: '' };
+/** slot = 고른 부위, got = 방금 산 장비 (감정 결과 창), fresh = 그 창의 봉인 풀기 연출을 아직 안 보여 줌, msg = 한 줄 알림 */
+const st: { slot: SlotKey; got: number | null; fresh: boolean; msg: string } = { slot: 'weapon', got: null, fresh: false, msg: '' };
 
 const s = screen('s-merchant', '행상인', {
   enter() { refreshDay(); st.got = null; st.msg = ''; render(); },
 });
 const modal = sheetDialog(s.el, () => { st.got = null; render(); });
 
-const kindNow = (slot: SlotKey) => st.pick[slot] ?? kindsOf(slot)[0].key;
-/** 종류가 늘 주는 능력치 (주 옵션 + 종류 옵션) */
-const kindStatsText = (slot: SlotKey, kind: string) => [...new Set(takenStats(kindOf({ slot, kind })))].map(k => STATS[k].name).join(' · ');
 /** 확률 글자: 1% 넘으면 소수 한 자리, 그 밑은 두 자리 (끝 0 없앰) */
 const pct = (p: number) => `${(p * 100).toFixed(p >= 0.01 ? 1 : 2).replace(/\.?0+$/, '')}%`;
 
 function render(): void {
   modal.beforeRender();
-  const save = G.save, o = merchantOffer(save), slot = st.slot, kind = kindNow(slot);
+  const save = G.save, o = merchantOffer(save), slot = st.slot, nm = esc(slotName(slot));
   const have = resourceBalance(save, 'gold');
   const odds = merchantOdds(o.lv);
   const chips = ITEM_GRADES.map((g, i) => (odds[i] > 0 ? `<li style="--g:${GRADE_STYLE[g].color};--gi:${GRADE_INK[g]}"><b>${g}</b> ${pct(odds[i])}</li>` : '')).join('');
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '행상인' })}
-    <nav class="subtabs" role="tablist" aria-label="부위">${SLOTS.map(x => `<button type="button" role="tab" data-mslot="${x.key}" aria-selected="${x.key === slot}">${x.name}</button>`).join('')}</nav>
     <div class="ns-body mc">
       <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">떠돌이 행상인</p><h2>미확인 장비</h2></div>
         <p class="mc-have">${currencyAmount('gold', isFinite(have) ? have : '∞')}</p></header>
-      <p class="note mc-lead">종류를 고르면 등급 · 옵션은 산 뒤에 정해집니다.</p>
-      <div class="mc-kinds" role="radiogroup" aria-label="${esc(slotName(slot))} 종류">${kindsOf(slot).map(k => `<button type="button" class="mc-kind" role="radio" data-mkind="${k.key}" aria-checked="${k.key === kind}">
-          <span class="mc-art">${gearIcon({ slot, kind: k.key })}</span><b>${esc(k.name)}</b><small>${kindStatsText(slot, k.key)}</small></button>`).join('')}</div>
+      <p class="note mc-lead">부위를 고르면 종류 · 등급 · 옵션은 산 뒤에 정해집니다.</p>
+      <div class="mc-kinds" role="radiogroup" aria-label="부위">${SLOTS.map(x => `<button type="button" class="mc-kind" role="radio" data-mslot="${x.key}" aria-checked="${x.key === slot}">
+          <span class="mc-art">${gearIcon({ slot: x.key })}</span><b>${x.name}</b><small>종류 ${kindsOf(x.key).length}가지</small></button>`).join('')}</div>
       <section class="panel mc-buy" aria-label="사기">
-        <p class="mc-pick"><b>미확인 ${esc(kindOf({ slot, kind }).name)}</b><small>Lv ${o.lv} · ${esc(slotName(slot))}</small></p>
+        <p class="mc-pick"><b>미확인 ${nm}</b><small>Lv ${o.lv} · 종류 무작위</small></p>
         <ul class="mc-odds" aria-label="등급 확률">${chips}</ul>
-        <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${esc(kindOf({ slot, kind }).name)} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
+        <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${nm} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
         ${o.why || st.msg ? `<p class="mc-why" role="status">${esc(st.msg || (o.lock || `${o.why} · 보유 ${fmt(have)}`))}</p>` : ''}
       </section>
       <p class="note mc-foot">영웅은 Lv ${HERO_FROM}부터 · 장비 레벨 = 지금 직업 레벨 · 전용 효과 70%</p>
@@ -92,9 +88,9 @@ function revealHtml(id: number): string {
     </section>`;
 }
 
-/** 지금 고른 부위 · 종류로 사기 → 감정 결과 창 */
+/** 지금 고른 부위로 사기 (종류는 무작위) → 감정 결과 창 */
 function buy(): void {
-  const r = buyUnknown(G.save, st.slot, kindNow(st.slot));
+  const r = buyUnknown(G.save, st.slot);
   if (typeof r === 'string') { st.msg = r; render(); return; }
   commit();
   st.got = r.id; st.fresh = true;
@@ -105,8 +101,6 @@ s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const tab = t.closest<HTMLElement>('[data-mslot]');
   if (tab) { st.slot = tab.dataset.mslot as SlotKey; render(); return; }
-  const k = t.closest<HTMLElement>('[data-mkind]');
-  if (k) { st.pick[st.slot] = k.dataset.mkind; render(); return; }
   if (t.closest('#mcBuy') || t.closest('[data-mc-again]')) { buy(); return; }
   if (t.closest('[data-mc-close]')) { st.got = null; render(); return; }
   const det = t.closest<HTMLElement>('[data-mc-detail]');
