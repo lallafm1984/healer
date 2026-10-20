@@ -21,9 +21,9 @@ import { raining } from '../engine/shaman';
 import { emblemColor } from '../screens/art';
 import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
-import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
+import { addArtName, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers, type GuardTimerKey, type TalentObjectKey } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers, type GuardTimerKey, type TalentObjectKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -350,22 +350,6 @@ function classGlyph(g: Graphics, cls: ClassKey, x: number, y: number, size: numb
     if (p.cut) g.path(p.cut).stroke({ width: CUT * k, color: C.line, cap: 'round', join: 'round' });
   }
   g.resetTransform();
-}
-// ---------- 빛의 전이 (사제 8번째 칸): 빛이 깃든 사람 칸에 금빛 원 + 흰 빛 구슬. 그림 fx-relay (그림 요청 64)가 오면 그것 ----------
-let relayTex: Texture | null = null;
-function relayMark(): Texture {
-  const painted = artTexture('fx-relay');
-  if (painted) return painted;
-  if (relayTex) return relayTex;
-  const N = 96, m = N / 2;
-  return (relayTex = canvasTexture(N, N, x => {
-    const disc = (r: number, fill: string) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
-    disc(m, '#080605'); disc(m - 6, '#F0C46A');
-    const k = (N - 30) / 24, p = new Path2D(RELAY_D);
-    x.translate(15, 15); x.scale(k, k);
-    x.lineJoin = 'round'; x.lineCap = 'round'; x.lineWidth = 4.4; x.strokeStyle = '#080605'; x.stroke(p); // 구슬 · 꼬리 줄 테두리
-    x.fillStyle = x.strokeStyle = '#FFFAF0'; x.fill(p); x.lineWidth = 2; x.stroke(p);
-  }));
 }
 // ---------- 「나」 칸 직업 문장 (27 3-4·5장): 원형 금테 + 돌 바탕 + 문장. 한 번 그려 텍스처로 ----------
 const emblemTex = new Map<string, Texture | null>(); // null = 그림 읽는 중 (그동안은 ✚)
@@ -989,9 +973,6 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'pulse-ring': { size: 1.4, color: 0xa66bff, ms: 500 },
   wedge: { size: 3.2, color: BOLT, ms: 900, wide: true },
   // 사제 빛의 전이 (휠 8번째 칸, 그림 요청 64): 깃듦 · 다음 사람에게 옮겨 감 (그림은 빛 구슬이 오른쪽으로 나아감, 꼬리는 왼쪽) · 다 쓰고 사라짐
-  'relay-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
-  'relay-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
-  'relay-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
   // 묶음 H (63 E, art.ts BOSS_FX): 광차 · 눈덩이가 줄을 지나감 · 까마귀 떼 · 크림 폭발 · 조용히 (판 전체) · 거품 터짐 · 낟알이 쏟아진 칸
   'minecart-charge': { size: 2.6, color: 0xc98b5a, ms: 700, roll: true },
   'snowball-roll': { size: 2.4, color: 0xdff4ff, ms: 800, roll: true },
@@ -1223,6 +1204,8 @@ const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
 const SEAL_COLOR: [number, number] = [0xffd51f, 0x3d2a00];
 /** 점성술사 별자리 표식 남은 시간 원 [채움, 숫자 색]: 점성술사 호박 + 짙은 갈색 숫자 (2026-10-19 Lim, 예전 표식 그림 대신) */
 const STAR_MARK_COLOR: [number, number] = [0xe8b04a, 0x3a2108];
+/** 사제 빛의 전이 남은 시간 원 [채움, 숫자 색]: 따뜻한 금빛 + 짙은 갈색 숫자 (2026-10-20 Lim, 예전 빛 구슬 그림 대신) */
+const RELAY_COLOR: [number, number] = [0xffc94a, 0x3a2408];
 /** 특성 버튼 지속 효과 원 [채움, 숫자 색] (2026-10-19 Lim): 내 칸 = 직업 색, 판 위 물건 칸 = 그 물건 색 */
 const TALENT_COLOR: Record<HeroKey, [number, number]> = {
   priest: [0xfff1b0, 0x3a2a08], druid: [0x8fe05a, 0x10300f], paladin: [0xffb84a, 0x3a2006], shaman: [0x3fb0e8, 0xffffff],
@@ -1979,8 +1962,8 @@ export function render(now: number): void {
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
     // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
-    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), buffs = u.me ? talentBuffTimers(F.tx.act) : [], objs = objTimers.filter(o => o.cell === u.cell);
-    const leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0) + buffs.length + objs.length;
+    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), relayLeft = relayTimerOf(F.relay, u, F.t), buffs = u.me ? talentBuffTimers(F.tx.act) : [], objs = objTimers.filter(o => o.cell === u.cell);
+    const leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0) + (relayLeft != null ? 1 : 0) + buffs.length + objs.length;
     const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
@@ -2016,7 +1999,6 @@ export function render(now: number): void {
     const hpBox = fitLabel(hpLabel, `hp${u.id}`, 'hp');
     hpBounds.push({ id: u.id, cell: u.cell, text: hpText, ...(shieldT ? { shield: true } : {}), ...hpBox, sx: hpLabel.scale.x });
     // 숫자 HP와 육각형 내부 채움만 사용하고 중복 HP 눈금은 그리지 않는다.
-    const relay = F.relay && F.relay.id === u.id && F.t >= F.relay.flyUntil; // 날아가는 중에는 연출 (relay-fly)만
     let hotSpot: { x: number; y: number } | null = null, shieldSpot: { x: number; y: number } | null = null;
     if (deb) {
       const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
@@ -2056,7 +2038,7 @@ export function render(now: number): void {
     }
     // 보호막 시간 (2026-10-16 Lim): 지속 힐 원을 칸 왼쪽으로 뒤집은 자리 · 같은 크기, 짙은 파란 원 + 흰 숫자. 배지가 있으면 배지 왼쪽 같은 줄.
     // 방어 생존기 시간 (2026-10-18 Lim 「드루이드의 껍질처럼 … 왼쪽에 (도트힐이 오른쪽에 표시되는것처럼)」): 보호막 원 아래로 효과마다 색 원 + 남은 초, 지속 힐 원처럼 세로로.
-    // 왼쪽 위 열은 보호막 · 방어 생존기 · 결계사 인장 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 별자리 표식 (leftY = 다음 것의 윗변)
+    // 왼쪽 위 열은 보호막 · 방어 생존기 · 결계사 인장 · 별자리 표식 · 빛의 전이 · 특성 원이 맨 위, 그 아래로 차례 번호표 (leftY = 다음 것의 윗변)
     let leftY: number | null = null;
     if (leftN) {
       const sr = shieldLayout.radius, lower = sr + 0.75 + (leftN - 1) * shieldLayout.step;
@@ -2066,6 +2048,7 @@ export function render(now: number): void {
         ...guards.map(g => ({ key: `guard${u.id}-${g.key}`, kind: 'guard', left: g.left, fill: GUARD_COLOR[g.key][0], fg: GUARD_COLOR[g.key][1] })),
         ...(sealLeft != null ? [{ key: `seal${u.id}`, kind: 'seal', left: sealLeft, fill: SEAL_COLOR[0], fg: SEAL_COLOR[1] }] : []),
         ...(markLeft != null ? [{ key: `starmark${u.id}`, kind: 'starmark', left: markLeft, fill: STAR_MARK_COLOR[0], fg: STAR_MARK_COLOR[1] }] : []),
+        ...(relayLeft != null ? [{ key: `relay${u.id}`, kind: 'relay', left: relayLeft, fill: RELAY_COLOR[0], fg: RELAY_COLOR[1] }] : []),
         ...buffs.map(b => ({ key: `tbuff${u.id}-${b.key}`, kind: 'talent', left: b.left, fill: TALENT_COLOR[F.hero][0], fg: TALENT_COLOR[F.hero][1] })),
         ...objs.map(o => ({ key: `tobj${u.id}-${o.key}`, kind: 'talent', left: o.left, fill: TALENT_OBJECT_COLOR[o.key][0], fg: TALENT_OBJECT_COLOR[o.key][1] })),
       ];
@@ -2171,19 +2154,6 @@ export function render(now: number): void {
       else markBox = pill(overTopG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
     }
     if (markBox && !peakY && leftY != null) leftY = markBox.y + markBox.h / 2;
-    // 빛의 전이 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 빛 구슬.
-    // 윗줄에 배지가 있거나 왼쪽 위에 차례 번호표 · ✕가 있으면 꼭짓점 줄에서 조준 표식 · 번호표 오른쪽
-    if (relay) {
-      const dr = Math.max(7, s * 0.19);
-      let p: { x: number; y: number };
-      if (!peakY && (!markBox || leftY != null)) { p = hotCenter(x - r * 0.56, leftY != null ? leftY + 1 + dr : y - r * 0.44, dr + 0.75, dr + 0.75); if (leftY != null) leftY = p.y + dr; }
-      else {
-        const right = Math.max(tank === u ? x + aimR + aimW / 2 : -Infinity, markBox ? markBox.x + markBox.w / 2 : -Infinity);
-        p = fitCenter(isFinite(right) ? right + 1 + dr : x, peakY || y - r * 0.98, dr + 0.75);
-      }
-      marks.put(relayMark(), p.x, p.y, dr * 2, dr * 2);
-      recordBound(`relay${u.id}`, 'relay', 'circle', p.x, p.y, dr * 2, dr * 2);
-    }
     // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
     // 결계사 인장 · 점성술사 별자리 표식은 그림 대신 왼쪽 열 원 + 남은 초 (sealTimerOf · starMarkTimerOf, 2026-10-19 Lim)
     if ((F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) || (u.lostUntil != null && F.t < u.lostUntil)) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11)); // 99 나: 탱커가 자리를 못 찾는 동안

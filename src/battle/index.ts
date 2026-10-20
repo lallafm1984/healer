@@ -572,7 +572,8 @@ function handleEvents(now: number): void {
       case 'dmg': if (u) fxDamage(u, ev.amt, now); break; // 받은 피해: 회복 숫자 자리에 빨간 숫자 (뒤집힌 축복도 이것, hurt 사건은 말풍선만)
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
       // 기믹 연출 (37 4장 F-1): 칸·사람이 없으면 보스 그림 위
-      case 'fx': if (ev.cell == null && ev.on == null && !ev.all) bossFx(ev.name); else fxGim(ev.name, now, { id: ev.on, cell: ev.cell, to: ev.to, all: ev.all }); break;
+      case 'fx': if (ev.name.startsWith('relay-')) break; // 빛의 전이 깃듦 · 옮겨 감 · 사라짐 그림은 없앰, 깃든 칸 왼쪽 원이 따라감 (2026-10-20 Lim)
+        if (ev.cell == null && ev.on == null && !ev.all) bossFx(ev.name); else fxGim(ev.name, now, { id: ev.on, cell: ev.cell, to: ev.to, all: ev.all }); break;
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }
