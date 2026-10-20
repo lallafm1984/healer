@@ -1,4 +1,4 @@
-import { CORE_ID, HEROES } from '../data/heroes';
+import { HEROES } from '../data/heroes';
 import { MONK } from '../data/heroConst';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, cellOf, emit, heal, living, onDebuffEnd, unitById } from './core';
@@ -28,7 +28,6 @@ export const skillUsesSpent = (f: Fight, key: SkillKey): boolean => key === 'reb
  */
 export const SLOT_OF: Record<string, SlotName> = { heal: 'basic', flash: 'fast', renew: 'hot', poh: 'aoe', purify: 'dispel', guardian: 'ext', hymn: 'raid', unique: 'unique' };
 export function slotKey(f: Fight, slot: string): SkillKey {
-  if (slot === CORE_ID) return HEROES[f.hero].core ?? (slot as SkillKey); // 가운데 버튼 스킬 (79 6-1)
   if (f.hero === 'priest' && slot !== 'unique') {
     if (slot === 'heal' && wordReady(f, f.g.p)) return 'serenity';
     return slot as SkillKey;

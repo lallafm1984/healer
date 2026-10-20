@@ -47,8 +47,6 @@ export interface SkillDef {
   powerAll?: boolean;
   /** 이 스킬의 GCD (초, 가속 전). 없으면 규칙 GCD (1.5). 0 = GCD를 안 쓰고 GCD · 시전 중에도 바로 나감 (수도사 차 한 잔, 79 6-1) */
   gcd?: number;
-  /** 휠 밖 가운데 버튼 스킬 (79 6-1). 2026-10-16 Lim 「가운데 버튼 기획을 제거」로 어느 스킬도 쓰지 않음 (샘 토템 · 심판은 빠른 힐 칸으로) */
-  core?: true;
 }
 
 export const SKILLS: Record<SkillKey, SkillDef> = {

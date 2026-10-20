@@ -1,6 +1,6 @@
-/** 79 힐러 직업 4종 공통 준비 (6-1): 직업 7개 데이터 · 스킬마다 GCD · 모으기 · 가운데 스킬 · 판 위 물건 · 보스 딜 · 힐러 보호막 · 받은 피해 기록 */
+/** 79 힐러 직업 4종 공통 준비 (6-1): 직업 7개 데이터 · 스킬마다 GCD · 모으기 · 판 위 물건 · 보스 딜 · 힐러 보호막 · 받은 피해 기록 */
 import { describe, expect, it } from 'vitest';
-import { ALL_HERO_KEYS, CORE_ID, CORE_SKILL, HERO_KEYS, HEROES, heroOfSkill, heroSkills, heroSlotNames, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../src/data/heroes';
+import { ALL_HERO_KEYS, HERO_KEYS, HEROES, heroOfSkill, heroSkills, heroSlotNames, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../src/data/heroes';
 import { SKILL_INFO, SKILLS, type SkillKey } from '../src/data/skills';
 import { TALENT_TREES } from '../src/data/talents';
 import * as E from '../src/engine';
@@ -51,13 +51,10 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
     expect(seen.size).toBe(57);
   });
   it('가운데 버튼 스킬 없음 (2026-10-16 Lim 「가운데 버튼 기획을 제거」): 샘 토템 · 심판은 빠른 힐 칸', () => {
-    expect(CORE_SKILL).toEqual({});
     expect(HEROES.shaman.slots.fast).toBe('springTotem');
     expect(HEROES.warder.slots.fast).toBe('judgment');
     expect(slotIdOf('springTotem')).toBe('flash');
     expect(skillAt('warder', 'flash')).toBe('judgment');
-    for (const h of ALL_HERO_KEYS) expect(skillAt(h, CORE_ID)).toBeNull();
-    expect(Object.values(SKILLS).some(s => s.core)).toBe(false);
   });
   it('79 직업은 켤 때 특성 트리 30개 (켜기 전엔 없음)', () => {
     for (const h of NEW) expect(TALENT_TREES[h].flatMap(t => t.picks)).toHaveLength(HEROES[h].ready ? 30 : 0);

@@ -35,8 +35,6 @@ export interface HeroDef {
    * quest = 예전 직업 퀘스트, 옛 저장 옮기기 (v6)에만 씀
    */
   unlock: { lv: number; how: string; quest?: HeroQuest; buy?: boolean };
-  /** 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
-  core?: SkillKey; // 2026-10-16 Lim 「가운데 버튼 기획을 제거」: 어느 직업도 쓰지 않음 (주술사 샘 토템 · 결계사 심판은 빠른 힐 칸)
   /** 게임에 켠 직업 (79 6-1: 공통 준비에서는 데이터만 두고, 직업 PR마다 하나씩 켬). false면 직업 목록 · 저장 · 시뮬에서 빠지고 「곧 열림」으로 보임 */
   ready: boolean;
 }
@@ -147,11 +145,8 @@ export const HEROES: Record<HeroKey, HeroDef> = {
 export const ALL_HERO_KEYS = Object.keys(HEROES) as HeroKey[];
 /** 게임에 켠 직업 (직업 목록 · 저장 · 시뮬 · 직업마다 도는 테스트). 79 직업은 직업 PR마다 ready로 켬 */
 export const HERO_KEYS = ALL_HERO_KEYS.filter(h => HEROES[h].ready);
-/** 가운데 버튼 스킬이 있는 직업 → 그 스킬 (79 6-1) */
-export const CORE_SKILL: Partial<Record<HeroKey, SkillKey>> = Object.fromEntries(ALL_HERO_KEYS.filter(h => HEROES[h].core).map(h => [h, HEROES[h].core!]));
-
 /** 스킬 → 직업 (설명 화면에서 역참조) */
-export const heroOfSkill = (key: SkillKey): HeroKey => ALL_HERO_KEYS.find(h => Object.values(HEROES[h].slots).includes(key) || HEROES[h].core === key) || 'priest';
+export const heroOfSkill = (key: SkillKey): HeroKey => ALL_HERO_KEYS.find(h => Object.values(HEROES[h].slots).includes(key)) || 'priest';
 
 /** 해제 종류 색 (전투 판 디버프 색과 같음) */
 export const DEB_COLOR: Record<string, string> = { '질병': '#D9A13B', '독': '#3CC24A', '마법': '#3D8BFF', '저주': '#A050E0' };
@@ -167,12 +162,8 @@ export const heroSlotNames = (hero: HeroKey): SlotName[] =>
 export const SLOT_ID: Record<SlotName, string> = { basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'unique' };
 const SLOT_OF_ID = Object.fromEntries(Object.entries(SLOT_ID).map(([k, v]) => [v, k])) as Record<string, SlotName>;
 
-/** 휠 밖 가운데 버튼 자리 이름 (79 6-1, 가운데 스킬은 휠 배치에 안 들어감) */
-export const CORE_ID = 'core';
-
-/** 그 직업에서 휠 칸 이름 → 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음. 8번째 칸은 직업마다). core = 가운데 버튼 스킬 */
+/** 그 직업에서 휠 칸 이름 → 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음. 8번째 칸은 직업마다) */
 export function skillAt(hero: HeroKey, slotId: string): SkillKey | null {
-  if (slotId === CORE_ID) return HEROES[hero].core ?? null;
   if (hero === 'priest' && slotId !== 'unique') return slotId as SkillKey;
   const sl = SLOT_OF_ID[slotId];
   return sl ? HEROES[hero].slots[sl] : null;
@@ -180,16 +171,14 @@ export function skillAt(hero: HeroKey, slotId: string): SkillKey | null {
 
 /** 스킬 → 휠 칸 이름 (사제 성언: 평온은 치유 칸) */
 export function slotIdOf(k: SkillKey): string {
-  if (SKILLS[k].core) return CORE_ID;
   if (k === 'serenity') return 'heal';
   return SLOT_ID[SKILLS[k].slot];
 }
 
-/** 직업의 스킬 목록 (휠 칸 순서, 사제는 성언: 평온, 가운데 스킬이 있는 직업은 그 스킬을 끝에) */
+/** 직업의 스킬 목록 (휠 칸 순서, 사제는 성언: 평온을 끝에) */
 export function heroSkills(hero: HeroKey): SkillKey[] {
   const list = heroSlotNames(hero).map(s => HEROES[hero].slots[s]!);
-  const core = HEROES[hero].core;
-  return hero === 'priest' ? [...list, 'serenity'] : core ? [...list, core] : list;
+  return hero === 'priest' ? [...list, 'serenity'] : list;
 }
 
 /**

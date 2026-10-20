@@ -140,8 +140,6 @@ export const B = {
   overShown: false,
   /** 성기사 봉화: 휠 가운데를 누르고 칸 탭 (25 3장) */
   beacon: false,
-  /** 가운데 스킬을 칸에 (주술사 샘 토템, 79 2-3): 휠 가운데를 누르고 칸 탭 */
-  coreCell: false,
 };
 
 export interface Pointer { id?: number; x0: number; y0: number; x: number; y: number; idx: number; lp: boolean; moved: boolean; dir?: Dir | null; timer?: ReturnType<typeof setTimeout> }

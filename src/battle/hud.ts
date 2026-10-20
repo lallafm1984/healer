@@ -186,7 +186,7 @@ export function updateWheel(): void {
   core.classList.toggle('mana-full', mana.percent === 100);
   const meter = core.querySelector('.mana-meter')!;
   if (meter.getAttribute('aria-valuenow') !== String(mana.percent)) meter.setAttribute('aria-valuenow', String(mana.percent));
-  core.classList.toggle('beacon', B.beacon || B.coreCell);
+  core.classList.toggle('beacon', B.beacon);
   updateClassGauge($('gauges'), classGaugeState(F));
   const coreOff = F.hero === 'warder' && F.level >= SKILL_LEVEL.judgment && !judgeReady(F);
   core.classList.toggle('core-off', coreOff);
@@ -265,8 +265,6 @@ export function updateCastbar(): void {
     left = Math.max(0, F.channel).toFixed(1);
   } else if (B.beacon) {
     label = '봉화: 지킬 파티원 칸 선택';
-  } else if (B.coreCell) {
-    label = `${SKILLS[HEROES[F.hero].core!].name}: 세울 칸 선택`;
   } else if (B.armed) {
     const k = slotKey(F, B.armed);
     label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : SKILLS[k].target === 'cell' ? '세울 칸 선택 (빈 칸도)' : '대상 칸 선택'}`;
@@ -294,7 +292,7 @@ export function updateCastbar(): void {
   $('castLabel').setAttribute('aria-label', detail || label);
   setText($('castTime'), left);
   $('castbar').classList.toggle('is-casting', casting);
-  $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon || B.coreCell));
+  $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon));
   $('castbar').classList.toggle('is-gcd', !casting && p > 0);
   setBar($('castFill'), p);
   // 전투 메시지가 시전 막대 자리를 덮는 동안 보일 얇은 진행 선 · 남은 초

@@ -61,7 +61,6 @@ describe('데이터 (79 5장)', () => {
     expect(HEROES.warder.ready).toBe(true);
     expect(HEROES.warder.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 60)
     expect(HEROES.warder.dispel).toEqual(['마법', '저주']);
-    expect(HEROES.warder.core).toBeUndefined();
   });
   it('특성 10단 × 3, 보조 버튼은 심판의 망치 · 성채 · 끝없는 심판', () => {
     expect(WARDER_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);

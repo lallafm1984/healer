@@ -54,11 +54,9 @@ const DEEP = 1 + SHAMAN.deep.heal, DEC = SHAMAN.chain.decay;
 describe('데이터 (79 2장)', () => {
   it('휠 8칸 (2026-10-16 가운데 버튼을 없애고 소나기 자리에 샘 토템), 해제 마법 · 저주, 상점 해금, 켬', () => {
     expect(heroSkills('shaman')).toEqual(['ripple', 'springTotem', 'droplet', 'chainHeal', 'washing', 'earthTotem', 'rainTotem', 'spiritLink']);
-    expect(HEROES.shaman.core).toBeUndefined();
     expect(HEROES.shaman.ready).toBe(true);
     expect(HEROES.shaman.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 30)
     expect(SKILLS.springTotem).toMatchObject({ slot: 'fast', target: 'cell', cost: 4, cd: 10 });
-    expect(SKILLS.springTotem.core).toBeUndefined();
   });
   it('특성 10단 × 3, 보조 버튼은 토템 부르기 · 물의 정령 · 바다의 자리', () => {
     expect(SHAMAN_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);

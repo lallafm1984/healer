@@ -97,10 +97,10 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
 });
 
 describe('직업별 휠 스킬', () => {
-  // 켠 직업마다 (79 직업은 직업 PR에서 켤 때 휠 8개 + 가운데 스킬 이펙트를 같이 넣음)
+  // 켠 직업마다 휠 8칸 스킬 이펙트
   for (const hero of HERO_KEYS.map(h => HEROES[h])) {
-    it(`${hero.name}: 휠 스킬 · 가운데 스킬마다 PXF 이펙트`, () => {
-      const missing = [...Object.values(hero.slots), hero.core].filter((k): k is SkillKey => !!k && !LATER.has(k) && !SKILL_PXF[k]);
+    it(`${hero.name}: 휠 스킬마다 PXF 이펙트`, () => {
+      const missing = Object.values(hero.slots).filter((k): k is SkillKey => !!k && !LATER.has(k) && !SKILL_PXF[k]);
       expect(missing).toEqual([]);
     });
   }
