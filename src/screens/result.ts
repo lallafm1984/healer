@@ -411,7 +411,7 @@ function deferPopup(host: HTMLElement, show: () => void): boolean {
   return true;
 }
 
-/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업을 거침 (81 · 90) */
+/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업 없음 (90) */
 function again(): void {
   Flow.seed = newSeed();
   depart();
