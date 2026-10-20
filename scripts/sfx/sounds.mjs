@@ -2,6 +2,7 @@
  * 효과음 목록 (기획 107). 이름 = src/sfx/<이름>.ogg = 게임이 찾는 이름 (src/sfx/index.ts).
  * prompt는 agent-audio (Stable Audio 3 Medium) 생성 문장, gen = 생성 길이 (초), keep = 다듬은 뒤 최대 길이 (초).
  * 손보면 `node scripts/sfx/make.mjs <이름>`으로 다시 만들고 107 표도 맞춘다.
+ * 폰 스피커는 약 300Hz 밑을 거의 못 내므로, 낮은 북 · 울림 · 심장 소리도 가운데 · 높은 결 (때림 · 덜컹 · 지글 · 쉭)을 함께 적는다.
  */
 
 // 모든 문장 끝에 붙는 공통 꼬리 (107 2장): 한 번 울리고 끝, 가깝고 깨끗하게, 목소리 · 종소리 없음
@@ -25,7 +26,7 @@ export const SOUNDS = [
   { name: 'ui-confirm', group: '메뉴', where: '노란 주요 버튼 (따로 정한 소리가 없을 때) · 재설정 둘째 후보 고르기', ko: '하프 두 음 올라감', gen: 2, keep: 0.45,
     prompt: `A bright warm pluck of two ascending harp notes, quick positive confirmation with a light shimmer, ${TONE}` },
   { name: 'deny', group: '메뉴', where: '잠긴 탭 · 레벨 · 골드 부족 · 못 하는 버튼, 전투에서 마나 부족 · 못 쓰는 스킬', ko: '두꺼운 나무판 둔탁한 톡', gen: 2, keep: 0.3,
-    prompt: `A dull muted knock on a thick wooden board, low soft thud, gentle negative feedback, short, ${DRY}` },
+    prompt: `A dull knock on a thick wooden board with a short hollow wooden click on top, soft negative feedback, short, ${DRY}` },
 
   // ---------- 타이틀 · 로비 · 재화 ----------
   { name: 'title-start', group: '로비', where: '타이틀 화면 누름', ko: '아침 햇살 같은 하프 글리산도', gen: 3, keep: 1.6,
@@ -33,7 +34,7 @@ export const SOUNDS = [
   { name: 'sortie', group: '로비', where: '출전 → 편성 (모험 고르기 「출전」 · 주간 도전 입장 · 결과 「다음」)', ko: '배낭 메기: 가죽 끈 · 버클 짤랑', gen: 2, keep: 0.7,
     prompt: `Adventurer gear being shouldered: a leather backpack strap creak and a light jingle of metal buckles, quick and energetic, ${DRY}` },
   { name: 'depart', group: '로비', where: '편성 「출발」 · 「다시 도전」 · 주간 도전 다음 단계', ko: '휙 올라가 큰 북 한 번', gen: 2, keep: 1.2,
-    prompt: `A short rising whoosh into a single deep wooden war drum hit with a bright brass shimmer, adventurers setting off, energetic, ${ONE}, no melody` },
+    prompt: `A short rising whoosh into a single punchy wooden war drum hit with a crisp stick attack and a bright brass shimmer, adventurers setting off, energetic, ${ONE}, no melody` },
   { name: 'rest-charge', group: '로비', where: '휴식 충전 (광고 +30 · 광고 제거면 바로)', ko: '베개 푹 + 졸린 반짝임', gen: 2, keep: 1.0,
     prompt: `A soft pillow puff followed by a gentle sleepy sparkle rising in pitch, calm restoring magic, warm and quiet, ${ONE}, no music` },
   { name: 'mission-claim', group: '로비', where: '임무 · 길드 주간 목표 · 도감 보상 받기', ko: '밀랍 도장 쿵 + 반짝', gen: 2, keep: 0.7,
@@ -85,17 +86,17 @@ export const SOUNDS = [
   { name: 'guild-recruit', group: '길드', where: '길드원 영입 (모집 공고 지원자) · 스토리 동료 초대', ko: '깃펜 서명 + 밀랍 도장', gen: 2, keep: 0.9,
     prompt: `A quill pen signing on parchment followed by a wax seal stamp, welcoming and satisfying, ${ONE}, no music` },
   { name: 'guild-release', group: '길드', where: '길드원 내보내기', ko: '나무 바닥 발소리 멀어지고 문 닫힘', gen: 2, keep: 0.9,
-    prompt: `Footsteps walking away on a wooden floor and a heavy door closing gently, short and calm, ${ONE}, no music` },
+    prompt: `Crisp footsteps of leather boots walking away on creaky wooden floorboards, then a wooden door closing with a clear iron latch click, short and calm, ${ONE}, no music` },
 
   // ---------- 전투 진행 ----------
   { name: 'tick', group: '전투 진행', where: '시작 카운트다운 3 · 2 · 1, 보스 기술 예고 마지막 3초, 튜토리얼 안내 뜸', ko: '나무 블록 톡', gen: 2, keep: 0.12,
     prompt: `A single crisp tick of a small wooden block, sharp short transient, ${DRY}, no reverb` },
   { name: 'battle-start', group: '전투 진행', where: '「전투 시작!」 띠', ko: '큰 북 쿵 + 짧은 뿔나팔', gen: 2, keep: 1.2,
-    prompt: `A single deep war drum boom with a short bold brass horn blast, a battle begins, powerful, ${ONE}, no melody` },
+    prompt: `A single punchy war drum hit with a crisp stick attack and a short bold bright brass horn blast, a battle begins, powerful, ${ONE}, no melody` },
   { name: 'boss-phase', group: '전투 진행', where: '보스 페이즈 넘어감 띠', ko: '낮은 울림이 부풀며 금관 한 음', gen: 2, keep: 1.5,
-    prompt: `A deep ominous rumble swelling upward with a dark low brass note, the boss grows stronger, ${ONE}, no drums` },
+    prompt: `An ominous rumble swelling upward into a loud raspy brass note with gritty buzzing overtones, the boss grows stronger, ${ONE}, no drums` },
   { name: 'boss-enrage', group: '전투 진행', where: '광폭화 띠', ko: '괴물 포효 + 불협 금관', gen: 2.5, keep: 1.8,
-    prompt: `A huge monstrous beast roar layered with a dissonant low brass blast and rumble, terrifying enrage, isolated one-shot, no human voice, no music` },
+    prompt: `A huge monstrous beast roar with a raspy snarling growl, layered with a dissonant blaring brass blast, terrifying enrage, isolated one-shot, no human voice, no music` },
   { name: 'mob-down', group: '전투 진행', where: '판 위 적 · 쫄 처치, 감옥 깨짐', ko: '연기 퐁 + 타닥', gen: 2, keep: 0.6,
     prompt: `A small creature vanishing in a puff of smoke: a soft poof with a light crackle, short, ${DRY}` },
 
@@ -168,18 +169,18 @@ export const SOUNDS = [
   ]),
 
   // ---------- 경고 ----------
-  { name: 'buster', group: '경고', where: '탱커 강타 예고 · 졸개 내려찍기 예고', ko: '낮은 전쟁 북 쿵', gen: 2, keep: 0.8,
-    prompt: `A single deep low war drum boom with a heavy sub rumble, ominous warning, ${ONE}, no music` },
+  { name: 'buster', group: '경고', where: '탱커 강타 예고 · 졸개 내려찍기 예고', ko: '전쟁 북 쿵 + 북테 떨림', gen: 2, keep: 0.8,
+    prompt: `A single heavy war drum hit with a hard slap of the drum skin, a crisp stick attack and a short rattle of the drum's iron rim, ominous warning, ${ONE}, no music` },
   { name: 'aoe', group: '경고', where: '광역 예고 · 보스가 강해짐', ko: '거인이 숨 들이쉬듯 올라가는 휙', gen: 2, keep: 1.0,
-    prompt: `A rising ominous whoosh like a giant drawing breath, building tension, swelling air and low rumble, ${ONE}, no music` },
-  { name: 'zone', group: '경고', where: '장판 예고', ko: '땅 울림 + 돌 갈라짐', gen: 2, keep: 0.9,
-    prompt: `A deep ground rumble with stones cracking beneath, the floor about to erupt, heavy and low, ${ONE}, no music` },
+    prompt: `A rising ominous whoosh like a giant drawing breath, building tension, swelling rushing air with a hissing edge over a low rumble, ${ONE}, no music` },
+  { name: 'zone', group: '경고', where: '장판 예고', ko: '돌 갈라짐 · 자갈 튐 + 땅 울림', gen: 2, keep: 0.9,
+    prompt: `Stones cracking and splitting with sharp gravel crackle and pebbles scattering over a deep ground rumble, the floor about to erupt, ${ONE}, no music` },
   { name: 'burst', group: '경고', where: '전염 · 부풀기 · 불안정한 마력 · 폭탄 쫄 터짐', ko: '막힌 마법 폭발 퐁 + 지글', gen: 2, keep: 0.6,
-    prompt: `A short muffled magical explosion pop with a fizzing crackle, compact and punchy, ${DRY}` },
-  { name: 'heart', group: '경고', where: '파티원 체력 30% 밑 (가장 낮은 1명, 1.1초마다)', ko: '낮은 심장 박동 쿵쿵', gen: 2, keep: 0.5,
-    prompt: `A single deep heartbeat, thump-thump, low and tense, ${DRY}` },
+    prompt: `A short magical explosion pop with a bright fizzing crackle and spitting sparks, compact and punchy, ${DRY}` },
+  { name: 'heart', group: '경고', where: '파티원 체력 30% 밑 (가장 낮은 1명, 1.1초마다)', ko: '심장 박동 쿵쿵 (두 번 두드림)', gen: 2, keep: 0.5,
+    prompt: `A single heartbeat, thump-thump, two firm knocks like a fist on a padded wooden door, close and tense, ${DRY}` },
   { name: 'death', group: '경고', where: '파티원 쓰러짐', ko: '갑옷 쓰러짐 + 희미하게 내려가는 음', gen: 2, keep: 0.9,
-    prompt: `A heavy armored body collapsing to a stone floor with a soft metal clatter, followed by a faint descending tone, sad, ${ONE}, no music` },
+    prompt: `A heavy armored body collapsing to a stone floor with a clear clatter of rattling metal plates, followed by a faint descending tone, sad, ${ONE}, no music` },
   { name: 'debuff-disease', group: '경고', where: '질병 디버프 걸림', ko: '거친 기침 한 번', gen: 2, keep: 0.4,
     prompt: `A single short raspy cough from a sick adventurer, isolated one-shot, close and clean, no speech, no music, dry` },
   { name: 'debuff-poison', group: '경고', where: '독 디버프 걸림', ko: '끈적한 독 거품 보글', gen: 2, keep: 0.5,
@@ -187,5 +188,5 @@ export const SOUNDS = [
   { name: 'debuff-magic', group: '경고', where: '마법 디버프 걸림', ko: '비전 전기 지직', gen: 2, keep: 0.4,
     prompt: `A sharp electric arcane zap with a crackling static fizz, short, ${DRY}` },
   { name: 'debuff-curse', group: '경고', where: '저주 디버프 걸림', ko: '어두운 속삭임 같은 숨 + 불협 반짝', gen: 2, keep: 0.6,
-    prompt: `A dark eerie curse: a low breathy ghostly swoosh with a dissonant shimmer, short, isolated one-shot, close and clean, no words, no music` },
+    prompt: `A dark eerie curse: a breathy ghostly hiss swooshing past with a dissonant glassy shimmer, short, isolated one-shot, close and clean, no words, no music` },
 ];

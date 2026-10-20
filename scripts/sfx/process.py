@@ -42,7 +42,12 @@ def shape(x: np.ndarray, rate: int, keep: float) -> np.ndarray:
     fin = min(n, int(0.003 * rate))
     if fin:
         y[:fin] *= np.linspace(0, 1, fin, endpoint=False)
-    fout = min(n // 3, int(0.08 * rate))
+    # 끝 페이드: 보통 80ms. 자른 곳에서도 아직 크게 울리면 (첨두 -24 dB 위) 길이의 1/4까지 (최대 0.5초) 천천히 줄임
+    fout = int(0.08 * rate)
+    tail = y[max(0, n - fout) :]
+    if len(tail) and np.sqrt(np.mean(tail**2)) > np.max(np.abs(y)) * 10 ** (-24 / 20):
+        fout = max(fout, min(int(0.5 * rate), n // 4))
+    fout = min(n // 3, fout)
     if fout > 1:
         y[-fout:] *= np.cos(np.linspace(0, np.pi / 2, fout)) ** 2
     # 세기: 활성 구간 (첨두 -30 dB 위) RMS를 목표로, 첨두는 -1 dBFS까지만
