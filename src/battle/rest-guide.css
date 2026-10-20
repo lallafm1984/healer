@@ -118,3 +118,6 @@
   #rest .rest-head h1 { font-size: 28px; }
   #rest .rest-steps { margin-top: 8px; }
 }
+/* UI 검수 2026-10-20: 구간 이름이 「진흙 웅덩이 / 길」처럼 끝 한 낱말만 꺾였음 → 줄 길이를 고르게. 딜 순위 숫자 (회색 2.3:1)는 글자색 */
+#rest .rest-steps li > span { text-wrap: balance; }
+#rest #restMeter .meter .rk { color: var(--gk-ink2); font-weight: 700; }
