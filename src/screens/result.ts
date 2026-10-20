@@ -303,7 +303,8 @@ function loseHtml(r: BattleResult, x: Settlement): string {
   if (r.dispellable && r.dispels < r.dispellable) hints.push(warn(`해제 놓침 <b class="f-g">${r.dispellable - r.dispels}</b> / ${r.dispellable}`));
   if (r.minMana <= 10) hints.push(warn(`마나 바닥 <span class="cap">최저 ${r.minMana}%</span>`));
   const rec = recommendedFor(contentOf(r.content), r.diff);
-  if (rec && avgScore(G.save.gear.equipped, G.save.player.level) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
+  // 「장비」는 금빛 (2026-10-13 Lim 첨부1): 공통 메뉴 버튼 한 벌 (menu-buttons.css, 10-19)에서 금빛 = hot
+  if (rec && avgScore(G.save.gear.equipped, G.save.player.level) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2 hot" type="button" data-go="s-char" data-arg="gear">장비</button>'));
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
     ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}
 `;

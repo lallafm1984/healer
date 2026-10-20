@@ -92,7 +92,7 @@ export default async function dungeon(url, shots) {
   ok(cls0.every(Boolean) && new Set(cls0).size === 4, `파티원마다 직업, 5인은 같은 직업 없음 (${cls0})`);
   await page.click('#s-party .pcard:first-child'); await page.clock.runFor(50);
   const msheet = await page.textContent('#s-party .f-msheet');
-  ok(/다루기 난이도/.test(msheet) && !/단단한 몸|신성한 갑옷/.test(msheet) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (성격, 직업 패시브 없음 69) + 위치판 칸 빛남');
+  ok(/성격/.test(msheet) && /능력/.test(msheet) && !/단단한 몸|신성한 갑옷/.test(msheet) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (능력치 · 성격, 직업 패시브 없음 69 · 97) + 위치판 칸 빛남');
   await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks(), goldBefore = (await save()).player.gold;
@@ -129,7 +129,8 @@ export default async function dungeon(url, shots) {
   // 파티원 공격은 한 방씩 숫자로 (2026-10-07 Lim), 보스 체력 띠도 그만큼
   await page.clock.runFor(2500);
   const dmg = await page.evaluate(() => [...document.querySelectorAll('#dmgNums span.go')].map(s => s.textContent));
-  ok(dmg.length >= 2 && dmg.every(t => /^\d+$/.test(t)), `파티원 공격 숫자가 한 방씩 뜸 (${dmg.join(',')})`);
+  // 기술 숙련이 15 밑이면 한 방이 「빗나감」 (99 (다), #275): 숫자 또는 빗나감, 숫자는 하나 이상
+  ok(dmg.length >= 2 && dmg.every(t => /^(\d+|빗나감)$/.test(t)) && dmg.some(t => /^\d+$/.test(t)), `파티원 공격 숫자가 한 방씩 뜸 (${dmg.join(',')})`);
   ok(await page.evaluate(() => { const F = window.__proto.F; return F.party.some(u => u.dealt > 0) && F.bossHp < F.bossMax; }), '때린 만큼 적 체력이 줄고 딜미터기에 쌓임');
   ok((await page.locator('#bossName .grade').textContent()) === '일반', '적 등급 표시 = 일반 (잡몹 대신)');
   // 휠 칸을 누르면 설명 팝업: 이름 → 정보 줄 → 금색 설명 (~니다)
