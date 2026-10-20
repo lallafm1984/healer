@@ -9,6 +9,7 @@ import { adCharge, adsFree, staminaClock, staminaView } from '../game/stamina';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
 import { esc, fmt, go } from './kit';
+import { sfx } from '../sfx';
 
 const view = () => staminaView(G.save, Date.now());
 const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
@@ -95,6 +96,7 @@ async function charge(): Promise<boolean> {
   if (!(await showRewarded(`휴식 +${STAMINA.ad}`, adsFree(G.save)))) return false;
   const err = adCharge(G.save, Date.now());
   if (err) return false;
+  sfx('rest-charge');
   commit();
   refreshCells();
   return true;
@@ -124,6 +126,7 @@ export function openStamina(): void {
  * 휴식은 클리어할 때 쓰고, 전투 전에는 휴식을 보여 주지 않음 (충전은 위 휴식 칸 · 로비 소켓 · 상점)
  */
 export function sortie(): void {
+  sfx('sortie');
   Flow.party = null;
   go('s-party');
 }

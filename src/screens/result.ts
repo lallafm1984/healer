@@ -30,6 +30,8 @@ import { adsFree } from '../game/stamina';
 import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
+import { sfx } from '../sfx';
+import { lootSound } from './ui-sound';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
@@ -69,6 +71,7 @@ function render(): void {
   resultModal.sync(null, []);
   if (anim) playRestBonus(st.el, x);
   if (fameAnim) playGuildFame(st.el, x);
+  if (won && !voiced.has(x)) { voiced.add(x); resultSounds(x, anim, fameAnim); }
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
   if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
     ended.add(x);
@@ -80,7 +83,20 @@ function render(): void {
     setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps, r.hero ?? heroNow()); }, 1100);
   }
 }
-const shown = new WeakSet<object>(), ended = new WeakSet<object>(), restPlayed = new WeakSet<object>(), famePlayed = new WeakSet<object>();
+const shown = new WeakSet<object>(), ended = new WeakSet<object>(), restPlayed = new WeakSet<object>(), famePlayed = new WeakSet<object>(), voiced = new WeakSet<object>();
+
+/**
+ * 결과 소리 (107, 이 판 처음 그릴 때 한 번): 승리 가락 (전투가 끝날 때 냄) 위에 골드 (휴식 보너스 연출이 있으면 그 띠 소리가 대신) →
+ * 가장 좋은 장비 카드 → 길드 결성 · 길드 Lv 업 (막대 연출이 있으면 그 연출이 냄)
+ */
+function resultSounds(x: Settlement, rest: boolean, fame: boolean): void {
+  if (!rest && x.gold > 0) sfx('gold-gain', { delay: 0.35 });
+  const rank = (it: Settlement['items'][number]) => ['loot', 'loot-rare', 'loot-legend'].indexOf(lootSound(it));
+  const best = x.items.reduce<Settlement['items'][number] | null>((a, b) => (!a || rank(b) > rank(a) ? b : a), null);
+  if (best) sfx(lootSound(best), { delay: 0.8 });
+  const gf = x.guildFame;
+  if (x.founded?.length || (!fame && gf && guildLvOf(gf.before + gf.gain).lv > guildLvOf(gf.before).lv)) sfx('guild-levelup', { delay: 1.3 });
+}
 
 /**
  * 휴식 보너스 연출 (90 · 2026-10-17 Lim 「결과창에서 휴식보너스가 있으면 휴식 보너스가 적용되어 보너스라고 하면서 적용하자」):
@@ -96,6 +112,7 @@ function playRestBonus(root: HTMLElement, x: Settlement): void {
   setTimeout(() => {
     if (!live()) return;
     fx.classList.add('on');
+    sfx('rest-bonus');
     for (let i = 1; i <= REST_FX.steps; i++) {
       setTimeout(() => {
         if (!live()) return;
@@ -264,6 +281,7 @@ function playGuildFame(root: HTMLElement, x: Settlement): void {
       if (em) em.textContent = row.dataset.gfEm ?? '';
       if (!up) return;
       row.classList.add('up'); row.querySelector('.r-gxp')?.classList.add('up');
+      sfx('guild-levelup');
       if (lv) lv.innerHTML = `<small>길드 ${row.dataset.gfFrom} →</small><b>${row.dataset.gfLv}</b>`;
       if (bar) { bar.style.transition = 'none'; bar.style.width = '0%'; void bar.offsetWidth; bar.style.transition = ''; bar.style.width = `${row.dataset.gfW}%`; }
       row.querySelector('.r-gcap')?.classList.remove('r-rest-pend');
@@ -447,6 +465,7 @@ export function showLevelUp(host: HTMLElement, ups: number[], hero: HeroKey = he
   const items = levelUpMilestones(ups, hero);
   if (!items.length) return;
   if (deferPopup(host, () => showLevelUp(host, ups, hero))) return;
+  sfx('level-up');
   const icon = (text: string) => text.includes('특성') ? gameIcon('talent', uiIcon('star'))
     : /스킬|패시브|성언|쿨기/.test(text) ? gameIcon('skills', uiIcon('quest'))
     : /던전|탐험|레이드|도전/.test(text) ? gameIcon('a2-swords', uiIcon('weapon'))

@@ -1,4 +1,6 @@
 /** Modal sheets are redrawn with their screen. Keep focus and background state across that redraw. */
+import { sfx, sfxRecent } from '../sfx';
+
 const interactive = 'button, input, select, textarea, a[href], [tabindex], [role="button"]';
 const releases = new Set<() => void>();
 
@@ -79,6 +81,7 @@ export function sheetDialog(root: HTMLElement, close: () => void) {
     sync(next: HTMLElement | null, nextPath: string[]) {
       const same = path.join('/') === nextPath.join('/');
       const closing = nextPath.length < path.length;
+      if (!sfxRecent()) { if (closing) sfx('ui-close'); else if (!same && next) sfx('ui-open'); } // 107: 시트가 열리고 닫힐 때 (같은 누름에서 장착 · 판매 같은 소리가 났으면 그것만)
       const back = closing ? openers[nextPath.length] : null;
       if (!same && !closing) openers[nextPath.length - 1] = before;
       openers.length = nextPath.length;
