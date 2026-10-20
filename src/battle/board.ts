@@ -796,6 +796,8 @@ interface Fx {
   pxf?: PxfKey; tag?: string;
   /** 이펙트를 돌려 그림 (라디안): 연쇄 치유 물줄기가 앞 사람 쪽에서 들어오게 */
   rot?: number;
+  /** 그림을 위아래로 뒤집어 그림 (두 칸 잇는 이펙트가 왼쪽으로 갈 때 무지개가 위로 굽게) */
+  flip?: boolean;
   /** 치유 빛 없이 숫자 · 치명타 별만 (그 칸에 스킬 PXF 이펙트가 나올 때) */
   plain?: boolean;
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
@@ -1112,6 +1114,16 @@ export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; ta
   B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]), ...o });
   return true;
 }
+/**
+ * 두 칸을 잇는 이펙트 (사제 빛의 전이 옮겨 가기, 2026-10-20 Lim 「옆으로 옮겨가는 연출」): 두 칸 가운데에 그리고, 그림의 왼쪽 → 오른쪽이 앞 칸 → 새 칸이 되게 돌림.
+ * 그림 좌표 1 = 칸 반지름이라 바로 옆 칸 (가운데끼리 √3 칸 반지름)은 그림의 ±0.87. 왼쪽으로 갈 때는 위아래를 뒤집어 무지개가 늘 위로 굽게
+ */
+export function fxPxfBetween(a: Unit, b: Unit, pxf: PxfKey, now: number): boolean {
+  if (!L.ok || S.reducedEffects || B2.fx.length >= 100 || !pxfReady(pxf)) return false;
+  const p = unitPos(a), q = unitPos(b), rot = Math.atan2(q.y - p.y, q.x - p.x);
+  B2.fx.push({ kind: 'pxf', id: b.id, t0: now, pxf, dur: pxfMs(PXF[pxf]), x: (p.x + q.x) / 2, y: (p.y + q.y) / 2, rot, flip: Math.cos(rot) < -1e-6, tag: `between${a.id}-` });
+  return true;
+}
 /** 전투 공통 효과를 PXF로 (그렸을 때만 true, 아니면 예전 그림): 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…) */
 function commonFx(u: Unit, k: CommonFx, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
   const pxf = COMMON_PXF[k];
@@ -1334,13 +1346,13 @@ function predictedHeal(u: Unit): number {
  * 층: 모두 판 맨 위 (pxfL, 이름 · 체력 · 말풍선 위, Lim 「파티원에서 최상단으로」). 회색 그림은 tint 색을 곱함.
  * 손그림풍이라 부드럽게 늘림. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
-function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff, rot = 0): void {
+function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff, rot = 0, flip = false): void {
   const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : smoothFrame(k, i);
   if (!tex) return;
   if (tex.source.scaleMode !== 'linear') tex.source.scaleMode = 'linear';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
-  pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, rot, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
+  pxfArt.put(tex, x, y, half * 2, flip ? -half * 2 : half * 2, 1, c.gray ? tint : 0xffffff, rot, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, tint: c.gray ? tint : undefined });
 }
 /** 손그림풍 스킬 이펙트 (격자 띠)의 프레임 i: 부드럽게 늘리므로 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀 */
@@ -1765,7 +1777,7 @@ export function render(now: number): void {
     if (e.kind === 'pxf') {
       if (e.wide) { pxfWide(e.pxf!, `pxf-${e.pxf}-${e.t0}`, now - e.t0, e.color); continue; }
       const u = F.party.find(x => x.id === e.id), p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
-      if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color, e.rot);
+      if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color, e.rot, e.flip);
       continue;
     }
     const k = (now - e.t0) / FX_MS;

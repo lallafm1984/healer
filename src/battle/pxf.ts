@@ -72,7 +72,8 @@ export const PXF = {
   'priest-guardian': skill(24, 98),
   'priest-hymn': skill(20, 70),
   'priest-serenity': skill(24, 100),
-  'priest-relay': skill(20, 92),
+  'priest-relay': skill(20, 96, { size: 288 }), // 2026-10-20 Lim 「전이 이펙트를 회복하는것과 옆으로 옮겨가는 연출을 새롭게」: 코드 빛 띠
+  'priest-relay-jump': skill(20, 100, { size: 288 }), // 같은 날: 두 칸 가운데에서 앞 칸 → 새 칸 (board.ts fxPxfBetween)
   'priest-talent': skill(20, 100, { size: 320 }), // 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트」): 직업마다 하나, battle/index.ts talent 사건
   'priest-shelter-loop': loop(36, 87, 12, 256), // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게」): board.ts putArtLoop, 그림 한 변 × logical / 62
   'druid-sprout': skill(20, 80),
@@ -246,7 +247,9 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
  * 그 직업 스킬의 손그림풍 이펙트 (224px 격자 띠라 하나에 2–5MB): 전투마다 지금 직업 것만 읽어 두고 다른 직업 것은 내려 놓음 (board.ts resetBoardFx)
  */
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
-  [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? []), ...(HERO_TALENT_FX[hero] ? [HERO_TALENT_FX[hero]!] : [])])];
+  [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? []), ...(HERO_TALENT_FX[hero] ? [HERO_TALENT_FX[hero]!] : []), ...(HERO_EXTRA_FX[hero] ?? [])])];
+/** 스킬 기록이 아닌 직업 이펙트 (엔진 사건으로 그림): 사제 빛의 전이 옮겨 가기 (relay-fly, 2026-10-20 Lim) */
+export const HERO_EXTRA_FX: Partial<Record<HeroKey, PxfKey[]>> = { priest: ['priest-relay-jump'] };
 /** 직업별 특성 버튼 발동 이펙트 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트」): 그 직업 특성 버튼 모두 같은 이펙트 하나 */
 export const HERO_TALENT_FX: Partial<Record<HeroKey, PxfKey>> = {
   priest: 'priest-talent', druid: 'druid-talent', paladin: 'paladin-talent', shaman: 'shaman-talent', monk: 'monk-talent', astrologer: 'astro-talent', warder: 'warder-talent',
