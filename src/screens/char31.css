@@ -84,7 +84,6 @@
 #s-char .c7-sq > .ui-icon { width: 30px; height: 30px; stroke-width: 1.8; }
 /* 장비 그림(item-): 테두리 안쪽 4px만 남기고 칸을 거의 채움 */
 #s-char .c7-sq > .g-ic { width: calc(100% - 8px); height: calc(100% - 8px); }
-#s-char .c7-pl { position: absolute; right: 3px; bottom: 1px; font: normal 900 13px/1 var(--font-body); color: #FFFFFF; text-shadow: 0 0 3px #000, 0 1px 0 #000; }
 #s-char .c7-slot > b { margin-top: 4px; display: inline-flex; align-items: center; gap: 2px; font: 700 12px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 1px 2px #000; }
 #s-char .c7-slot > b .ui-icon.in { width: 11px; height: 11px; margin: 0; }
 #s-char .c7-slot > small { font-size: 10.5px; line-height: 1.25; color: #C9BC9E; white-space: nowrap; text-shadow: 0 1px 2px #000; }
@@ -97,13 +96,6 @@
 /* 가운데: 빛 + 금테 문장 메달 (판 위 테두리에 걸침) + 능력치 판 */
 #s-char .c7-mid { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 2px 0 4px; }
 #s-char .c7-mid::before { content: ''; position: absolute; left: 50%; top: -6px; width: 170px; height: 150px; margin-left: -85px; border-radius: 50%; background: radial-gradient(rgba(255, 214, 120, 0.4), rgba(255, 214, 120, 0) 68%); pointer-events: none; }
-#s-char .c7-bigem {
-  position: relative; z-index: 2; flex: none; width: 78px; height: 78px; padding: 4px; border-radius: 50%;
-  background: conic-gradient(from 20deg, #FFE7A0, #9C7A3C 25%, #FFE7A0 50%, #9C7A3C 75%, #FFE7A0);
-  box-shadow: 0 0 0 2px var(--line), 0 0 24px rgba(255, 214, 120, 0.45), 0 6px 14px rgba(0, 0, 0, 0.7);
-}
-#s-char .c7-bigem .emblem { width: 100%; height: 100%; border: 3px solid #15120E; background: radial-gradient(circle at 50% 35%, #4E3D27, #15120E 75%); box-shadow: none; }
-#s-char .c7-bigem .emblem img { width: 94%; height: 94%; }
 
 /* ---------- 장비 ② 능력치 판 6줄 (34 1-2, 누르면 출처): 금테 어두운 판, 줄마다 동그라미 아이콘 · 이름 · 값 · 초록 장비 몫 ---------- */
 #s-char .c7-stats {
@@ -131,20 +123,6 @@
 #s-char .c7-stat:has(> i:empty) > b { grid-row: 1 / 3; }
 #s-char .c7-shint { margin-top: 2px; text-align: center; font-size: 10px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ---------- 장비 ③ 가방 · 추천 장착 · 분해 ---------- */
-#s-char .c7-acts { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; margin-top: 4px; }
-#s-char .c7-acts .g-sign { min-width: 0; min-height: 52px; padding: 0 14px; white-space: nowrap; }
-#s-char .c7-acts .g-sign:disabled { filter: grayscale(0.5) brightness(0.7); cursor: default; }
-#s-char .c7-recb {
-  min-width: 0; min-height: 52px; margin: 0; padding: 0 6px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 6px;
-  background: linear-gradient(#5A4428, #2E2318); border: 2px solid #E2BE6E;
-  box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), inset 0 1px 0 rgba(255, 226, 170, 0.4), 0 0 16px rgba(255, 211, 77, 0.35);
-  font: 800 17px var(--font-display); color: #FFE08A; text-shadow: 0 1px 0 #2A1A0E; white-space: nowrap; cursor: pointer;
-}
-#s-char .c7-recb .c7-li { flex: none; width: 18px; height: 18px; }
-#s-char .c7-recb:active:not(:disabled) { transform: translateY(1px); }
-#s-char .c7-recb:disabled { border-color: #8A6E42; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line); color: var(--mute); cursor: default; }
-
 /* ---------- 아래 시트 공통 (어두운 판 + 금테) ---------- */
 #s-char .sheet {
   background: linear-gradient(#2E2419, #1A1511 42%); border: 2px solid #D9B26A; border-bottom: 0;
@@ -157,7 +135,6 @@
 #s-char .c7-dialog-head { position: sticky; top: 0; z-index: 2; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #2E2419; border-bottom: 1px solid var(--edge-dim); }
 #s-char .c7-dialog-head h3 { margin: 0; font: 800 16px var(--font-display); color: var(--gold-hi); }
 #s-char .c7-dialog-close { min-width: 64px; min-height: 44px; margin: 0 0 6px; }
-#s-char .c7-save-note { margin: 0; color: var(--ink-2); font-size: 12px; }
 /* 장비 상세 */
 #s-char .c7-ghead { display: flex; align-items: center; gap: 12px; }
 #s-char .c7-gic {
@@ -172,9 +149,6 @@
 #s-char .c7-gname b i { font-style: normal; color: var(--gold-hi); }
 /* 머리 줄 (부위 · 종류 · 생김새 · 등급 · Lv · 새로 얻음)은 낱말 사이에서만 줄바꿈 (「새 / 로 얻음」처럼 낱말이 갈리지 않게) */
 #s-char .c7-gname .cap { word-break: keep-all; }
-#s-char .c7-gscore { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
-#s-char .c7-gscore .cap { font-size: 11px; }
-#s-char .c7-gscore > b { font: 900 24px/1 var(--font-body); color: var(--gold-hi); }
 #s-char .c7-up { font: 900 13px var(--font-body); color: var(--heal); white-space: nowrap; }
 #s-char .c7-dn { font: 900 13px var(--font-body); color: #F07060; white-space: nowrap; }
 #s-char .c7-cmpw { display: flex; flex-direction: column; }
@@ -191,10 +165,6 @@
 /* 전설 고유 능력: 노란 금테 (88, 전설 = 노란색) */
 #s-char .c7-legend .c7-spec { border-radius: 6px; padding-left: 6px; padding-right: 6px; background: linear-gradient(90deg, rgba(255, 210, 63, 0.18), rgba(255, 210, 63, 0.03)); box-shadow: inset 0 0 0 1px rgba(255, 226, 122, 0.45); }
 #s-char .c7-legend .c7-spt > b { color: #FFC07A; }
-#s-char .c7-rec > b { padding: 4px 0; font-size: 13px; line-height: 1.35; }
-#s-char .c7-rec s { text-decoration: none; font-weight: 400; color: var(--mute); }
-#s-char .c7-rec em { font-style: normal; }
-#s-char .c7-lack { color: #F07060; font-weight: 700; }
 #s-char .c7-sbtns { display: flex; gap: 8px; }
 #s-char .c7-sb {
   flex: none; height: 52px; padding: 0 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 6px;
@@ -206,7 +176,7 @@
 #s-char .c7-lockb { width: 64px; }
 #s-char .c7-lockb[aria-pressed="true"] { border-color: var(--frame-hi); background: linear-gradient(#4A3A24, #2A2118); color: var(--gold-hi); }
 #s-char .c7-lockb[aria-pressed="true"] small { color: var(--gold-hi); }
-#s-char .c7-salvb, #s-char .c7-wide { width: 92px; }
+#s-char .c7-salvb { width: 92px; }
 /* 진홍 주 버튼 (시트 · 직업 바꾸기) */
 #s-char .c7-cta, #s-char .c7-hcta {
   flex: 1; min-width: 0; height: 52px; margin: 0; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 6px;
@@ -244,16 +214,10 @@
 #s-char .c7-bag .nw { position: absolute; z-index: 3; left: -3px; top: -3px; width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; background: #E0402F; border: 1.5px solid #FFE7A8; box-shadow: 0 1px 3px #0009; pointer-events: none; }
 #s-char .c7-bag .lk { position: absolute; right: 2px; bottom: 1px; display: flex; color: var(--ink-2); }
 #s-char .c7-bag .lk .ui-icon { width: 11px; height: 11px; stroke-width: 2.2; }
-#s-char .c7-bag .ck { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 3px; background: rgba(13, 11, 9, 0.55); font: 900 22px var(--font-body); color: var(--gold-hi); }
 /* 세력 생김새 (34 6-10 ②): 등급 테두리 안쪽에 세력 색 띠 */
 #s-char .c7-bag[style*="--lk"], #s-char .c7-slot[style*="--lk"] .c7-sq { box-shadow: 0 0 0 1px var(--line), inset 0 0 0 2px color-mix(in srgb, var(--lk) 70%, transparent), inset 0 0 12px color-mix(in srgb, var(--lk) 35%, transparent), 0 0 8px color-mix(in srgb, var(--g) 30%, transparent); }
-#s-char .c7-bags.picking .c7-bag.on { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
-#s-char .c7-bags.picking .c7-bag.lock { opacity: 0.4; }
-#s-char .c7-bempty { margin: 0; padding: 14px 0; text-align: center; }
-#s-char .c7-salv { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-#s-char .c7-salv .cap { flex-basis: 100%; }
 #s-char .c7-bagf { display: flex; align-items: center; gap: 8px; }
-#s-char .c7-bsheet .btn2, #s-char .c7-salv .btn2 { min-height: 40px; }
+#s-char .c7-bsheet .btn2 { min-height: 40px; }
 
 /* ---------- 스킬 ① 보기 방식 토글 · 마법진 위 휠 3×3 금테 메달 ---------- */
 #s-char .c7-skill { --m: min(84px, calc((100vw - 64px) / 3.25)); }
@@ -383,64 +347,11 @@
 #s-char .c7-pk.focus .c7-tn { border-color: var(--gold-hi); box-shadow: 0 0 0 1px var(--line), 0 0 0 4px rgba(255, 211, 77, 0.35); animation: none; }
 #s-char .c7-pk.off { cursor: default; }
 #s-char .c7-pk.off .c7-tn > svg { width: 20px; height: 20px; }
-#s-char .c7-tprep { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ---------- 직업 ① 금빛 막대에 걸린 천 깃발 (3개보다 많으면 가로 스크롤) ---------- */
 #s-char .c7-hero { gap: 8px; }
-#s-char .c7-bnrs { --bw: min(114px, calc((100vw - 52px) / 3)); display: flex; gap: 11px; margin: -4px -12px -6px; padding: 8px 12px 14px; overflow-x: auto; scrollbar-width: none; }
-#s-char .c7-bnrs::-webkit-scrollbar { display: none; }
-#s-char .c7-bnr:first-child { margin-left: auto; }
-#s-char .c7-bnr:last-child { margin-right: auto; }
-#s-char .c7-bnr { position: relative; flex: none; width: var(--bw); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; }
-#s-char .c7-rod { position: relative; z-index: 2; flex: none; width: calc(var(--bw) + 10px); height: 9px; border-radius: 5px; background: linear-gradient(#FFE7A0, #9C7A3C); border: 1px solid var(--line); }
-#s-char .c7-rod::before, #s-char .c7-rod::after { content: ''; position: absolute; top: -3px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #FFE7A0, #9C7A3C); border: 1px solid var(--line); }
-#s-char .c7-rod::before { left: -7px; }
-#s-char .c7-rod::after { right: -7px; }
-#s-char .c7-cloth {
-  width: calc(var(--bw) - 6px); height: calc((var(--bw) - 6px) * 2.185); margin-top: -2px; padding: 16px 6px 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: var(--c); clip-path: polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%);
-  box-shadow: inset 0 0 0 3px rgba(226, 190, 110, 0.55), inset 0 0 0 6px rgba(0, 0, 0, 0.25), inset 0 -40px 40px rgba(0, 0, 0, 0.25);
-}
-#s-char .c7-cem { flex: none; width: calc((var(--bw) - 6px) * 0.685); aspect-ratio: 1 / 1; padding: 3px; border-radius: 50%; background: conic-gradient(from 20deg, #FFE7A0, #9C7A3C 25%, #FFE7A0 50%, #9C7A3C 75%, #FFE7A0); box-shadow: 0 0 0 1px var(--line), 0 4px 8px rgba(0, 0, 0, 0.5); }
-#s-char .c7-cem .emblem { width: 100%; height: 100%; border: 2px solid #15120E; background: radial-gradient(circle at 50% 35%, #4E3D27, #15120E 75%); box-shadow: none; }
-#s-char .c7-cem .emblem img { width: 94%; height: 94%; }
-#s-char .c7-cloth > b { margin-top: 4px; font: 800 clamp(15px, calc(var(--bw) * 0.167), 19px)/1.2 var(--font-display); color: #FFE08A; text-shadow: 0 1px 0 var(--line); white-space: nowrap; }
-#s-char .c7-stars { font-size: 13px; letter-spacing: 1px; color: var(--gold-hi); }
-#s-char .c7-cs { margin-top: 6px; padding: 3px 8px; border-radius: 3px; background: rgba(13, 11, 9, 0.6); border: 1px solid rgba(226, 190, 110, 0.6); font: 700 11px var(--font-body); color: var(--ink); white-space: nowrap; }
-#s-char .c7-cs.now { background: linear-gradient(#FFE08A, #C9A35C); border-color: var(--line); color: #2A1A0E; }
-#s-char .c7-bnr.sel { filter: drop-shadow(0 0 12px rgba(255, 214, 120, 0.55)); }
-#s-char .c7-bnr.sel .c7-cloth { box-shadow: inset 0 0 0 3px #FFE08A, inset 0 0 0 6px rgba(0, 0, 0, 0.25), inset 0 -40px 40px rgba(0, 0, 0, 0.25); }
-#s-char .c7-bnr.locked { filter: grayscale(0.75) brightness(0.6); }
-#s-char .c7-bnr.locked.sel { filter: grayscale(0.75) brightness(0.6) drop-shadow(0 0 10px rgba(255, 214, 120, 0.6)); }
-#s-char .c7-lkic { position: absolute; left: 50%; top: calc(7px + (var(--bw) - 6px) * 0.3425); z-index: 3; width: 32px; height: 32px; margin-left: -16px; display: grid; place-items: center; border-radius: 50%; background: #15120E; border: 2px solid var(--mute); color: var(--ink-2); }
-#s-char .c7-lkic .ui-icon { width: 16px; height: 16px; stroke-width: 2.2; }
-#s-char .c7-bnr:active .c7-cloth { transform: translateY(1px); }
-
-/* ---------- 직업 ② 곧 열림 (흐린 문장 + 이름) ---------- */
-#s-char .c7-soon { display: flex; align-items: center; gap: 8px; }
-#s-char .c7-soont { flex: none; font: 700 12px var(--font-display); color: var(--mute); white-space: nowrap; text-shadow: 0 1px 2px #000; }
-#s-char .c7-upc { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-#s-char .c7-upc .emblem { width: 40px; height: 40px; filter: grayscale(0.85) brightness(0.55); }
-#s-char .c7-upc small { font-size: 10px; color: var(--dim); white-space: nowrap; }
 
 /* ---------- 직업 ③ 양피지 상세 + 진홍 버튼 ---------- */
-#s-char .c7-hdet { padding: 19px 16px 10px; }
-#s-char .c7-hdet h3 { font-size: 20px; line-height: 1.2; }
-#s-char .c7-hst { font-size: 14px; letter-spacing: 1px; color: #B07A12; }
-#s-char .c7-hchips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; font-size: 12px; color: #6A5838; }
-#s-char .c7-hchips .c7-sys { margin-left: 4px; }
-#s-char .c7-hm { display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; margin-top: 4px; }
-#s-char .c7-hm > span::before { content: '· '; }
-#s-char .c7-hsk { position: relative; min-height: 0; margin: 0; padding: 0; line-height: 17px; border: 0; background: none; font: 700 12px var(--font-body); color: #6E1A12; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
-#s-char .c7-hsk::after { content: ''; position: absolute; inset: -13px -6px; }
-#s-char .c7-hq { display: flex; align-items: center; gap: 8px; margin-top: 7px; padding: 6px 10px; border-radius: 4px; background: rgba(110, 26, 18, 0.1); border: 1px dashed #9C8456; }
-#s-char .c7-hq p { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.4; }
-#s-char .c7-hq p b { color: #6E1A12; }
-#s-char .c7-hq strong { font: 800 16px var(--font-display); color: #6E1A12; white-space: nowrap; }
-#s-char .c7-hdet .c7-pas { margin: 8px 0 4px; }
-#s-char .c7-hdet .c7-pas li b { color: #2E2114; }
-#s-char .c7-hdet .c7-pas li p { color: #3A2A18; }
-#s-char .c7-hdet .c7-pas .cap { color: #6A5838; }
 #s-char .c7-hcta { flex: none; width: 100%; height: 48px; font-size: 17px; }
 #s-char .c7-hcta .ui-icon.in { width: 15px; height: 15px; margin: 0 2px 2px 0; }
 
@@ -451,9 +362,6 @@
   #s-char .c7-tab { gap: 4px; }
   #s-char .c7-tab b { font-size: 14px; }
   #s-char .c7-tic, #s-char .c7-tic > svg, #s-char .c7-tic .emblem { width: 22px; height: 22px; }
-  #s-char .c7-acts .g-sign { padding: 0 10px; }
-  #s-char .c7-acts .g-sign::before, #s-char .c7-acts .g-sign::after { display: none; }
-  #s-char .c7-recb { font-size: 15px; }
   #s-char .c7-taps > button { font-size: 14px; }
 }
 /* 390 미만: 가운데 능력치 판이 좁아 동그라미·글자를 줄임 (지능 1,414 · +268이 잘리지 않게) */
@@ -479,7 +387,6 @@
   #s-char .c7-pres { gap: 5px; }
   #s-char .c7-mode button { padding: 0 12px; font-size: 13px; }
   #s-char .c7-taps > button { font-size: 13px; }
-  #s-char .c7-bnrs { gap: 9px; margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; }
 }
 /* 추가 옵션 굴림 막대 (34 6-3): 최소 굴림 = 빈 막대, 최대 = 꽉 찬 막대 */
 #s-char .c7-roll { display: inline-block; width: 44px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; justify-self: end; align-self: center; }
@@ -540,16 +447,8 @@
 #s-char .c7-dots { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
 #s-char .c7-dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 0 1px #0D0B09, 0 0 4px color-mix(in srgb, var(--gold-hi) 60%, transparent); }
 #s-char .c7-dots > i.off { background: #6E6658; box-shadow: 0 0 0 1px #0D0B09; }
-/* ---------- 강화 연출 (34 7장): 움직임은 transform만, 끝난 뒤 모양은 연출 없는 모양과 같음 ---------- */
-#s-char .c7-gsheet { --fxd: 1.5s; }
-#s-char .fx .c7-gic { z-index: 2; animation: efxLift var(--fxd) ease-out both; }
-/* +10: 테두리에 등급 색 빛이 남음 */
-#s-char .c7-gic.max, #s-char .c7-sq.max { box-shadow: 0 0 0 1px var(--line), 0 0 18px color-mix(in srgb, var(--g) 70%, transparent), 0 0 4px var(--g); }
-@keyframes efxLift { 0% { transform: none; } 23% { transform: translateY(-6px) scale(1.2); } 27% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 33% { transform: translateY(-6px) scale(1.2); } 47% { transform: translateY(-6px) scale(1.2) rotate(4deg); } 53% { transform: translateY(-6px) scale(1.2); } 67% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 73% { transform: translateY(-6px) scale(1.2); } 100% { transform: none; } }
-@media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic { animation: none; } }
 #s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
 #s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }
-/* ---------- 강화 · 새 특수능력 그림 (36 4-4 G · 4-6 J): 그림이 있을 때만 들어옴, 움직임은 CSS. 자리는 차지하지 않음 ---------- */
 
 /* 도감: 지난 판에 처음 얻은 칸은 표식 위에서 한 번 터짐 · 고유 칸 = 장신구 그림 (못 얻은 칸은 실루엣) */
 #s-char .c7-spg { position: relative; }
@@ -601,13 +500,9 @@
 #s-char .c7-twk.calm { z-index: auto; }
 #s-char .c7-twk.calm .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  #s-char .c7-fxawk,#s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-twk-sheen,#s-char .c7-twk-glow,#s-char .c7-twk-b { display: none; }
+  #s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-twk-sheen,#s-char .c7-twk-glow,#s-char .c7-twk-b { display: none; }
   #s-char .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
 }
 
 /* 직업 전환: 공통 성장 안내와 직업별 장비 수집. 기존 양피지·금테 색상을 계승 */
-#s-char .c7-job-gear { margin: 12px 0; padding: 10px 0; border-block: 1px solid #98774966; }
-#s-char .c7-job-gear summary { cursor: pointer; font-weight: 800; font-size: 14px; line-height: 1.6; }
-#s-char .c7-job-gear summary span { float: right; font-size: 12px; font-weight: 500; }
-#s-char .c7-job-gear .c7-pas { max-height: 280px; overflow-y: auto; overscroll-behavior: contain; }
 #s-char .c7-spt b small { display: inline-block; font-size: 11px; color: var(--gold-hi); }

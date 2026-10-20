@@ -68,8 +68,7 @@
 #s-char[data-sub] .c7-lockb[aria-pressed="true"],
 #s-char[data-sub="skill"] .c7-mode button[aria-pressed="true"],
 #s-char[data-sub="skill"] .c7-taps > button[aria-pressed="true"],
-#s-char[data-sub="skill"] .c7-wh[aria-pressed="true"]:not(.core):not(.empty):not(.locked),
-#s-char[data-sub="hero"] .c7-cs.now {
+#s-char[data-sub="skill"] .c7-wh[aria-pressed="true"]:not(.core):not(.empty):not(.locked) {
   background-color: var(--c7-palette-paper);
   background-image: var(--a2-paper);
   background-blend-mode: luminosity;
@@ -121,5 +120,4 @@
   border-color: #977aad;
   color: #dfd1eb;
 }
-#s-char[data-sub="talent"] .c7-tpath .d { stroke: #c3add6; }
 #s-char[data-sub="talent"] .c7-tier { border-bottom-color: #b998d324; }

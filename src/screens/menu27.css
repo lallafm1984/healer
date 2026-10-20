@@ -23,12 +23,6 @@
 /* ---------- 알림 칩 · 빨간 점 ---------- */
 .rdot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #E0402F; border: 1px solid var(--line); pointer-events: none; }
 
-/* ---------- 해제 칩 (세력 색 = 해제 유형 색) ---------- */
-.dsp { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; background: var(--c, #888); font: 900 11px var(--font-body); color: #12100C; white-space: nowrap; }
-.dsp.off { height: 18px; background: none; border: 1px solid var(--edge-dim); color: var(--dim); font-weight: 400; }
-.dsp.none { background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: var(--ink); font-weight: 700; }
-.dsp.cant { background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0 3px, transparent 3px 6px); }
-
 /* ---------- 두세 칸 스위치 ---------- */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: hidden; border-radius: 6px; border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line); }
 .seg > button { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 4px; border: 0; border-left: 1px solid var(--edge-dim); background: #201A14; color: var(--mute); font: 700 13px var(--font-body); cursor: pointer; }

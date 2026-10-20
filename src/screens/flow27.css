@@ -49,14 +49,9 @@
 /* 어픽스 이름 칸 (시안: 진홍 바탕 노란 글자) */
 .f-afx { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; background: #6E1414; border: 1px solid #B0302A; font: 900 11px var(--font-body); color: var(--gold-hi); white-space: nowrap; }
 .f-afx.good { background: #1C2A18; border-color: #3F6B36; color: #CFEBC5; }
-.f-dev { font-size: 11px; color: var(--mana); }
-.f-chev { flex: none; width: 16px; height: 16px; color: var(--mute); }
 
 /* ---------- 주간 도전 입장 (S04) ---------- */
 /* 상단 뒤에 장소 그림 (어둡게) */
-#s-entry .f-cover { flex: none; position: relative; }
-#s-entry .f-cover.art { background: linear-gradient(rgba(21, 18, 14, 0.62), rgba(21, 18, 14, 0.9)), var(--cv) center 42% / cover; }
-#s-entry .f-cover.art > .topbar { background: linear-gradient(rgba(35, 28, 21, 0.86), rgba(24, 20, 15, 0.55)); }
 #s-entry .f-ebody { padding: 10px 16px 16px; gap: 10px; }
 #s-entry .chalstep { gap: 18px; }
 #s-entry .chalstep .btn2 { width: 52px; min-height: 44px; font-size: 22px; }
@@ -64,7 +59,6 @@
 .f-cinfo { margin: -2px 0 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-2); }
 .f-cinfo b { color: var(--ink); }
 #s-entry .note.center { margin: 0; }
-.f-rules { font-size: 12px; color: var(--mute); }
 .f-sec { padding: 10px 12px 4px; display: flex; flex-direction: column; }
 .f-sec > .h-rule { margin-bottom: 8px; }
 .f-rw { padding: 10px 12px; gap: 6px; }
@@ -80,7 +74,6 @@
 .f-mark.warn { background: #3A2E10; border: 1px solid #E8A51E; color: var(--gold-hi); }
 .f-warn .v { flex: 1; min-width: 0; font-size: 13px; line-height: 1.45; color: var(--ink); }
 .f-warn .v .cap { margin-left: 2px; font-size: 12px; }
-.f-warn .v .dsp { margin-right: 3px; vertical-align: 1px; }
 .f-warn .f-g { font-weight: 700; }
 .f-warn > .btn2 { flex: none; min-height: 44px; padding: 0 12px; font-size: 13px; }
 
@@ -99,23 +92,12 @@
 .f-nl { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 2px; }
 /* 구간별 공략 접기 */
 .f-gsheet .guides { display: flex; flex-direction: column; gap: 0; }
-.gdet.f-acc { padding: 0; border: 0; border-top: 1px solid var(--panel-2); border-radius: 0; background: none; box-shadow: none; }
-.gdet.f-acc > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; list-style: none; font: 700 14px var(--font-body); color: var(--ink); cursor: pointer; }
-.gdet.f-acc > summary::-webkit-details-marker { display: none; }
-.gdet.f-acc > summary .f-chev { width: 14px; height: 14px; transition: transform 0.15s; }
-.gdet.f-acc[open] > summary .f-chev { transform: rotate(90deg); color: var(--gold-hi); }
-.gdet.f-acc[open] > summary .f-an { color: var(--gold-hi); }
-.gdet.f-acc[open] { padding-bottom: 10px; }
-.gdet.f-acc > summary .cap { font-weight: 400; }
 /* 어픽스 줄 */
 .afxlist { display: flex; flex-direction: column; }
 .f-afr { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 0; box-sizing: border-box; border-top: 1px solid var(--panel-2); }
 .f-afr:first-child { border-top: 0; }
 .f-afd { flex: 1; min-width: 0; font-size: 12px; line-height: 1.45; color: var(--ink-2); }
 .f-afd small { display: block; font-size: 11px; color: var(--mute); }
-/* 아이템 힌트 (전구) */
-.f-ih { margin: 0; display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--frame); font-size: 13px; line-height: 1.45; color: var(--ink); }
-.f-ih svg { flex: none; width: 18px; height: 18px; color: var(--gold-hi); }
 /* 시트 글은 낱말 단위로 줄바꿈, 닫기는 길어도 아래에 붙어 있음 */
 #s-party .sheet { word-break: keep-all; overflow-wrap: anywhere; }
 #s-party .sheet > .f-shut { position: sticky; bottom: 0; z-index: 1; flex: none; align-self: stretch; min-height: 44px; box-shadow: 0 -12px 12px #1A1511; }
@@ -165,7 +147,6 @@
 .f-ps { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px 0 2px; box-sizing: border-box; border-radius: 3px; background: var(--bg); border: 1px solid var(--edge-dim); font: 700 11px var(--font-body); color: var(--ink); white-space: nowrap; }
 .f-ps i { width: 16px; height: 16px; display: grid; place-items: center; border-radius: 3px; font: normal 900 10px var(--font-body); color: #12100C; }
 .f-ps em { margin-left: 1px; font: normal 900 12px var(--font-body); color: #FF8A70; }
-.f-star { flex: none; font-size: 11px; letter-spacing: -1px; color: var(--gold-hi); }
 /* 능력은 금빛 별 (0.5 단위), 스킬은 LV로 구분한다. */
 .f-fm { flex: none; display: inline-flex; align-items: center; gap: 3px; margin-left: auto; white-space: nowrap; }
 .f-fm b, .f-det .pfm b { display: inline-flex; align-items: center; font-weight: 400; color: var(--gold-hi); vertical-align: middle; }
@@ -192,63 +173,38 @@
 .fm-grid li.b2 > b { color: #f1ece0; }
 .fm-grid li.b3 > b { color: #8fd18a; }
 .fm-grid li.b4 > b { color: #ffd34d; }
-.fm-grid.fog li > b { font-size: 12px; letter-spacing: -0.5px; }
 .f-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--mute); }
 .f-ab { display: inline-flex; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .skill-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .f-ab > .skill-level { flex: none; }
 #s-party .f-ab b { font-weight: 700; }
-.f-tr { flex: none; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; border: 1px solid var(--frame-hi); font: 700 11px/18px var(--font-body); color: var(--gold-hi); }
 /* 파티원 상세 시트 */
 #s-party .f-det { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; border-radius: 4px; background: var(--bg); border: 1px solid var(--edge-dim); font-size: 13px; line-height: 1.5; }
 #s-party .f-det p { margin: 0; }
-#s-party .f-det .pcat { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 4px; border-radius: 3px; font: normal 900 10px var(--font-body); color: #12100C; vertical-align: -3px; }
-#s-party .f-det .ppas b, #s-party .f-det .pab b { font-weight: 700; }
+#s-party .f-det .pab b { font-weight: 700; }
 /* 능력 줄 (.pcard p.pab와 같게: 이름 = 등급 색, 등급 칸은 바로 선) */
 #s-party .f-det p.pab { color: #DCD5C1; }
 #s-party .f-det p.pab b { font-family: var(--font-body); font-size: 12px; color: var(--gc); margin-right: 4px; }
 #s-party .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
-#s-party .f-det .f-star { letter-spacing: 0; }
 #s-party .pickhead { margin: 0; flex-wrap: wrap; align-items: center; }
 #s-party .pickhead #autoPick { margin-left: auto; min-height: 44px; }
 /* 추천 편성 이유 (93 7-1): 「장판 → 연막」 */
 #s-party .f-why { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; }
 #s-party .f-why .chip { min-height: 24px; padding: 2px 8px; border-radius: 12px; font: 700 11px/1.4 var(--font-body); white-space: nowrap; }
-/* 길드원 줄 둘째 줄의 작은 표 (숙지 n · 예전 길드원) */
 /* 그림 + 숫자 한 덩이 (2026-10-19 길드 화면 정리): 그림이 위, 글이 아래로 갈라지던 것 (inline 그림 + 줄바꿈) */
 .pcard.f-mem .f-l2 > .f-tag { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; font-weight: 700; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pcard.f-mem .f-l2 > .f-tag > .g-ic { width: 15px; height: 15px; object-fit: contain; }
 /* 후원 남은 판 (98): 금빛 */
 .pcard.f-mem .f-l2 > .f-tag.gold { border-color: #c99b3f; color: #ffd34d; background: #3a2a0f; }
-#s-party .f-adrr { align-self: flex-start; }
-/* 단축칸 한 줄 칩 (아래 고정, 칸 높이 44) */
-.f-slots { display: flex; align-items: center; gap: 6px; }
-.f-slab { flex: none; font-size: 11px; white-space: nowrap; }
-.f-item { position: relative; flex: 1 1 0; min-width: 0; height: 44px; padding: 0 4px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--edge); font: 700 12px var(--font-body); color: var(--ink); white-space: nowrap; cursor: pointer; }
-.f-item > span { overflow: hidden; text-overflow: ellipsis; }
-.f-item small { position: absolute; top: -6px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; display: grid; place-items: center; border-radius: 9px; background: #3A2E1F; border: 1px solid var(--frame); font: 700 10px var(--font-body); color: var(--ink); }
-.f-item svg { width: 16px; height: 16px; flex: none; }
-.f-item > .g-ic { flex: none; width: 22px; height: 22px; margin: -3px; }
-.f-item.zero, .f-item.zero small { color: var(--mute); }
-.f-item.empty { border-style: dashed; background: none; color: var(--dim); font-weight: 400; }
-/* 단축칸 고르기 시트 */
-#s-party .f-isheet .chips.items { display: flex; flex-wrap: wrap; gap: 6px; }
-#s-party .f-isheet .note { margin: 0; font-size: 12px; }
 /* 아래 고정: 단축칸 + 다시 뽑기 · 출발 */
 #s-party .ns-foot.f-foot2 { display: flex; flex-direction: column; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
 .f-btns { display: flex; gap: 10px; }
-.f-rr { flex: none; width: 120px; height: 62px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line); color: var(--ink); font: inherit; cursor: pointer; }
-.f-rr .f-rrt { font: 700 15px var(--font-display); }
-.f-rr small { display: inline-flex; align-items: center; font-size: 11px; color: var(--gold-hi); }
-.f-rr small.free { color: #8BEA9C; }
 #s-party .f-btns .f-go { flex: 1; width: auto; min-width: 0; padding: 0 14px; }
 #s-party .f-btns .f-go .f-gt { font-size: 21px; }
 
 @media (max-width: 359px) {
   #s-entry .f-ebody, #s-party .f-pty { padding-left: 12px; padding-right: 12px; }
   #s-party .ns-foot.f-foot2 { padding-left: 12px; padding-right: 12px; }
-  .f-rr { width: 100px; }
-  .f-slab { display: none; }
   .f-gbtn { min-width: 44px; padding: 0 8px; }
   .f-gbtn span { font-size: 13px; }
 }
@@ -258,7 +214,7 @@
   .f-hexes.mid { --bh: 120px; }
   .f-hexes.big { --bh: 136px; }
   #s-party .ns-foot.f-foot2 { gap: 8px; padding-top: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-  #s-party .f-btns .f-go, #s-party .f-rr { height: 54px; }
+  #s-party .f-btns .f-go { height: 54px; }
   #s-party .f-pty { padding-top: 8px; gap: 6px; }
 }
 /* 긴 화면 (S25 울트라·플립 펼침 등, 높이 800 이상): 파티원 줄을 넉넉히 */
@@ -267,4 +223,3 @@
   #s-party .f-pty { gap: 10px; }
 }
 @media (min-height: 870px) { #s-party .pcard.f-mem { min-height: 64px; } }
-@media (prefers-reduced-motion: reduce) { .gdet.f-acc > summary .f-chev { transition: none; } }

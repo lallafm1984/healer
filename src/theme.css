@@ -63,9 +63,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .ns .tb-lv b { font: 900 15px var(--font-body); color: var(--gold-hi); }
 /* 경험치 % 글자는 장식 (막대 title에 정확한 값). 화면 글자에 안 섞이게 CSS로만 그림 */
 .tb-xpt::before { content: '경험치 ' attr(data-pct) '%'; }
-.ns .tb-gold { flex: none; height: 30px; padding: 0 9px; border-radius: 4px; background: var(--bg-0); border: 1px solid var(--frame-dark); }
-.ns .tb-gold .ui-icon { width: 16px; height: 16px; color: #E8B23A; }
-.ns .tb-gold b { font: 900 15px var(--font-body); color: var(--gold-hi); }
 .ns .tb-title { font-family: var(--font-display); color: var(--gold-hi); text-shadow: 0 1px 0 var(--line); }
 .ns .tb-back, .ns .tb-set { color: var(--ink-2); }
 
@@ -76,8 +73,7 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .eyebrow { color: var(--frame-hi); }
 .ns .panel, .panel { background: var(--pnl); border: 1px solid var(--edge); border-radius: 6px; box-shadow: var(--pnl-shadow); }
 .ns .panel h2, .ns .panel h4 { font-family: var(--font-display); color: var(--gold-hi); }
-.ns .panel.mdetail { border: 2px solid var(--frame-hi); }
-.ns .pcard, .ns .mrow, .ns .tier details, .ns .gdet, .ns .metrics, .ns .meter, .ns .prow {
+.ns .pcard, .ns .mrow, .ns .tier details, .ns .metrics, .ns .meter, .ns .prow {
   border-radius: 6px; border-color: var(--edge); background: var(--pnl); box-shadow: var(--pnl-shadow);
 }
 .ns .pcard.picked, .ns .pcard.tap.on { border-color: var(--frame-hi); }
@@ -143,7 +139,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 
 /* ---------- 캐릭터: 장비 칸을 초상화 양옆에 (MMO 캐릭터 창) ---------- */
 .ns .bag li { grid-template-columns: 36px 1fr auto; border: 1px solid var(--edge); border-radius: 6px; background: var(--pnl); box-shadow: var(--pnl-shadow); }
-.ns .bag.picking li.on { border-color: var(--frame-hi); background: #2A2416; }
 .bag em { color: var(--heal); }
 
 /* ---------- 상점 ---------- */
@@ -166,12 +161,12 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .ns .btn.mini.buy:disabled { opacity: 1; filter: none; border: 1px solid var(--edge-dim); background: #110E0B; box-shadow: none; color: var(--dim); }
 .ns .btn.mini.buy:disabled small, .ns .btn.mini.buy:disabled small .ui-icon { color: var(--dim); }
 .ns .srow .sbuy > small .ui-icon { width: 12px; height: 12px; color: #E8B23A; vertical-align: -2px; }
-.mrow .bar i, .passhead .bar i { background: var(--bar-cast); }
+.mrow .bar i { background: var(--bar-cast); }
 .prow .pp { color: var(--gold-hi); }
 
 /* ---------- 결과 · 레벨 업 ---------- */
 .xpbar { border-radius: 3px; border-color: var(--frame-dark); background: var(--bg-0); }
-.xpbar i, .mdetail .bar i { background: var(--bar-xp); }
+.xpbar i { background: var(--bar-xp); }
 .badge { border-radius: 4px; }
 .res-head.lose h1 { color: #FF8A80; }
 

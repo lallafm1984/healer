@@ -4,7 +4,7 @@
  * 맨 위 레이드만 매달린 막대 팻말, 아래 팻말은 잡화점과 같은 황동 테 나무판.
  */
 #s-lobby .lb-right { gap: 7px; }
-#s-lobby .lb-plate.lb-forge, #s-lobby .lb-plate.lb-guild {
+#s-lobby .lb-plate.lb-forge {
   padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.webp'); background-size: 102.103% 89.954%; background-position: 55% 50%;
 }
 #s-lobby :is(.lb-forge, .lb-guild) .lb-pt { padding-left: 18px; }
