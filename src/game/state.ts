@@ -6,7 +6,7 @@ import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
 import { itemName, itemScore, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, sellGold, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
-import { MAX_LEVEL } from '../data/progression';
+import { MAX_LEVEL, xpToNext } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { onAct, rollover, runGold, type Rollover } from './economy';
@@ -55,14 +55,22 @@ export function refreshDay(now = Date.now()): Rollover {
 /** 저장 지우고 처음부터: 쉬는 캐릭터까지 모두 (68) */
 export function resetSave(): void { wipeChars(G.save); G.save = newSave(); commit(); }
 
-/** 개발 테스트: 현재 캐릭터의 공통 레벨만 최대로 올리고, 만렙 경험치는 0으로 저장한다. */
-export function setTestMaxLevel(): boolean {
-  if (Flow.running || G.save.player.level >= MAX_LEVEL) return false;
-  G.save.player.level = MAX_LEVEL;
-  G.save.player.xp = 0;
+/**
+ * 개발 테스트: 현재 캐릭터의 공통 레벨만 올린다 (장비 · 재화 유지). 스킬 · 특성 · 콘텐츠 열림은 레벨에서 따라온다.
+ * 경험치는 그대로 두되 새 레벨에서 넘치지 않게, 만렙이면 0. 전투 · 정산 중이거나 더 오를 레벨이 없으면 false
+ */
+function setTestLevel(level: number): boolean {
+  const p = G.save.player, to = Math.min(MAX_LEVEL, level);
+  if (Flow.running || to <= p.level) return false;
+  p.level = to;
+  p.xp = to >= MAX_LEVEL ? 0 : Math.min(p.xp, xpToNext(to) - 1);
   commit();
   return true;
 }
+export const setTestMaxLevel = (): boolean => setTestLevel(MAX_LEVEL);
+/** 개발 테스트 「레벨 +10」 (2026-10-20 Lim): 누를 때마다 10씩, Lv 100에서 멈춤 */
+export const TEST_LEVEL_STEP = 10;
+export const setTestLevelUp = (): boolean => setTestLevel(G.save.player.level + TEST_LEVEL_STEP);
 
 /** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);

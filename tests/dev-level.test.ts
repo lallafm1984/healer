@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeItem } from '../src/data/equipment';
+import { xpToNext } from '../src/data/progression';
 import { Flow } from '../src/game/flow';
-import { G, heroStatus, setTestMaxLevel } from '../src/game/state';
+import { G, heroStatus, setTestLevelUp, setTestMaxLevel } from '../src/game/state';
 import { load, migrate, newSave, type KV } from '../src/platform/storage';
 
 describe('개발 옵션: 100레벨로 변경', () => {
@@ -40,6 +41,36 @@ describe('개발 옵션: 100레벨로 변경', () => {
     Flow.running = true;
     const before = structuredClone(G.save);
     expect(setTestMaxLevel()).toBe(false);
+    expect(G.save).toEqual(before);
+  });
+
+  it('레벨 +10: 누를 때마다 10씩, 경험치 · 장비 · 재화 그대로, Lv 100에서 멈춤', () => {
+    const before = structuredClone(G.save);
+    expect(setTestLevelUp()).toBe(true);
+    expect(G.save.player).toEqual({ level: 26, xp: 1234, gold: 1080 });
+    expect(G.save.gear).toEqual(before.gear);
+    expect(G.save.roster.chars.find(c => c.id === G.save.roster.cur)?.level).toBe(26);
+    expect(load().player.level).toBe(26);
+    expect(heroStatus('druid').state).toBe('open');
+    expect(heroStatus('paladin').state).toBe('locked');
+    expect(setTestLevelUp()).toBe(true);
+    expect(heroStatus('paladin').state).toBe('open');
+    G.save.player.xp = xpToNext(36) + 5;
+    expect(setTestLevelUp()).toBe(true);
+    expect(G.save.player.level).toBe(46);
+    expect(G.save.player.xp).toBeLessThan(xpToNext(46));
+    G.save.player.level = 95;
+    expect(setTestLevelUp()).toBe(true);
+    expect(G.save.player).toMatchObject({ level: 100, xp: 0 });
+    const top = structuredClone(G.save);
+    expect(setTestLevelUp()).toBe(false);
+    expect(G.save).toEqual(top);
+  });
+
+  it('레벨 +10도 전투 · 정산 중에는 바꾸지 않음', () => {
+    Flow.running = true;
+    const before = structuredClone(G.save);
+    expect(setTestLevelUp()).toBe(false);
     expect(G.save).toEqual(before);
   });
 
