@@ -47,8 +47,6 @@ export const POST = { name: '모집 공고', per: 30, cands: 3, rareChance: 0.03
 export const postGold = (myLv: number) => POST.per * myLv;
 /** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자 (길드 Lv에 따라 하루 1~3명)는 2026-10-20 Lim 「길드원 모집은 새공고만 있게, 명성에따른 지원은 없다」로 없앰 */
 export const POST_LV_GAP = 5;
-/** 스킬 다시 뽑기: 내 Lv × 60 골드 (93 5-5) */
-export const rerollGold = (myLv: number) => 60 * myLv;
 /**
  * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 20 골드 = 「후원 5판」. 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
  * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 남은 지원이 있으면 추가 지원 불가 (2026-10-19 Lim). 레벨이 오르면 능력치도 (레벨업 능력치)

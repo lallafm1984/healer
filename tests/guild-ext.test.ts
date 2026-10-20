@@ -70,7 +70,6 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
     s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7
     expect(Gd.inviteStory(s, 'blade')).toBe('');
     expect(s.guild.members.some(m => m.nick === '칼날' && m.ab === 'swordsman.flurry')).toBe(true);
-    expect(Gd.rerollAbility(s, isle.id, rng)).toMatch(/고유/);
   });
   it('고유 스킬은 뽑기 목록에 없음, 옛 말없는탱은 「끝까지 곁에」로', () => {
     for (let i = 0; i < 300; i++) expect(['warrior.holdFast', 'archer.mend', 'swordsman.flurry']).not.toContain(Gd.makeCandidates(save(), rng)[0].ab);
