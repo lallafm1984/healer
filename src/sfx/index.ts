@@ -12,14 +12,17 @@ for (const [path, url] of Object.entries(files)) urlOf[path.slice(2).replace(/\.
 export const hasSfx = (name: string): boolean => name in urlOf;
 
 // 파일은 만들 때 같은 세기로 맞춤 (scripts/sfx/make.mjs). 여기서는 자주 · 겹쳐 울리는 것만 줄임
-const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, cast: 0.5, proc: 0.45, heart: 0.85, gauge: 0.8 };
-const volOf = (n: string) => VOL[n] ?? (n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
+// 시전 · 직접 힐은 또렷하게 (2026-10-20 Lim 「시전 · 힐 효과음 변경」), 파티원 공격은 바탕으로 작게
+const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, cast: 0.7, proc: 0.45, heart: 0.85, gauge: 0.8 };
+const volOf = (n: string) => VOL[n] ?? (n.startsWith('heal-') ? 0.75 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : n.startsWith('atk-') ? 0.32 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
 const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150 };
-const gapOf = (n: string) => GAP[n] ?? (n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : 60);
+const gapOf = (n: string) => GAP[n] ?? (n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : n.startsWith('atk-') ? 100 : 60);
 /** 우선순위 (16 7-2): 소리가 많이 겹치면 낮은 것부터 안 냄 */
 const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
 const MAX_VOICES = 10;
+/** 파티원 공격 소리는 가장 낮은 순위: 이미 이만큼 울리고 있으면 안 냄 (힐 · 경고 자리를 남김) */
+const ATK_VOICES = 6;
 
 let on = true;
 let ctx: AudioContext | null = null;
@@ -96,8 +99,8 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   if (!c || !out) return true;
   const now = performance.now();
   if (now - (lastAt.get(name) ?? -1e9) < gapOf(name)) return true;
-  const prio = PRIO[name] ?? 1;
-  if (voices >= MAX_VOICES && prio < 3) return true;
+  const prio = PRIO[name] ?? (name.startsWith('atk-') ? 0 : 1);
+  if (voices >= (prio === 0 ? ATK_VOICES : MAX_VOICES) && prio < 3) return true;
   lastAt.set(name, now); lastAny = now;
   const start = (buf: AudioBuffer) => {
     if (!on || !out) return;

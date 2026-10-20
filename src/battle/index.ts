@@ -12,7 +12,8 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
-import { hasSfx, setSfxOn } from '../sfx';
+import { hasSfx, setSfxOn, sfx } from '../sfx';
+import type { ClassKey } from '../data/classes';
 import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -456,9 +457,13 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 // ---------- 전투 사건 → 소리·진동·알림·판 효과 ----------
 /** 연쇄 치유가 다음 사람에게 튀어 보이는 간격 (ms): 이펙트에서 물줄기가 닿는 데 4장 (0.17초) */
 const CHAIN_STEP_MS = 160;
+/** 파티원 공격 소리 (2026-10-20 Lim): 직업마다 한 가지 */
+const ATK_SFX: Record<ClassKey, string> = { warrior: 'atk-warrior', paladin: 'atk-paladin', rogue: 'atk-rogue', berserker: 'atk-berserker', swordsman: 'atk-swordsman', mage: 'atk-mage', archer: 'atk-archer', hunter: 'atk-hunter' };
+/** 공격 소리 사이 최소 간격 (ms): 인원이 많을수록 성기게 (20인 판 소음 방지) */
+const atkGap = (n: number) => (n >= 20 ? 260 : n >= 10 ? 170 : 90);
 function handleEvents(now: number): void {
   const F = B.F!;
-  let healSnd = false, critSnd = false;
+  let healSnd = false, critSnd = false, atk: { cls: ClassKey; w: number; crit: boolean } | null = null;
   // 부활 · 특성 버튼은 그 소리 파일이 있으면 엔진이 같이 낸 차임 대신 (107)
   const ownSnd = F.events.some(e => (e.type === 'revive' && hasSfx('revive')) || (e.type === 'talent' && hasSfx('talent-use')));
   // 스킬 PXF 이펙트 (battle/pxf.ts): 들어간 휠 스킬마다 대상 · 범위 · 파티 칸에. 그 칸의 이번 치유는 치유 빛 없이
@@ -522,7 +527,14 @@ function handleEvents(now: number): void {
         break;
       }
       case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
-      case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now, !!ev.crit); break;
+      case 'hit': {
+        const v = F.party.find(x => x.id === ev.uid);
+        dmgNum(v, ev.amt, now, !!ev.crit);
+        // 한 프레임엔 가장 센 한 방만 소리 (치명타는 두 배로 셈)
+        const w = ev.amt * (ev.crit ? 2 : 1);
+        if (v?.cls && (!atk || w > atk.w)) atk = { cls: v.cls, w, crit: !!ev.crit };
+        break;
+      }
       case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
       case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
       case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
@@ -565,6 +577,7 @@ function handleEvents(now: number): void {
     }
   }
   for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind, b); // b.emote · b.cheer (43 4장)
+  if (atk && S.sound && now - ui.lastAtkSnd > atkGap(F.party.length)) { ui.lastAtkSnd = now; sfx(ATK_SFX[atk.cls], { vol: atk.crit ? 1.4 : 1, rate: 0.94 + Math.random() * 0.12 }); }
   if (critSnd) Snd.play('crit');
   else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;
