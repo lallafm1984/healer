@@ -70,9 +70,47 @@ def highpass(y: np.ndarray, rate: int, fc: float = 350.0) -> np.ndarray:
     return y
 
 
-def judge(x: np.ndarray, rate: int, keep: float) -> dict:
+LOOP_XF = 0.25  # 시전 루프: 끝을 시작 앞과 겹쳐 넘기는 길이 (초)
+LOOP_RMS_DB = -20.0  # 시전 루프는 바탕 소리라 한 번 소리보다 작게
+
+
+def loop_shape(x: np.ndarray, rate: int, keep: float) -> np.ndarray:
+    """시전 루프 (2026-10-20 Lim 「시전이 끝날 때까지 도는 시전 소리」): 앞 시작 소리를 빼고, keep초 구간 중 앞뒤 세기가 가장 비슷하고
+    고르게 이어지는 곳을 골라 끝 0.25초를 시작 앞 0.25초와 같은 세기로 겹쳐 넘김 → 몇 번을 돌아도 이음새가 없음"""
+    xf, n = int(LOOP_XF * rate), int(keep * rate)
+    k = max(1, int(0.02 * rate))
+    env = np.sqrt(np.convolve(x**2, np.ones(k) / k, mode="same")) + 1e-9
+    best, a_best = None, None
+    for a in range(int(0.5 * rate), len(x) - n - int(0.05 * rate), int(0.05 * rate)):
+        b = a + n
+        jump = abs(db(float(np.mean(env[a - xf : a]))) - db(float(np.mean(env[b - xf : b]))))
+        wobble = float(np.std(20 * np.log10(env[a:b][::k])))
+        score = jump + 0.5 * wobble
+        if best is None or score < best:
+            best, a_best = score, a
+    if a_best is None:
+        raise ValueError("루프로 쓸 만큼 길지 않음")
+    a, b = a_best, a_best + n
+    y = x[a:b].astype(np.float64).copy()
+    t = np.linspace(0, 1, xf)
+    y[-xf:] = x[b - xf : b] * np.cos(t * np.pi / 2) + x[a - xf : a] * np.sin(t * np.pi / 2)
+    rms = float(np.sqrt(np.mean(y**2)))
+    gain = min(10 ** (LOOP_RMS_DB / 20) / max(rms, 1e-9), 10 ** (PEAK_MAX_DB / 20) / float(np.max(np.abs(y))))
+    return (y * gain).astype(np.float32)
+
+
+def judge(x: np.ndarray, rate: int, keep: float, loop: bool = False) -> dict:
     """생성본 하나를 다듬고 점수를 매김"""
     m = x.mean(axis=1)
+    if loop:
+        y = loop_shape(m, rate, keep)
+        rms = float(np.sqrt(np.mean(y**2))) + 1e-12
+        phone = db(float(np.sqrt(np.mean(highpass(y.astype(np.float64), rate) ** 2))) / rms)
+        # 루프는 고르게 이어질수록 좋음: 20ms 세기의 흔들림
+        k = max(1, int(0.02 * rate))
+        env = np.sqrt(np.convolve(y.astype(np.float64) ** 2, np.ones(k) / k, mode="valid"))[::k] + 1e-9
+        wobble = float(np.std(20 * np.log10(env)))
+        return {"y": y, "phone_db": round(phone, 1), "cut_db": 0.0, "flat": 0.0, "wobble_db": round(wobble, 1), "score": round(phone - wobble, 1)}
     y = shape(m, rate, keep)
     rms = float(np.sqrt(np.mean(y**2))) + 1e-12
     phone = db(float(np.sqrt(np.mean(highpass(y.astype(np.float64), rate) ** 2))) / rms)
@@ -119,7 +157,7 @@ def main() -> None:
                 tries.append({"take": label, "error": "숫자가 아닌 값"})
                 continue
             try:
-                j = judge(x, rate, keep)
+                j = judge(x, rate, keep, bool(p.get("loop")))
             except ValueError as e:
                 tries.append({"take": label, "error": str(e)})
                 continue

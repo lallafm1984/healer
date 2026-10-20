@@ -47,6 +47,6 @@ if (!only) {
 }
 
 const params = join(raw, 'params.json');
-writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep }))));
+writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, loop: !!s.loop }))));
 const p = spawnSync('uv', ['run', '--no-project', '--with', 'numpy', '--with', 'soundfile', 'python', join(root, 'scripts/sfx/process.py'), raw, out, params], { cwd: root, stdio: 'inherit' });
 process.exit(p.status ?? 1);

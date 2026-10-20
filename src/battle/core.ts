@@ -199,7 +199,7 @@ export const Snd = {
   play(name: string) {
     if (!S.sound) return;
     if (HERO_SND.has(name) && sfx(`${name}-${S.hero}`, name === 'heal' ? { rate: HEAL_RATE[(Math.random() * HEAL_RATE.length) | 0] } : {})) return;
-    if (sfx(name)) return;
+    if (sfx(name, name.startsWith('heal-') ? { rate: HEAL_RATE[(Math.random() * HEAL_RATE.length) | 0] } : {})) return;
     this.synth(SYNTH[name] ?? name);
   },
   synth(n: string) {

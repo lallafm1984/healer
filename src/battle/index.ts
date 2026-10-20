@@ -12,7 +12,7 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
-import { hasSfx, setSfxOn, sfx } from '../sfx';
+import { hasSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import type { ClassKey } from '../data/classes';
 import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
@@ -372,7 +372,7 @@ function doUse(key: SkillKey, idx: number): boolean {
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
   if (B.armed && key === 'serenity') B.armed = null;
-  if (SKILLS[key].cast > 0 && !res.queued && !res.same) Snd.play('cast');
+  // 시전 시작 한 방 소리는 뺌 (2026-10-20 Lim): 시전 중에는 직업 시전 루프가 바로 울림 (syncCastLoop)
   coachUsed(key);
   return true;
 }
@@ -459,11 +459,22 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 const CHAIN_STEP_MS = 160;
 /** 파티원 공격 소리 (2026-10-20 Lim): 직업마다 한 가지 */
 const ATK_SFX: Record<ClassKey, string> = { warrior: 'atk-warrior', paladin: 'atk-paladin', rogue: 'atk-rogue', berserker: 'atk-berserker', swordsman: 'atk-swordsman', mage: 'atk-mage', archer: 'atk-archer', hunter: 'atk-hunter' };
+/** 시전 루프 (2026-10-20 Lim 「시전이 완료될 때까지 루프의 시전 효과음 (와우처럼)」): 직업마다 하나 */
+const CAST_LOOP: Record<HeroKey, string> = { priest: 'cast-loop-priest', druid: 'cast-loop-druid', paladin: 'cast-loop-paladin', shaman: 'cast-loop-shaman', monk: 'cast-loop-monk', astrologer: 'cast-loop-astrologer', warder: 'cast-loop-warder' };
+let castLoop: { stop(fade?: number): void } | null = null;
+/** 시전 중이면 루프를 틀고, 끝 · 취소 · 일시정지 · 판 끝이면 멈춤 (다음 시전이 바로 이어지면 끊기지 않고 계속) */
+function syncCastLoop(casting: boolean): void {
+  if (casting && !castLoop) castLoop = sfxLoop(CAST_LOOP[S.hero as HeroKey] ?? 'cast-loop-priest');
+  else if (!casting && castLoop) { castLoop.stop(); castLoop = null; }
+}
 /** 공격 소리 사이 최소 간격 (ms): 인원이 많을수록 성기게 (20인 판 소음 방지) */
 const atkGap = (n: number) => (n >= 20 ? 260 : n >= 10 ? 170 : 90);
 function handleEvents(now: number): void {
   const F = B.F!;
   let healSnd = false, critSnd = false, atk: { cls: ClassKey; w: number; crit: boolean } | null = null;
+  // 사제 직접 힐 세 안 (2026-10-20 Lim 「사제 직접힐 1,2,3안을 치유, 소생, 빠른힐로」): 치유 = heal-priest, 소생 = heal-priest-renew, 순간 치유 = heal-priest-flash.
+  // 엔진 사건은 프로토타입과 같게 두고 (parity), 이번 프레임에 쓴 스킬 (F.used)로 화면이 소리만 바꿈
+  let healName: string | null = null, renewName: string | null = null;
   // 부활 · 특성 버튼은 그 소리 파일이 있으면 엔진이 같이 낸 차임 대신 (107)
   const ownSnd = F.events.some(e => (e.type === 'revive' && hasSfx('revive')) || (e.type === 'talent' && hasSfx('talent-use')));
   // 스킬 PXF 이펙트 (battle/pxf.ts): 들어간 휠 스킬마다 대상 · 범위 · 파티 칸에. 그 칸의 이번 치유는 치유 빛 없이
@@ -474,6 +485,7 @@ function handleEvents(now: number): void {
   const later = new Map<number, number>();
   let chained = 0, chainFrom: number = F.me.cell;
   for (const { key, uid, cell } of F.used?.splice(0) ?? []) {
+    if (S.hero === 'priest') { if (key === 'flash') healName = 'heal-priest-flash'; else if (key === 'renew') renewName = 'heal-priest-renew'; }
     const fx = SKILL_PXF[key]?.fx;
     if (fx && cell != null) { fxPxfCell(cell, fx, now); continue; } // 사람 없는 칸에 세운 판 위 물건 (79 6-1)
     let wait = 0, rot: number | undefined;
@@ -511,6 +523,7 @@ function handleEvents(now: number): void {
       case 'bark': break; // 말풍선은 아래 talk.frame이 상황에 맞는 대사로 (41)
       case 'sound':
         if (ownSnd && ev.name === 'chime') break;
+        if (ev.name === 'renew' && renewName) { Snd.play(renewName); renewName = null; break; } // 소생은 사제 힐 2안
         Snd.play(ev.name);
         if (ev.name === 'death') vibe(90, true);
         break;
@@ -579,7 +592,7 @@ function handleEvents(now: number): void {
   for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind, b); // b.emote · b.cheer (43 4장)
   if (atk && S.sound && now - ui.lastAtkSnd > atkGap(F.party.length)) { ui.lastAtkSnd = now; sfx(ATK_SFX[atk.cls], { vol: atk.crit ? 1.4 : 1, rate: 0.94 + Math.random() * 0.12 }); }
   if (critSnd) Snd.play('crit');
-  else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
+  else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play(healName ?? 'heal'); ui.lastHealSnd = now; }
   F.events.length = 0;
   // 심장 박동: 체력 30% 아래인 사람이 있으면 (가장 낮은 1명 기준, 하나만) (16 7-4)
   if (!F.over && !B.paused) {
@@ -840,10 +853,12 @@ function frame(now: number): void {
       }
     }
     handleEvents(now);
+    syncCastLoop(!!F.cast && !B.paused && !F.over && ui.pullLeft <= 0 && !(ui.coach && ui.coach.freeze) && S.sound);
     updateStage(now); updateWheel(); updateAux(); updateCastbar(); updatePreview(now);
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }
+  else syncCastLoop(false); // 전투 화면을 떠나면 (휴식 · 결과) 멈춤
   if (!$('rest').hidden && B.F) updateRest(now);
   requestAnimationFrame(frame);
 }

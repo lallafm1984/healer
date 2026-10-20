@@ -12,9 +12,9 @@ for (const [path, url] of Object.entries(files)) urlOf[path.slice(2).replace(/\.
 export const hasSfx = (name: string): boolean => name in urlOf;
 
 // 파일은 만들 때 같은 세기로 맞춤 (scripts/sfx/make.mjs). 여기서는 자주 · 겹쳐 울리는 것만 줄임
-// 시전 · 직접 힐은 또렷하게 (2026-10-20 Lim 「시전 · 힐 효과음 변경」), 파티원 공격은 바탕으로 작게
-const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, cast: 0.7, proc: 0.45, heart: 0.85, gauge: 0.8 };
-const volOf = (n: string) => VOL[n] ?? (n.startsWith('heal-') ? 0.75 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : n.startsWith('atk-') ? 0.32 : 0.85);
+// 직접 힐은 또렷하게 (2026-10-20 Lim 「시전 · 힐 효과음 변경」), 파티원 공격은 바탕으로 작게
+const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, proc: 0.45, heart: 0.85, gauge: 0.8 };
+const volOf = (n: string) => VOL[n] ?? (n.startsWith('heal-') ? 0.75 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : n.startsWith('atk-') ? 0.32 : n.startsWith('cast-loop-') ? 0.4 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
 const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150 };
 const gapOf = (n: string) => GAP[n] ?? (n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : n.startsWith('atk-') ? 100 : 60);
@@ -117,6 +117,42 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   if (buf) start(buf);
   else void load(name).then(b => { if (b && performance.now() - now < 250) start(b); }); // 아직 안 풀린 첫 소리: 금방 풀리면 냄
   return true;
+}
+
+/**
+ * 이음새 없이 도는 소리 (시전 루프, 2026-10-20 Lim 「시전이 완료될 때까지 루프의 시전 효과음 (와우처럼)」).
+ * 파일이 없거나 소리가 꺼져 있으면 null. stop()은 짧게 줄이며 멈춤. 겹침 수 (voices)에는 셈하지 않음
+ */
+export function sfxLoop(name: string, o: { vol?: number; fade?: number } = {}): { stop(fade?: number): void } | null {
+  if (!(name in urlOf)) return null;
+  const c = audioCtx();
+  if (!c || !out) return null;
+  const g = c.createGain(), target = volOf(name) * (o.vol ?? 1), fade = o.fade ?? 0.08;
+  g.gain.value = 0;
+  g.connect(out);
+  let src: AudioBufferSourceNode | null = null, stopped = false;
+  const begin = (buf: AudioBuffer) => {
+    if (stopped || !on) return;
+    src = c.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    src.connect(g);
+    const t = c.currentTime;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(target, t + fade);
+    src.start(t);
+  };
+  const buf = bufs.get(name);
+  if (buf) begin(buf);
+  else void load(name).then(b => { if (b) begin(b); });
+  return {
+    stop(f = 0.12) {
+      if (stopped) return;
+      stopped = true;
+      const t = c.currentTime;
+      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + f);
+      const s = src;
+      if (s) { s.onended = () => { s.disconnect(); g.disconnect(); }; s.stop(t + f + 0.02); } else setTimeout(() => g.disconnect(), (f + 0.05) * 1000);
+    },
+  };
 }
 
 /** 방금 (ms 안에) 소리를 냈음: 메뉴 누름 소리가 다른 소리와 겹치지 않게 */
