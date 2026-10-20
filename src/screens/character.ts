@@ -13,7 +13,8 @@ import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type H
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
-import { TALENT_TREES, type TalentKey } from '../data/talents';
+import { openTiers, TALENT_TREES, type TalentKey } from '../data/talents';
+import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { topLevel, type TapKey } from '../platform/storage';
 import { runGold } from '../game/economy';
 import { FACTIONS } from '../data/places';
@@ -557,9 +558,12 @@ const skillIc = (k: SkillKey) => gameIcon(k, line(SKILL_LINE[k] ?? SKILL_LINE[SL
 
 /** 시전 글자 (시안: 시전 1.8초 / 즉시 / 4초 정신 집중) */
 const castShort = (k: SkillKey) => { const sk = SKILLS[k]; return sk.channel ? `${sk.channel}초 정신 집중` : sk.cast ? `시전 ${sk.cast}초` : '즉시'; };
-const costShort = (k: SkillKey) => { const sk = SKILLS[k]; return sk.cost ? `마나 ${sk.cost}%` : sk.power ? `신성한 힘 ${sk.powerAll ? '전부' : sk.power}` : '마나 0'; };
+/** 지금 레벨에서 전투가 쓰는 마나 % (특성 단마다 줄어드는 몫 TIER_MANA_BY, engine/fight.ts manaCut과 같은 식). 전투 휠 숫자처럼 소수 한 자리.
+ * 예전엔 기본값 (사제 정화 4%)이 그대로 보여 같은 Lv 32에서 전투 휠 (2.8%)과 달랐음 (UI 검수 2026-10-21) */
+const manaAt = (k: SkillKey) => Math.round(SKILLS[k].cost * (1 - (TIER_MANA_BY[hero()] ?? TIER_MANA) * openTiers(healerLevel())) * 10) / 10;
+const costShort = (k: SkillKey) => { const sk = SKILLS[k]; return sk.cost ? `마나 ${manaAt(k)}%` : sk.power ? `신성한 힘 ${sk.powerAll ? '전부' : sk.power}` : '마나 0'; };
 /** 휠 칸 아래 작은 글자: 마나 % (성기사 힘 스킬은 힘) */
-const costTiny = (k: SkillKey) => { const sk = SKILLS[k]; return sk.cost ? `${sk.cost}%` : sk.power ? `힘 ${sk.powerAll ? '전부' : sk.power}` : ''; };
+const costTiny = (k: SkillKey) => { const sk = SKILLS[k]; return sk.cost ? `${manaAt(k)}%` : sk.power ? `힘 ${sk.powerAll ? '전부' : sk.power}` : ''; };
 
 /** 이 스킬이 휠 어디에 있는지 (8번째 칸은 빈 방향) */
 function dirOf(k: SkillKey, lay: Record<string, string | null>): string | null {
