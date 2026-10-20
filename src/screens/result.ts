@@ -139,7 +139,7 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
       <p>${sub}</p>
       ${body}
     </header>
-    ${chal}${x.cont ? `<p class="note center r-cont">광고로 이어 함 ${x.cont}번 · 등급 최대 B</p>` : ''}`;
+    ${chal}`;
 }
 
 /**

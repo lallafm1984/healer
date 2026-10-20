@@ -99,7 +99,7 @@ function run(enc: EncounterKey, seed: number, diff: '보통' | '어려움' = '�
   const f = E.create({ encounter: enc, diff, seed, party, gear: 'adv0' });
   let r = seed / 1000;
   const talk = createTalk(() => ((r = (r * 9301 + 49297) % 233280 / 233280), r));
-  talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
+  talk.start(f, { seg: 0, segN: 1, affix: false, chal: false }, 0);
   const out: (TalkBubble & { t: number })[] = [];
   const barks: { t: number; id: number; sit?: string; dead?: boolean }[] = [];
   for (let k = 0; k < 60; k++) for (const b of talk.frame(f, k * 50, { pulling: true, paused: false })) out.push({ ...b, t: k * 50 }); // 카운트다운 3초
@@ -175,7 +175,7 @@ describe('전투 중 말풍선', () => {
     f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; });
     f.bossHp = f.bossMax * hp; // 체력 선 페이즈(인터미션 …)가 안 오게 기본은 가득
     const talk = createTalk(() => 0);
-    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
+    talk.start(f, { seg: 0, segN: 1, affix: false, chal: false }, 0);
     const out: TalkBubble[] = [];
     const go = (s: number, pulling = false) => {
       const end = f.t + s;
@@ -382,7 +382,7 @@ describe('길드 대사 (93 9-2)', () => {
     mod(party);
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
     const talk = createTalk(() => 0);
-    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false, ...o }, 0);
+    talk.start(f, { seg: 0, segN: 1, affix: false, chal: false, ...o }, 0);
     const out: TalkBubble[] = [];
     for (let k = 0; k < 60; k++) out.push(...talk.frame(f, k * 50, { pulling: true, paused: false }));
     return { f, talk, out };

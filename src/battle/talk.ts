@@ -41,8 +41,6 @@ export interface TalkStart {
   /** 던전 구간 번호 (0부터)와 구간 수 */
   seg: number;
   segN: number;
-  /** 광고 이어하기 횟수 */
-  cont: number;
   affix: boolean;
   chal: boolean;
   /** 길드파티가 이 장소 · 난이도를 처음 깨는 판 (93 길드 첫 처치) */
@@ -114,7 +112,7 @@ const SHARE = 2;
 
 export function createTalk(rand: () => number = Math.random) {
   let F: Fight | null = null;
-  let info: TalkStart = { seg: 0, segN: 1, cont: 0, affix: false, chal: false };
+  let info: TalkStart = { seg: 0, segN: 1, affix: false, chal: false };
   let us = new Map<number, UState>();
   let tels = new Map<number, TelSeen>();
   let queue: { at: number; c: Cand; force?: boolean }[] = [];
@@ -164,7 +162,7 @@ export function createTalk(rand: () => number = Math.random) {
     tels = new Map(); queue = []; used = new Set(); spoke = new Map(); said = new Map(); count = {}; live = []; lastAny = -1e9; recent = [];
     st = fresh(); st.startAt = now; st.phase = f.phase; st.holes = holes(f);
     const party = f.party.filter(u => !u.me).map(u => u.nick).join(',');
-    const retry = i.cont > 0 || (party === lastParty && lastLost && i.seg === 0);
+    const retry = party === lastParty && lastLost && i.seg === 0;
     lastParty = party; lastLost = false;
     // 첫 마디: 인사 · 다시 도전 · 다음 구간. 첫 구간 인사는 길드 (93): 원정대 출발
     let first: TalkSit = retry ? 'retry' : i.seg > 0 ? 'nextSeg' : 'hello', firstU: Unit | undefined;

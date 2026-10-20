@@ -114,8 +114,6 @@ export interface Run {
   idx: number; carry: { mana: number; g: { p: number } } | null; time: number; deaths: number; restSec: number;
   healed: number; overheal: number; dispels: number; dispellable: number; auto: boolean;
   meter: MeterRow[];
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont: number;
   /** 길드원 성장 행동을 판단할 구간 합 전투 기록 */
   partyStats?: Record<string, { got: number; low: number; did?: { dodge: number; move: number; cut: number; buster: number; adds: number; help?: number }; dealt: number }>;
 }

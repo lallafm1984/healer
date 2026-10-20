@@ -295,13 +295,3 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
   });
 });
 
-describe('광고 이어하기 (15 7장)', () => {
-  it('이어 한 판은 등급 최대 B', () => {
-    const s = save();
-    expect(settle(s, result({ deaths: 0 }), rng, [], T0).grade).toBe('S');
-    const x = settle(s, result({ deaths: 0, cont: 1 }), rng, [], T0);
-    expect(x.grade).toBe('B');
-    expect(x.cont).toBe(1);
-    expect(settle(s, result({ deaths: 5, cont: 1 }), rng, [], T0).grade).toBe('C');
-  });
-});

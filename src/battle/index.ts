@@ -36,7 +36,7 @@ const talk = createTalk();
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
-  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], cont: 0, partyStats: {} });
+  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], partyStats: {} });
 }
 
 // ---------- 전투 시작 ----------
@@ -61,7 +61,7 @@ function startBattle(guideSec = 0): void {
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
-  talk.start(F, { seg: R.idx, segN: R.segs.length, cont: R.cont || 0, affix: !!S.affixes?.length, chal: !!S.chal, guildFirst: S.guildFirst }, performance.now());
+  talk.start(F, { seg: R.idx, segN: R.segs.length, affix: !!S.affixes?.length, chal: !!S.chal, guildFirst: S.guildFirst }, performance.now());
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
@@ -88,7 +88,7 @@ function startBattle(guideSec = 0): void {
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
-  if (S.affixes && !R.idx && !R.cont) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
+  if (S.affixes && !R.idx) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
   // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
   const words = F.hero !== 'priest' || knowsPassive(F, 'words');
   buildGauges(F);
@@ -662,7 +662,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: partyResult(R, f),
     detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })),
-    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
+    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
   ui.lastResult = result;
   Snd.play(win ? 'win' : 'lose');

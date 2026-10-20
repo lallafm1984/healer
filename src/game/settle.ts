@@ -62,8 +62,6 @@ export interface BattleResult {
   /** 주간 도전 단계 · 제한시간 (초) */
   chal?: number;
   limit?: number;
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont?: number;
   /** 탱커 전멸 뒤 포기 버튼으로 끝냄 (이어하기 안 물어봄) */
   giveUp?: boolean;
 }
@@ -110,8 +108,6 @@ export interface Settlement {
   missions: string[];
   /** 주간 도전 결과 (13 3-2): 제한시간 안에 깼는지, 다음 단계가 열렸는지 */
   chal: { stage: number; inTime: boolean; time: number; limit: number; opened: boolean; best: number } | null;
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont: number;
   /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
   tutEnd: boolean;
   /** 튜토리얼 다시 보기 판 (경험치 · 골드 없음, 다시 보기용 글) */
@@ -121,9 +117,6 @@ export interface Settlement {
   /** 휴식 보너스 몫 (xp · gold에 들어 있음, 결과 화면 기본 → 「휴식 보너스!」 + N). 휴식 보너스를 안 받은 판은 null */
   restBonus: { xp: number; gold: number } | null;
 }
-
-/** 광고로 이어 한 판은 등급 최대 B (15 4장) */
-const capB = (g: Grade): Grade => (g === 'S' || g === 'A' ? 'B' : g);
 
 /** 이긴 판을 지금 직업 기록에 더하고 (숙련도, 25 4-3), 직업 퀘스트 조건에 맞으면 한 칸 채움. 다 채우면 해금 */
 export function heroWin(save: SaveData, _kind: string, _content: string, _diff: DiffName, h: HeroKey = save.hero): Settlement['heroQuest'] {
@@ -142,8 +135,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const p = save.player;
   const tot = r.healed + r.overheal;
   const overheal = tot ? r.overheal / tot : 0;
-  const cont = r.cont || 0;
-  const grade = r.win ? (cont ? capB(gradeOf(r.deaths)) : gradeOf(r.deaths)) : null;
+  const grade = r.win ? gradeOf(r.deaths) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
   // 따로 잠긴 난이도(10인 악몽 = 열림 + 15 등)는 그 레벨이 단계 (26 3장)
   // 적 레벨은 전투가 넘겨준 값 (내 레벨, 32·13 3-2)
@@ -255,6 +247,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }
