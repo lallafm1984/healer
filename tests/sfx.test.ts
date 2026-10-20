@@ -22,7 +22,7 @@ const PATS = [
   /(?:sfx|Snd\.play|hasSfx|\.sound)\(\s*'([a-z-]+)'/g,
   /(?:sfx|Snd\.play)\([^;\n]*?\?\s*'([a-z-]+)'\s*:\s*'([a-z-]+)'/g,
   /\bgot\([^)\n]*'([a-z-]+)'\)/g,
-  /'(loot(?:-[a-z]+)?|(?:debuff|ui)-[a-z]+)'/g,
+  /'(loot(?:-[a-z]+)?|(?:debuff|ui|atk)-[a-z]+)'/g,
   /type: 'sound', name: '([a-z-]+)'/g,
   /\bwarn: '([a-z-]+)'/g,
 ];
