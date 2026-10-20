@@ -34,6 +34,21 @@ function wing(g, sx, sy, side, open, a, len = 1) {
   row(5, [30, 65], [70, 125], 0.55, 0.36, 0.28, '#ffffff', '#ffd77a');
 }
 
+/** 빛의 전이 빛 띠 (굵은 금빛 띠, 양끝 가늘게, 수도사 기 띠처럼): 경로 P의 s0 ~ s1 */
+function pchi(g, P, s0, s1, w, a = 1, body = GOLD.body) {
+  if (s1 <= s0 + 1e-3 || a <= 0) return;
+  lightStroke(g, P, s0, s1, u => w * Math.sin(Math.PI * u) ** 0.7, { rim: GOLD.rim, body, core: GOLD.core, a, rimW: 0.018, coreW: 0.42, glowCol: GOLD.glow, glowA: 0.75 });
+}
+/** 빛 띠 끝 빛나는 머리 */
+function phead(g, x, y, a = 1, r = 0.3) { glow(g, x, y, r, GOLD.glow, 0.85 * a); glow(g, x, y, r * 0.55, SKY, 0.35 * a); glow(g, x, y, r * 0.4, '#ffffff', 0.95 * a); }
+/** 닿는 순간: 흰 섬광 + 금빛 · 하늘빛 충격파 둘 */
+function pimpact(g, t, { x = 0, y = 0, t0 = 0, r = 1.0, sy = 0.85, a = 1 } = {}) {
+  const u = seg(t, t0, t0 + 0.45);
+  glow(g, x, y, r * 1.05, GOLD.glow, 0.75 * (1 - E.out2(seg(t, t0, t0 + 0.55))) * a);
+  glow(g, x, y, r * 0.5, '#ffffff', 0.9 * bell(t, t0 - 0.02, t0 + 0.03, t0 + 0.28) * a);
+  if (u > 0 && u < 1) { ringGlow(g, x, y, lerp(0.2 * r, r * 1.1, E.out3(u)), 0.08 * Math.min(1, r + 0.3), '#fff1b0', 0.85 * (1 - u) * a, sy); ringGlow(g, x, y, lerp(0.1 * r, r * 0.8, E.out3(seg(t, t0 + 0.06, t0 + 0.5))), 0.05 * Math.min(1, r + 0.3), SKY, 0.6 * (1 - u) * a, sy); }
+}
+
 export default {
   /** 치유: 초록 반짝이 가루 구름 (Lim의 heal-dust를 다시 그림). 발밑에서 피어나 소용돌이치며 떠오르는 초록 빛가루 */
   'priest-heal': {
@@ -275,32 +290,68 @@ export default {
       glint(g, 0, 0.0, 0.6 * burst, YEL.glow, 1, rad(45) + rad(45) * t, 0.13, '#ffffff');
     },
   },
-  /** 빛의 전이: 왼쪽 위에서 포물선으로 날아와 칸 아래에서 통 튀는 꼬리 별 (빛 구슬 + 꼬리), 튈 때 반짝임 셋, 두 번 깜빡이다 작아짐 */
+  /** 빛의 전이 회복 (2026-10-20 Lim 「전이 이펙트를 회복하는것과 옆으로 옮겨가는 연출을 새롭게」, 수도사처럼 코드): 위에서 금빛 빛 구슬이 빛 띠를 끌며 내려와
+   *  칸 가운데에 닿는 순간 흰 섬광 · 금빛 · 하늘빛 충격파가 터지고, 금빛 띠 여섯이 꽃잎처럼 휘어 퍼졌다 위로 말려 오르며 네 갈래 별빛이 반짝이고 금가루 · 하늘빛 반짝이가 떠오름 */
   'priest-relay': {
-    frames: 20, logical: 92, scope: 'target',
+    frames: 20, logical: 96, size: 288, scope: 'target',
     draw(g, { t }) {
-      const land = 0.36, P = bez([-1.1, -0.85], [-0.9, -1.3], [-0.2, -0.95], [0, 0.3]);
-      const fade = 1 - E.in2(seg(t, 0.72, 1));
-      let x, y;
-      if (t <= land) {
-        const s = E.in2(seg(t, 0, land) * 0.75 + 0.25); ({ x, y } = P(s));
-        comet(g, P, Math.max(0, s - 0.55), s, { w: 0.26, rim: NAVY, body: GOLD.body, core: '#ffffff', glowCol: SKY, head: 0 });
-      } else {
-        const u = seg(t, land, 1), h = Math.sin(Math.PI * Math.min(1, u * 1.7)) * 0.42;
-        x = 0.28 * E.out2(Math.min(1, u * 1.7)); y = 0.3 - h;
-        const tail = s => ({ x: lerp(0, x, s), y: 0.3 - Math.sin(Math.PI * Math.min(1, u * 1.7) * s) * 0.42 });
-        if (u < 0.6) comet(g, tail, 0, 1, { w: 0.13, rim: NAVY, body: GOLD.body, core: '#ffffff', glowCol: SKY, head: 0, a: 1 - u / 0.6 });
+      const hit = 0.24, fade = 1 - E.in2(seg(t, 0.55, 1));
+      const P = bez([0.18, -1.35], [0.3, -0.95], [-0.12, -0.45], [0, 0]);
+      if (t < hit + 0.12) {
+        const hd = lerp(0.15, 1, E.in2(seg(t, 0, hit))), tl = Math.max(0, hd - 0.75) + 0.6 * seg(t, hit, hit + 0.12);
+        pchi(g, P, tl, hd, 0.2, 1 - seg(t, hit, hit + 0.12));
+        if (t < hit) { const q = P(hd); phead(g, q.x, q.y, 1, 0.36); }
       }
-      // 튈 때 바닥 빛 + 반짝임 셋
-      const b = bell(t, land - 0.02, land + 0.04, land + 0.45);
-      glowOval(g, 0.02, 0.36, 0.7, 0.35, GOLD.glow, 0.85 * b);
-      glow(g, 0, 0.3, 0.35, '#ffffff', b);
-      for (let i = 0; i < 3; i++) { const a = rad(-150 + i * 60), d = 0.25 + 0.55 * E.out2(seg(t, land, land + 0.4)); glint(g, Math.cos(a) * d, 0.3 + Math.sin(a) * d * 0.9, 0.34 * b, SKY, b, a, 0.15); }
-      // 구슬 (별 모양 빛, 두 번 깜빡이다 작아짐)
-      const blink = t > 0.55 ? 0.65 + 0.35 * Math.cos((t - 0.55) * 42) : 1, rr = 0.34 * fade * (t > land ? 1 - 0.45 * seg(t, 0.55, 1) : 1);
-      glow(g, x, y, rr * 4, SKY, 0.65 * fade * blink);
-      glow(g, x, y, rr * 2.2, '#ffffff', 0.7 * fade * blink);
-      g.save(); g.translate(x, y); g.scale(rr, rr); energy(g, gg => path.star(gg, 4, 0.45, rad(-90 + t * 220)), { rim: NAVY, body: GOLD.body, core: '#ffffff', a: fade * blink, rimW: 0.12 }); g.restore();
+      // 내려오는 동안 흘리는 금가루
+      particles(g, t, 3, 16, (r, i) => ({ t0: (i / 16) * hit, life: 0.35 + r() * 0.2, dx: (r() - 0.5) * 0.35, sz: 0.018 + r() * 0.02 }), (gg, p, age) => { const q = P(lerp(0.15, 1, E.in2(p.t0 / hit))); const a = 1 - age; glow(gg, q.x + p.dx * age, q.y + 0.25 * age, p.sz * 4, GOLD.glow, 0.5 * a); speck(gg, q.x + p.dx * age, q.y + 0.25 * age, p.sz, GOLD.core, a, age * 3); });
+      pimpact(g, t, { t0: hit, r: 1.25 });
+      if (t >= hit) {
+        const u = seg(t, hit, 1);
+        // 꽃잎 빛 띠 여섯: 퍼졌다 위로 말려 오름
+        for (let i = 0; i < 6; i++) {
+          const an = rad(-90 + i * 60 + 30), L = 1.0 * E.out3(seg(u, 0, 0.45)), curl = 0.55 * E.out2(seg(u, 0.1, 0.7));
+          const Q = s2 => { const d = lerp(0.15, L, s2), a2 = an + curl * s2 * (i % 2 ? 1 : -1); return { x: Math.cos(a2) * d, y: Math.sin(a2) * d * 0.85 - 0.35 * u * s2 * s2 }; };
+          pchi(g, Q, seg(u, 0.25, 0.75), 1, 0.12, fade * (1 - seg(u, 0.55, 0.9)), i % 2 ? GOLD.body : '#fff1b0');
+          if (u < 0.5) { const q = Q(1); phead(g, q.x, q.y, fade * (1 - seg(u, 0.3, 0.5)), 0.14); }
+        }
+        // 가운데 네 갈래 별빛 (사제 반짝임)
+        const b = bell(u, 0, 0.12, 0.6);
+        glint(g, 0, 0, 0.95 * b, YEL.amber, 1, rad(45) * u, 0.1, '#ffffff');
+        glint(g, 0, 0, 0.6 * b, SKY, 1, rad(45) + rad(30) * u, 0.12, '#ffffff');
+        // 떠오르는 금가루 · 하늘빛 반짝이
+        particles(g, u, 9, 26, r => ({ t0: r() * 0.35, life: 0.45 + r() * 0.35, x: (r() - 0.5) * 1.5, y: 0.35 - r() * 0.5, sz: 0.022 + r() * 0.022, sky: r() < 0.35, sw: r() * 6 }), (gg, p, age) => {
+          const x = p.x + Math.sin(age * 7 + p.sw) * 0.05, y = p.y - 0.75 * E.out2(age), a = (1 - E.in2(age)) * fade;
+          glow(gg, x, y, p.sz * 4.5, p.sky ? SKY : GOLD.glow, 0.5 * a); speck(gg, x, y, p.sz, p.sky ? '#e8f6ff' : GOLD.core, a, age * 4);
+        });
+        particles(g, u, 11, 6, (r, i) => ({ t0: 0.05 + i * 0.07, life: 0.3, x: (r() - 0.5) * 1.6, y: 0.3 - r() * 1.1, rot: r() }), (gg, p, age) => glint(gg, p.x, p.y - age * 0.2, 0.26 * Math.sin(Math.PI * age), SKY, fade, p.rot, 0.13, '#ffffff'));
+      }
+    },
+  },
+  /** 빛의 전이 옮겨 가기 (같은 날): 두 칸 가운데에 그려 왼쪽 (앞 칸 · −0.87) → 오른쪽 (새 칸 · +0.87)으로 게임이 돌림 (board.ts fxPxfBetween).
+   *  앞 칸에서 빛 구슬이 톡 떠올라 금빛 띠를 길게 끌며 무지개처럼 뛰어 새 칸에 닿고, 지나간 길에 금가루 · 하늘빛 반짝이가 흩날리다 떨어지며
+   *  닿는 자리에 작은 흰 섬광 · 금빛 고리 · 네 갈래 별빛 (엔진 옮겨 가는 1초 안) */
+  'priest-relay-jump': {
+    frames: 20, logical: 100, size: 288, scope: 'target',
+    draw(g, { t }) {
+      const D = 0.87, t0 = 0.06, land = 0.62, fade = 1 - E.in2(seg(t, 0.7, 1));
+      const P = bez([-D, 0], [-0.4, -0.75], [0.4, -0.75], [D, 0]);
+      // 떠오르는 자리 (앞 칸)
+      const lift = bell(t, 0, 0.05, 0.3);
+      glow(g, -D, 0, 0.45, GOLD.glow, 0.6 * lift); glow(g, -D, 0, 0.18, '#ffffff', 0.8 * lift);
+      { const u = seg(t, 0, 0.3); if (u > 0 && u < 1) ringGlow(g, -D, 0, lerp(0.1, 0.4, E.out3(u)), 0.05, GOLD.light ?? '#fff1b0', 0.7 * (1 - u), 0.85); }
+      const hd = E.inOut(seg(t, t0, land)), tl = Math.max(0, hd - 0.55) + 0.45 * seg(t, land, land + 0.18);
+      if (hd > tl + 0.01) pchi(g, P, tl, hd, 0.23, 1 - seg(t, land, land + 0.2));
+      if (t > t0 && t < land) { const q = P(hd); phead(g, q.x, q.y, 1, 0.38); glint(g, q.x, q.y, 0.28, YEL.glow, 1, rad(45) + t * 8, 0.13, '#ffffff'); }
+      // 지나간 길의 금가루 · 반짝이 (흩날리다 떨어짐)
+      particles(g, t, 17, 24, (r, i) => ({ t0: t0 + (i / 24) * (land - t0), life: 0.3 + r() * 0.25, dx: (r() - 0.5) * 0.25, sz: 0.016 + r() * 0.02, sky: r() < 0.35 }), (gg, p, age) => {
+        const q = P(E.inOut(seg(p.t0, t0, land))), x = q.x + p.dx * age, y = q.y + 0.35 * age * age, a = (1 - age) * fade;
+        glow(gg, x, y, p.sz * 4, p.sky ? SKY : GOLD.glow, 0.5 * a); speck(gg, x, y, p.sz, p.sky ? '#e8f6ff' : GOLD.core, a, age * 4);
+      });
+      // 닿는 자리 (새 칸)
+      pimpact(g, t, { x: D, t0: land, r: 0.5 });
+      const b = bell(t, land - 0.02, land + 0.05, land + 0.35);
+      glint(g, D, 0, 0.5 * b, YEL.amber, 1, rad(45), 0.11, '#ffffff');
+      for (let i = 0; i < 4; i++) { const a = rad(-135 + i * 90), d = 0.12 + 0.3 * E.out2(seg(t, land, land + 0.3)); speck(g, D + Math.cos(a) * d, Math.sin(a) * d * 0.85, 0.022, GOLD.core, b); }
     },
   },
   // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.

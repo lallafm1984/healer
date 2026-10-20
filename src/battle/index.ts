@@ -18,7 +18,7 @@ import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, sk
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfBetween, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -572,7 +572,12 @@ function handleEvents(now: number): void {
       case 'dmg': if (u) fxDamage(u, ev.amt, now); break; // 받은 피해: 회복 숫자 자리에 빨간 숫자 (뒤집힌 축복도 이것, hurt 사건은 말풍선만)
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
       // 기믹 연출 (37 4장 F-1): 칸·사람이 없으면 보스 그림 위
-      case 'fx': if (ev.name.startsWith('relay-')) break; // 빛의 전이 깃듦 · 옮겨 감 · 사라짐 그림은 없앰, 깃든 칸 왼쪽 원이 따라감 (2026-10-20 Lim)
+      case 'fx': if (ev.name === 'relay-fly') { // 빛의 전이 옮겨 가기 (2026-10-20 Lim 「옆으로 옮겨가는 연출을 새롭게」): 두 칸 사이를 금빛 빛 띠가 뛰어 넘음. 깃든 칸 왼쪽 원은 바로 새 칸
+          const a = F.party.find(x => x.id === ev.on), b = F.party.find(x => x.id === ev.to);
+          if (a && b) fxPxfBetween(a, b, 'priest-relay-jump', now);
+          break;
+        }
+        if (ev.name.startsWith('relay-')) break; // 깃듦 · 사라짐 그림은 없앰 (#334)
         if (ev.cell == null && ev.on == null && !ev.all) bossFx(ev.name); else fxGim(ev.name, now, { id: ev.on, cell: ev.cell, to: ev.to, all: ev.all }); break;
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
