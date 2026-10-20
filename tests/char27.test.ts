@@ -1,11 +1,11 @@
-/** 캐릭터 탭 다듬기 (27 4장): 장비 잠금 · 추천 장착 · 특성 프리셋 · 새것 점 저장 · 능력치 출처 */
+/** 캐릭터 탭 다듬기 (27 4장): 장비 잠금 · 특성 프리셋 · 새것 점 저장 · 능력치 출처 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { gearStatsOf, itemStats, noStats, SLOTS, STAT_KEYS, type GearItem } from '../src/data/equipment';
 import { lvPower } from '../src/data/progression';
 import { RULES } from '../src/data/rules';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
-  bestGearPlan, equip, equipBest, G, isNewGear, lowGradeIds, markGearOpened, newGearCount, pickTalent, sell, setTalentPreset, talentPreset, talentsNow, toggleLock,
+  equip, G, isNewGear, markGearOpened, newGearCount, pickTalent, sell, setTalentPreset, talentPreset, talentsNow, toggleLock,
 } from '../src/game/state';
 import { load, migrate, newSave, save, type KV } from '../src/platform/storage';
 
@@ -18,10 +18,9 @@ const mem = (): KV & { data: Record<string, string> } => ({
 
 describe('장비 잠금 (27 4-3)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('잠그면 판매에서 빠지고, 「일반·고급 모두」에도 안 들어감', () => {
+  it('잠그면 판매에서 빠짐', () => {
     G.save.gear.bag = [item({ id: 1, grade: '일반' }), item({ id: 2, grade: '고급' }), item({ id: 3, grade: '희귀' })];
     expect(toggleLock(2)).toBe(true);
-    expect(lowGradeIds()).toEqual([1]);
     const r = sell([1, 2, 3]);
     expect(r.n).toBe(2);
     expect(G.save.gear.bag.map(x => x.id)).toEqual([2]);
@@ -42,33 +41,6 @@ describe('장비 잠금 (27 4-3)', () => {
     const s = load(kv);
     expect(s.gear.bag.find(x => x.id === 5)?.lock).toBe(true);
     expect(s.gear.bag.find(x => x.id === 6)?.lock).toBeUndefined();
-  });
-});
-
-describe('추천 장착 (27 4-2)', () => {
-  beforeEach(() => { G.save = newSave(1); });
-  it('부위마다 점수가 가장 높은 장비, 바뀌는 부위만', () => {
-    // 91: 점수 = 실제 옵션 값 (굴림 · 아이템 레벨 배율 포함). 지팡이 주 옵션 지능 + 종류 옵션 가속
-    G.save.gear.equipped = { weapon: item({ id: 1, slot: 'weapon', grade: '희귀', fixedRolls: [1.2, 1.2] }), head: item({ id: 2, slot: 'head', grade: '고급' }) };
-    G.save.gear.bag = [
-      item({ id: 3, slot: 'weapon', grade: '영웅', fixedRolls: [1.2, 1.2] }), // 5.55 > 5.11
-      item({ id: 4, slot: 'weapon', grade: '희귀', fixedRolls: [1.25, 1.25] }), // 5.32
-      item({ id: 5, slot: 'head', grade: '고급' }), // 같으면 지금 것
-      item({ id: 6, slot: 'ring', grade: '일반' }), // 빈칸
-      item({ id: 7, slot: 'ring', grade: '일반' }), // 같은 점수면 앞의 것
-    ];
-    const plan = bestGearPlan();
-    expect(plan.map(p => [p.slot, p.now?.id ?? null, p.next.id])).toEqual([['weapon', 1, 3], ['ring', null, 6]]);
-  });
-  it('한 번에 바꾸면 원래 끼던 건 가방으로, 다시 부르면 바꿀 것 없음', () => {
-    G.save.gear.equipped = { weapon: item({ id: 1, slot: 'weapon', grade: '일반' }) };
-    G.save.gear.bag = [item({ id: 2, slot: 'weapon', grade: '고급' }), item({ id: 3, slot: 'neck', grade: '희귀' })];
-    expect(equipBest()).toBe(2);
-    expect(G.save.gear.equipped.weapon?.id).toBe(2);
-    expect(G.save.gear.equipped.neck?.id).toBe(3);
-    expect(G.save.gear.bag.map(x => x.id)).toEqual([1]);
-    expect(bestGearPlan()).toEqual([]);
-    expect(equipBest()).toBe(0);
   });
 });
 

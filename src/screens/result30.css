@@ -24,7 +24,6 @@
 #s-settle .res-head > p.r-why { margin: 4px 0 0; font-size: 15px; font-weight: 700; color: #FFB4A8; }
 .r-chal { margin: 0; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; font-size: 13px; color: var(--ink-2); }
 .r-chal.ok { color: var(--gold-hi); }
-.r-cont { margin: 0; font-size: 12px; }
 
 /* ---------- 받은 것: 장비 줄 · 재화 칸 · 경험치 ---------- */
 .r-loot { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 6px; background: var(--pnl); border: 1px solid var(--edge); box-shadow: var(--pnl-shadow); animation: rup 0.35s 0.3s ease-out both; }

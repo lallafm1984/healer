@@ -4,7 +4,7 @@ import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/conten
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
-import { itemName, itemScore, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, sellGold, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
+import { itemName, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, sellGold, SLOTS, type GearItem, type GearLine } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
@@ -193,8 +193,6 @@ export function claimDex(): DexReward & { steps: number } {
   return due;
 }
 
-export const emptySlots = () => SLOTS.filter(s => !G.save.gear.equipped[s.key]).length;
-
 /** 장비 잠금 켜기·끄기 (27 4-3). 바뀐 뒤 잠김 여부 */
 export function toggleLock(id: number): boolean {
   const it = findItem(id);
@@ -202,37 +200,6 @@ export function toggleLock(id: number): boolean {
   if (it.lock) delete it.lock; else it.lock = true;
   commit();
   return !!it.lock;
-}
-
-/** 다른 직업의 착용 조합에 든 장비 id (v12: 가방에 있어도 그 직업으로 바꾸면 다시 낌) */
-export const loadoutIds = (): Set<number> => new Set(HERO_KEYS.filter(h => h !== G.save.hero).flatMap(h => Object.values(G.save.heroes[h]?.loadout ?? {})).filter((id): id is number => typeof id === 'number'));
-/** 「일반·고급 모두」로 고를 가방 장비 (잠긴 것 · 다른 직업 착용 조합에 든 것 빼고) */
-export const lowGradeIds = () => { const keep = loadoutIds(); return G.save.gear.bag.filter(it => !it.lock && !keep.has(it.id) && (it.grade === '일반' || it.grade === '고급')).map(it => it.id); };
-
-/**
- * 추천 장착 (27 4-2): 부위마다 착용·가방 중 점수(itemScore)가 가장 높은 장비. 바뀌는 부위만 돌려줌.
- * 점수가 같으면 지금 것을 그대로 둠
- */
-export function bestGearPlan(): { slot: SlotKey; now: GearItem | null; next: GearItem }[] {
-  const eq = G.save.gear.equipped, lv = G.save.player.level, out: { slot: SlotKey; now: GearItem | null; next: GearItem }[] = [];
-  for (const s of SLOTS) {
-    const now = eq[s.key] ?? null;
-    let best: GearItem | null = null;
-    for (const it of G.save.gear.bag) {
-      if (it.slot !== s.key) continue;
-      const top = itemScore(best ?? now ?? undefined, lv);
-      if (itemScore(it, lv) > top) best = it;
-    }
-    if (best) out.push({ slot: s.key, now, next: best });
-  }
-  return out;
-}
-
-/** 추천 장착 한 번에. 바꾼 부위 수 */
-export function equipBest(): number {
-  const plan = bestGearPlan();
-  for (const p of plan) equip(p.next.id);
-  return plan.length;
 }
 
 // ---------- 힐러 직업 (25) ----------
@@ -360,8 +327,8 @@ export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
  * 이전에 해금한 직업 (그 직업으로 바꾼 적 있음)은 레벨 · 구매와 관계없이 보존. buy = 잠겼고 상점에서 사야 열림.
  * 개발 빌드 「전 직업 선택」 (`devJobs`)이 켜져 있으면 잠긴 직업도 open (dev), 그 직업으로 바꿔도 해금 기록은 남기지 않음
  */
-export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number; buy: boolean } {
-  const info = { dev: false, quest: 0, need: 0, buy: false };
+export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'locked'; dev: boolean; buy: boolean } {
+  const info = { dev: false, buy: false };
   if (h === G.save.hero) return { state: 'now', ...info };
   if (heroEarned(h)) return { state: 'open', ...info };
   // 개발 빌드 「전 직업 선택」: 잠긴 직업도 열림 (dev = 이 설정 덕에 열림, 상점으로 보내지 않음)

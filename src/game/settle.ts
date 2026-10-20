@@ -62,8 +62,6 @@ export interface BattleResult {
   /** 주간 도전 단계 · 제한시간 (초) */
   chal?: number;
   limit?: number;
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont?: number;
   /** 탱커 전멸 뒤 포기 버튼으로 끝냄 (이어하기 안 물어봄) */
   giveUp?: boolean;
 }
@@ -88,8 +86,6 @@ export interface Settlement {
   first: boolean;
   /** 최고 기록 경신 */
   best: boolean;
-  /** 직업 퀘스트 진행 (25 5-4): 그 판으로 퀘스트가 오른 직업, 다 채우면 unlocked */
-  heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
   /** 길드원 경험치 · 능력치 · 명성 (93 · 97) */
   guild: GuildAfter | null;
   /** 이 판에 길드파티로 얻은 명성 (승리 · 첫 처치 · 주간 원정, 103 「명성 = 길드 경험치」): before = 판 전 쌓인 명성. 결과창 길드 막대 */
@@ -110,8 +106,6 @@ export interface Settlement {
   missions: string[];
   /** 주간 도전 결과 (13 3-2): 제한시간 안에 깼는지, 다음 단계가 열렸는지 */
   chal: { stage: number; inTime: boolean; time: number; limit: number; opened: boolean; best: number } | null;
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont: number;
   /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
   tutEnd: boolean;
   /** 튜토리얼 다시 보기 판 (경험치 · 골드 없음, 다시 보기용 글) */
@@ -122,14 +116,9 @@ export interface Settlement {
   restBonus: { xp: number; gold: number } | null;
 }
 
-/** 광고로 이어 한 판은 등급 최대 B (15 4장) */
-const capB = (g: Grade): Grade => (g === 'S' || g === 'A' ? 'B' : g);
-
-/** 이긴 판을 지금 직업 기록에 더하고 (숙련도, 25 4-3), 직업 퀘스트 조건에 맞으면 한 칸 채움. 다 채우면 해금 */
-export function heroWin(save: SaveData, _kind: string, _content: string, _diff: DiffName, h: HeroKey = save.hero): Settlement['heroQuest'] {
-  if (save.tut < TUT.done) return null;
-  heroSaveOf(save, h).wins++;
-  return null;
+/** 이긴 판을 그 직업 기록 (wins)에 더함 (튜토리얼 뒤부터). 직업 퀘스트 · 숙련도는 없음, wins는 옛 저장 옮기기 (v11)에서만 읽음 */
+export function heroWin(save: SaveData, h: HeroKey = save.hero): void {
+  if (save.tut >= TUT.done) heroSaveOf(save, h).wins++;
 }
 
 /** roster = 전투에 넘긴 편성 (길드원 경험치 · 능력치). 길드원이 없으면 길드 정산 안 함 */
@@ -142,8 +131,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const p = save.player;
   const tot = r.healed + r.overheal;
   const overheal = tot ? r.overheal / tot : 0;
-  const cont = r.cont || 0;
-  const grade = r.win ? (cont ? capB(gradeOf(r.deaths)) : gradeOf(r.deaths)) : null;
+  const grade = r.win ? gradeOf(r.deaths) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
   // 따로 잠긴 난이도(10인 악몽 = 열림 + 15 등)는 그 레벨이 단계 (26 3장)
   // 적 레벨은 전투가 넘겨준 값 (내 레벨, 32·13 3-2)
@@ -212,7 +200,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     };
   }
 
-  const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff, hero) : null;
+  if (r.win) heroWin(save, hero);
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save) : null;
   // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
@@ -255,6 +243,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

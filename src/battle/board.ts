@@ -9,7 +9,7 @@
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
-import { CLASSES, type ClassKey } from '../data/classes';
+import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
@@ -202,9 +202,7 @@ export function resizeBoard(): void {
     boardSafeTop: layout.top.toFixed(2), boardSafeBottom: layout.bottom.toFixed(2),
     boardInsetLeft: left.toFixed(2), boardInsetRight: right.toFixed(2), boardFitAxis: layout.axis,
   });
-  sizeKey++;
 }
-let sizeKey = 0;
 
 export const center = (i: number) => { const c = B.F!.cells[i]; return { x: L.ox + c.px * L.s, y: L.oy + c.py * L.s }; };
 /** 칸 가운데의 화면 좌표 (캔버스 CSS px). HTML을 칸에 맞출 때 · 터치 거리를 잴 때 */
@@ -2447,6 +2445,3 @@ function drawLens(now: number): void {
   app.renderer.render(app.stage);
 }
 
-/** 길게 누르기 정보창에 쓰는 직업 이름 (판 그림과 같은 출처) */
-export const className = (u: Unit) => (u.cls ? CLASSES[u.cls].name : '');
-void sizeKey;

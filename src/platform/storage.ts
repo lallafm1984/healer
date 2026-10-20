@@ -252,7 +252,7 @@ export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
 /** v12: 현재 캐릭터의 공통 레벨. 다른 캐릭터의 레벨은 참조하지 않는다. */
 export function heroLevelOf(d: SaveData, _h: HeroKey): number { return d.player.level; }
 
-/** 기준 레벨 (34 3-1): 길드 · 상점 물약 · 임무 보상 같은 것의 기준. v11부터 캐릭터마다 따로라 지금 캐릭터 레벨 (다른 직업 레벨이 저장에 안 남음) */
+/** 기준 레벨 (34 3-1): 길드 · 임무 보상 같은 것의 기준. v11부터 캐릭터마다 따로라 지금 캐릭터 레벨 (다른 직업 레벨이 저장에 안 남음) */
 export function topLevel(d: SaveData): number {
   return d.player.level;
 }

@@ -102,11 +102,3 @@ export function memDetailHtml(m: CardData): string {
     ${personalityHtml(m.pers)}</div>`;
 }
 
-/** 카드 본문 (역할 원 + 글). extra = 오른쪽 끝 버튼 등 */
-export function cardHtml(m: CardData, o: { attrs?: string; extra?: string; cls?: string; desc?: boolean } = {}): string {
-  const c = CLASSES[m.cls];
-  return `<li class="pcard${o.cls ? ` ${o.cls}` : ''}" ${o.attrs || ''}><span class="prole two" style="background:${ROLE[c.role].color}">${c.short}</span>
-    <div><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}</small>
-    ${abHtml(m.ab, m.star || 0, o.desc !== false)}
-    ${personalityHtml(m.pers, o.desc !== false)}</div>${o.extra || ''}</li>`;
-}

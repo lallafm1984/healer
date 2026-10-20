@@ -69,5 +69,5 @@ export const CHAR_SLOT = { max: 6, lv: 10, gold: [2000, 5000, 10000], iap: { id:
 /** 칸을 have개 가졌을 때 다음 칸 골드 값 */
 export const slotGold = (have: number): number => CHAR_SLOT.gold[Math.min(Math.max(0, have - 1), CHAR_SLOT.gold.length - 1)];
 
-// ---------- 보상형 광고 (15 7장): 하루 상한. 휴식 충전은 STAMINA.adDaily ----------
-export const AD_LIMIT = { cont: 3, chest: 1, reroll: 2 };
+// ---------- 보상형 광고: 하루 상한 (일일 상자 다시 열기). 휴식 충전은 STAMINA.adDaily. 저장 daily.ads의 cont · reroll은 예전 이어하기 · 다시 뽑기 칸 (안 씀) ----------
+export const AD_LIMIT = { chest: 1 };

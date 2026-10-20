@@ -114,8 +114,6 @@ export interface Run {
   idx: number; carry: { mana: number; g: { p: number } } | null; time: number; deaths: number; restSec: number;
   healed: number; overheal: number; dispels: number; dispellable: number; auto: boolean;
   meter: MeterRow[];
-  /** 광고 이어하기 횟수 (등급 최대 B) */
-  cont: number;
   /** 길드원 성장 행동을 판단할 구간 합 전투 기록 */
   partyStats?: Record<string, { got: number; low: number; did?: { dodge: number; move: number; cut: number; buster: number; adds: number; help?: number }; dealt: number }>;
 }
@@ -140,8 +138,6 @@ export const B = {
   overShown: false,
   /** 성기사 봉화: 휠 가운데를 누르고 칸 탭 (25 3장) */
   beacon: false,
-  /** 가운데 스킬을 칸에 (주술사 샘 토템, 79 2-3): 휠 가운데를 누르고 칸 탭 */
-  coreCell: false,
 };
 
 export interface Pointer { id?: number; x0: number; y0: number; x: number; y: number; idx: number; lp: boolean; moved: boolean; dir?: Dir | null; timer?: ReturnType<typeof setTimeout> }
@@ -222,8 +218,6 @@ export const Snd = {
       case 'cough': this.tone(240, 0.07, 'sawtooth', 0.03, 150); this.tone(220, 0.07, 'sawtooth', 0.025, 140, 0.1); break;
       case 'bubble': [700, 900, 1150].forEach((f, i) => this.tone(f, 0.05, 'sine', 0.025, f * 1.4, i * 0.06)); break;
       case 'zap': this.tone(1800, 0.06, 'square', 0.02, 400); break;
-      case 'potion': [420, 560, 760].forEach((f, i) => this.tone(f, 0.09, 'sine', 0.05, f * 1.3, i * 0.07)); break;
-      case 'scroll': this.tone(900, 0.18, 'triangle', 0.03, 1800); this.tone(1568, 0.4, 'sine', 0.035, 0, 0.12); break;
     }
   },
 };

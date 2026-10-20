@@ -1,6 +1,6 @@
 /** 직업 전용 특수능력 (42 2-9, 2026-10-14 직업마다 24종, 7직업 168종): 데이터 · 고급부터 부위마다 고를 거리 · 엔진 훅 */
 import { describe, expect, it } from 'vitest';
-import { ITEM_GRADES, makeItem, SLOTS } from '../src/data/equipment';
+import { ITEM_GRADES, SLOTS } from '../src/data/equipment';
 import { HERO_KEYS, heroSkills } from '../src/data/heroes';
 import { RELAY } from '../src/data/heroConst';
 import { SKILLS } from '../src/data/skills';
@@ -9,9 +9,6 @@ import * as E from '../src/engine';
 import { addDebuff } from '../src/engine/core';
 import { putHot } from '../src/engine/heroes';
 import { hasteOf, intAmt } from '../src/engine/specials';
-import { rollover } from '../src/game/economy';
-import { G, lowGradeIds } from '../src/game/state';
-import { heroSaveOf, newSave } from '../src/platform/storage';
 
 type F = ReturnType<typeof E.create>;
 type U = F['party'][number];
@@ -207,20 +204,5 @@ describe('다른 직업이면 꺼짐', () => {
       const on = specTotals([{ key: k, v: SPECS[k].val }], h);
       expect(k in on, `${k} ${h}`).toBe(h === SPECS[k].hero);
     }
-  });
-});
-
-describe('드롭 출처와 가방 (72)', () => {
-  const now = new Date(2026, 9, 14, 12).getTime();
-  const fresh = (hero: Hero) => {
-    G.save = newSave(now); G.save.tut = 3; G.save.player = { level: 60, xp: 0, gold: 0 };
-    G.save.hero = hero; rollover(G.save, now, () => 0.5);
-  };
-  it('「일반·고급 모두」 분해 고르기는 다른 직업 착용 조합에 든 장비를 뺌', () => {
-    fresh('priest');
-    const a = makeItem(() => 0.5, 'weapon', '고급', 1), b = makeItem(() => 0.5, 'head', '일반', 2);
-    G.save.gear.bag.push(a, b);
-    heroSaveOf(G.save, 'druid').loadout = { weapon: 1 };
-    expect(lowGradeIds()).toEqual([2]);
   });
 });

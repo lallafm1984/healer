@@ -45,13 +45,13 @@ describe('직업 퀘스트는 없음 (68: 캐릭터 칸을 사서 만듦)', () =
   });
   it('튜토리얼 중엔 이긴 판도 세지 않음', () => {
     G.save.tut = TUT.explore;
-    expect(heroWin(G.save, 'dungeon', 'rustfort', '보통')).toBeNull();
+    heroWin(G.save);
     expect(G.save.heroes.priest?.wins ?? 0).toBe(0);
   });
   it('새 캐릭터는 만들 때 해금, 이긴 판만 셈', () => {
     expect(makeChar('druid')).toBe('');
     expect(G.save.heroes.druid!.unlocked).toBe(true);
-    expect(heroWin(G.save, 'dungeon', 'rustfort', '어려움')).toBeNull();
+    heroWin(G.save);
     expect(G.save.heroes.druid!.wins).toBe(1);
   });
   it('드루이드 Lv 20 · 성기사 Lv 30 해금 (81)', () => {
@@ -82,7 +82,7 @@ describe('같은 캐릭터의 무료 직업 전환 (v12)', () => {
     makeChar('druid');
     expect(heroStatus('druid').state).toBe('now');
     expect(heroStatus('priest').state).toBe('open');
-    expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, quest: 0, need: 0, buy: false });
+    expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, buy: false });
     expect(switchHero('priest')).toBe(true);
     expect(G.save.hero).toBe('priest');
   });

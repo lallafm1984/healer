@@ -122,13 +122,12 @@ export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).ne
  */
 export const runGold = (lv: number) => clearGold(lv, '보통', 'A', lv >= RAID20_LV ? 20 : lv >= RAID10_LV ? 10 : 0);
 
-export interface Gain { gold?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
+export interface Gain { gold?: number; items?: GearItem[]; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
 function give(save: SaveData, g: Gain): Gain {
   save.player.gold += g.gold || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
   if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
-  if (g.deco && !save.decos.includes(g.deco)) save.decos.push(g.deco);
   return g;
 }
 

@@ -36,7 +36,7 @@ const talk = createTalk();
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
-  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], cont: 0, partyStats: {} });
+  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], partyStats: {} });
 }
 
 // ---------- 전투 시작 ----------
@@ -61,8 +61,8 @@ function startBattle(guideSec = 0): void {
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
-  talk.start(F, { seg: R.idx, segN: R.segs.length, cont: R.cont || 0, affix: !!S.affixes?.length, chal: !!S.chal, guildFirst: S.guildFirst }, performance.now());
-  B.armed = null; B.paused = false; B.overShown = false; B.beacon = false; B.coreCell = false;
+  talk.start(F, { seg: R.idx, segN: R.segs.length, affix: !!S.affixes?.length, chal: !!S.chal, guildFirst: S.guildFirst }, performance.now());
+  B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
     vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
@@ -88,7 +88,7 @@ function startBattle(guideSec = 0): void {
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
-  if (S.affixes && !R.idx && !R.cont) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
+  if (S.affixes && !R.idx) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
   // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
   const words = F.hero !== 'priest' || knowsPassive(F, 'words');
   buildGauges(F);
@@ -153,10 +153,6 @@ function layoutBattle(): void {
   if (F.hero === 'paladin') {
     $('core').setAttribute('role', 'button'); $('core').tabIndex = 0;
     $('core').setAttribute('aria-label', '마나 · 봉화 지정');
-  } else if (HEROES[F.hero].core) { // 가운데 스킬 (79 6-1: 주술사 샘 토템 · 결계사 심판). 모양은 Codex 몫 (79 7장 2번), 지금은 봉화와 같은 자리 · 같은 강조
-    const k = HEROES[F.hero].core!;
-    $('core').setAttribute('role', 'button'); $('core').tabIndex = 0;
-    $('core').setAttribute('aria-label', `마나 · ${SKILLS[k].name}`);
   }
   scaleControls();
   // 휠을 다시 만든 직후에도 장전·비활성 상태와 접근성 표시를 유지한다.
@@ -245,22 +241,11 @@ $('wheel').addEventListener('lostpointercapture', e => endSlot(true, e));
 $('wheel').addEventListener('contextmenu', e => e.preventDefault());
 
 /**
- * 휠 가운데: 성기사는 봉화 지정 (누르고 칸 탭, 25 3장). 가운데 스킬이 있는 직업 (79 6-1)은 그 스킬:
- * 칸을 고르는 스킬 (주술사 샘 토템)은 누르고 칸 탭, 대상 없는 스킬 (결계사 심판)은 바로. 다른 직업은 아무 일 없음
+ * 휠 가운데: 성기사는 봉화 지정 (누르고 칸 탭, 25 3장). 다른 직업은 아무 일 없음 (가운데 버튼 스킬은 84에서 없앰)
  */
 function pressCore(): void {
   const F = B.F;
   if (!F || !live() || ui.pullLeft > 0) return;
-  const core = HEROES[F.hero].core;
-  if (core) {
-    const sk = SKILLS[core];
-    if (F.level < SKILL_LEVEL[core]) { toast(`${sk.name}: Lv ${SKILL_LEVEL[core]}에 배움`); Snd.play('error'); return; }
-    if ((F.cd[core] ?? 0) > 0) { toast(`${sk.name} 재사용 대기 ${Math.ceil(F.cd[core]!)}초`); Snd.play('error'); return; }
-    B.armed = null; ui.talArmed = null; B.beacon = false;
-    if (sk.target === 'cell') { B.coreCell = !B.coreCell; if (B.coreCell) toast(`${sk.name}: 세울 칸 선택`); vibe(8); return; }
-    doUse(core, 0);
-    return;
-  }
   if (F.hero !== 'paladin') return;
   const lv = HEROES.paladin.system.lv;
   if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('error'); return; }
@@ -275,7 +260,7 @@ function pressSlot(slot: string): void {
   if (!F || !live() || ui.pullLeft > 0) return;
   const key = slotKey(F, slot);
   if (skillUsesSpent(F, key)) return;
-  ui.talArmed = null; B.beacon = false; B.coreCell = false;
+  ui.talArmed = null; B.beacon = false;
   // 대상 없는 스킬 · 되살리기 (환생: 탱커 먼저, 엔진 reviveTarget)는 누르면 바로 (2026-10-19 Lim 「버튼을 클릭하면 대상지정없이 살릴수 있게」)
   if (SKILLS[key].target === 'none' || SKILLS[key].target === 'dead') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
@@ -334,7 +319,7 @@ function pressAux(key: TalentKey): void {
   if (def.active!.cell) {
     const r = talentReady(F, key);
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
-    ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false; B.coreCell = false;
+    ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false;
     if (ui.talArmed) toast(`${def.name}: 빈 칸 선택`);
     vibe(8); return;
   }
@@ -424,14 +409,6 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (cancelled || !F || !live()) return;
   if (F.cells[P.idx]?.unit) ui.selectedUnitId = F.cells[P.idx].unit!.id;
   F.stats.taps++;
-  if (B.coreCell) { // 가운데 스킬을 칸에 (샘 토템): 칸 탭 = 그 칸 (사람이 서 있어도 됨)
-    B.coreCell = false;
-    const core = HEROES[F.hero].core;
-    if (P.idx < 0 || !core) { F.stats.emptyTaps++; return; }
-    const res = use(F, core, P.idx);
-    if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
-    vibe(12); return;
-  }
   if (B.beacon) { // 봉화 지정 중: 칸 탭 = 그 파티원
     const u = P.idx >= 0 ? F.cells[P.idx].unit : null;
     if (!u || !u.alive) { F.stats.emptyTaps++; return; }
@@ -685,7 +662,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: partyResult(R, f),
     detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })),
-    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
+    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
   ui.lastResult = result;
   Snd.play(win ? 'win' : 'lose');
