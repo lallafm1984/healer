@@ -7,8 +7,8 @@
  *
  * 2026-10-16 Lim 「골드 아이콘 제거 · 경험치 줄이 너무 길다 · 8분에 1씩 차는 것을 UI로 (90: 휴식 15분) · 메뉴 버튼이 헤드와 안 어울린다」
  * → A · B · C 사진 중 Lim이 B안 (나무 판 그대로) + 「충전 칸 배경이 나무 판과 어울리게」:
- * 판은 나무 그림 (a2-header-v3) 그대로. 경험치는 짧은 홈 막대 안에 % 글자. 휴식 (90)은 판에 파인 나무 홈 패널 (a2-header-stamina-plate, Codex)
- * 위에 청동 고리 번개 (고리가 다음 +1까지 8분 동안 참) · 지금/최대 · 초록 「+1」 배지 + 남은 시간 (「+1 4:59」가 「14:59」로 읽혀 배지로 뗌, Lim).
+ * 판은 나무 그림 (a2-header-v3) 그대로. 경험치는 짧은 홈 막대 안에 % 글자. 휴식 (90)은 청동 고리 그림 + 지금/최대
+ * (예전 나무 홈 패널 그림 · 「+1」 배지 · 남은 시간 · 가득 글은 2026-10-20 Lim 「배경이미지와 시간표시제거 … 텍스트 제거」로 뺌. 다시 넣지 않는다).
  * 설정은 초상과 같은 둥근 황동 테 (a2-portrait-v3). 화면 높이 800 이하 (S25)는 이름 · 경험치 줄을 줄여 위아래 여백을 울트라처럼 남김 (Lim).
  * 위 줄 휴식 칸 규칙은 여기 한 곳 (stamina.css에 두지 않음).
  * 골드는 91에서 막대 옆 · 「← 제목」 줄에 다시 넣었다가 2026-10-17 Lim 「헤드에서 골드 재화는 빼자 · 닉네임이 UI 테두리에 걸치지 않게」로 뺌
@@ -51,40 +51,29 @@
 }
 .ns .tb-mmo .tb-xpt::before { content: none; }
 
-/* 휴식 (90): 판에 파인 나무 홈 패널 · 청동 고리 달 그림 · 지금/최대 · 다음 +1까지 */
+/* 휴식 (90): 청동 고리 달 그림 (고리가 다음 +1까지 15분 동안 참) · 지금/최대.
+ * 2026-10-20 Lim 「헤더에 휴식게이지에 배경이미지와 시간표시제거, 가득찾을때 최대 같은 텍스트 제거. 보기좋게 배치」:
+ * 나무 홈 패널 그림 · 「+1」 배지 · 남은 시간 · 가득 · 무제한 글을 빼고, 고리와 숫자를 한 줄에 판 위로 바로 (터치 44px 그대로). 남은 시간은 누르면 뜨는 휴식 창에 */
 .ns .tb-mmo .tb-wal { flex: none; max-width: none; gap: 0; }
 .ns .tb-mmo .tb-cur.tb-st {
-  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 5px; row-gap: 3px;
-  position: relative; min-height: 46px; margin: 0; padding: 6px 13px 6px 10px; box-sizing: border-box; cursor: pointer; font: inherit; color: inherit;
-  border: 0; border-radius: 0; background: none; box-shadow: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  position: relative; min-height: 44px; margin: 0; padding: 0 4px; box-sizing: border-box; cursor: pointer; font: inherit; color: inherit;
+  border: 0; border-radius: 22px; background: none; box-shadow: none;
 }
-/* 홈 패널 그림은 9칸으로 늘려 모서리 리벳이 찌그러지지 않게 (글자 자리는 그대로) */
-.ns .tb-mmo .tb-cur.tb-st::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  border: 11px solid transparent; border-image: url('../art/a2-header-stamina-plate.webp') 36 fill / 11px / 0 stretch;
-  filter: drop-shadow(0 1px 1px #0008);
-}
-.ns .tb-mmo .tb-cur.tb-st > * { position: relative; }
 .ns .tb-mmo .tb-st-ic {
-  grid-row: 1 / 3; position: relative; display: grid; place-items: center; width: 31px; height: 31px; border-radius: 50%;
+  flex: none; position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
   background: radial-gradient(closest-side, #241408 70%, #b8864a 72%, #6e4720 86%, transparent 88%);
+  filter: drop-shadow(0 1px 2px #000a);
 }
 .ns .tb-mmo .tb-st-ic::before {
   content: ''; position: absolute; inset: 2px; border-radius: 50%;
   background: conic-gradient(#9fe25c calc(var(--p, 1) * 1turn), #0000 0);
   -webkit-mask: radial-gradient(closest-side, transparent 70%, #000 73%); mask: radial-gradient(closest-side, transparent 70%, #000 73%);
 }
-.ns .tb-mmo .tb-st-ic .currency-icon, .ns .tb-mmo .tb-st-ic .g-ic, .ns .tb-mmo .tb-st-ic svg { position: relative; width: 21px; height: 21px; filter: drop-shadow(0 1px 1px #000); }
-.ns .tb-mmo .tb-st-v { display: flex; align-items: baseline; gap: 1px; white-space: nowrap; }
-.ns .tb-mmo .tb-cur.tb-st b { font: 800 15px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
-.ns .tb-mmo .tb-cur.tb-st .tb-st-v small { font: 700 11px/1 var(--font-body); color: #f1e2c2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
-.ns .tb-mmo .tb-cur.tb-st .tb-st-t { display: inline-flex; align-items: center; gap: 3px; font: 700 10px/1 var(--font-body); color: #e6cfa3; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 1px 1px #000; }
-.ns .tb-mmo .tb-st-plus {
-  display: inline-grid; place-items: center; min-width: 15px; height: 12px; padding: 0 2px; box-sizing: border-box; border-radius: 3px;
-  background: linear-gradient(#a6e36b, #5f9f2f); box-shadow: inset 0 1px 0 #e6ffc466, 0 1px 1px #000a;
-  font: 800 9px/1 var(--font-body); font-style: normal; color: #16280a; text-shadow: none; letter-spacing: -.02em;
-}
-.ns .tb-mmo .tb-st-plus[hidden] { display: none; }
+.ns .tb-mmo .tb-st-ic .currency-icon, .ns .tb-mmo .tb-st-ic .g-ic, .ns .tb-mmo .tb-st-ic svg { position: relative; width: 23px; height: 23px; filter: drop-shadow(0 1px 1px #000); }
+.ns .tb-mmo .tb-st-v { display: flex; align-items: baseline; gap: 1px; min-width: 60px; white-space: nowrap; } /* 「6/100」 · 「100/150」 어느 쪽이어도 고리 자리가 그대로 */
+.ns .tb-mmo .tb-cur.tb-st b { font: 800 17px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 4px #000c; }
+.ns .tb-mmo .tb-cur.tb-st .tb-st-v small { font: 700 12px/1 var(--font-body); color: #f1e2c2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 4px #000c; }
 .ns .tb-mmo .tb-cur.tb-st:active { filter: brightness(.94); }
 .ns .tb-mmo .tb-cur.tb-st:focus-visible { outline: 2px solid #ffe398; outline-offset: 2px; }
 
@@ -128,7 +117,6 @@
     --a2-header-height: 54px; --a2-header-portrait: 44px;
     --a2-header-name-size: 17px; --a2-header-name-gap: 4px;
   }
-  .ns .tb-mmo .tb-cur.tb-st { min-height: 44px; padding-block: 2px; row-gap: 2px; } /* 낮은 판 (54)에서도 터치 44px (QA 2026-10-16, 예전 40) */
   .ns .tb-mmo .tb-xp { height: 12px; }
 }
 @media (max-height: 520px) {
