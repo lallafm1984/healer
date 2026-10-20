@@ -1,3 +1,4 @@
+import './fonts/fonts.css';
 import './battle/battle.css';
 import './app.css';
 import './screens/screens.css';
