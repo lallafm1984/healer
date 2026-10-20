@@ -2,9 +2,9 @@
  * 순차 레벨링 구간 (70) 어려움 · 악몽의 자동 밸런스 기준 플레이어 (2026-10-13 Lim 「Lv 1 어려움이 자동 힐로 안 깨짐」).
  * 권장 장비 (어려움 고급 · 악몽 희귀 × 1.4, 6부위)와 적 레벨로 재면 녹슨 고원 어려움이 80%인데, 실제로 어려움이 열린 Lv 3 플레이어는
  * 장비가 1~2개 (거의 일반)뿐이고 치유의 기원 · 특성도 아직 없어 3%였음. 그래서 장소 Lv RAMP_LV까지는
- * 「그 난이도가 처음 열린 플레이어」로 잼: 튜토리얼 뒤 장소를 레벨 순으로 길 (rampDiffs: 장소 Lv 1~9 쉬움 → 보통, 10~20 네 난이도, 70 · 90)대로 깨며
- * 받은 장비를 부위마다 점수 높은 것으로 끼고, 어려움은 그 장소 보통을 깬 뒤, 악몽은 그 장소 어려움을 깬 뒤의 레벨 · 장비
- * (장소 Lv 1~9는 어려움이 길에 없어서 한 번 더 깬 셈). 장비는 시드마다 드롭 굴림 (A 등급, 아이템 레벨 = 그 판 적 레벨), 강화 없음
+ * 「그 난이도가 처음 열린 플레이어」로 잼: 튜토리얼 뒤 장소를 레벨 순으로 길 (rampDiffs: 장소 Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 보통 → 어려움, 70 · 90 ·
+ * 2026-10-20 악몽을 길에서 뺌)대로 깨며 받은 장비를 부위마다 점수 높은 것으로 끼고, 어려움은 그 장소 보통을 깬 뒤, 악몽은 그 장소 어려움을 깬 뒤의 레벨 · 장비
+ * (장소 Lv 1~9는 어려움이 길에 없어서 한 번 더 깬 셈, 10~20은 길 끝). 장비는 시드마다 드롭 굴림 (A 등급, 아이템 레벨 = 그 판 적 레벨), 강화 없음
  */
 import { CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
@@ -42,10 +42,11 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   for (const c of rampPlaces()) {
     const at: Partial<Record<DiffName, RampPlayer>> = {};
     for (const d of rampDiffs(c)) {
-      if (d === '어려움' || d === '악몽') at[d] = { lv: p.level, eq: { ...eq } };
+      if (d === '어려움') at[d] = { lv: p.level, eq: { ...eq } };
       win(c, d, eq, p);
     }
-    if (!rampFour(c)) {
+    if (rampFour(c)) at['악몽'] = { lv: p.level, eq: { ...eq } }; // 길 끝 (어려움을 깬 뒤)
+    else {
       // 장소 Lv 1~9: 어려움은 길에 없음 → 보통 뒤 그대로, 악몽은 어려움을 한 번 더 깬 셈 (길은 그대로 이어감)
       at['어려움'] = { lv: p.level, eq: { ...eq } };
       const eq2 = { ...eq }, p2 = { ...p };

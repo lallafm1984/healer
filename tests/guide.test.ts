@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ALL_DIFFS, CONTENT, chainOpen, contentOf, isLeveling, RAID10_LV, stageOf, type ContentDef } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
 import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, presetScore, RECOMMENDED, type ItemGrade } from '../src/data/equipment';
-import { presetGear } from './fixtures/preset-gear';
 import { rampDiffs, rampFour, rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
 import { gearGradeOdds } from '../src/data/reward-preview';
 import { diffStep, fitOf, fitShown, guide, lvStep, rankStages, recLevel } from '../src/game/guide';
@@ -127,8 +126,6 @@ describe('장소 레벨대 장비 등급 (86)', () => {
 
 describe('모험 길잡이 (guide)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.settings.devUnlock = true; G.save.tut = TUT.done; });
-  /** 프리셋 세기 장비 (91: 고급 × 1 · 희귀 × 1.4 = 예전 +0 · +5) */
-  const wear = (grade: ItemGrade, mult: number) => { G.save.gear.equipped = presetGear(grade, mult, G.save.player.level); };
 
   it('출전 화면 꼬리표는 지금 레벨로 들어갈 수 있는 칸만 (2026-10-17 Lim 「지금 레벨로 진입 못하는 레이드의 난이도 버튼이 적정」)', () => {
     const raid = contentOf('abyss1'); // 10인 Lv 45, 악몽 Lv 60
@@ -152,32 +149,45 @@ describe('모험 길잡이 (guide)', () => {
     expect(guide()).toEqual({ content: 'rustfort', diff: '쉬움' });
   });
 
-  it('장비에 따라 난이도 (92): 없으면 보통 · 고급이면 어려움 · 희귀면 악몽을 레벨이 앞선 곳에서 · 영웅이면 내 레벨 악몽', () => {
+  it('악몽은 장비와 상관없이 추천 안 함, 순차 구간 뒤는 안 깬 칸을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (적 Lv < 내 Lv − 10 · 위험은 건너뜀), 다 깨면 적정 어려움 가운데 적 레벨 높은 곳 (2026-10-20 Lim)', () => {
+    const open = (c: ContentDef, d: DiffName) => !lockOf(c).locked && !lockOf(c, d).locked;
     G.save.player.level = 40;
-    const at = () => { const g = guide()!; return { d: g.diff, gap: stageOf(contentOf(g.content), g.diff) - 40 }; };
-    expect(at().d).toBe('보통');
-    wear('고급', 1);
-    expect(at()).toEqual({ d: '어려움', gap: 0 });
-    wear('희귀', 1.4);
-    expect(at().d).toBe('악몽');
-    expect(at().gap).toBeLessThanOrEqual(-5); // 레벨 힘 +12% 앞서야 적정 (내 레벨 악몽은 도전, 클리어율 목표 75%)
-    // 영웅 × 1.4 + 특수능력 1줄 세기 (한 단계 위 장비)
-    const top = rankStages({ level: 40, gear: presetScore('영웅', 1.4, 1), clears: {}, open: (c, d) => !lockOf(c).locked && !lockOf(c, d).locked })[0];
-    expect({ d: top.diff, gap: stageOf(contentOf(top.content), top.diff) - 40 }).toEqual({ d: '악몽', gap: 0 });
+    for (const gear of [0, presetScore('고급', 1), presetScore('희귀', 1.4), presetScore('영웅', 1.4, 1)]) {
+      const list = rankStages({ level: 40, gear, clears: {}, open });
+      expect(list.some(x => x.diff === '악몽'), `장비 ${gear}`).toBe(false);
+      // 앞쪽 = 안 깬 칸 (적 Lv 30 이상 · 위험 아님)을 장소 레벨 순 · 쉬운 난이도부터 (같은 장소는 쉬움 → 보통 → 어려움)
+      const ok = (x: { content: string; diff: DiffName }) => { const c = contentOf(x.content as never); return stageOf(c, x.diff) >= 30 && fitOf(c, x.diff, 40, gear) !== '위험'; };
+      const cut = list.findIndex(x => !ok(x)), head = (cut < 0 ? list : list.slice(0, cut)).map(x => ({ lv: contentOf(x.content).stageLv, i: ALL_DIFFS.indexOf(x.diff) }));
+      expect(head.length, `장비 ${gear}`).toBeGreaterThan(3);
+      for (let i = 1; i < head.length; i++) expect(head[i].lv > head[i - 1].lv || (head[i].lv === head[i - 1].lv && head[i].i > head[i - 1].i), `${i}`).toBe(true);
+      const want = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.ready).flatMap(c => (['쉬움', '보통', '어려움'] as DiffName[]).filter(d => open(c, d) && ok({ content: c.key, diff: d })).map(() => c.stageLv));
+      expect(head[0].lv).toBe(Math.min(...want));
+    }
+    // 다 깬 뒤: 적정 어려움 (적 레벨 높은 곳)
+    const gear = presetScore('희귀', 1.4), all: Record<string, Partial<Record<DiffName, unknown>>> = {};
+    for (const c of CONTENT) if (isLeveling(c)) all[c.key] = rec('쉬움', '보통', '어려움', '악몽');
+    G.save.player.level = 40; G.save.clears = all as never; // 난이도 사슬 잠금도 이 기록으로
+    const rep = rankStages({ level: 40, gear, clears: all, open });
+    expect(rep[0].diff).toBe('어려움');
+    expect(fitOf(contentOf(rep[0].content), '어려움', 40, gear)).toBe('적정');
+    const hard = rep.filter(x => x.diff === '어려움' && fitOf(contentOf(x.content), '어려움', 40, gear) === '적정').map(x => stageOf(contentOf(x.content), '어려움'));
+    expect(hard[0]).toBe(Math.max(...hard));
   });
 
-  it('추천은 적정 칸 (있으면), 순차 구간의 길 첫 클리어는 들어가는 레벨이 내 레벨 ±1이면 쉬움 (여유)도. 탐험 · 던전만', () => {
+  it('추천은 길 첫 클리어 (순차 구간, 들어가는 레벨이 내 레벨 ±1이면 쉬움 (여유)도) · 안 깬 칸 (위험 · 한참 아래 빼고) · 적정 칸, 악몽은 없음. 탐험 · 던전만', () => {
     for (const lv of [2, 9, 15, 25, 33, 47, 60, 77, 90, 100]) {
       G.save.player.level = lv;
       const list = rankStages({ level: lv, gear: 0, clears: {}, open: (c, d) => !lockOf(c).dev && !lockOf(c).locked && !lockOf(c, d).locked && !lockOf(c, d).dev });
       expect(list.length, `Lv ${lv}`).toBeGreaterThan(0);
+      expect(list.some(x => x.diff === '악몽'), `Lv ${lv}`).toBe(false);
       const top = contentOf(list[0].content), d = list[0].diff, path = lv <= RAMP_LV && rampDiffs(top).includes(d) && Math.abs(rampRefLevel(top, d)! - lv) <= 1;
+      const fresh = fitOf(top, d, lv, 0) !== '위험' && stageOf(top, d) >= lv - 10;
       expect(isLeveling(top)).toBe(true);
-      expect(path || fitOf(top, d, lv, 0) === '적정', `Lv ${lv} ${top.name} ${d}`).toBe(true);
+      expect(path || fresh || fitOf(top, d, lv, 0) === '적정', `Lv ${lv} ${top.name} ${d}`).toBe(true);
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 87판, 예전 56판)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 73판, 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
     G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
@@ -192,9 +202,9 @@ describe('모험 길잡이 (guide)', () => {
       expect(xp).toBeGreaterThan(0);
       runs++;
     }
-    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 다시 하기 (21판) · 지나온 장소 어려움 · 악몽이 낌
+    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 다시 하기 (19판) · 지나온 장소 어려움이 낌 (2026-10-20 악몽은 추천 안 함)
     expect(G.save.player.level).toBe(21);
-    expect(runs).toBe(87);
-    expect(repeats).toBe(21);
+    expect(runs).toBe(73);
+    expect(repeats).toBe(19);
   });
 });

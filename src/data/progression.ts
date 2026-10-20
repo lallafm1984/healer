@@ -76,27 +76,28 @@ export const restRun = (n: number): number => (n > 0 ? Math.max(1, Math.round(n 
  * 초반 순차 레벨링 (70, Lim 2026-10-12): 내 레벨이 RAMP_LV 이하일 때 장소 Lv RAMP_LV까지의 탐험 · 던전은 경험치를 장소가 정함
  * (내 레벨 · 탐험 ×0.35와 상관없이). 장소 몫 (rampSpan) = 그 장소 레벨에서 다음 장소가 열리는 레벨까지 필요한 경험치.
  * 장소 Lv 1~9: 쉬움 50% + 보통 60%를 처음 깨면 다음 장소 레벨이 됨 (어려움 · 다시 하기 없이).
- * 장소 Lv RAMP_FOUR_LV (10) ~ RAMP_LV: 쉬움 21% · 보통 25% · 어려움 30% · 악몽 34% 네 난이도 첫 클리어로 다음 장소 레벨 (90 2장, 2026-10-16 Lim 「그러자」:
- * 장소 하나의 첫 클리어 합 110%는 그대로. 90 v1.3 휴식 판 × 2/3 뒤 첫날 1.5시간 = Lv 7쯤).
+ * 장소 Lv RAMP_FOUR_LV (10) ~ RAMP_LV: 쉬움 30% · 보통 36% · 어려움 44% 세 난이도 첫 클리어로 다음 장소 레벨 (2026-10-20 Lim 「게임 가이드에서 악몽 난이도는
+ * 추천을 안하는 방식으로 해서 순차적으로 진행되게」: 예전 네 난이도 21 · 25 · 30 · 34%의 악몽 몫을 비율대로 세 난이도에 나눔, 합 110%는 그대로 (90 2장).
+ * 악몽 첫 클리어 34%는 길 밖 덤 (직접 고르면)).
  * 첫 클리어는 등급과 상관없이 같고, 다시 깨면 그 몫 × RAMP_REPEAT × 등급, 지면 없음.
  * 정한 양이라 레벨이 앞서 있으면 덜 오르고 (지나온 곳 돌기는 조금만), 뒤처져 있으면 더 오름.
  * Lv RAMP_LV + 1부터는 어느 장소든 clearXp 그대로 (장소 레벨 차이 감산 없음)
  */
 export const RAMP_LV = 20;
 export const RAMP_FIRST: Record<DiffName, number> = { '쉬움': 0.5, '보통': 0.6, '어려움': 0.7, '악몽': 0.8 };
-/** 네 난이도를 차례로 처음 깨는 장소 (장소 Lv 10 ~ RAMP_LV, 90): 합 1.1 = 쉬움 + 보통 (RAMP_FIRST)과 같음 */
+/** 세 난이도를 차례로 처음 깨는 장소 (장소 Lv 10 ~ RAMP_LV, 90 · 2026-10-20): 길 (쉬움 · 보통 · 어려움) 합 1.1 = 쉬움 + 보통 (RAMP_FIRST)과 같음, 악몽은 덤 */
 export const RAMP_FOUR_LV = 10;
-export const RAMP_FIRST_FOUR: Record<DiffName, number> = { '쉬움': 0.21, '보통': 0.25, '어려움': 0.3, '악몽': 0.34 };
+export const RAMP_FIRST_FOUR: Record<DiffName, number> = { '쉬움': 0.3, '보통': 0.36, '어려움': 0.44, '악몽': 0.34 };
 export const RAMP_REPEAT = 0.4;
 
 /** 순차 레벨링 구간 장소: 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고) */
 export const rampPlace = (c: ContentDef) => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV;
-/** 네 난이도를 차례로 처음 깨는 구간 장소 (장소 Lv RAMP_FOUR_LV ~ RAMP_LV) */
+/** 세 난이도를 차례로 처음 깨는 구간 장소 (장소 Lv RAMP_FOUR_LV ~ RAMP_LV, 이름은 예전 네 난이도 그대로) */
 export const rampFour = (c: ContentDef) => rampPlace(c) && c.stageLv >= RAMP_FOUR_LV;
 /** 그 장소 · 난이도 첫 클리어가 장소 몫에서 차지하는 비율 */
 export const rampShare = (c: ContentDef, d: DiffName) => (rampFour(c) ? RAMP_FIRST_FOUR : RAMP_FIRST)[d];
-/** 길에서 차례로 처음 깨는 난이도: 장소 Lv 1~9는 쉬움 · 보통, 10~20은 네 난이도 (70 · 90) */
-export const rampDiffs = (c: ContentDef): DiffName[] => (rampFour(c) ? ['쉬움', '보통', '어려움', '악몽'] : ['쉬움', '보통']);
+/** 길에서 차례로 처음 깨는 난이도: 장소 Lv 1~9는 쉬움 · 보통, 10~20은 쉬움 · 보통 · 어려움 (70 · 90, 악몽은 2026-10-20 길에서 뺌) */
+export const rampDiffs = (c: ContentDef): DiffName[] => (rampFour(c) ? ['쉬움', '보통', '어려움'] : ['쉬움', '보통']);
 /** 순차 레벨링 구간: 내 레벨 RAMP_LV 이하 · 구간 장소 */
 export const inRamp = (c: ContentDef, level: number) => level <= RAMP_LV && rampPlace(c);
 
@@ -124,7 +125,8 @@ export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade
 
 /**
  * 순차 레벨링 구간 장소의 난이도별 기준 레벨 (70 · 90): 튜토리얼 (Lv 2) 뒤 구간 장소를 레벨 순으로 길 (rampDiffs) 첫 클리어만 할 때 그 난이도에 들어가는 레벨.
- * 쉬움 = 그 장소에 왔을 때, 보통 = 쉬움을 깬 뒤, 어려움 = 보통을 깬 뒤, 악몽 = 어려움을 깬 뒤 (장소 Lv 1~9는 길에 없어서 거기서 어려움을 한 번 더 깬 뒤).
+ * 쉬움 = 그 장소에 왔을 때, 보통 = 쉬움을 깬 뒤, 어려움 = 보통을 깬 뒤, 악몽 = 어려움을 깬 뒤 (장소 Lv 1~9는 어려움이 길에 없어서 거기서 어려움을 한 번 더 깬 뒤,
+ * 10~20은 길 끝 = 어려움을 깬 뒤).
  * 70 9장 밸런스 기준 플레이어 (sim/ramp)와 같음. 출전 화면 난이도 적합도 · 모험 길잡이 (86)가 씀
  * (예: 녹슨 요새 보통은 적 Lv 7이지만 Lv 5에 들어가는 칸). 구간 밖 장소는 null
  */
@@ -138,7 +140,8 @@ export function rampRefLevel(c: ContentDef, d: DiffName): number | null {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready).sort((a, b) => a.stageLv - b.stageLv)) {
       const ref = {} as Record<DiffName, number>;
       for (const d of rampDiffs(x)) { ref[d] = p.level; first(x, d, p); }
-      if (!rampFour(x)) {
+      if (rampFour(x)) ref['악몽'] = p.level;
+      else {
         ref['어려움'] = p.level;
         const q = { ...p };
         first(x, '어려움', q);

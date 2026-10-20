@@ -296,7 +296,7 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(ramp.reduce((a, c) => a + rampSpan(c), 0)).toBe([...Array(20).keys()].reduce((a, i) => a + xpToNext(i + 1), 0));
   });
 
-  it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 길 (Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 악몽) 첫 클리어 (등급 %s) = 장소 몫의 110% × 휴식 판 2/3 (2026-10-17 Lim 「1레벨부터」): 길만으로는 Lv 21에 못 미침 (길잡이가 다시 하기를 넣음, guide.test)', (_g, deaths) => {
+  it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 길 (Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 어려움) 첫 클리어 (등급 %s) = 장소 몫의 110% × 휴식 판 2/3 (2026-10-17 Lim 「1레벨부터」): 길만으로는 Lv 21에 못 미침 (길잡이가 다시 하기를 넣음, guide.test)', (_g, deaths) => {
     const s = newSave(1);
     s.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
     addXp(s.player, xpToNext(1)); // 첫 전투 → Lv 2 (screens/tutorial)
@@ -313,14 +313,14 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(got).toBeGreaterThan(0);
   });
 
-  it('장소 Lv 10~20 (90): 쉬움 21% · 보통 25% · 어려움 30% · 악몽 34%, 합은 Lv 1~9의 쉬움 + 보통 (110%)과 같음, 다시 하기는 그 몫 × RAMP_REPEAT × 등급', () => {
+  it('장소 Lv 10~20 (90 · 2026-10-20 악몽을 길에서 뺌): 쉬움 30% · 보통 36% · 어려움 44%, 합은 Lv 1~9의 쉬움 + 보통 (110%)과 같음, 악몽 34%는 덤, 다시 하기는 그 몫 × RAMP_REPEAT × 등급', () => {
     const sum = (t: Record<string, number>, ds: string[]) => Math.round(ds.reduce((a, d) => a + t[d], 0) * 100);
-    expect(RAMP_FIRST_FOUR).toEqual({ '쉬움': 0.21, '보통': 0.25, '어려움': 0.3, '악몽': 0.34 });
-    expect(sum(RAMP_FIRST_FOUR, ['쉬움', '보통', '어려움', '악몽'])).toBe(sum(RAMP_FIRST, ['쉬움', '보통']));
+    expect(RAMP_FIRST_FOUR).toEqual({ '쉬움': 0.3, '보통': 0.36, '어려움': 0.44, '악몽': 0.34 });
+    expect(sum(RAMP_FIRST_FOUR, ['쉬움', '보통', '어려움'])).toBe(sum(RAMP_FIRST, ['쉬움', '보통']));
     const c = contentOf('sewer'), span = rampSpan(c);
     expect(RAMP_FOUR_LV).toBe(10);
-    expect([rampDiffs(contentOf('crypt')), rampDiffs(contentOf('greenhouse')), rampDiffs(c)]).toEqual([['쉬움', '보통'], ['쉬움', '보통', '어려움', '악몽'], ['쉬움', '보통', '어려움', '악몽']]);
-    expect([rampShare(contentOf('crypt'), '어려움'), rampShare(c, '어려움')]).toEqual([0.7, 0.3]);
+    expect([rampDiffs(contentOf('crypt')), rampDiffs(contentOf('greenhouse')), rampDiffs(c)]).toEqual([['쉬움', '보통'], ['쉬움', '보통', '어려움'], ['쉬움', '보통', '어려움']]);
+    expect([rampShare(contentOf('crypt'), '어려움'), rampShare(c, '어려움')]).toEqual([0.7, 0.44]);
     // 정산은 휴식 판 = × REST_RUN_SCALE (90, 2026-10-17 Lim)
     const s = newSave(1); s.tut = TUT.done; s.player.level = 11;
     expect(play(s, 'sewer', '악몽', 0).xp).toBe(restRun(Math.round(span * 0.34)));
