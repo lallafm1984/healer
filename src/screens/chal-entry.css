@@ -126,3 +126,11 @@
   #s-entry .wc-emblem { height: 58px; }
   #s-entry .f-cinfo { margin-top: 5px; padding: 5px 0; }
 }
+/* UI 검수 2026-10-21: 어픽스 이름 칸 폭을 맞춰 설명 첫 글자를 한 줄에 정렬 (「혼돈의 바닥」 · 「동요」 설명이 들쭉날쭉), 설명 끝 한 글자 꺾임 (「안 / 함)」) 피함.
+ * 월요일 상자 단계 글자 9 → 10.5px, 보상 10 → 11.5px */
+#s-entry .f-afx { width: 76px; min-width: 0; box-sizing: border-box; padding: 4px 3px; justify-content: center; word-break: keep-all; }
+#s-entry .f-afd { text-wrap: pretty; }
+#s-entry .f-afd small { font-size: 11px; }
+#s-entry .wc-chest small { font-size: 10.5px; }
+#s-entry .wc-milestones small { font-size: 10.5px; }
+#s-entry .wc-milestones b { font-size: 11.5px; font-weight: 700; }
