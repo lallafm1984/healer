@@ -6,17 +6,16 @@
  * 2026-10-11 (61 1장, Lim): 탐험 · 던전은 레벨링 콘텐츠라 적 레벨이 장소 · 난이도에 고정 (stageOf). 내 레벨에 맞추는 건 10인 · 20인만.
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
-import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../data/challenge';
+import { CHAL, CHAL_ROTA, CHAL_ROTA_START, chalLimit, chalMult } from '../data/challenge';
 import { isLeveling, stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { SEASON } from '../data/economy';
 import type { SaveData } from '../platform/storage';
 import { daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
 
 /** 이번 주 도전 어픽스 (월요일 오전 6시에 바뀜) */
 export function weekAffixes(now = Date.now()): AffixKey[] {
-  const n = CHAL_ROTA.length, w = Math.floor(daysBetween(SEASON.start, weekKey(now)) / 7);
+  const n = CHAL_ROTA.length, w = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7);
   return CHAL_ROTA[((w % n) + n) % n].slice();
 }
 

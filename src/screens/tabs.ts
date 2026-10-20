@@ -1,16 +1,15 @@
 /**
  * 하단 탭 4개: 로비 · 전투 · 캐릭터 · 길드 (Lv 15). 앱을 켜면 로비.
  * 2026-10-18 Lim 「메뉴의 상점을 빼고 길드를 넣자. 상점의 진입 루트는 로비이다」: 상점은 탭이 아니라 로비 「잡화점」 (그리고 휴식 창 · 직업 구매)에서 들어가고,
- * 상점의 패스 빨간 점은 로비 탭 · 잡화점 팻말로 옮김. (예전: 27 1장 탭 5개 → 2026-10-09 길드를 빼 두어 로비 · 전투 · 캐릭터 · 상점)
+ * (상점의 패스 빨간 점은 시즌 패스와 함께 2026-10-20 없앰.) (예전: 27 1장 탭 5개 → 2026-10-09 길드를 빼 두어 로비 · 전투 · 캐릭터 · 상점)
  * 탭 막대는 탭 루트(로비 S02 · 모험 선택 S03 · 캐릭터 · 길드)에서만 보인다. 고른 탭을 다시 누르면 그 루트 맨 위로.
  * 아이콘: 로비 등불, 전투 방패, 캐릭터 = 지금 직업 문장, 길드 깃발 (그림 tab-*, 30 문서. 없으면 선 아이콘). 잠긴 탭은 자물쇠 + Lv. 빨간 점 = 받을 것·볼 것.
  * 아이콘은 전투 아이템 칸과 같은 황동 사각 소켓(.tab-sock) 안에. 고른 탭 = 밝은 금색 안쪽 테 (sunforged-ui.css).
  */
-import { PASS_LEVELS } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
 import { talentsLeft } from '../game/charinfo';
-import { chestState, missionReady, passLevel } from '../game/economy';
+import { chestState, missionReady } from '../game/economy';
 import { guildOpen } from '../game/guild';
 import { jobsDot } from '../game/guildjobs';
 import { Flow } from '../game/flow';
@@ -51,19 +50,11 @@ export function lobbyReady(): number {
   const s = G.save, ch = chestState(s);
   return s.daily.missions.filter(missionReady).length + s.weekly.missions.filter(missionReady).length + (ch.today || ch.banked ? 1 : 0) + (s.chalChest ? 1 : 0);
 }
-/** 시즌 패스에서 받을 단계 수 (상점 패스 탭, 로비 잡화점 빨간 숫자) */
-export function passReady(): number {
-  const p = G.save.pass, lv = Math.min(PASS_LEVELS, passLevel(p.xp));
-  let n = 0;
-  for (let l = 1; l <= lv; l++) if (!p.free.includes(l)) n++;
-  return n;
-}
 /** 길드에서 확인할 것: 아직 영입하지 않은 모집 공고 지원자 */
 const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save) || !!G.save.guild.storyCard); // 지원자 · 부탁 쪽지 · 원정 상자 · 합류 카드 (93 8장, 빨간 점은 길드 탭 하나만)
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;
-  // 상점은 로비에서 들어가므로 (2026-10-18) 패스 보상도 로비 점
-  if (k === 'lobby') return lobbyReady() > 0 || passReady() > 0;
+  if (k === 'lobby') return lobbyReady() > 0;
   if (k === 'char') return newGearCount() > 0 || talentsLeft() > 0;
   if (k === 'guild') return guildReady();
   return false;

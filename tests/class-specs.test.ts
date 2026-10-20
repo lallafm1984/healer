@@ -9,8 +9,7 @@ import * as E from '../src/engine';
 import { addDebuff } from '../src/engine/core';
 import { putHot } from '../src/engine/heroes';
 import { hasteOf, intAmt } from '../src/engine/specials';
-import { rngFrom } from '../src/engine/rng';
-import { exchangeMerit, rollover } from '../src/game/economy';
+import { rollover } from '../src/game/economy';
 import { G, lowGradeIds } from '../src/game/state';
 import { heroSaveOf, newSave } from '../src/platform/storage';
 
@@ -217,19 +216,6 @@ describe('드롭 출처와 가방 (72)', () => {
     G.save = newSave(now); G.save.tut = 3; G.save.player = { level: 60, xp: 0, gold: 0 };
     G.save.hero = hero; rollover(G.save, now, () => 0.5);
   };
-  it('공훈 교환도 지금 직업 전용 약 70% (다른 직업 전용은 안 나옴)', () => {
-    fresh('druid');
-    const r = rngFrom(31); let job = 0;
-    for (let i = 0; i < 600; i++) {
-      G.save.wallet.merit = 1e6;
-      const it = exchangeMerit(G.save, SLOTS[i % SLOTS.length].key, r);
-      if (typeof it === 'string') throw new Error(it);
-      const hs = (it.specs ?? []).map(l => SPECS[l.key]?.hero).filter(Boolean);
-      expect(hs.every(h => h === 'druid')).toBe(true);
-      job += hs.length;
-    }
-    expect(job / 600).toBeGreaterThan(0.64); expect(job / 600).toBeLessThan(0.76);
-  });
   it('「일반·고급 모두」 분해 고르기는 다른 직업 착용 조합에 든 장비를 뺌', () => {
     fresh('priest');
     const a = makeItem(() => 0.5, 'weapon', '고급', 1), b = makeItem(() => 0.5, 'head', '일반', 2);

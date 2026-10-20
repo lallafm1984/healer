@@ -34,6 +34,8 @@ export const chalDropDiff = (stage: number): DiffName => (stage >= 15 ? '악몽'
 export const chalMult = (stage: number) => ({ hp: 1 + CHAL.hpStep * (stage - 1), dmg: 1 + CHAL.dmgStep * (stage - 1) });
 export const chalLimit = (stage: number) => CHAL.time0 + CHAL.timeStep * (stage - 1);
 
+/** 도전 어픽스 순서의 기준 주 (월요일). 예전 시즌 1 시작 날 (시즌 패스는 2026-10-20 Lim 「시즌패스 시스템 제거」로 없앰, 순서가 안 바뀌게 같은 날) */
+export const CHAL_ROTA_START = '2026-10-05';
 /**
  * 주간 어픽스 순환 (8주). 같은 조합이 이어서 안 나오고, 4주마다 축제 주간.
  * 메마름 + 서두름, 불안정 + 서두름은 시뮬에서 너무 어려워서 같이 안 나오게 함. 불안정은 레벨 단계가 없어지며 들어옴 (32, 5·7주차)

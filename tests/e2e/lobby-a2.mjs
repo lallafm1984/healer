@@ -134,7 +134,7 @@ export default async function lobbyA2(url, shots) {
         await page.locator(`${lobby} .lb-raid`).tap(); await tick(page);
         ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 레이드 → 10인 레이드 탭`);
         await goLobby(page); await page.locator(`${lobby} .lb-shop`).tap(); await tick(page);
-        ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true', `${width}: 잡화점 → 상점 상품 탭 (골드 탭은 2026-10-16 없앰)`);
+        ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop [data-prod="noads"]'), `${width}: 잡화점 → 상점 상품 탭 (골드 탭은 2026-10-16 없앰)`);
         // 상점은 탭 막대 없이 「← 상점」, 뒤로 = 로비 (2026-10-18 상점은 로비에서만)
         ok(await page.isHidden('#tabs'), `${width}: 상점에는 하단 탭 막대 없음`);
         await page.locator('#s-shop .tb-back').tap(); await tick(page);

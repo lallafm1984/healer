@@ -31,8 +31,7 @@
 .st-pop .btn small { font-size: 11px; opacity: .85; }
 .st-pop .btn:disabled { filter: saturate(.4) brightness(.8); }
 
-/* ---------- 상점: 상품 탭 · 패스 한 줄 ---------- */
-#s-shop .prow.solo { grid-template-columns: 34px minmax(0, 1fr); }
+/* ---------- 상점: 상품 ---------- */
 #s-shop .cash-stam { display: flex; flex-direction: column; gap: 8px; }
 #s-shop .cash-stam h4 { margin: 0; }
 #s-shop .cash-meter {

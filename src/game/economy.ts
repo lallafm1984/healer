@@ -1,5 +1,5 @@
 /**
- * 재화·임무·상점·시즌 패스·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
+ * 재화·임무·상점·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀). 시즌 패스 · 공훈은 2026-10-20 Lim 「시즌패스 시스템 제거」 · 「공훈 재화및 시스템도 제거하자」로 없앰.
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
 import { EXPED } from '../data/guild';
@@ -7,17 +7,17 @@ import { RAID10_LV, RAID20_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_HOLD_CAP, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
+  CHAR_SLOT, JOB_PRICE, jobProductId, NOADS, PAID_HEROES, slotGold,
 } from '../data/economy';
 import { resourceBalance, spendResource } from './resources';
 import { HEROES } from '../data/heroes';
-import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade } from '../data/equipment';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, missionOpen, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { clearGold, MAX_LEVEL } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
-import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
+import { dayKey, daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
 
 // ---------- 리셋 ----------
@@ -33,7 +33,7 @@ function pick(pool: MissionDef[], n: number, lv: number, hero: HeroKey, r: () =>
 }
 
 /** fixed = 지금 못 채워서 바꾼 일일 임무 수 (길드를 빼 둠 · 직업을 바꿈) */
-export interface Rollover { day: boolean; week: boolean; banked: number; season: boolean; fixed: number }
+export interface Rollover { day: boolean; week: boolean; banked: number; fixed: number }
 
 /**
  * 주간 임무 후보: 10인이 열리기 전 (RAID10_LV)엔 레이드 임무 빼고, 「일일 상자 5번」은 이번 주 남은 날 (오늘 포함) · 오늘 안 연 상자 · 쌓인 상자로
@@ -46,10 +46,10 @@ function weeklyPool(save: SaveData, lv: number, day: string, week: string): Miss
 
 /**
  * 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장).
- * 키 (YYYY-MM-DD · 시즌 번호)가 지금까지 본 것보다 늦을 때만 리셋 (2026-10-19 103 다른 문제점 1: 시계를 뒤로 갔다 오면 주 첫 표 · 공훈 상한 · 상자 · 패스가 다시 나오던 것)
+ * 키 (YYYY-MM-DD)가 지금까지 본 것보다 늦을 때만 리셋 (2026-10-19 103 다른 문제점 1: 시계를 뒤로 갔다 오면 주 첫 표 · 상자가 다시 나오던 것)
  */
 export function rollover(save: SaveData, now: number, r: () => number): Rollover {
-  const out: Rollover = { day: false, week: false, banked: 0, season: false, fixed: 0 };
+  const out: Rollover = { day: false, week: false, banked: 0, fixed: 0 };
   const day = dayKey(now), week = weekKey(now), lv = topLevel(save);
   const d = save.daily;
   if (d.day < day) {
@@ -82,8 +82,6 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
   if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(weeklyPool(save, lv, day, save.weekly.week || week), WEEKLY_N, lv, save.hero, r);
-  const sn = seasonOf(now).n;
-  if (save.pass.season < sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;
 }
 
@@ -120,30 +118,29 @@ export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).ne
 // ---------- 보상 ----------
 /**
  * 이 레벨 「클리어 골드 1판」 = 그 레벨에 열린 가장 큰 콘텐츠 한 판 (보통 A, 12 3-1 · 2026-10-20 Lim 카드 「넷 다」, 103): Lv 45 전 던전 · 45~69 10인 · 70부터 20인.
- * 임무 · 상자 · 패스 · 도감 골드의 기준 (예전 던전 한 판: Lv 100 일일 임무 하나가 판 49초어치였음)
+ * 임무 · 상자 · 도감 골드의 기준 (예전 던전 한 판: Lv 100 일일 임무 하나가 판 49초어치였음)
  */
 export const runGold = (lv: number) => clearGold(lv, '보통', 'A', lv >= RAID20_LV ? 20 : lv >= RAID10_LV ? 10 : 0);
 
-export interface Gain { gold?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
+export interface Gain { gold?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
-function give(save: SaveData, g: Gain, now: number): Gain {
+function give(save: SaveData, g: Gain): Gain {
   save.player.gold += g.gold || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
   if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
   if (g.deco && !save.decos.includes(g.deco)) save.decos.push(g.deco);
-  if (g.pass) g.pass = addPassXp(save, g.pass, now);
   return g;
 }
 
-/** 임무 보상 받기 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81) (+ 패스 경험치). 91: v16의 강화석 → #172 전 골드 */
-export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number, now: number): Gain | string {
+/** 임무 보상 받기 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81). 91: v16의 강화석 → #172 전 골드 */
+export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
   if (!s || !missionReady(s)) return '아직 못 채움';
   s.got = true;
   const gold = runGold(topLevel(save));
   return kind === 'daily'
-    ? give(save, { gold: Math.round(gold * MISSION_REWARD.goldShare), pass: PASS_GAIN.daily }, now)
-    : give(save, { gold: gold * WEEKLY_REWARD.runs, pass: PASS_GAIN.weekly }, now);
+    ? give(save, { gold: Math.round(gold * MISSION_REWARD.goldShare) })
+    : give(save, { gold: gold * WEEKLY_REWARD.runs });
 }
 
 /** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1), 등급대는 내 레벨 (86) */
@@ -154,7 +151,7 @@ export function chestState(save: SaveData): { today: boolean; banked: number } {
   const d = save.daily;
   return { today: !d.chest && d.missions.length > 0 && d.missions.every(m => m.got), banked: d.banked };
 }
-export function claimChest(save: SaveData, r: () => number, now: number, double = false): Gain | string {
+export function claimChest(save: SaveData, r: () => number, double = false): Gain | string {
   const st = chestState(save);
   if (!st.today && !st.banked && !double) return `임무 ${save.daily.missions.length}개를 다 받으면 열림`; // Lv 1~4는 4개 (105 QA)
   if (double) {
@@ -166,18 +163,18 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   const my = save.player.level;
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my }); // 지금 직업 전용 70% (72)
   if (!double) onAct(save, 'chest');
-  return give(save, { gold: runGold(my) * CHEST_REWARD.runs, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
+  return give(save, { gold: runGold(my) * CHEST_REWARD.runs, items: [it] });
 }
 
 /** 주간 원정 상자 (93 8장): 원정 셋을 다 끝내면 클리어 골드 5판 + 장비 1 (지금 직업 레벨 · 전용 70%) */
-export function claimExped(save: SaveData, r: () => number, now: number): Gain | string {
+export function claimExped(save: SaveData, r: () => number): Gain | string {
   const x = save.guild.exped;
   if (!x.list.length || !x.list.every(c => c.done)) return '원정 셋을 다 끝내면 열림';
   if (x.got) return '이번 주는 받음';
   x.got = true;
   const my = save.player.level;
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my });
-  return give(save, { gold: runGold(my) * EXPED.chestGold, items: [it] }, now);
+  return give(save, { gold: runGold(my) * EXPED.chestGold, items: [it] });
 }
 
 /** 하루 1회 무료 교체 (13 2-1) */
@@ -212,7 +209,7 @@ export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGra
   const grades: ItemGrade[] = stage >= 20 ? [hero, hero] : stage >= 15 ? [hero] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
   return { grades, goldRuns: 1 + Math.floor(stage / 5) };
 }
-export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
+export function claimChalChest(save: SaveData, r: () => number): Gain | string {
   const stage = save.chalChest;
   if (!stage) return '받을 상자 없음';
   // v12: 어느 직업에서든 수령 가능. 장비 효과는 기록을 세운 직업을 따른다.
@@ -222,50 +219,11 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   // 장비 (아이템 레벨)는 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」)
   const lv = save.player.level, c = chalChestOf(stage, lv);
   const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: h, classLoot: true, lv }));
-  return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
-}
-
-// ---------- 시즌 패스 ----------
-export const passLevel = (xp: number) => Math.min(PASS_LEVELS, Math.floor(xp / PASS_XP));
-/** 패스 경험치 (마지막 3주 +50%). 실제로 더한 양을 돌려줌 */
-export function addPassXp(save: SaveData, amt: number, now: number): number {
-  const x = Math.round(amt * (seasonOf(now).catchUp ? 1.5 : 1));
-  save.pass.xp += x;
-  return x;
-}
-export function passGain(save: SaveData, lv: number): Gain {
-  const f: PassReward = passFree(lv);
-  return { gold: (f.runs ?? 0) * runGold(topLevel(save)) + (f.gold ?? 0), deco: f.deco || f.title };
-}
-/** 패스 보상 받기 (81: 한 줄, 프리미엄 라인 없음) */
-export function claimPass(save: SaveData, lv: number, now: number): Gain | string {
-  if (lv < 1 || lv > passLevel(save.pass.xp)) return '아직 못 올라감';
-  if (save.pass.free.includes(lv)) return '이미 받음';
-  save.pass.free.push(lv);
-  return give(save, passGain(save, lv), now);
+  return give(save, { gold: c.goldRuns * runGold(lv), items });
 }
 
 // ---------- 상점 ----------
-/** 공훈 교환 (12 3-5): 원하는 부위 영웅 장비 1개 */
-export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = Math.random): GearItem | string {
-  if (!SLOTS.some(s => s.key === slot)) return '없는 부위';
-  if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
-  save.wallet.merit -= MERIT_GEAR_COST;
-  const g: ItemGrade = '영웅';
-  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero, classLoot: true, lv: save.player.level }); // 지금 직업 전용 70% (72)
-  save.gear.bag.push(it);
-  noteSpecs(save, [it]);
-  return it;
-}
-
 // ---------- 레이드 주간 규칙 ----------
-/** 레이드 보스 처치 공훈 (주 150 상한, 레이드마다 따로 · 보유 상한 MERIT_HOLD_CAP까지) */
-export function meritFor(save: SaveData, raid: 10 | 20, diff: DiffName): number {
-  const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]), room = Math.max(0, MERIT_HOLD_CAP - save.wallet.merit);
-  return Math.min(left, room, MERIT[raid][diff]);
-}
-/** 공훈이 가득 (보유 상한)이라 이번 판 공훈이 안 쌓임 (주 상한은 남았는데) */
-export const meritFull = (save: SaveData, raid: 10 | 20) => save.wallet.merit >= MERIT_HOLD_CAP && save.weekly.merit[raid] < MERIT_WEEK_CAP;
 /** v12: 같은 캐릭터의 모든 직업이 레이드 주 1회 제한을 공유 */
 export const lootKey = (_hero: HeroKey, content: string, diff: DiffName) => `${content}|${diff}`;
 /** v11 직업 접두사가 남아 있어도 보스·난이도별 수령 이력으로 처리 */

@@ -143,10 +143,10 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     expect(s.guild.fame).toBe(2000 + EXPED.fame * 3);
     expect(expedReady(s)).toBe(true);
     const gold = s.player.gold, bag = s.gear.bag.length;
-    const g = claimExped(s, rng, T);
+    const g = claimExped(s, rng);
     expect(typeof g).not.toBe('string');
     expect([s.player.gold > gold, s.gear.bag.length]).toEqual([true, bag + 1]);
-    expect(claimExped(s, rng, T)).toBe('이번 주는 받음');
+    expect(claimExped(s, rng)).toBe('이번 주는 받음');
     const lowS = save(20); add(lowS);
     refreshExped(lowS, (c, d) => c.kind !== 'raid' && d === '보통', T);
     expect(lowS.guild.exped.list.every(x => CONTENT.find(c => c.key === x.content)!.kind !== 'raid')).toBe(true);

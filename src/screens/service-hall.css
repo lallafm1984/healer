@@ -10,12 +10,12 @@
 }
 
 /* ---------- 판 · 줄 ---------- */
-:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.panel, .mrow, .srow, .prow:not(.head), .shop-wallet > span, .group) {
+:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.panel, .mrow, .srow, .group) {
   background: var(--gk-card); background-blend-mode: normal; border-width: 1px; border-color: var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
 }
-:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b, .shop-wallet b) { color: var(--gk-head); text-shadow: none; }
-:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .shop-wallet small, .group > p, .prow.head, .done) { color: var(--gk-mute); }
-:is(#s-missions, #s-shop, #s-guild) :is(.mrow, .passhead, .g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b) { color: var(--gk-head); text-shadow: none; }
+:is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .group > p, .done) { color: var(--gk-mute); }
+:is(#s-missions, #s-shop, #s-guild) :is(.mrow, .g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
 
 /* ---------- 버튼 · 칩 (최신 공통 표면은 menu-buttons.css) ---------- */
 :is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.btn, .btn2):not(.primary):not(.hot),
@@ -37,10 +37,7 @@
 :is(#s-shop, #s-guild).ns .subtabs button { background: var(--gk-btn); background-blend-mode: normal; border-color: var(--gk-card-bd); color: var(--gk-ink2); }
 :is(#s-shop, #s-guild).ns .subtabs button[aria-selected="true"] { background: var(--gk-btn-on); border-color: var(--gk-edge); color: var(--gk-head); }
 #s-shop .shop-hero { border-bottom-color: var(--gk-edge); }
-#s-shop.ns .prow.open { border-color: var(--gk-edge); }
-#s-shop.ns .prow:not(.open):not(.head) { color: var(--gk-mute); border-style: dashed; }
-#s-shop :is(.srow small.full, .pass-archive > summary) { color: var(--gk-head); }
-#s-shop .pass-archive { border-top-color: var(--gk-line); }
+#s-shop .srow small.full { color: var(--gk-head); }
 #s-shop .cash-meter { background: var(--gk-route); border-color: var(--gk-card-bd); }
 :is(#s-shop, #s-guild).ns .srow > .sic { background: #15120e; }
 

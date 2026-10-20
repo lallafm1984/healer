@@ -14,16 +14,16 @@ const TABLES={
 };
 const RAID_AGAIN={raid20:{악몽:[0,0,84.757142857143,14.142857142857,1.1]}};
 
-async function seed(page,{level=100,devUnlock=false,loot=[],cleared=false,merit=0}={}) {
-  await page.evaluate(({level,devUnlock,loot,cleared,merit})=>{
+async function seed(page,{level=100,devUnlock=false,loot=[],cleared=false}={}) {
+  await page.evaluate(({level,devUnlock,loot,cleared})=>{
     const s=JSON.parse(localStorage.getItem('healer.save'));
     s.tut=99;s.player.level=level;s.settings.devUnlock=devUnlock;
     // 현재 v10 저장에는 직업을 포함한 키를 넣는다. 구형 키 이관은 별도 storage 단위 테스트의 범위다.
-    s.weekly.loot=loot.map(key=>key.split('|').length===2?`${s.hero}|${key}`:key);s.weekly.merit={10:0,20:merit};
+    s.weekly.loot=loot.map(key=>key.split('|').length===2?`${s.hero}|${key}`:key);
     s.clears.rustfort={쉬움:{stars:3,grade:'S',best:30,n:1},보통:{stars:3,grade:'S',best:30,n:1},어려움:{stars:3,grade:'S',best:30,n:1}};
     if(cleared)s.clears.cathedral1={악몽:{stars:3,grade:'S',best:30,n:1}};
     localStorage.setItem('healer.save',JSON.stringify(s));
-  },{level,devUnlock,loot,cleared,merit});
+  },{level,devUnlock,loot,cleared});
   await page.reload();await page.clock.runFor(300);await pastTitle(page);await page.click('#tabs [data-tab="battle"]');
 }
 
@@ -106,8 +106,8 @@ export default async function adventureRewards(url,shots) {
           const expected=await inspectProbabilities(page,TABLES[tab][diff]);
           ok(expected.ok,`${tag} ${tab}/${diff}: 최고등급 색 장비 아이콘 1개·나오는 등급만 확률표·합 100%`,expected);
           const rewards=await page.locator('.b-scene-reward').evaluateAll(els=>els.map(el=>({key:el.dataset.reward,p:Number(el.dataset.probability),name:el.getAttribute('aria-label')})));
-          // 장비 · 골드 (+ 레이드 공훈). 강화석은 91에서 없앰 (#192) → 던전은 둘
-          ok(rewards.length>=2 && rewards.some(r=>r.key==='gear') && rewards.some(r=>r.key==='gold') && !rewards.some(r=>r.key==='stone')
+          // 장비 · 골드. 강화석은 91 (#192), 레이드 공훈은 2026-10-20에 없앰 → 모든 장소 둘
+          ok(rewards.length===2 && rewards.some(r=>r.key==='gear') && rewards.some(r=>r.key==='gold') && !rewards.some(r=>r.key==='stone'||r.key==='merit')
             && rewards.every(r=>r.name && Number.isFinite(r.p) && r.p>=0 && r.p<=1)
             && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘 (장비 · 골드)·상세 팝업 제거`,rewards);
           const mainText=await page.locator('#s-content').innerText();
@@ -186,7 +186,7 @@ export default async function adventureRewards(url,shots) {
           ok(claimed.ok && /다시 깬 판/.test(claimed.geometry.text) && await page.locator('[data-reward="crystal"]').count()===0,
             '이번 주 첫 보상 받음: 다시 깬 판 등급 표 (던전 표 · 전설 1.1%)·안내·크리스탈 반복 없음',claimed);
           for(const trigger of ['render','icon']) {
-            await seed(page,{loot:['cathedral1|악몽'],cleared:true,merit:150});
+            await seed(page,{loot:['cathedral1|악몽'],cleared:true});
             await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
             const nextWeek=await page.evaluate(()=>{
               const [y,m,d]=JSON.parse(localStorage.getItem('healer.save')).weekly.week.split('-').map(Number);
@@ -195,10 +195,8 @@ export default async function adventureRewards(url,shots) {
             await page.clock.setSystemTime(new Date(nextWeek));
             if(trigger==='render')await page.click('[data-diff="악몽"]');else await page.click('[data-reward="gear"]');
             const reset=await inspectProbabilities(page,TABLES.raid20.악몽,{keepOpen:true});
-            ok(reset.ok && await page.locator('[data-reward="merit"]').getAttribute('data-probability')==='1'
-              && (await page.locator('[data-reward="merit"] small').innerText()).trim()==='30'
-              && await page.locator('[data-reward="crystal"]').count()===0,
-            `월요일 06시를 지난 뒤 ${trigger==='render'?'난이도 재표시':'장비 아이콘 클릭'}: 장비·공훈 갱신, 첫클리어 상태 유지`,reset);
+            ok(reset.ok && await page.locator('[data-reward="merit"], [data-reward="crystal"]').count()===0,
+            `월요일 06시를 지난 뒤 ${trigger==='render'?'난이도 재표시':'장비 아이콘 클릭'}: 장비 갱신 (공훈 없음), 첫클리어 상태 유지`,reset);
             ok(Math.abs(Number(await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability'))-.055)<1e-6
               && /5\.5%/.test(await page.locator('.b-reward-chance [data-grade="전설"]').innerText()),`주간 경계 ${trigger}: 확률 표도 새 주 전설 5.5%`);
             await page.keyboard.press('Escape');

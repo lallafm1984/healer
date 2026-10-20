@@ -1,6 +1,4 @@
 /** 리셋 시각 (13 1장): 매일 오전 6시, 주간은 월요일 오전 6시. 기기 시간 기준 (서버 시간은 서버를 붙일 때) */
-import { SEASON } from '../data/economy';
-
 export const RESET_HOUR = 6;
 const H = 3600e3, D = 24 * H;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -44,10 +42,3 @@ export function remainingTime(ms: number): string {
 }
 
 export const weekRemaining = (now = Date.now()) => remainingTime(untilWeekReset(now));
-
-/** 시즌 번호와 시즌 안 몇째 주 (0부터). 시즌 1 시작 전이면 시즌 1의 0주 */
-export function seasonOf(now = Date.now()): { n: number; week: number; catchUp: boolean } {
-  const weeks = Math.max(0, Math.floor(daysBetween(SEASON.start, weekKey(now)) / 7));
-  const n = SEASON.n + Math.floor(weeks / SEASON.weeks), week = weeks % SEASON.weeks;
-  return { n, week, catchUp: week >= SEASON.weeks - SEASON.catchUpWeeks };
-}
