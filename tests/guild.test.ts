@@ -9,7 +9,7 @@ import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
+  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { birthV25, growthOf, growWeights, lvAdds, lvPoints, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
@@ -228,16 +228,6 @@ describe('영입 (93 4-2)', () => {
 });
 
 describe('관리 (93 4-3 · 5-5)', () => {
-  it('스킬 다시 뽑기: 내 Lv × 60 골드, 같은 직업 안에서. 스토리 동료는 안 됨', () => {
-    seed = 3;
-    const s = save(30, rerollGold(30)), m = add(s);
-    expect(Gd.rerollAbility(s, m.id, rng)).toBe('');
-    expect([ABILITIES[m.ab].cls, s.player.gold]).toEqual(['warrior', 0]);
-    expect(Gd.rerollAbility(s, m.id, rng)).toMatch(/골드 부족/);
-    const t = save(15);
-    Gd.foundGuild(t);
-    expect(Gd.rerollAbility(t, t.guild.members[0].id, rng)).toMatch(/고유/);
-  });
   it('내보내기: 모든 규모 편성에서 제외, 재초대 목록 없음', () => {
     const s = save(30), m = add(s, 'mage', 2);
     s.guild.picks = { '5': [m.id], '10': [m.id, 99] };

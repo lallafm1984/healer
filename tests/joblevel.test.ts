@@ -9,7 +9,7 @@ import { capOf, newMember, personOf } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
 import { G, heroStatus, lockOf, makeChar, otherHeroFor, pickChar, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
-import { heroLevelOf, migrate, newSave, SAVE_VERSION, topLevel } from '../src/platform/storage';
+import { migrate, newSave, SAVE_VERSION, topLevel } from '../src/platform/storage';
 
 const result = (o: Partial<BattleResult> = {}): BattleResult => ({
   content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 4, time: 360, restSec: 30, deaths: 0,
@@ -27,9 +27,9 @@ describe('저장 이전 (34 3-4 → 68 v11)', () => {
     expect(s.player).toEqual({ level: 30, xp: 120, gold: 800 }); // v16이 버린 옛 골드는 없음, v17: 강화석 3 · 정제 1 → 300 + 500
     expect(s.roster.chars.map(c => [c.hero, c.level])).toEqual([['priest', 30], ['druid', 30]]);
     expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 120, gold: 0 });
-    expect(heroLevelOf(s, 'priest')).toBe(30);
+    expect(topLevel(s)).toBe(30);
     expect(s.heroes.druid!.wins).toBe(4);
-    expect(heroLevelOf(s, 'paladin')).toBe(30);
+    expect(topLevel(s)).toBe(30);
     expect(topLevel(s)).toBe(30);
   });
   it('v6 뒤 저장은 레벨을 다시 옮기지 않음', () => {
@@ -37,7 +37,7 @@ describe('저장 이전 (34 3-4 → 68 v11)', () => {
     d.v = 10; d.player.level = 12;
     d.heroes.druid = { layout: null, tapKey: 'heal', unlocked: true, quest: 1, wins: 0, level: 3, xp: 5 };
     const s = migrate(JSON.parse(JSON.stringify(d)));
-    expect(heroLevelOf(s, 'druid')).toBe(12);
+    expect(topLevel(s)).toBe(12);
     expect(s.roster.chars.find(c => c.hero === 'druid')!.park!.player.level).toBe(3);
     expect(s.player.level).toBe(12);
   });
@@ -57,7 +57,7 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     G.save.player.level = 4;
     expect(pickChar(1)).toBe(true);
     expect(G.save.player).toEqual({ level: 25, xp: 40, gold: 777 });
-    expect(heroLevelOf(G.save, 'druid')).toBe(25);
+    expect(topLevel(G.save)).toBe(25);
     expect(G.save.roster.chars.find(c => c.id === 2)!.level).toBe(4);
   });
   it('기준 레벨 (길드 · 상점 · 임무)도 그 캐릭터 레벨', () => {

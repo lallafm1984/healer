@@ -1936,7 +1936,7 @@ export function render(now: number): void {
         hexPoly(overG, x, y, outer).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
       }
     }
-    // 보호의 손 = 판금 띠, 피해 감소 (나무껍질 · 성역) = 나무껍질 띠, 희생 = 금 사슬 띠, 봉화 = 화로 불꽃 고리
+    // 보호의 손 = 판금 띠, 피해 감소 (나무껍질 · 성역) = 나무껍질 띠, 희생 = 금 사슬 띠 (봉화는 아래 금빛 고리 루프)
     if (u.immune > 0) { const w = Math.max(3, s * 0.1), R = ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w), a = u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95; if (!edgeRing('fx-edge-plate', x, y, R, Math.max(6, s * 0.15), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xffffff, alpha: a }); }
     else if (u.redu > 0) { const R = ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5), a = u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9; if (!edgeRing('fx-edge-bark', x, y, R, Math.max(5, s * 0.13), a)) hexPoly(overG, x, y, R).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: a }); }
     if (u.sacr > 0) { const R = ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2); if (!edgeRing('fx-link-chain', x, y, R, Math.max(4, s * 0.1))) dashPoly(overG, hexPts(x, y, R), 5, 4, 2, melting ? MELT : C.gold); }

@@ -1,15 +1,15 @@
 /**
- * 길드 v2 (93 · 97, 사슬 4번): 결성 · 모집 공고 영입 (명성 지원자는 2026-10-20 없앰) · 보내기 · 스킬 다시 뽑기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
+ * 길드 v2 (93 · 97, 사슬 4번): 결성 · 모집 공고 영입 (명성 지원자는 2026-10-20 없앰) · 보내기 · 규모별 편성 · 판 뒤 (레벨 경험치 · 능력치 · 명성 · 첫 처치).
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
 import { resourceBalance, spendResource } from './resources';
-import { ABILITIES, AB_ODDS, rollAbility } from '../data/abilities';
+import { ABILITIES } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
+  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE,
   memberSkillLevel, LV_DOUBLE, spendPoints, STORY, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -183,18 +183,6 @@ export function sponsorRest(save: SaveData): string {
   if (!ids.length) return '후원할 쉬는 길드원 없음';
   if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
   for (const id of ids) sponsor(save, id);
-  return '';
-}
-
-/** 스킬 다시 뽑기 (내 Lv × 60 골드): 같은 직업 안에서. 스토리 동료는 안 됨 (고유) */
-export function rerollAbility(save: SaveData, id: number, r: () => number): string {
-  const m = memberOf(save, id);
-  if (!m) return '길드원 없음';
-  if (m.story) return '고유 스킬은 다시 뽑지 않음';
-  const c = rerollGold(topLevel(save));
-  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
-  spendResource(save, 'gold', c);
-  m.ab = rollAbility(m.cls, r, AB_ODDS.normal);
   return '';
 }
 

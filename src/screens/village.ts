@@ -14,11 +14,8 @@ import { Application, Assets, Container, Graphics, MeshPlane, Sprite, Texture, t
 import { art } from '../art';
 import { VILLAGE, type VillageEffects, type VillageLayer } from '../data/village';
 import { G } from '../game/state';
-import { gustAt, VillageAir } from './village-air';
+import { clamp, gustAt, mod, smoothstep, VillageAir } from './village-air';
 
-const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
-const smoothstep = (lo: number, hi: number, v: number) => { const t = clamp((v - lo) / (hi - lo || 1)); return t * t * (3 - 2 * t); };
-const mod = (v: number, n: number) => ((v % n) + n) % n;
 
 /** 느린 공통 돌풍 + 소품마다 다른 위상 */
 function windEnvelope(time: number, phase = 0): number {

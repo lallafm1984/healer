@@ -24,7 +24,7 @@ import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './typ
 /**
  * 보스가 때릴 사람: 5인 대신 맞는 사람 (DebuffDef.sub), 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커.
  * 위치 규칙 (2026-10-13 Lim): 탱커는 1열에 있어야 잡음. 아무도 1열에 없으면 그동안 무작위로 뽑힌 파티원 (f.loose, engine/position)
- * 탱커가 모두 쓰러지면 대신 막는 사람 (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
+ * 탱커가 모두 쓰러지면 대신 막는 사람 (근접 → 원거리 → 나, 2026-10-07 Lim. 버팀목 특성은 없앰)
  */
 export function aggroTarget(f: Fight): Unit | null {
   let alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
