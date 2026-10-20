@@ -16,10 +16,9 @@ const at = (lv: number, gold = 1e6): SaveData => {
 };
 const grade = (o: number[], g: string) => o[ITEM_GRADES.indexOf(g as never)];
 
-describe('값: 레벨과 상관없이 10,000 (Lim 「갬블 가격을 만골드」)', () => {
-  it('Lv 10 · 60 · 100 모두 10,000', () => {
-    expect(merchantGold()).toBe(10000);
-    for (const lv of [10, 60, 100]) expect(merchantOffer(at(lv)).gold).toBe(10000);
+describe('값: 100 × 내 Lv (Lim 「100레벨 기준 만골드」)', () => {
+  it('Lv 10 1,000 · 45 4,500 · 70 7,000 · 100 10,000', () => {
+    expect([10, 45, 70, 100].map(merchantGold)).toEqual([1000, 4500, 7000, 10000]);
     expect(MERCHANT.lv).toBe(10);
   });
 });
@@ -52,7 +51,7 @@ describe('사기', () => {
     const it = buyUnknown(s, 'neck', 'pendant', r);
     if (typeof it === 'string') throw new Error(it);
     expect(it.slot).toBe('neck'); expect(it.kind).toBe('pendant'); expect(it.lv).toBe(60);
-    expect(s.player.gold).toBe(20000 - merchantGold());
+    expect(s.player.gold).toBe(20000 - merchantGold(60));
     expect(s.gear.bag.some(b => b.id === it.id)).toBe(true);
   });
   it('여러 번 사면 등급 비율이 확률표와 맞음 (Lv 100 영웅 8% 안팎, 전설 없음)', () => {
@@ -67,12 +66,12 @@ describe('사기', () => {
     expect(count['전설'] ?? 0).toBe(0);
   });
   it('골드가 모자라면 안 사짐 (골드 그대로), 개발 골드 무제한이면 잔액을 안 씀', () => {
-    const s = at(50, merchantGold() - 1);
+    const s = at(50, merchantGold(50) - 1);
     expect(buyUnknown(s, 'weapon', 'staff', rngFrom(1))).toBe('골드 부족');
-    expect(s.player.gold).toBe(merchantGold() - 1);
+    expect(s.player.gold).toBe(merchantGold(50) - 1);
     s.settings.devGold = true;
     expect(typeof buyUnknown(s, 'weapon', 'staff', rngFrom(1))).toBe('object');
-    expect(s.player.gold).toBe(merchantGold() - 1);
+    expect(s.player.gold).toBe(merchantGold(50) - 1);
   });
   it('Lv 10 전 · 튜토리얼 중엔 잠김, 없는 종류는 안 됨', () => {
     expect(merchantOffer(at(9)).lock).toBe('Lv 10에 열림');

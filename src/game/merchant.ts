@@ -25,7 +25,7 @@ export interface MerchantOffer {
 }
 
 export function merchantOffer(save: SaveData): MerchantOffer {
-  const lv = save.player.level, gold = merchantGold();
+  const lv = save.player.level, gold = merchantGold(lv);
   const lock = save.tut < TUT.done ? '튜토리얼을 마치면 열림'
     : lv < MERCHANT.lv && !save.settings.devUnlock ? `Lv ${MERCHANT.lv}에 열림` : '';
   const why = lock || (resourceBalance(save, 'gold') < gold ? '골드 부족' : '');
