@@ -51,8 +51,11 @@ export default async function battleNotes(url, shots) {
       });
       const cellTop = cv.y + p.y - g.r;
       if (name === 'S25') await page.screenshot({ path: `${shots}/notes_preview_${board.n}_${where === '맨 윗줄' ? 'top' : 'bottom'}.png` });
-      ok(!g.hidden && g.bottom <= cellTop + .5 && g.top >= 70 - .5 && g.left >= 0 && g.right <= width + .5 && !g.noarrow && /체력|쓰러짐/.test(g.text),
-        `${tag}: ${where} 칸을 길게 누르면 상세창이 그 칸 위쪽 (아래 끝 ${Math.round(g.bottom)} ≤ 칸 위 ${Math.round(cellTop)}${g.brief ? ', 설명 접음' : ''})`, g);
+      // 위 공간이 모자라면 여백만 줄이고 (설명은 유지, 2026-10-14 「전투 팝업 가독성」) 그래도 길면 위 끝에 붙어 칸 꼭짓점을 조금 덮음 (꼬리 없음, hud.ts placePreview).
+      // 그때도 손가락 자리 (칸 가운데)의 이름 · 체력은 가리지 않음: 아래 끝 ≤ 칸 가운데 − 반지름 × 0.3 (2026-10-20 QA: 파티원 능력 설명이 길어져 10 · 20인 맨 윗줄에서 늘 그 경우)
+      const cellMid = cv.y + p.y, above = !g.noarrow ? g.bottom <= cellTop + .5 : g.top <= 74.5 && g.bottom <= cellMid - g.r * 0.3;
+      ok(!g.hidden && above && g.top >= 70 - .5 && g.left >= 0 && g.right <= width + .5 && /체력|쓰러짐/.test(g.text),
+        `${tag}: ${where} 칸을 길게 누르면 상세창이 그 칸 위쪽 (아래 끝 ${Math.round(g.bottom)} ≤ ${g.noarrow ? `칸 가운데 위 ${Math.round(cellMid - g.r * 0.3)}, 위 끝에 붙음` : `칸 위 ${Math.round(cellTop)}`})`, g);
       await page.mouse.up(); await page.clock.runFor(1000);
       const kept = await page.isVisible('#preview');
       await page.mouse.move(cv.x + 4, cv.y + 4); await page.mouse.down(); await page.mouse.up(); await page.clock.runFor(50);

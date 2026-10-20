@@ -119,27 +119,27 @@ export default async function gear(url, shots) {
   await closeSheet();
   ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && (await page.locator('#s-char .c7-bag[data-gitem="203"] .lk').count()) === 1, '상세 닫기 → 상시 인벤토리, 잠긴 아이템에 자물쇠');
 
-  // ---- 아이템을 눌러 판매 (91, 예전 분해 자리): 골드 = 등급 값 × (1 + 아이템 레벨 ÷ 10). 옛 장비는 아이템 레벨 = 내 레벨 30 ----
+  // ---- 아이템을 눌러 판매 (91, 예전 분해 자리): 골드 = 등급 값 × (1 + 아이템 레벨 ÷ 10) × SELL_MULT 0.5 (#306 판매가 절반). 옛 장비는 아이템 레벨 = 내 레벨 30 ----
   await page.click('#s-char .c7-bag[data-gitem="201"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-gsheet') && !(await page.isDisabled('#s-char [data-sell1="201"]')) && (await page.locator('#s-char [data-sell1="201"] [aria-label="골드 20"]').count()) === 1 && /판매/.test(await text('#s-char [data-sell1="201"]')), '인벤토리 아이템 탭 → 판매 버튼과 받을 골드 (일반 Lv 30 = 5 × 4)');
+  ok(await page.isVisible('#s-char .c7-gsheet') && !(await page.isDisabled('#s-char [data-sell1="201"]')) && (await page.locator('#s-char [data-sell1="201"] [aria-label="골드 10"]').count()) === 1 && /판매/.test(await text('#s-char [data-sell1="201"]')), '인벤토리 아이템 탭 → 판매 버튼과 받을 골드 (일반 Lv 30 = 5 × 4 × 0.5)');
   await page.locator('#s-char .c7-gsheet').screenshot({ path: `${shots}/gear_sell.png` });
   const beforeSell = JSON.stringify(await save());
   await page.click('#s-char [data-sell1="201"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-confirm') && JSON.stringify(await save()) === beforeSell && /장비 판매/.test(await text('#s-char .c7-confirm')) && (await page.locator('#s-char .c7-confirm [aria-label="골드 20"]').count()) === 1, '판매 확인 전에는 장비와 골드 유지, 확인창에 받는 골드');
+  ok(await page.isVisible('#s-char .c7-confirm') && JSON.stringify(await save()) === beforeSell && /장비 판매/.test(await text('#s-char .c7-confirm')) && (await page.locator('#s-char .c7-confirm [aria-label="골드 10"]').count()) === 1, '판매 확인 전에는 장비와 골드 유지, 확인창에 받는 골드');
   await page.locator('#s-char .c7-confirm').screenshot({ path: `${shots}/gear_sell_confirm.png` });
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   ok(JSON.stringify(await save()) === beforeSell, '판매 취소는 장비와 골드 유지');
   await page.click('#s-char [data-sell1="201"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 820, '판매는 고른 일반 장비만 제거, 골드 +20');
-  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 820' && /판매: 골드 \+20/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 개수·골드·결과 안내 갱신');
+  ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 810, '판매는 고른 일반 장비만 제거, 골드 +10');
+  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 810' && /판매: 골드 \+10/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 개수·골드·결과 안내 갱신');
   await page.click('#s-char .c7-bag[data-gitem="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-sell1="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.player.gold === 880, `고급 장비 판매 뒤 잠긴 장비 유지, 골드 +60 (${sv.player.gold})`);
-  ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 880', '남은 인벤토리 1개·골드 880 표시');
+  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.player.gold === 840, `고급 장비 판매 뒤 잠긴 장비 유지, 골드 +30 (${sv.player.gold})`);
+  ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 840', '남은 인벤토리 1개·골드 840 표시');
 
   // ---- 인벤토리 상세에서 수동 장착 ----
   await page.click('#s-char .c7-bag[data-gitem="203"]'); await page.clock.runFor(50);

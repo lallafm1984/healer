@@ -69,7 +69,7 @@ export default async function headerConsistency(url,shots) {
           && !detail.glyphs.length && detail.controls.every(c=>c.hit && c.rect.width>=44 && c.rect.height>=44),
           `${tag}: 설정 상세 헤더 ${expectedHeight}px·44px 뒤로 가기 유지`,detail);
         await page.click('#s-settings .tb-back');
-        ok(await page.locator('#s-shop').isVisible(),`${tag}: 상세 뒤로 가기로 상점 복귀`);
+        ok(await page.locator('#s-guild').isVisible(),`${tag}: 상세 뒤로 가기로 길드 복귀`); // #231: 상점이 탭에서 빠져 마지막 탭 = 길드
 
         await toParty(page,{content:'rustfort',tab:'dungeon',diff:'쉬움'});
         detail=await headerGeometry(page,'#s-party');
