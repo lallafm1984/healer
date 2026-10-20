@@ -1,4 +1,4 @@
-// 재화·임무·상점 (12, 13, 15, 81, 90, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 상품·공훈·패스 → 입장 확인 (휴식)
+// 재화·임무·상점 (12, 13, 15, 81, 90, 09 S18·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 상품 → 입장 확인 (휴식). 시즌 패스 · 공훈은 2026-10-20 없앰
 import { chromium } from 'playwright';
 import { chooseContent, openDiff, pastTitle } from './nav.mjs';
 
@@ -18,7 +18,8 @@ export default async function shop(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
   await pastTitle(page);
-  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 2000; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  // 새 저장은 Lv 1에 일일 임무 4개 (Lv 1~4, 103 QA)를 뽑아 둠 → 날 · 주를 비워 Lv 40으로 다시 뽑음 (5개 · 주간 3개)
+  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 2000; s.daily.day = ''; s.weekly.week = ''; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
   // 레이드 팻말 (예전 첨탑): 분류 + 열림 레벨. 휴식은 입장 비용이 아니라 적지 않는다 (90, 2026-10-16 A안)
@@ -41,10 +42,10 @@ export default async function shop(url, shots) {
   const d0 = (await save()).player.gold;
   for (let i = 0; i < 5; i++) { await page.click('#s-missions [data-claim="daily"]'); await page.clock.runFor(30); }
   sv = await save();
-  ok(sv.daily.missions.every(m => m.got) && sv.player.gold === d0 + 5 * 99 && !('mats' in sv) && sv.pass.xp === 300, `일일 5개 받기: 골드 +${sv.player.gold - d0} (Lv 40 클리어 골드 495의 20% × 5), 패스 경험치 300 (91)`);
+  ok(sv.daily.missions.every(m => m.got) && sv.player.gold === d0 + 5 * 99 && !('mats' in sv) && !('pass' in sv), `일일 5개 받기: 골드 +${sv.player.gold - d0} (Lv 40 클리어 골드 495의 20% × 5, 91), 패스 없음`);
   await page.click('#s-missions #chest'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.daily.chest && sv.pass.xp === 400 && /완료 상자/.test(await text('#s-missions .warnbox')), '완료 상자 열기 (패스 +100)');
+  ok(sv.daily.chest && /완료 상자/.test(await text('#s-missions .warnbox')) && !/패스/.test(await text('#s-missions')), '완료 상자 열기 (임무 화면에 패스 글 없음)');
   await page.click('#s-missions #chest2'); await page.clock.runFor(50);
   ok(await page.isVisible('.admodal') && /광고 자리/.test(await text('.admodal')), '광고 보고 한 번 더 = 광고 자리 창');
   await page.click('.admodal [data-ad="ok"]'); await page.clock.runFor(50);
@@ -53,7 +54,7 @@ export default async function shop(url, shots) {
   const w0 = await save();
   await page.click('#s-missions [data-claim="weekly"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.player.gold === w0.player.gold + 495 * 3 && !('shards' in sv.wallet), '주간 임무 = 클리어 골드 3판 (91, 악몽 열쇠 없음)');
+  ok(sv.player.gold === w0.player.gold + 495 * 3 && !('wallet' in sv), '주간 임무 = 클리어 골드 3판 (91, 악몽 열쇠 · 공훈 없음)');
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
   // ---- 상점: 골드 탭 (소비 아이템)은 2026-10-16 없앰. 첫 탭 = 상품 ----
@@ -62,36 +63,11 @@ export default async function shop(url, shots) {
   ok(await page.locator('#tabs [data-tab="shop"]').count() === 0, '하단 탭에 상점 없음');
   await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-shop .tb-back') && await page.isHidden('#tabs'), '잡화점 → 상점 (탭 막대 없이 ← 상점)');
-  ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true'
-    && (await page.locator('#s-shop [data-sub="gold"], #s-shop [data-buy]').count()) === 0 && !/악몽 열쇠|소비 아이템/.test(await text('#s-shop')), '상점 탭: 상품이 첫 탭, 골드 탭 · 소비 아이템 없음');
+  ok(await page.isVisible('#s-shop [data-prod="noads"]') && (await page.locator('#s-shop .subtabs, #s-shop [data-sub], #s-shop [data-buy], #s-shop [data-ex], #s-shop [data-pass], #s-shop .shop-wallet').count()) === 0
+    && !/악몽 열쇠|소비 아이템|공훈|시즌 패스/.test(await text('#s-shop')), '상점 = 상품 한 쪽 (하위 탭 · 골드 탭 · 소비 아이템 · 공훈 · 시즌 패스 없음, 2026-10-20)');
   await page.screenshot({ path: `${shots}/shop_first.png` });
 
-  // ---- 공훈 ----
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.merit = 120; localStorage.setItem('healer.save', JSON.stringify(s)); });
-  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
-  await page.click('#s-shop [data-sub="merit"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-shop .mgear [data-ex]').count()) === 6 && !/세트/.test(await text('#s-shop')), '공훈 = 영웅 장비 6부위 (세트 없음)');
-  await page.click('#s-shop [data-ex="ring"]'); await page.clock.runFor(50);
-  sv = await save();
-  ok(sv.wallet.merit === 20 && sv.gear.bag.some(i => i.slot === 'ring' && i.grade === '영웅' && /^성스러운 (반지|인장 반지|옥 반지|쌍가락지|돌 반지)$/.test(i.name) && !('set' in i)), '공훈 100 → 성스러운 반지 5종 중 하나 (영웅, 종류는 무작위)');
-
-  // ---- 시즌 패스 ----
-  await page.click('#s-shop [data-sub="pass"]'); await page.clock.runFor(50);
-  ok(/패스 Lv 1\/50/.test(await text('#s-shop .passhead')) && (await page.locator('#s-shop .prow').count()) === 51, '패스 50단계 (일일 300 + 상자 100 + 주간 800 = Lv 1)');
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.pass.xp = 2100; localStorage.setItem('healer.save', JSON.stringify(s)); });
-  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  ok(Number(await text('#s-lobby .lb-shop .g-badge')) >= 1 && await page.isVisible('#tabs [data-tab="lobby"] .rdot'), '받을 패스 단계 = 로비 잡화점 빨간 숫자 · 로비 탭 점');
-  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-shop [data-sub="pass"] .rdot'), '상점 안 패스 탭에 빨간 점');
-  await page.click('#s-shop [data-sub="pass"]'); await page.clock.runFor(50);
-  const st0 = (await save()).player.gold;
-  await page.click('#s-shop [data-pass="1"]'); await page.clock.runFor(50);
-  ok((await save()).player.gold === st0 + 500 && (await page.locator('#s-shop [data-pass="3"]').count()) === 0 && !/프리미엄/.test(await text('#s-shop')), '패스 Lv 1 = 골드 500 (예전 강화석 5), 안 오른 단계는 못 받음, 프리미엄 없음');
-  await page.screenshot({ path: `${shots}/shop_pass.png` });
-
   // ---- 상품 (81): 광고 제거 패키지 5,500원 · 직업 4종 2,200원 (개발 빌드는 누르면 바로) ----
-  await page.click('#s-shop [data-sub="cash"]'); await page.clock.runFor(50);
   ok(/5,500원/.test(await text('#s-shop [data-prod="noads"]')) && (await page.locator('#s-shop [data-prod^="job_"]').count()) === 4
     && (await page.locator('#s-shop [data-prod^="job_"] .cash-buy').allInnerTexts()).every(t => /2,200원/.test(t)), '상품: 광고 제거 5,500원 · 직업 4종 2,200원');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);

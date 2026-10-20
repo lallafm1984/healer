@@ -47,7 +47,7 @@ export function syncAds(): void {
 /** 날·주가 바뀌었는지 보고 일일·주간을 새로 (13 1장). 접속·로비·임무·상점 화면에서 부름 */
 export function refreshDay(now = Date.now()): Rollover {
   const r = rollover(G.save, now, Math.random);
-  if (r.day || r.week || r.season || r.banked || r.fixed) commit();
+  if (r.day || r.week || r.banked || r.fixed) commit();
   syncAds();
   return r;
 }
@@ -298,7 +298,7 @@ function charName(h: HeroKey, name: string): string {
   return `${base} ${n}`;
 }
 
-/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 휴식 · 패스 · 목록)을 옮김 (캐릭터를 바꿔 휴식 · 패스를 두 번 쓰지 않게) */
+/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 휴식 · 목록)을 옮김 (캐릭터를 바꿔 휴식을 두 번 쓰지 않게) */
 function swapTo(next: SaveData, id: number, now: number): void {
   const cur = G.save;
   rollover(cur, now, Math.random);

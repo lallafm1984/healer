@@ -39,7 +39,7 @@ function render(): void {
     <div class="ns-body missions">
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       <h3 class="sec">일일 임무 <small>${gotN}/${d.missions.length} · 리셋까지 ${hhmm(untilReset())}</small></h3>
-      <p class="note">1개마다 ${currencyAmount('gold', Math.round(run * MISSION_REWARD.goldShare))} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
+      <p class="note">1개마다 ${currencyAmount('gold', Math.round(run * MISSION_REWARD.goldShare))}${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
       <ul class="mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>
       <section class="panel chest">
         <h4>완료 상자 <small>임무 ${d.missions.length}개를 다 받으면 · ${currencyAmount('gold', run * CHEST_REWARD.runs)} + 장비 1개</small></h4>
@@ -62,20 +62,20 @@ function render(): void {
 }
 
 s.el.addEventListener('click', async e => {
-  const t = e.target as HTMLElement, save = G.save, now = Date.now();
+  const t = e.target as HTMLElement, save = G.save;
   const c = t.closest<HTMLElement>('[data-claim]');
-  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i), now); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
+  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
   const sw = t.closest<HTMLElement>('[data-swap]');
   if (sw) { st.msg = swapMission(save, Number(sw.dataset.swap), Math.random) || '임무 교체'; commit(); render(); return; }
-  if (t.closest('#chest')) { const r = claimChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `완료 상자: ${gainText(r)}`; commit(); render(); return; }
+  if (t.closest('#chest')) { const r = claimChest(save, Math.random); st.msg = typeof r === 'string' ? r : `완료 상자: ${gainText(r)}`; commit(); render(); return; }
   if (t.closest('#chest2')) {
     const mem = adsFree(save);
     if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
     if (!(await showRewarded('완료 상자 한 번 더', mem))) return;
     if (!mem) save.daily.ads.chest++;
-    const r = claimChest(save, Math.random, now, true);
+    const r = claimChest(save, Math.random, true);
     st.msg = typeof r === 'string' ? r : `한 번 더: ${gainText(r)}`; commit(); render(); return;
   }
   if (t.closest('#guildGoal')) { st.msg = claimGuildGoal(save) || `길드 주간 목표 · 명성 +${GUILD_GOAL.fame}`; commit(); render(); return; }
-  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });

@@ -13,7 +13,7 @@ import { advanceTutorial, TUT, TUT_CONTENT, tutReplay } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
 import type { StoryKey } from '../data/guild';
-import { lootKey, meritFor, meritFull, onRun, raidLootOpen, rollover } from './economy';
+import { lootKey, onRun, raidLootOpen, rollover } from './economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
 import { CHAL, chalDropDiff } from '../data/challenge';
@@ -100,10 +100,6 @@ export interface Settlement {
   story: { key: StoryKey; how: 'joined' | 'wait' } | null;
   /** 부탁 쪽지 · 주간 원정 (93 8장) */
   jobs: JobsDone | null;
-  /** 레이드 공훈 (12 3-5) */
-  merit: number;
-  /** 공훈 보유 상한 (MERIT_HOLD_CAP)이라 이번 판 공훈이 안 쌓임 (결과창 「공훈 가득」, 103) */
-  meritFull: boolean;
   /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
   raidLoot: 'first' | 'again' | null;
   /** 탐험을 이겼는데 이번 판은 장비가 안 나옴 (판마다 EXPLORE_DROP, 103) */
@@ -163,7 +159,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
   // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
   // 휴식 (90): 클리어하면 콘텐츠 몫만큼 쓰고 경험치 · 골드에 휴식 보너스 (모자라면 있는 만큼 쓰고 보너스도 그만큼, 비례). 0이면 기본 보상
-  // (= 휴식 판의 1/REST_BONUS, 장비 · 공훈 · 임무 · 상자는 휴식과 상관없음). 휴식 판 = 예전 값 × REST_RUN_SCALE (restRun, 2026-10-17 Lim:
+  // (= 휴식 판의 1/REST_BONUS, 장비 · 임무 · 상자는 휴식과 상관없음). 휴식 판 = 예전 값 × REST_RUN_SCALE (restRun, 2026-10-17 Lim:
   // 기본 = 예전 휴식 판 1/3, 휴식 보너스 ×2, Lv 1부터 장소 경험치 · 골드도). 튜토리얼 판 (휴식을 안 씀)은 예전 값 그대로, 꼬리표 없음
   const rest = play && r.win && !r.quit ? useRest(save, staminaCost(c, r.chal), now) : null;
   const run = (n: number) => (play ? restRun(n) : n > 0 ? Math.max(1, Math.round(n)) : 0);
@@ -185,7 +181,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let newSpecs: string[] = [], newDex: string[] = [];
   // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
   const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
-  let merit = 0, meritAll = false;
   // 탐험은 판마다 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 · 주간 도전은 언제나)
   const noDrop = r.win && play && c.kind === 'explore' && !r.chal && rng() >= EXPLORE_DROP;
   if (r.win) {
@@ -200,7 +195,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     newDex = noteDex(save, items);
     newSpecs = noteSpecs(save, items);
     if (raidLoot === 'first') save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
-    if (play && raid) { merit = meritFor(save, raid, r.diff); meritAll = !merit && meritFull(save, raid); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
   }
 
   let first = false, best = false;
@@ -261,6 +255,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, meritFull: meritAll, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

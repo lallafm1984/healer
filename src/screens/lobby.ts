@@ -4,7 +4,7 @@
  *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 재설정):
  *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
  *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 길드 회관 (길드를 빼 두면 없음) · 대장간 · 잡화점. 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
- *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
+ *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
 import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
@@ -28,7 +28,6 @@ import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
-import { passReady } from './tabs';
 import { mountVillage } from './village';
 import { ENCOUNTERS } from '../data/encounters';
 
@@ -204,15 +203,13 @@ function forgePlate(): string {
 }
 
 /**
- * 잡화점 = 상점 상품 탭: 광고 제거 · 새 직업 (공훈은 나중 콘텐츠, 시즌 패스는 상점 안에만).
- * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」) → 받을 시즌 패스 단계는 빨간 숫자 (상점 안 패스 탭에도 점)
+ * 잡화점 = 상점 (상품 한 쪽): 광고 제거 · 새 직업. 둘 다 샀으면 「상품」.
+ * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」). 시즌 패스 (예전 빨간 숫자) · 공훈은 2026-10-20 Lim이 없앰
  */
 function shopPlate(): string {
   const s = G.save, noads = adsFree(s), jobs = HERO_KEYS.filter(h => HEROES[h].unlock.buy && !s.bought.includes(jobProductId(h))).length;
-  const lines = [noads ? '' : '광고 제거', jobs ? `새 직업 ${jobs}` : '', !noads || jobs ? '' : '시즌 패스'].filter(Boolean);
-  const pass = passReady();
-  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines,
-    pass ? `<i class="g-badge" aria-label="받을 시즌 패스 보상 ${pass}">${pass}</i>` : '');
+  const lines = [noads ? '' : '광고 제거', jobs ? `새 직업 ${jobs}` : ''].filter(Boolean);
+  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines.length ? lines : ['상품'], '');
 }
 
 /**
@@ -230,7 +227,7 @@ function restSock(): string {
 const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
   <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${forgePlate()}${shopPlate()}</nav>`;
 
-/** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
+/** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). */
 function journey(): string {
   const to = dest(), c = contentOf(to.content);
   const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
@@ -264,7 +261,7 @@ function render(): void {
 }
 
 s.el.addEventListener('click', e => {
-  const t = e.target as HTMLElement, save = G.save, now = Date.now();
+  const t = e.target as HTMLElement, save = G.save;
   if (t.closest('#lobbyStart')) { toAdventure(dest()); return; }
   const gr = t.closest<HTMLElement>('[data-goal]');
   if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toAdventure(g.to); return; }
@@ -273,18 +270,18 @@ s.el.addEventListener('click', e => {
     const got: string[] = [];
     for (const kind of ['daily', 'weekly'] as const) (kind === 'daily' ? save.daily : save.weekly).missions.forEach((m, i) => {
       if (!missionReady(m)) return;
-      const r = claimMission(save, kind, i, now);
+      const r = claimMission(save, kind, i);
       got.push(typeof r === 'string' ? r : gainText(r));
     });
     // 이어서 일일 상자 (임무 5개를 다 받으면 열림 · 놓친 날 쌓인 것, 최대 2일)도 같이. 광고로 한 번 더는 임무 화면에서
     for (let i = 0; i < 3; i++) {
       const ch = chestState(save);
       if (!ch.today && !ch.banked) break;
-      const r = claimChest(save, Math.random, now);
+      const r = claimChest(save, Math.random);
       got.push(typeof r === 'string' ? r : `상자 ${gainText(r)}`);
     }
     st.msg = got.length ? `받음: ${got.join(' · ')}` : '';
     commit(); render(); return;
   }
-  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });

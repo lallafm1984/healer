@@ -165,17 +165,17 @@ export function placeArt(c: ContentKey): { url: string; scene: boolean; place: P
 
 // 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청). 81: 크리스탈 · 악몽 열쇠 · 모집권 없앰. v16: 골드 없앰. 90: 입장 비용 → 휴식 (icon-rest).
 // 91 (디아2식 장비): 강화석 · 정제 강화석 없앰, 골드 다시 (icon-gold, 30 그림 그대로)
+// 2026-10-20 Lim 「공훈 재화및 시스템도 제거하자」: 공훈 없앰 (icon-merit 그림도)
 const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 const CURRENCY_ART = {
   // 휴식 (90): 베개 위 초승달 (icon-rest, Codex). 그림이 없을 때만 이 달
   rest: svg('<path d="M15.5 3.2A8.6 8.6 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2z" fill="#E9B83C" stroke="#4A2A12" stroke-width="1.6" stroke-linejoin="round"/>'),
   gold: svg('<circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/>'),
-  merit: svg('<path d="M8 2h8l-2 7h-4z" fill="#B23A2E" stroke="#4A1712" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="6" fill="#D9A441" stroke="#6B4A14" stroke-width="1.6"/><path d="M12 11.5l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#FFF0C2"/>'),
 };
 export type CurrencyIconKey = keyof typeof CURRENCY_ART;
 /** 재화 이름과 아이콘의 유일한 등록부. 메뉴별 재화 그림·SVG·이모지를 만들지 않는다. */
 export const CURRENCY_NAMES: Record<CurrencyIconKey, string> = {
-  rest: '휴식', gold: '골드', merit: '공훈',
+  rest: '휴식', gold: '골드',
 };
 /** 모든 메뉴가 같은 src/art/icon-<key>.webp와 공통 대체 아이콘을 공유한다. */
 export function currencyIcon(key: CurrencyIconKey): string {

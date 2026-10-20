@@ -43,7 +43,7 @@
 #tabs button:focus-visible { outline: 3px solid #ffe398; outline-offset: -3px; }
 /* Cover each surface once: fixed-size repeats expose seams in this wood crop. */
 /* Soft-light separates readable panel grain from the darker page backdrop. */
-.ns:not(#s-lobby) :is(.panel, .pcard, .mrow, .metrics, .meter, .prow:not(.head), .gdet),
+.ns:not(#s-lobby) :is(.panel, .pcard, .mrow, .metrics, .meter, .gdet),
 .admodal .panel {
   background: #59402a var(--a2-wood) center / cover no-repeat;
   background-blend-mode: soft-light;

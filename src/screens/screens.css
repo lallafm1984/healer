@@ -247,11 +247,9 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .pcard .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; align-self: center; }
 .pcard .pick.on { background: var(--gold); border-color: var(--gold); }
 
-/* 재화·임무·상점·패스 (12, 13, 15) */
-.wallet { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--mute); }
-.wallet span { white-space: nowrap; }
+/* 재화·임무·상점 (12, 13, 15) */
 .dot { font-style: normal; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #6B2A22; color: #FFD9D2; }
-.slist, .mlist, .plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.slist, .mlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .srow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
 .srow > div:not(.sbuy) { flex: 1; min-width: 0; }
 .srow b { font-size: 14px; }
@@ -261,23 +259,15 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .sic svg { width: 26px; height: 26px; }
 .sbuy { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
 .slist.dim .srow { opacity: 0.6; }
-.mgear .gbtns .btn { flex: 1 1 40%; }
 .mrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
 .mrow > div { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 13px; }
 .mrow small { color: var(--mute); }
-.mrow .bar, .passhead .bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: #0E0B09; overflow: hidden; border: 1px solid #362D22; }
-.mrow .bar i, .passhead .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
+.mrow .bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: #0E0B09; overflow: hidden; border: 1px solid #362D22; }
+.mrow .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
 .mrow.got { opacity: 0.6; }
 /* 「받기」 (.btn.primary의 width 100%)가 줄을 다 차지해 임무 이름이 한 글자씩 세로로 깨졌음 */
 .mrow > .btn.mini { flex: none; width: auto; }
-.done, .prow i { font-style: normal; font-size: 12px; color: var(--mute); }
-.passhead p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.passhead .bar { flex: 1 1 120px; display: inline-block; }
-.prow { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--panel); border: 1.5px solid var(--line); font-size: 12px; opacity: 0.55; }
-.prow.open, .prow.head { opacity: 1; }
-.prow.head { background: none; border: 0; color: var(--mute); }
-.prow b { font-family: var(--font-display); font-weight: 400; font-size: 15px; text-align: center; }
-.prow .pp { color: #E6C77A; }
+.done { font-style: normal; font-size: 12px; color: var(--mute); }
 .admodal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(7, 5, 4, 0.8); }
 .admodal .panel { width: 100%; max-width: 360px; }
 .admodal .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }

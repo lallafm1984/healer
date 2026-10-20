@@ -20,8 +20,7 @@ import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold, EXPLORE_DROP, EXPLORE_REWARD, restRun } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
-import { meritFor, meritFull, raidLootOpen } from '../game/economy';
-import { MERIT_HOLD_CAP } from '../data/economy';
+import { raidLootOpen } from '../game/economy';
 import { restBase } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
@@ -243,10 +242,6 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const stage = runMode(G.save, c, d, { chal: 0 }).stage;
   const raw = clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1);
   currency('gold', '골드', play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', '클리어 시 · A 평가');
-  if (play && raid) {
-    const merit = meritFor(G.save, raid, d);
-    currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : meritFull(G.save, raid) ? `공훈 가득 (보유 ${MERIT_HOLD_CAP}까지)` : '이번 주 공훈 한도 도달', merit ? 1 : 0);
-  }
   return items;
 }
 
@@ -353,7 +348,7 @@ const s = screen('s-content', '모험 선택', {
 
 /** keep = 화면 안에서 다시 그림 (장소 줄 가로 위치·포커스 유지). */
 function render(keep = true): void {
-  // 정산과 같은 주간 상태로 장비 수령·공훈 잔여량을 표시한다.
+  // 정산과 같은 주간 상태로 장비 수령을 표시한다.
   refreshDay();
   // 장소 줄 위치: 같은 분류 안에서 다시 그리면 이어서 (분류가 바뀌면 고른 장소 가운데)
   const plr = s.el.querySelector<HTMLElement>('.b-regions');
@@ -431,7 +426,7 @@ function positionRewardChance(): void {
 function openRewardChance(key: string): void {
   // 화면을 켜 둔 채 주가 바뀌어도 아이콘과 확률 안내가 함께 갱신된다.
   const changed = refreshDay();
-  if (changed.day || changed.week || changed.season || changed.banked || changed.fixed) {
+  if (changed.day || changed.week || changed.banked || changed.fixed) {
     closeRewardChance(false);
     render();
   }

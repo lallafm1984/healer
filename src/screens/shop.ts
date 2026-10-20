@@ -1,111 +1,51 @@
 /**
- * S18 상점 · S19 시즌 패스 (09, 15 6장, 12, 81). 하위 탭: 상품 · 공훈 · 패스. 골드 탭 (소비 아이템)은 2026-10-16 소비 아이템과 함께 없앰.
+ * S18 상점 (09, 15 6장, 12, 81). 상품 한 쪽: 하위 탭 없음. 골드 탭 (소비 아이템)은 2026-10-16 소비 아이템과 함께, 시즌 패스 탭 (S19) · 공훈 탭은
+ * 2026-10-20 Lim 「시즌패스 시스템 제거」 · 「공훈 재화및 시스템도 제거하자」로 없앰 (지갑 줄도 공훈과 함께).
  * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 월정액 · 프리미엄 패스를 없앰. 상품 탭 = 휴식 광고 충전 (90) · 광고 제거 패키지 5,500원 · 직업 4종 하나에 2,200원.
  * 결제는 자리만 (platform/billing.ts). 개발 빌드는 누르면 결제 없이 바로 받음.
  * 2026-10-18 Lim 「메뉴의 상점을 빼고 길드를 넣자. 상점의 진입 루트는 로비이다」: 하단 탭이 아니라 로비 「잡화점」 · 휴식 창 · 직업 구매에서 들어오는 화면.
  * 탭 막대 없이 「← 상점」, 뒤로 = 들어온 화면 (없으면 로비).
  */
-import { resourceBalance } from '../game/resources';
-import { MERIT_GEAR_COST, MERIT_HOLD_CAP, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, REST_BONUS, SEASON, STAMINA, jobProductId } from '../data/economy';
-import { SLOTS, type SlotKey } from '../data/equipment';
+import { NOADS, PAID_HEROES, REST_BONUS, STAMINA, jobProductId } from '../data/economy';
 import { HEROES } from '../data/heroes';
-import { seasonOf } from '../game/clock';
-import { claimPass, exchangeMerit, grantProduct, passGain, passLevel, products, type Gain } from '../game/economy';
+import { grantProduct, products, type Gain } from '../game/economy';
 import { commit, G, refreshDay, syncAds } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { esc, fmt, previous, screen, topBar } from './kit';
-import { classEmblem, currencyAmount, currencyIcon, gameIcon, uiIcon, type CurrencyIconKey } from './art';
+import { classEmblem, currencyIcon, gameIcon, uiIcon } from './art';
 import { refreshCells } from './stamina';
-import { passReady } from './tabs';
 import { staminaView } from '../game/stamina';
 
-type Sub = 'merit' | 'pass' | 'cash';
-const SUBS: [Sub, string][] = [['cash', '상품'], ['merit', '공훈'], ['pass', '시즌 패스']];
-/** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」), from = 뒤로 갈 화면 */
-const st: { sub: Sub; msg: string; focus: string; from: string } = { sub: 'cash', msg: '', focus: '', from: 's-lobby' };
+/** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」, 앞 「cash」는 예전 하위 탭 이름), from = 뒤로 갈 화면 */
+const st: { msg: string; focus: string; from: string } = { msg: '', focus: '', from: 's-lobby' };
 
 const s = screen('s-shop', '상점', {
   enter(arg) {
     // 설정에서 돌아올 때는 처음 들어온 화면을 그대로 둠
     if (previous !== 's-settings' && previous !== 's-shop') st.from = previous || 's-lobby';
-    st.focus = '';
-    if (typeof arg === 'string') {
-      const [sub, focus] = arg.split(':');
-      if (SUBS.some(([k]) => k === sub)) st.sub = sub as Sub;
-      st.focus = focus || '';
-    }
+    st.focus = typeof arg === 'string' ? arg.split(':')[1] || '' : '';
     refreshDay(); st.msg = ''; render();
     if (st.focus) s.el.querySelector<HTMLElement>(`[data-prod="${CSS.escape(st.focus)}"]`)?.scrollIntoView({ block: 'center' });
   },
 });
 
-/** 받은 것 한 줄 */
-export function gainText(g: Gain): string { return gainParts(g, false); }
-/** 보상 미리보기는 재화 공통 아이콘을 사용하며, 알림 문장은 텍스트로 유지한다. */
-export function gainHtml(g: Gain): string { return gainParts(g, true); }
-function gainParts(g: Gain, icons: boolean): string {
+/** 받은 것 한 줄 (알림 문장 = 텍스트) */
+export function gainText(g: Gain): string {
   const out: string[] = [];
-  if (g.gold) out.push(icons ? currencyAmount('gold', g.gold, { prefix: '+' }) : `골드 +${fmt(g.gold)}`);
-  if (g.items?.length) out.push(g.items.map(i => icons ? esc(i.name) : i.name).join(', '));
-  if (g.deco) out.push(`「${icons ? esc(g.deco) : g.deco}」`);
-  if (g.pass) out.push(`패스 경험치 +${g.pass}`);
+  if (g.gold) out.push(`골드 +${fmt(g.gold)}`);
+  if (g.items?.length) out.push(g.items.map(i => i.name).join(', '));
+  if (g.deco) out.push(`「${g.deco}」`);
   return out.join(' · ');
 }
 
-const wallet = () => {
-  const w = G.save.wallet;
-  const cells: [CurrencyIconKey, number | string, string][] = [
-    ['gold', isFinite(resourceBalance(G.save, 'gold')) ? resourceBalance(G.save, 'gold') : '∞', '골드'], ['merit', w.merit, '공훈'],
-  ];
-  return `<p class="wallet shop-wallet">${cells.map(([key, n, name]) => `<span>${currencyIcon(key)}<b>${typeof n === 'number' ? fmt(n) : n}</b><small>${name}</small></span>`).join('')}</p>`;
-};
-
 function render(): void {
-  const passOpen = s.el.querySelector<HTMLDetailsElement>('.pass-archive')?.open || false;
   s.el.innerHTML = `${topBar({ back: st.from, title: '상점' })}
-    <nav class="subtabs" role="tablist">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}${k === 'pass' && passReady() ? '<i class="rdot" aria-label="받을 보상"></i>' : ''}</button>`).join('')}</nav>
     <div class="ns-body shop">
-      <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>${SUBS.find(([k]) => k === st.sub)![1]}</h2></div></header>
-      ${st.sub === 'cash' ? '' : wallet()}
+      <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>상품</h2></div></header>
       ${st.msg ? `<p class="warnbox" role="status">${esc(st.msg)}</p>` : ''}
-      ${st.sub === 'merit' ? meritHtml() : st.sub === 'pass' ? passHtml() : cashHtml()}
+      ${cashHtml()}
     </div>`;
-  const archive = s.el.querySelector<HTMLDetailsElement>('.pass-archive');
-  if (archive) archive.open = passOpen;
   st.msg = '';
-}
-
-function meritHtml(): string {
-  const w = G.save.wallet, wk = G.save.weekly.merit;
-  return `<p class="note">레이드 보스를 잡으면 공훈. 레이드마다 주 ${MERIT_WEEK_CAP}까지 (10인 ${wk[10]}/${MERIT_WEEK_CAP} · 20인 ${wk[20]}/${MERIT_WEEK_CAP}) · 보유 <b>${w.merit}/${MERIT_HOLD_CAP}</b>${w.merit >= MERIT_HOLD_CAP ? ' (가득: 더 안 쌓임)' : ''}</p>
-    <section class="panel mgear"><h4>영웅 장비 <small>원하는 부위 1개</small></h4>
-      <div class="gbtns">${SLOTS.map(sl => `<button class="btn" type="button" data-ex="${sl.key}"${w.merit < MERIT_GEAR_COST ? ' disabled' : ''}>${sl.name}<small>${currencyAmount('merit', MERIT_GEAR_COST)}</small></button>`).join('')}</div></section>`;
-}
-
-function passHtml(): string {
-  const p = G.save.pass, lv = passLevel(p.xp), se = seasonOf();
-  const into = lv >= PASS_LEVELS ? PASS_XP : p.xp - lv * PASS_XP;
-  const row = (l: number) => {
-    const open = l <= lv, got = p.free.includes(l);
-    return `<li class="prow solo${open ? ' open' : ''}"><b>${l}</b>
-      <span class="pf">${gainHtml(passGain(G.save, l))}${open ? (got ? ' <i>받음</i>' : ` <button class="btn mini" type="button" data-pass="${l}">받기</button>`) : ''}</span></li>`;
-  };
-  return `<section class="panel passhead"><h4>시즌 ${p.season || SEASON.n} 「${SEASON.name}」 <small>${se.week + 1}/${SEASON.weeks}주${se.catchUp ? ' · 따라잡기 경험치 +50%' : ''}</small></h4>
-      <p>패스 Lv <b>${lv}</b>/${PASS_LEVELS} <span class="bar"><i style="width:${Math.min(100, (into / PASS_XP) * 100)}%"></i></span> ${fmt(into)}/${fmt(PASS_XP)}</p>
-      <p class="note">일일·주간 임무로 패스 경험치를 얻습니다. 보상은 모두 무료입니다.</p></section>
-    ${passRewards(lv, row)}`;
-}
-
-/** 받을 보상과 바로 다음 단계부터. 나머지 50단계 표는 필요할 때 펼친다. */
-function passRewards(lv: number, row: (level: number) => string): string {
-  const p = G.save.pass;
-  const levels = Array.from({ length: PASS_LEVELS }, (_, i) => i + 1);
-  const ready = levels.filter(l => l <= lv && !p.free.includes(l));
-  const priority = new Set([...ready, ...(lv < PASS_LEVELS ? [lv + 1] : [])]);
-  const rest = levels.filter(l => !priority.has(l));
-  return `<h3 class="sec">${ready.length ? `받을 보상 ${ready.length}단계` : lv < PASS_LEVELS ? '다음 보상' : '보상 수령 완료'}</h3>
-    <ul class="plist"><li class="prow solo head"><b>Lv</b><span class="pf">보상</span></li>${levels.filter(l => priority.has(l)).map(row).join('')}</ul>
-    ${rest.length ? `<details class="pass-archive"><summary>다른 보상 ${rest.length}단계 보기</summary><ul class="plist">${rest.map(row).join('')}</ul></details>` : ''}`;
 }
 
 /** 직업 상품 한 줄 설명 (캐릭터 → 직업 목록과 같은 말) */
@@ -134,12 +74,6 @@ function cashHtml(): string {
 
 s.el.addEventListener('click', async e => {
   const t = e.target as HTMLElement, save = G.save;
-  const sub = t.closest<HTMLElement>('[data-sub]');
-  if (sub) { st.sub = sub.dataset.sub as Sub; st.focus = ''; render(); return; }
-  const ex = t.closest<HTMLElement>('[data-ex]');
-  if (ex) { const r = exchangeMerit(save, ex.dataset.ex as SlotKey); st.msg = typeof r === 'string' ? r : `교환: ${r.name} (가방)`; commit(); render(); return; }
-  const pa = t.closest<HTMLElement>('[data-pass]');
-  if (pa) { const r = claimPass(save, Number(pa.dataset.pass), Date.now()); st.msg = typeof r === 'string' ? r : `받음: ${gainText(r)}`; commit(); render(); return; }
   const iap = t.closest<HTMLButtonElement>('[data-iap]');
   if (iap && !iap.disabled) {
     const id = iap.dataset.iap!;

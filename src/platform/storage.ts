@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 27; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27)
+export const SAVE_VERSION = 28; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -61,14 +61,10 @@ export interface HeroSave {
   preset?: number;
   /** v10 저장 이전 전용. v12 인벤토리는 save.gear 하나이며 loadout은 ID만 보관 */
   gear?: HeroGear;
-  /** v10 공훈 이전 전용. v12는 캐릭터 공통 wallet.merit · weekly.merit */
-  merit?: HeroMerit;
 }
 
 /** 다른 직업에 넣어 둔 장비 (HeroSave.gear) */
 export interface HeroGear { equipped: Equipped; bag: GearItem[]; seen: number }
-/** 다른 직업에 넣어 둔 공훈 (HeroSave.merit). week가 이번 주가 아니면 got은 0으로 봄 */
-export interface HeroMerit { n: number; week: string; got: { 10: number; 20: number } }
 
 export interface Settings {
   sound: boolean;
@@ -167,8 +163,6 @@ export interface DailySave {
 export interface WeeklySave {
   week: string;
   missions: MissionSave[];
-  /** 레이드마다 이번 주 받은 공훈 (상한 150). 같은 캐릭터의 모든 직업이 공유 */
-  merit: { 10: number; 20: number };
   /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회). v12는 캐릭터 공통 「장소|난이도」, 옛 직업 접두사는 migrate에서 제거 */
   loot: string[];
   /** 주간 도전: 이번 주 제한시간 안에 깬 최고 단계 */
@@ -178,9 +172,6 @@ export interface WeeklySave {
   /** 길드 주간 목표 진행 · 받음 */
   guild: { n: number; got: boolean };
 }
-
-/** 시즌 패스 (15 4장). 81에서 프리미엄 라인을 없애 보상 한 줄 (free = 받은 단계) */
-export interface PassSave { season: number; xp: number; free: number[] }
 
 /**
  * 휴식 (90, 81 2장 때 이름 stamina 그대로, 계정): n = 지금 값 (광고 충전으로 최대치를 넘을 수 있음), at = 다음 1이 차기 시작한 시각 (ms, 최대치 이상이면 마지막으로 본 시각).
@@ -235,11 +226,8 @@ export interface SaveData {
   heroes: Partial<Record<HeroKey, HeroSave>>;
   /** v4: 길드 (02 9장, 17) */
   guild: GuildSave;
-  /** v5: 재화 (12). v14 (81): 크리스탈 · 악몽 열쇠 · 모집권을 없애고 공훈만 */
-  wallet: { merit: number };
   daily: DailySave;
   weekly: WeeklySave;
-  pass: PassSave;
   /** v14 (81): 휴식 (90, 계정) */
   stamina: StaminaSave;
   /** v14 (81): 산 앱 결제 상품 id (계정, 광고 제거 패키지 · 직업). 예전 월정액 · 크리스탈 · 첫 구매 기록은 없앰 */
@@ -257,7 +245,7 @@ export interface SaveData {
 }
 
 export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
-export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], merit: { 10: 0, 20: 0 }, loot: [], chalBest: 0, guild: { n: 0, got: false } });
+export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], loot: [], chalBest: 0, guild: { n: 0, got: false } });
 
 /** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸, 사제만 처음부터 해금) */
 export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
@@ -282,8 +270,8 @@ export function newSave(now = Date.now()): SaveData {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
     player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
-    wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
-    pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
+    daily: newDaily(), weekly: newWeekly(),
+    stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
     roster: newRoster('priest', now),
   };
 }
@@ -318,11 +306,9 @@ export function migrate(raw: unknown): SaveData {
     heroes: heroesOf(o),
     // v4: 길드 (옛 저장은 빈 길드)
     guild: guildOf(o.guild, legacySkill, typeof o.v === 'number' ? o.v : 0),
-    // v5: 재화·임무·패스. v14 (81): 공훈만 남기고 크리스탈 · 악몽 열쇠 · 모집권은 버림
-    wallet: { merit: typeof o.wallet?.merit === 'number' ? o.wallet.merit : 0 },
+    // v5: 재화·임무·패스. v14 (81): 크리스탈 · 악몽 열쇠 · 모집권은 버림. v28: 시즌 패스 · 공훈도 버림 (아래)
     daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
-    weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
-    pass: passOf(o.pass, base.pass),
+    weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
     stamina: staminaOf(o.stamina, base.stamina),
     bought: Array.isArray(o.bought) ? o.bought.filter((k): k is string => typeof k === 'string') : [],
     chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,
@@ -330,8 +316,11 @@ export function migrate(raw: unknown): SaveData {
     chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
     roster: rosterOf(o.roster, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.createdAt),
   };
-  // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림
-  for (const k of ['member', 'firstBuy', 'items', 'bag', 'users'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림.
+  // v28 (Lim 10-20 「시즌패스 시스템 제거」 · 「공훈 재화및 시스템도 제거하자」): 시즌 패스 (pass) · 공훈 (wallet · weekly.merit · 직업별 옛 공훈)도 버림 (받은 장식은 decos에 남음)
+  for (const k of ['member', 'firstBuy', 'items', 'bag', 'users', 'pass', 'wallet'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  delete (out.weekly as unknown as Record<string, unknown>).merit;
+  for (const h of HERO_KEYS) if (out.heroes[h]) delete (out.heroes[h] as unknown as Record<string, unknown>).merit;
   // v17 (91): 골드 다시. 골드는 0부터 (v16이 버린 옛 골드는 되살리지 않음), 남은 강화석 · 정제 강화석을 골드로. 강화석 무제한 → 골드 무제한
   const legacy = o as unknown as { mats?: { stone?: unknown; refined?: unknown }; settings?: { devStones?: unknown } };
   if ((o.v ?? 0) < 17) {
@@ -360,13 +349,6 @@ export function migrate(raw: unknown): SaveData {
   return out;
 }
 
-/** 시즌 패스: 시즌 · 경험치 · 받은 단계만 (v14, 프리미엄 라인 없음) */
-function passOf(v: unknown, d: PassSave): PassSave {
-  const p = v as Partial<PassSave> | null;
-  if (!p || typeof p !== 'object') return d;
-  return { season: typeof p.season === 'number' ? p.season : d.season, xp: typeof p.xp === 'number' ? p.xp : d.xp, free: Array.isArray(p.free) ? p.free.filter(n => typeof n === 'number') : [] };
-}
-
 /** 휴식: 깨졌거나 없으면 가득 (v14 처음 = 가득 찬 채로 시작) */
 function staminaOf(v: unknown, d: StaminaSave): StaminaSave {
   const s = v as Partial<StaminaSave> | null;
@@ -390,14 +372,13 @@ function rosterOf(v: unknown, hero: HeroKey, now: number): Roster {
 export const charKey = (id: number) => `healer.char.${id}`;
 
 /**
- * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 휴식 (81 · 90) · 패스 · 캐릭터 목록.
+ * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 휴식 (81 · 90) · 캐릭터 목록.
  * 나머지 (재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
  */
 export function shareAccount(from: SaveData, to: SaveData): void {
   to.settings = { ...from.settings, layout: to.settings.layout, tapKey: to.settings.tapKey };
   to.bought = [...from.bought];
   to.stamina = { ...from.stamina };
-  to.pass = { ...from.pass, free: [...from.pass.free] };
   to.roster = from.roster;
 }
 
@@ -431,7 +412,7 @@ export function wipeChars(d: SaveData, kv: KV | null = store()): void {
 
 /**
  * v11 캐릭터 나누기 (68 4장): 해 본 직업마다 캐릭터 하나 (지금 직업 · 해금 · 레벨 · 경험치 · 이긴 판 · 장비가 있는 직업). 칸 = 캐릭터 수.
- * 직업마다였던 것 (레벨 · 장비 · 공훈 · 휠 배치 · 특성 · 레이드 주 1회 장비)은 그 캐릭터로. 계정이던 것 (골드 · 재료 · 열쇠 · 소비 아이템 · 도감 · 임무 · 상자 · 길드 · 칭호)은
+ * 직업마다였던 것 (레벨 · 장비 · 휠 배치 · 특성 · 레이드 주 1회 장비)은 그 캐릭터로 (공훈은 v28이 버림). 계정이던 것 (골드 · 재료 · 열쇠 · 소비 아이템 · 도감 · 임무 · 상자 · 길드 · 칭호)은
  * 가장 높은 레벨 캐릭터 (같으면 지금 캐릭터, v10 장비 주인과 같음)가 갖고, 나머지는 골드 0 · 처음 가방 · 자기 장비로 다시 채운 도감 · 새 임무.
  * 클리어 기록은 나머지 캐릭터도 자기 레벨로 들어갈 수 있는 장소 것만 (난이도 사슬이 닫히지 않게)
  */
@@ -452,26 +433,24 @@ function splitChars(d: SaveData, now: number): void {
     const s = h === cur ? null : hs(h), mine = h === main, lv = lvOf(h);
     const c = newSave(d.createdAt);
     const hero: HeroSave = { ...(hs(h) ?? { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0 }), unlocked: true };
-    delete hero.level; delete hero.xp; delete hero.gear; delete hero.merit;
+    delete hero.level; delete hero.xp; delete hero.gear; delete (hero as HeroSave & { merit?: unknown }).merit;
     const g = s ? s.gear : { equipped: d.gear.equipped, bag: d.gear.bag, seen: d.gear.seen ?? d.nextId - 1 };
-    const merit = s ? { n: s.merit?.n ?? 0, got: s.merit?.week === week ? s.merit.got : { 10: 0, 20: 0 } } : { n: d.wallet.merit, got: d.weekly.merit };
     Object.assign(c, {
       hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId,
       settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
       player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
       gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
-      wallet: { merit: merit.n },
       clears: mine ? d.clears : Object.fromEntries(Object.entries(d.clears).filter(([k]) => (CONTENT.find(x => x.key === k)?.unlockLv ?? 1) <= lv)),
       last: h === cur ? d.last : null,
       guild: mine ? d.guild : c.guild, decos: mine ? d.decos : [], chalOpen: mine ? d.chalOpen : 1,
       daily: mine ? d.daily : c.daily,
       weekly: {
-        ...(mine ? d.weekly : newWeekly(week)), merit: merit.got,
+        ...(mine ? d.weekly : newWeekly(week)),
         loot: d.weekly.loot.filter(k => k.startsWith(`${h}|`)),
         chalBest: chalOwner === h ? d.weekly.chalBest : 0, chalHero: chalOwner === h ? d.weekly.chalHero : undefined,
       },
       chalChest: chestOwner === h ? d.chalChest : 0, chalChestHero: chestOwner === h ? d.chalChestHero : undefined,
-      pass: d.pass, stamina: d.stamina, bought: d.bought, createdAt: d.createdAt,
+      stamina: d.stamina, bought: d.bought, createdAt: d.createdAt,
     } satisfies Partial<SaveData>);
     const out = clone(c);
     if (!mine) { const items = [...Object.values(out.gear.equipped), ...out.gear.bag]; noteSpecs(out, items); }
@@ -491,7 +470,7 @@ const heroOfItem = (it: GearItem): HeroKey | undefined => (it.specs ?? []).map(l
 /**
  * v10 직업마다 장비 (2026-10-12 Lim): 옛 저장의 공용 장비를 나눔. 착용 장비 · 가방은 가장 높은 직업 (같으면 지금 직업)이 갖고,
  * 다른 직업 전용 특수능력이 붙은 가방 장비는 그 직업 가방으로 (그 직업으로 돌 때 얻은 장비). 나머지 직업은 맨몸으로 시작.
- * 공훈 (장비로 바꾸는 레이드 재화)도 가장 높은 직업에게. 레이드 주 1회 장비 기록은 지금 직업 것으로
+ * 레이드 주 1회 장비 기록은 지금 직업 것으로 (예전 공훈 옮기기는 v28에서 공훈과 함께 없앰)
  */
 function gearByHero(d: SaveData): void {
   // v9 이전 저장만의 직업별 레벨. v12 공통 레벨 조회를 사용하면 기존 자산의 주인이 바뀐다.
@@ -511,8 +490,6 @@ function gearByHero(d: SaveData): void {
   }
   if (owner !== d.hero) {
     g.equipped = {};
-    heroSaveOf(d, owner).merit = { n: d.wallet.merit, week: d.weekly.week, got: d.weekly.merit };
-    d.wallet.merit = 0; d.weekly.merit = { 10: 0, 20: 0 };
   }
   g.bag = keep;
   d.weekly.loot = d.weekly.loot.map(k => (k.split('|').length === 2 ? `${d.hero}|${k}` : k));

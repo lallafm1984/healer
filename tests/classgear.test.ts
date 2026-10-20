@@ -9,7 +9,7 @@ import { SKILLS } from '../src/data/skills';
 import { CHAL, chalLimit } from '../src/data/challenge';
 import * as E from '../src/engine';
 import { cdOf } from '../src/engine/talents';
-import { claimChalChest, exchangeMerit, raidLootOpen, rollover } from '../src/game/economy';
+import { claimChalChest, raidLootOpen, rollover } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
 import { equip, G, makeChar, pickChar } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
@@ -127,23 +127,6 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
     makeChar('druid', '', MON);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
   });
-  it('공훈과 주 상한은 캐릭터마다 (새 캐릭터는 0부터, 돌아오면 그대로)', () => {
-    settle(G.save, result(), () => 0.5, [], MON); // 정산 시각을 MON으로 (오늘 날짜로 정산하면 MON과 다른 주가 되어 돌아올 때 주 상한이 새로 시작함)
-    const got = G.save.weekly.merit[10], n = G.save.wallet.merit;
-    expect(n).toBeGreaterThan(0);
-    makeChar('druid', '', MON);
-    expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([0, 0]);
-    expect(exchangeMerit(G.save, 'ring')).toMatch(/부족/);
-    pickChar(1, MON);
-    expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([n, got]);
-  });
-  it('다음 주에 돌아오면 공훈은 남고 주 상한만 새로', () => {
-    settle(G.save, result(), () => 0.5, [], MON);
-    const n = G.save.wallet.merit;
-    makeChar('druid', '', MON);
-    pickChar(1, NEXT);
-    expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([n, 0]);
-  });
   it('주간 도전 상자는 기록을 세운 캐릭터가 받음', () => {
     G.save.weekly.chalBest = 0;
     settle(G.save, result({ content: CHAL.content, diff: CHAL.diff, chal: 12, limit: chalLimit(12), time: 300, segN: 4, segIdx: 3 }), () => 0.5, [], MON);
@@ -151,10 +134,10 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
     expect(G.save.chalChest).toBe(0);
     pickChar(1, NEXT);
     expect([G.save.chalChest, G.save.chalChestHero]).toEqual([12, 'priest']);
-    expect(typeof claimChalChest(G.save, rng, NEXT)).toBe('object');
+    expect(typeof claimChalChest(G.save, rng)).toBe('object');
     expect(G.save.chalChest).toBe(0);
     pickChar(2, NEXT);
-    expect(claimChalChest(G.save, rng, NEXT)).toMatch(/없음/);
+    expect(claimChalChest(G.save, rng)).toMatch(/없음/);
   });
 });
 

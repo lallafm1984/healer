@@ -8,7 +8,6 @@ import { codexKeys, FEATURED, NAMED, namedOf, namedsFor, SPEC_GROUPS, SPEC_KEYS,
 import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs, SAVE_VERSION } from '../src/platform/storage';
-import { exchangeMerit } from '../src/game/economy';
 import { GEAR_SPECS, GEARS, presetSpecs, type GearId } from '../src/data/gear';
 import { uniquesFor } from '../src/data/uniques';
 
@@ -256,16 +255,5 @@ describe('저장 · 도감 (42 1-6)', () => {
     expect(s.decos.filter(d => d === SPEC_TITLES.mana).length).toBe(1);
     noteSpecs(s, NAMED.map((n, i) => ({ ...it(10 + i, []), slot: n.slot, named: n.key })));
     expect(s.decos).toContain(SPEC_TITLES.named);
-  });
-  it('공훈 교환 장비도 직업 맞춤 굴림 · 도감에 적힘', () => {
-    const s = newSave(1);
-    s.hero = 'paladin'; s.wallet.merit = 10000;
-    const r = rngFrom(3);
-    for (let i = 0; i < 40; i++) {
-      const it = exchangeMerit(s, 'weapon', r) as GearItem;
-      expect(it.specs!.length).toBe(1);
-      for (const l of it.specs!) expect([undefined, 'paladin']).toContain(SPECS[l.key].hero);
-    }
-    expect(s.gear.codex.length).toBeGreaterThan(5);
   });
 });

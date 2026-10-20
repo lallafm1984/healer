@@ -30,7 +30,6 @@ import { adsFree } from '../game/stamina';
 import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
-import { MERIT_HOLD_CAP } from '../data/economy';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
@@ -170,8 +169,6 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false
   const gb = x.restBonus?.gold ?? 0;
   const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur${add ? ' rb' : ''}"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
-  if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
-  else if (x.meritFull) tiles.push(`<span class="r-cur full"><span class="r-ci">${currencyIcon('merit')}</span><span class="r-cv"><b>공훈 가득</b><small>최대 ${MERIT_HOLD_CAP}</small></span></span>`); // 보유 상한 (103)
   const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>

@@ -32,13 +32,13 @@ afterEach(() => { Flow.running = false; });
 describe('공통 성장과 직업별 착용 조합', () => {
   beforeEach(fresh);
   it('무료 전환은 현재 캐릭터·레벨·경험치·재화·진행을 그대로 유지', () => {
-    const d = G.save, snapshot = JSON.stringify([d.player, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass]);
+    const d = G.save, snapshot = JSON.stringify([d.player, d.daily, d.weekly, d.clears, d.guild]);
     const w = makeItem(() => .5, 'weapon', '희귀', 1); w.rr = 5; w.specs = [{ key: 'deepWord', roll: 1 }];
     d.gear.equipped.weapon = w;
     for (const h of ['druid', 'paladin', 'priest'] as const) {
       expect(switchHero(h, now)).toBe(true);
       expect(G.save).toBe(d); expect(d.roster.cur).toBe(1); expect(d.roster.chars).toHaveLength(1);
-      expect(JSON.stringify([d.player, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass])).toBe(snapshot);
+      expect(JSON.stringify([d.player, d.daily, d.weekly, d.clears, d.guild])).toBe(snapshot);
       expect(d.gear.equipped.weapon).toBe(w);
       expect(d.gear.equipped.weapon!.rr).toBe(5);
       expect(!!specsOf(d.gear.equipped, h).deepWord).toBe(h === 'priest');
@@ -116,14 +116,13 @@ describe('공통 성장과 직업별 착용 조합', () => {
 
 describe('클리어 직업과 보상 횟수', () => {
   beforeEach(fresh);
-  it('직업을 바꿔도 레이드 주 첫 보상·공훈 상한·첫 클리어 보상을 다시 받지 않음', () => {
+  it('직업을 바꿔도 레이드 주 첫 보상·첫 클리어 보상을 다시 받지 않음', () => {
     const r = result({ hero: 'priest', content: 'abyss1' });
     const a = settle(G.save, r, () => .5, [], now);
     expect(a.items).toHaveLength(1); expect(a.first).toBe(true);
-    G.save.weekly.merit[10] = 150;
     switchHero('druid', now);
     const b = settle(G.save, { ...r, hero: 'druid' }, () => .5, [], now);
-    expect(b.items).toHaveLength(1); expect(b.raidLoot).toBe('again'); expect(b.merit).toBe(0); // 다시 깬 판 보상 (던전 표), 주 첫 보상은 직업 공통
+    expect(b.items).toHaveLength(1); expect(b.raidLoot).toBe('again'); // 다시 깬 판 보상 (던전 표), 주 첫 보상은 직업 공통
     expect(b.first).toBe(false);
     expect(raidLootOpen(G.save, 'abyss1', '어려움')).toBe(false);
     expect(G.save.heroes.priest?.wins).toBe(1); expect(G.save.heroes.druid?.wins).toBe(1);
@@ -139,11 +138,11 @@ describe('클리어 직업과 보상 횟수', () => {
   });
   it('주간 상자는 다른 직업에서 받아도 최고 기록 직업 장비, 한 번만 지급', () => {
     G.save.chalChest = 20; G.save.chalChestHero = 'druid'; G.save.player.level = 60; // 88: 영웅 상자는 Lv 45부터
-    const g = claimChalChest(G.save, () => .1, now);
+    const g = claimChalChest(G.save, () => .1);
     expect(typeof g).toBe('object'); if (typeof g === 'string') throw new Error(g);
     expect(g.items).toHaveLength(2);
     for (const it of g.items!) expect(itemSpecs(it).filter(s => SPECS[s.key]?.hero).map(s => SPECS[s.key].hero)).toEqual(['druid']);
-    switchHero('druid'); expect(claimChalChest(G.save, () => .5, now)).toMatch(/없음/);
+    switchHero('druid'); expect(claimChalChest(G.save, () => .5)).toMatch(/없음/);
   });
   it('실패·포기에는 전용 장비나 클리어 기록을 지급하지 않음', () => {
     expect(settle(G.save, result({ win: false, quit: true }), () => .5, [], now).items).toEqual([]);
