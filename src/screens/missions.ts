@@ -15,6 +15,7 @@ import { showRewarded } from '../platform/ads';
 import { esc, screen, topBar } from './kit';
 import { gainText } from './shop';
 import { currencyAmount } from './art';
+import { sfx } from '../sfx';
 
 const st = { msg: '' };
 const s = screen('s-missions', '임무', { enter() { refreshDay(); st.msg = ''; render(); } });
@@ -61,21 +62,25 @@ function render(): void {
   st.msg = '';
 }
 
+/** 받기 소리 (107): 받았으면 그 소리, 못 받았으면 (글자 = 까닭) deny */
+const got = (r: unknown, name: string) => sfx(typeof r === 'string' ? 'deny' : name);
+
 s.el.addEventListener('click', async e => {
   const t = e.target as HTMLElement, save = G.save;
   const c = t.closest<HTMLElement>('[data-claim]');
-  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
+  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
   const sw = t.closest<HTMLElement>('[data-swap]');
   if (sw) { st.msg = swapMission(save, Number(sw.dataset.swap), Math.random) || '임무 교체'; commit(); render(); return; }
-  if (t.closest('#chest')) { const r = claimChest(save, Math.random); st.msg = typeof r === 'string' ? r : `완료 상자: ${gainText(r)}`; commit(); render(); return; }
+  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : `완료 상자: ${gainText(r)}`; commit(); render(); return; }
   if (t.closest('#chest2')) {
     const mem = adsFree(save);
     if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
     if (!(await showRewarded('완료 상자 한 번 더', mem))) return;
     if (!mem) save.daily.ads.chest++;
     const r = claimChest(save, Math.random, true);
+    got(r, 'chest-open');
     st.msg = typeof r === 'string' ? r : `한 번 더: ${gainText(r)}`; commit(); render(); return;
   }
-  if (t.closest('#guildGoal')) { st.msg = claimGuildGoal(save) || `길드 주간 목표 · 명성 +${GUILD_GOAL.fame}`; commit(); render(); return; }
-  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#guildGoal')) { const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); st.msg = err || `길드 주간 목표 · 명성 +${GUILD_GOAL.fame}`; commit(); render(); return; }
+  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });

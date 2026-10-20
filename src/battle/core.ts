@@ -12,6 +12,7 @@ import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engi
 import { castText } from '../game/tooltip';
 import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
+import { audioCtx, audioOut, sfx } from '../sfx';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -171,31 +172,37 @@ export const secT = (x: number) => `${+x.toFixed(1)}초`;
 export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 export const iga = (w: string) => w + josa(w, '이', '가');
 
-// ---------- 소리 (아트·사운드 가이드 16, 7장) ----------
-type AC = AudioContext;
+// ---------- 소리 (아트·사운드 가이드 16 7장, 효과음 107) ----------
+// 효과음 파일 (src/sfx, 107)이 있으면 그것을, 없으면 아래 합성음 자리표시를 냄. heal · renew · hymn은 직업마다 다른 파일 (heal-<직업> …)
+/** 직업 소리: 엔진 이름 → 파일 이름 앞머리 (뒤에 -<직업>) */
+const HERO_SND = new Set(['heal', 'renew', 'hymn']);
+/** 직접 힐은 음정 셋 중 무작위 (16 7-2, 같은 소리가 쌓이지 않게) */
+const HEAL_RATE = [0.89, 1, 1.12];
+/** 이름이 바뀐 소리 → 예전 합성음 */
+const SYNTH: Record<string, string> = { deny: 'error', 'battle-start': 'buster', 'debuff-disease': 'cough', 'debuff-poison': 'bubble', 'debuff-magic': 'zap' };
 export const Snd = {
-  ctx: null as AC | null,
-  init() {
-    try {
-      const W = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
-      if (!this.ctx) this.ctx = new (W.AudioContext || W.webkitAudioContext)!();
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
-    } catch { this.ctx = null; }
-  },
+  init() { audioCtx(); },
   tone(freq: number, dur: number, type?: OscillatorType, vol?: number, slide?: number, delay?: number) {
-    if (!S.sound || !this.ctx) return;
-    const t = this.ctx.currentTime + (delay || 0);
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    const ctx = audioCtx(), out = audioOut();
+    if (!S.sound || !ctx || !out) return;
+    const t = ctx.currentTime + (delay || 0);
+    const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type || 'sine';
     o.frequency.setValueAtTime(freq, t);
     if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol || 0.05, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(this.ctx.destination);
+    o.connect(g).connect(out);
     o.start(t); o.stop(t + dur + 0.03);
   },
-  play(n: string) {
+  play(name: string) {
+    if (!S.sound) return;
+    if (HERO_SND.has(name) && sfx(`${name}-${S.hero}`, name === 'heal' ? { rate: HEAL_RATE[(Math.random() * HEAL_RATE.length) | 0] } : {})) return;
+    if (sfx(name)) return;
+    this.synth(SYNTH[name] ?? name);
+  },
+  synth(n: string) {
     switch (n) {
       case 'heal': this.tone([784, 880, 988, 1047][(Math.random() * 4) | 0], 0.14, 'sine', 0.05); break;
       case 'crit': this.tone(1047, 0.22, 'sine', 0.05); this.tone(1319, 0.22, 'sine', 0.04, 0, 0.03); break;

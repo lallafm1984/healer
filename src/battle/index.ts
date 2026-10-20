@@ -12,6 +12,7 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
+import { hasSfx, setSfxOn } from '../sfx';
 import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -231,7 +232,7 @@ function endSlot(cancelled: boolean, e?: PointerEvent): void {
   if (P.lp) releaseTip();
   if (P.lp || cancelled || !live()) return;
   if (P.core) { pressCore(); return; }
-  if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('error'); return; }
+  if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('deny'); return; }
   pressSlot(P.slot!);
 }
 $('wheel').addEventListener('pointermove', e => { if (slotPress && ownsPress(slotPress, e) && outsidePress(slotPress, e)) endSlot(true, e); });
@@ -248,8 +249,8 @@ function pressCore(): void {
   if (!F || !live() || ui.pullLeft > 0) return;
   if (F.hero !== 'paladin') return;
   const lv = HEROES.paladin.system.lv;
-  if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('error'); return; }
-  if (F.beaconCd > 0) { toast(`봉화 바꾸기 대기 ${Math.ceil(F.beaconCd)}초`); Snd.play('error'); return; }
+  if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('deny'); return; }
+  if (F.beaconCd > 0) { toast(`봉화 바꾸기 대기 ${Math.ceil(F.beaconCd)}초`); Snd.play('deny'); return; }
   B.beacon = !B.beacon; B.armed = null; ui.talArmed = null;
   if (B.beacon) toast('봉화: 지킬 파티원 칸 선택');
   vibe(8);
@@ -318,13 +319,13 @@ function pressAux(key: TalentKey): void {
   if (talentUsesSpent(F, key)) return;
   if (def.active!.cell) {
     const r = talentReady(F, key);
-    if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
+    if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('deny'); return; }
     ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false;
     if (ui.talArmed) toast(`${def.name}: 빈 칸 선택`);
     vibe(8); return;
   }
   const res = useTalent(F, key);
-  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
+  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return; }
   vibe(12);
 }
 
@@ -367,7 +368,7 @@ function doUse(key: SkillKey, idx: number): boolean {
   if (skillUsesSpent(F, key)) return false;
   const res = use(F, key, idx);
   if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
-  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return false; }
+  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
   if (B.armed && key === 'serenity') B.armed = null;
   if (SKILLS[key].cast > 0 && !res.queued && !res.same) Snd.play('cast');
@@ -413,13 +414,13 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
     const u = P.idx >= 0 ? F.cells[P.idx].unit : null;
     if (!u || !u.alive) { F.stats.emptyTaps++; return; }
     B.beacon = false;
-    if (!setBeacon(F, u)) { Snd.play('error'); return; }
+    if (!setBeacon(F, u)) { Snd.play('deny'); return; }
     Snd.play('chime'); vibe(12); return;
   }
   if (ui.talArmed) { // 쉼터 장전 중: 빈 칸 탭
     if (P.idx < 0) { F.stats.emptyTaps++; return; }
     const res = useTalent(F, ui.talArmed, P.idx);
-    if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
+    if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return; }
     ui.talArmed = null; vibe(12); return;
   }
   const dx = P.x - P.x0, dy = P.y - P.y0;
@@ -458,6 +459,8 @@ const CHAIN_STEP_MS = 160;
 function handleEvents(now: number): void {
   const F = B.F!;
   let healSnd = false, critSnd = false;
+  // 부활 · 특성 버튼은 그 소리 파일이 있으면 엔진이 같이 낸 차임 대신 (107)
+  const ownSnd = F.events.some(e => (e.type === 'revive' && hasSfx('revive')) || (e.type === 'talent' && hasSfx('talent-use')));
   // 스킬 PXF 이펙트 (battle/pxf.ts): 들어간 휠 스킬마다 대상 · 범위 · 파티 칸에. 그 칸의 이번 치유는 치유 빛 없이
   const plain = new Set<number>();
   // 연쇄 치유 (Lim 2026-10-16 「연쇄는 순차적으로 발동되게, 지금은 이펙트가 동시에 나온다」): 엔진은 한 틱에 모두 회복하지만
@@ -490,6 +493,7 @@ function handleEvents(now: number): void {
         break;
       }
       case 'talent': { // 특성 버튼 발동 (2026-10-19 Lim): 칸 특성 = 고른 칸, 봄비 = 살아 있는 모두, 고목 = 받는 사람, 나머지 = 내 칸
+        Snd.play('talent-use');
         const fx = HERO_TALENT_FX[F.hero];
         if (!fx) break;
         if (ev.cell != null) fxPxfCell(ev.cell, fx, now);
@@ -501,6 +505,7 @@ function handleEvents(now: number): void {
       case 'shield': if (u) fxShield(u, ev.amt, now); break; // 흡수 보호막: 같은 자리 파란 숫자
       case 'bark': break; // 말풍선은 아래 talk.frame이 상황에 맞는 대사로 (41)
       case 'sound':
+        if (ownSnd && ev.name === 'chime') break;
         Snd.play(ev.name);
         if (ev.name === 'death') vibe(90, true);
         break;
@@ -509,9 +514,9 @@ function handleEvents(now: number): void {
         if (!ev.trap && !ev.ally) vibe([12, 60, 12]);
         break;
       case 'cure': if (u) fxCure(u, ev.name, now); break; // 체력을 채워 쇠약·완치 표식이 사라짐 (얼음 갑옷은 녹음, 63 E)
-      case 'revive': if (u) fxRevive(u, now, '부활', plain.has(ev.id)); break;
+      case 'revive': if (u) fxRevive(u, now, '부활', plain.has(ev.id)); Snd.play('revive'); break;
       case 'debuff': {
-        const nm = ({ '질병': 'cough', '독': 'bubble', '마법': 'zap' } as Record<string, string>)[ev.dtype];
+        const nm = ({ '질병': 'debuff-disease', '독': 'debuff-poison', '마법': 'debuff-magic', '저주': 'debuff-curse' } as Record<string, string>)[ev.dtype];
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
         if (u) fxDebuff(u, ev.dtype, now); // 디버프 걸림 그림 (44 E-1, 종류 색)
         break;
@@ -531,11 +536,11 @@ function handleEvents(now: number): void {
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
         break;
       case 'msg': toast(ev.text); break;
-      case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
+      case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정', true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
       case 'mobDown': {
-        toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle();
+        toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle(); Snd.play('mob-down');
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
         const a = F.mobs.find(m => m.id === ev.id)?.add;
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
@@ -550,7 +555,7 @@ function handleEvents(now: number): void {
         if (fx) fxPxf(u, fx, now);
         break;
       }
-      case 'spec': if (u) fxSpec(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
+      case 'spec': if (u) { fxSpec(u, ev.name, now); Snd.play('proc'); } break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'dmg': if (u) fxDamage(u, ev.amt, now); break; // 받은 피해: 회복 숫자 자리에 빨간 숫자 (뒤집힌 축복도 이것, hurt 사건은 말풍선만)
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
@@ -804,7 +809,7 @@ function updatePull(dt: number): void {
     const el = $('pullNum'); el.textContent = String(n); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
     if (n > 0) Snd.play('tick');
   }
-  if (ui.pullLeft <= 0) { $('pull').hidden = true; acc = 0; Snd.play('buster'); banner('전투 시작!'); }
+  if (ui.pullLeft <= 0) { $('pull').hidden = true; acc = 0; Snd.play('battle-start'); banner('전투 시작!'); }
 }
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -869,6 +874,7 @@ function frame(now: number): void {
   },
   settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
+    setSfxOn(S.sound);
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
     S.zoom = s.zoom !== false; S.auto = !!s.auto;

@@ -31,6 +31,7 @@ import { classEmblem, currencyAmount, fxArt, gameIcon, gearArt, gearIcon, LOCK, 
 import { battle, current, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
+import { sfx } from '../sfx';
 
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
@@ -489,6 +490,7 @@ function confirmAction(): void {
   const visibleIds = Array.from(s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]')).map(el => Number(el.dataset.gitem));
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
   const r = sell([action.id]);
+  sfx(r.n ? 'gear-sell' : 'deny');
   msg = r.n ? `판매: 골드 +${fmt(r.gold)}` : '';
   if (r.n) { sheet = null; rrOn = false; rrAlt = null; }
   render();
@@ -956,9 +958,9 @@ function onClick(t: HTMLElement): boolean {
   }
   if (t.closest('[data-sheet="stats"]')) { sheet = { k: 'stats' }; msg = ''; render(); return true; }
   const lk = t.closest<HTMLElement>('[data-lock]');
-  if (lk) { toggleLock(Number(lk.dataset.lock)); msg = ''; render(); return true; }
+  if (lk) { sfx(toggleLock(Number(lk.dataset.lock)) ? 'gear-lock' : 'deny'); msg = ''; render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
-  if (eq) { wornNow = Number(eq.dataset.equip); equip(wornNow); msg = ''; render(); return true; }
+  if (eq) { wornNow = Number(eq.dataset.equip); sfx(equip(wornNow) ? 'gear-equip' : 'deny'); msg = ''; render(); return true; }
   const s1 = t.closest<HTMLButtonElement>('[data-sell1]');
   if (s1) {
     if (s1.disabled) return true;
@@ -972,16 +974,18 @@ function onClick(t: HTMLElement): boolean {
   if (rb && sheet?.k === 'item') {
     const [kind, n] = rb.dataset.rr!.split(':') as [RerollKind, string], i = Number(n);
     const res = reroll(sheet.id, kind, i);
+    sfx(res.err ? 'deny' : 'gear-reroll');
     msg = res.err; rrAlt = res.alt ? { id: sheet.id, kind, i, alt: res.alt } : null;
     render(); return true;
   }
-  if (t.closest('[data-rrpick]') && rrAlt) { pickReroll(rrAlt.id, rrAlt.kind, rrAlt.i, rrAlt.alt); rrAlt = null; msg = ''; render(); return true; }
+  if (t.closest('[data-rrpick]') && rrAlt) { sfx(pickReroll(rrAlt.id, rrAlt.kind, rrAlt.i, rrAlt.alt) ? 'ui-confirm' : 'deny'); rrAlt = null; msg = ''; render(); return true; }
   if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; msg = ''; render(); return true; }
   if (t.closest('[data-dex]')) { sheet = { k: 'dex' }; msg = ''; render(); return true; }
   const dt = t.closest<HTMLElement>('[data-dext]');
   if (dt) { dexT = dt.dataset.dext as DexTab; render(); return true; }
   if (t.closest('[data-dexclaim]')) {
     const got = claimDex();
+    sfx(got.steps ? 'mission-claim' : 'deny');
     msg = got.steps ? `도감 보상: 골드 ${fmt(got.gold)}` : '';
     dexPop = got.steps > 0;
     render(); return true;
@@ -1003,7 +1007,7 @@ function onClick(t: HTMLElement): boolean {
   const tb = t.closest<HTMLElement>('[data-talent]');
   if (tb) {
     const [i, j] = tb.dataset.talent!.split(':').map(Number);
-    if (pickTalent(i, j)) sheet = null;
+    if (pickTalent(i, j)) { sheet = null; sfx('talent-pick'); } else sfx('deny');
     render(); focusTalentControl(`[data-tcell="${i}:${j}"]`); return true;
   }
   const pr = t.closest<HTMLElement>('[data-preset]');
@@ -1019,6 +1023,7 @@ function onClick(t: HTMLElement): boolean {
     if (hb.disabled) return true;
     const k = hb.dataset.hero as HeroKey;
     msg = switchHero(k) ? '' : '바꿀 수 없음';
+    sfx(msg ? 'deny' : 'hero-switch');
     if (!msg) { pushSettings(); go('s-char', 'hero'); return true; }
     render(); return true;
   }

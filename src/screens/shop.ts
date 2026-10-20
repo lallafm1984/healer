@@ -15,6 +15,7 @@ import { esc, fmt, previous, screen, topBar } from './kit';
 import { classEmblem, currencyIcon, gameIcon, uiIcon } from './art';
 import { refreshCells } from './stamina';
 import { staminaView } from '../game/stamina';
+import { sfx } from '../sfx';
 
 /** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」, 앞 「cash」는 예전 하위 탭 이름), from = 뒤로 갈 화면 */
 const st: { msg: string; focus: string; from: string } = { msg: '', focus: '', from: 's-lobby' };
@@ -78,8 +79,9 @@ s.el.addEventListener('click', async e => {
     const id = iap.dataset.iap!;
     iap.disabled = true;
     const r = await purchase(id, save.settings.devUnlock);
-    if (!r.ok) { st.msg = r.why || '구매 안 됨'; render(); return; }
+    if (!r.ok) { sfx('deny'); st.msg = r.why || '구매 안 됨'; render(); return; }
     const err = grantProduct(save, id);
+    sfx(err ? 'deny' : 'purchase');
     const hero = PAID_HEROES.find(h => jobProductId(h) === id);
     st.msg = err || (hero ? `${HEROES[hero].name} 해금 · 캐릭터 → 직업에서 전환` : `${NOADS.name} · 휴식 최대 +${STAMINA.bonus}`) + (r.test ? ' (시험 구매)' : '');
     commit(); syncAds(); render(); refreshCells();

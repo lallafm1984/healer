@@ -2,6 +2,7 @@
 import { sunSvg, uiIcon } from './art';
 import { battle, screen } from './kit';
 import { afterTitle } from './tutorial';
+import { sfx } from '../sfx';
 
 const s = screen('s-title', '타이틀', {
   enter() {
@@ -17,4 +18,4 @@ const s = screen('s-title', '타이틀', {
     </div>`;
   },
 });
-s.el.addEventListener('click', () => { battle().sound('tick'); afterTitle(); });
+s.el.addEventListener('click', () => { if (!sfx('title-start')) battle().sound('tick'); afterTitle(); });

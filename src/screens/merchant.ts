@@ -15,6 +15,8 @@ import { currencyAmount, gameIcon, gearIcon, uiIcon } from './art';
 import { openItemDetail } from './character';
 import { sheetDialog } from './dialog';
 import { esc, fmt, screen, topBar } from './kit';
+import { sfx } from '../sfx';
+import { lootSound } from './ui-sound';
 
 /** 등급 글자 색 (결과 · 장비 상세와 같은 값) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
@@ -91,8 +93,13 @@ function revealHtml(id: number): string {
 /** 지금 고른 부위로 사기 (종류는 무작위) → 감정 결과 창 */
 function buy(): void {
   const r = buyUnknown(G.save, st.slot);
-  if (typeof r === 'string') { st.msg = r; render(); return; }
+  if (typeof r === 'string') { sfx('deny'); st.msg = r; render(); return; }
   commit();
+  // 107: 금화를 내고 꾸러미가 흔들리다 풀림 → 장비가 튀어나오는 때 (merchant.css mcPop 0.66초) 등급 소리. 효과 줄이기면 바로
+  const calm = G.save.settings.reducedEffects, it = findItem(r.id);
+  sfx('gold-spend');
+  if (!calm) sfx('merchant-reveal', { delay: 0.15 });
+  if (it) sfx(lootSound(it), { delay: calm ? 0.1 : 0.66 });
   st.got = r.id; st.fresh = true;
   render();
 }
@@ -114,6 +121,7 @@ s.el.addEventListener('click', e => {
   const sl = t.closest<HTMLElement>('[data-mc-sell]');
   if (sl) {
     const got = sell([Number(sl.dataset.mcSell)]);
+    sfx(got.n ? 'gear-sell' : 'deny');
     st.got = null;
     st.msg = got.n ? `판매: 골드 +${fmt(got.gold)}` : '';
     render();

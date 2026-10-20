@@ -27,6 +27,7 @@ import { afxRows, afxTags, BOOK, flowHead, guides, recommendedLevel, segTabs } f
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 import { FAME_LOW_GAP } from '../data/guild';
+import { sfx } from '../sfx';
 
 const s = screen('s-party', '파티 편성', {
   enter() {
@@ -254,6 +255,7 @@ export function depart(): string {
   Flow.coach = null;
   const m = modeNow();
   Flow.running = true;
+  sfx('depart');
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,

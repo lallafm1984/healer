@@ -27,6 +27,7 @@ import { memDetailHtml, memRowHtml, type CardData } from './members';
 import { esc, fmt, go, screen, topBar } from './kit';
 import { currencyAmount, departureArrow, gameIcon, LOCK, uiIcon } from './art';
 import { sheetDialog } from './dialog';
+import { sfx } from '../sfx';
 
 type Sub = 'home' | 'members' | 'recruit';
 const SUBS: [Sub, string][] = [['home', '현황'], ['members', '길드원'], ['recruit', '영입']];
@@ -356,8 +357,9 @@ function confirmMemberAction(): void {
   if (!action || st.sheet?.k !== 'mem' || st.sheet.id !== action.id) return;
   const m = memberById(action.id);
   if (m) {
-    if (action.kind === 'sponsor') st.msg = sponsor(G.save, m.id) || `골드 지원 · ${m.boost}판 남음`;
+    if (action.kind === 'sponsor') { const err = sponsor(G.save, m.id); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `골드 지원 · ${m.boost}판 남음`; }
     else if (!m.story && release(G.save, m.id)) {
+      sfx('guild-release');
       st.sheet = null;
       st.msg = `${m.nick}(${CLASSES[m.cls].name}) 길드에서 내보냈습니다.`;
     }
@@ -411,15 +413,15 @@ s.el.addEventListener('click', e => {
   const tip = t.closest<HTMLElement>('[data-tip]');
   if (tip) { const k = tip.dataset.tip!; st.tip = st.tip === k ? null : k; render(); return; }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
-  if (t.closest('#found')) { foundGuild(save); commit(); render(); return; }
-  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length; st.msg = sponsorRest(save) || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
+  if (t.closest('#found')) { sfx(foundGuild(save) ? 'guild-levelup' : 'deny'); commit(); render(); return; }
+  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); render(); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
   if (t.closest('#arriveOk')) { save.guild.storyCard = null; commit(); render(); return; }
-  if (t.closest('#expedChest')) { const r = claimExped(save, Math.random); if (typeof r !== 'string') refreshExped(save, realOpen); st.msg = typeof r === 'string' ? r : `원정 상자: 골드 ${fmt(r.gold ?? 0)} · 장비 ${r.items?.length ?? 0}`; commit(); render(); return; } // 받은 뒤 지난 주 목록이면 바로 새 주 원정 (105 QA 3)
+  if (t.closest('#expedChest')) { const r = claimExped(save, Math.random); sfx(typeof r === 'string' ? 'deny' : 'chest-open'); if (typeof r !== 'string') refreshExped(save, realOpen); st.msg = typeof r === 'string' ? r : `원정 상자: 골드 ${fmt(r.gold ?? 0)} · 장비 ${r.items?.length ?? 0}`; commit(); render(); return; } // 받은 뒤 지난 주 목록이면 바로 새 주 원정 (105 QA 3)
   const is = t.closest<HTMLButtonElement>('[data-istory]');
-  if (is) { if (!is.disabled) { st.msg = inviteStory(save, is.dataset.istory as StoryKey) || '초대 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
+  if (is) { if (!is.disabled) { const err = inviteStory(save, is.dataset.istory as StoryKey); sfx(err ? 'deny' : 'guild-recruit'); st.msg = err || '초대 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
   const post = t.closest<HTMLButtonElement>('[data-post]');
   if (post) {
     if (!post.disabled) {
@@ -430,7 +432,7 @@ s.el.addEventListener('click', e => {
     return;
   }
   const h = t.closest<HTMLButtonElement>('[data-hire]');
-  if (h) { if (!h.disabled) { const err = hire(save, Number(h.dataset.hire)); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
+  if (h) { if (!h.disabled) { const err = hire(save, Number(h.dataset.hire)); sfx(err ? 'deny' : 'guild-recruit'); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
   const x = st.sheet;
   if (x?.k === 'mem' && t.closest('.g-msheet')) {
     const button = t.closest<HTMLButtonElement>('[data-sponsor], [data-release]');
