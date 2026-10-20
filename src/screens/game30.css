@@ -8,7 +8,9 @@
 .g-ic { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .currency-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; vertical-align: -0.2em; }
 .currency-icon > svg, .currency-icon > img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.currency-amount { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* 숫자는 둘레 글자와 같은 기준선 (그림만 가운데): 예전 vertical-align: middle은 「1개마다 🪙 81」의 81이 1~2px 아래로 처졌음 (UI 검수 2026-10-20) */
+.currency-amount { display: inline-flex; align-items: baseline; gap: 4px; vertical-align: baseline; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.currency-amount > .currency-icon { align-self: center; }
 .currency-amount > b { font: inherit; font-weight: 700; }
 .currency-amount > small { font-size: .85em; }
 

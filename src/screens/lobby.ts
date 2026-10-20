@@ -47,7 +47,8 @@ const goalText = (g: Goal) => `${g.title}${g.tag ? ` · ${g.tag}` : ''}${g.sub &
 /** 좁은 리넨 표에는 스킬·장소 이름만, 접근성 설명에는 분류를 포함한 원래 목표 정보를 유지한다. */
 const shortGoalText = (g: Goal) => goalText(g).replace(/(?:스킬|탐험|던전|레이드)\s*「([^」]+)」/g, '$1');
 /** 두 번째 줄은 「 · 」 사이에서만 줄을 바꾼다 (장소 이름 「역병 약초 / 온실」처럼 이름 중간에서 끊기지 않게) */
-const shortGoalHtml = (g: Goal) => shortGoalText(g).split(' · ').map((part, i, all) => `<span class="nb">${esc(part)}${i < all.length - 1 ? ' ·' : ''}</span>`).join(' ');
+// 둘째 목표 한 줄: 「Lv 33」을 굵게 앞에 두고 점 없이 띄움. 좁은 폰에서 두 줄로 꺾이면 「Lv 33 ·」 끝에 점이 매달렸음 (UI 검수 2026-10-20)
+const shortGoalHtml = (g: Goal) => shortGoalText(g).split(' · ').map((part, i) => (i ? `<span class="nb">${esc(part)}</span>` : `<b class="nb">${esc(part)}</b>`)).join(' ');
 
 /** 다음 목표 줄: 모험 길잡이 추천 (86: 지금 레벨 · 장비에 맞는 탐험 · 던전 한 칸) → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
 function goals(): Goal[] {

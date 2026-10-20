@@ -83,6 +83,7 @@
 #s-lobby .lb-trk .obj { gap: 6px; padding-left: 5px; margin-top: 2px; padding-top: 5px; border-top: 1px solid #80684050; font: 600 11px/1.2 var(--font-body); color: var(--a2-ink); }
 #s-lobby .lb-trk .obj > span { flex: 0 1 auto; overflow: visible; white-space: normal; overflow-wrap: anywhere; word-break: normal; line-break: strict; }
 #s-lobby .lb-trk .obj .nb { display: inline-block; }
+#s-lobby .lb-trk .obj b.nb { font-weight: 800; margin-right: 3px; }
 #s-lobby .lb-trk .obj > small { font-size: 11px; color: var(--a2-ink); }
 #s-lobby .lb-trk .obj > i { width: 7px; height: 7px; border-color: var(--a2-ink); }
 #s-lobby .lb-trk .obj.ok { color: #385025; }

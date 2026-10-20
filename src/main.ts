@@ -59,6 +59,7 @@ import './battle/class-controls.css';
 import './screens/talent-sheet.css';
 import './screens/merchant.css';
 import './screens/touch-floor.css';
+import './screens/type-polish.css';
 import './screens/menu-buttons.css';
 import './screens/tap-fx.css';
 import './battle';
