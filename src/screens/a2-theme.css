@@ -16,7 +16,6 @@
   background-color: #211a13; color: var(--a2-ink);
 }
 /* 위 정보창(.topbar)은 a2-topbar.css 한 곳에서 (로비와 같은 크기·그림). */
-.ns:not(#s-lobby) .tb-gold:not(.tb-cur) { background: #281a10; border-color: var(--a2-brass); }
 #tabs [aria-label="사제 문장 · 햇살 성표"] img { content: url('../art/icon-a2-priest-v3.webp'); }
 /* Retain the 68px persistent navigation and exact lobby button artwork everywhere. */
 #tabs {

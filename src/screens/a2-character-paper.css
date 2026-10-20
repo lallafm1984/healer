@@ -103,9 +103,6 @@
 #s-char[data-sub="gear"] .c7-inventory-head h3 { color: #fff1d0; font-size: 18px; }
 #s-char[data-sub="gear"] .c7-inventory-count { color: #e2d0ad; }
 #s-char[data-sub="gear"] .c7-inventory-head .gmats { color: #eee0c2; gap: 0; }
-#s-char[data-sub="gear"] .c7-material { display: inline-flex; align-items: center; gap: 3px; height: 20px; }
-#s-char[data-sub="gear"] .c7-material .currency-icon { width: 21px; height: 21px; }
-#s-char[data-sub="gear"] .c7-material b { font: 700 11px/1.2 var(--font-body); font-variant-numeric: tabular-nums; }
 #s-char[data-sub="gear"] .c7-inventory :is(.c7-sort, .c7-fc, [data-dex]) {
   background: var(--c7-button-bg);
   border: 1px solid var(--c7-button-line); color: #fff0cf; border-radius: 7px;
@@ -177,9 +174,7 @@
   background: var(--c7-button-bg); border-color: var(--c7-button-line); color: #fff0cf;
 }
 #s-char[data-sub="skill"] .c7-mode { background: var(--c7-button-bg); border-color: var(--c7-button-line); }
-#s-char[data-sub] :is(.c7-mode button, .c7-pre, .c7-lockb)[aria-pressed="true"],
-#s-char[data-sub="skill"] .c7-taps > button[aria-pressed="true"],
-#s-char[data-sub="hero"] .c7-cs.now {
+#s-char[data-sub] :is(.c7-mode button, .c7-pre, .c7-lockb)[aria-pressed="true"], #s-char[data-sub="skill"] .c7-taps > button[aria-pressed="true"] {
   background: var(--c7-button-selected); color: #35220f;
   border-color: #f2cf84; box-shadow: inset 0 0 0 1px #c49f58; text-shadow: none;
 }

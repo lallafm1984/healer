@@ -34,12 +34,9 @@
 #s-content .b-gt,
 #s-content .b-arw,
 #s-content .b-st,
-#s-content .b-rb,
 #s-content .b-tg:not(.rec),
 :is(#s-entry, #s-party) .pn,
 :is(#s-entry, #s-party) .f-gbtn,
-#s-party .f-rr,
-#s-party .f-item:not(.empty),
 #s-party .f-det,
 #s-party .f-ps,
 #s-settle .r-loot,
@@ -63,8 +60,6 @@
 #s-content .b-st,
 :is(#s-entry, #s-party) .pn,
 :is(#s-entry, #s-party) .f-gbtn,
-#s-party .f-rr,
-#s-party .f-item:not(.empty),
 #s-party .f-det,
 #s-settle .r-loot,
 #s-settle .r-prog,
@@ -107,20 +102,13 @@
 #s-content .b-gate { border-color: var(--a2-brass-hi); }
 #s-content .b-gn b { color: var(--a2-ink); }
 #s-content .b-gn small,
-#s-content .b-inf,
-#s-content .b-rw small,
 #s-content .b-lootrow .cap { color: #f0dbb8; }
-#s-content .b-r,
 #s-content .b-hg {
   background-color: #302012;
   background-image: var(--a2-wood);
   background-size: cover;
   background-repeat: no-repeat;
 }
-#s-content .b-pl.on .b-r { border-color: var(--a2-brass-hi); }
-#s-content .b-pl.on small { color: var(--a2-ink); }
-#s-content .b-pl.off:not(.on) small,
-#s-content .b-pl.lock:not(.on) small { color: #b7a185; }
 #s-content .b-tg:not(.rec) { border-color: var(--a2-brass); }
 #s-content .b-foot {
   background-color: #38291c;
@@ -156,12 +144,7 @@
   background-color: #584024;
   box-shadow: inset 3px 0 0 var(--a2-brass-hi);
 }
-#s-party .f-tr,
 #s-party .f-ps { border-color: var(--a2-brass); }
-#s-party .f-item small { background-color: #493019; border-color: var(--a2-brass); color: var(--a2-ink); }
-#s-party .f-item.empty { color: #c5ad89; border-color: #947044; }
-#s-party .f-item.zero,
-#s-party .f-item.zero small { color: var(--a2-muted); }
 
 /* The three party sheets: guide accordion, member detail, and item picker. */
 #s-party .sheet .f-det { background-color: #332113; }
@@ -169,17 +152,6 @@
 #s-party .sheet .f-det p.pab { color: #f0ddbb; }
 #s-party .sheet .f-det p.pab b,
 #s-party .sheet .f-det p.pab i { color: var(--gc); }
-#s-party .sheet .gdet.f-acc { border-top-color: #98714588; }
-#s-party .sheet .gdet.f-acc > summary { color: var(--a2-ink); }
-#s-party .sheet .gdet.f-acc[open] > summary .f-an { color: var(--a2-brass-hi); }
-#s-party .sheet .f-ih {
-  background-color: #4c351e;
-  background-image: var(--a2-wood);
-  background-size: cover;
-  background-repeat: no-repeat;
-  border-color: var(--a2-brass);
-  color: var(--a2-ink);
-}
 #s-party .sheet > .f-shut { box-shadow: 0 -9px 12px #2d1b12cc; }
 
 /* 편성으로 버튼의 배치. 표면은 menu-buttons.css, 출발은 departure-hall.css. */
@@ -214,15 +186,10 @@
 #s-settle .res-head > p:not(.r-why),
 #s-settle .r-nm small:not(.r-sp),
 #s-settle .r-cur small,
-#s-settle .r-rec > summary span,
-#s-settle .r-xpl small { color: var(--a2-muted); }
+#s-settle .r-rec > summary span { color: var(--a2-muted); }
 #s-settle .r-cur b,
 #s-settle .r-note { color: var(--a2-ink); }
 #s-settle .r-cur { border-color: #947044; }
-#s-settle .r-newsp { background-color: #4d3319; border-color: var(--a2-brass); color: var(--a2-ink); }
-#s-settle .r-newsp span { color: var(--a2-muted); }
-#s-settle .r-chips li { background-color: #322012; border-color: #886137; color: #eedaba; }
-#s-settle .r-chips small { color: var(--a2-muted); }
 #s-settle .r-rec .meter { background-color: #322012; border-color: #886137; }
 #s-settle .m-all { border-color: var(--a2-brass); color: var(--a2-muted); }
 #s-settle .r-dev > summary { color: #bca581; }

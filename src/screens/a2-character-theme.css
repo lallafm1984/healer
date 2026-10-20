@@ -56,7 +56,6 @@
 #s-char .c7-parch::before { content: none; }
 #s-char .c7-parch :is(p, .c7-pas li b, .c7-pas li p) { color: var(--a2-paper-ink); }
 #s-char .c7-parch :is(.m, .cap, .c7-hchips) { color: #6a4c2c; }
-#s-char .c7-hq { border-color: #a58350; border-radius: 8px; }
 
 /* Retain grade-colored borders/glows and faction inset rings around real item art. */
 #s-char :is(.c7-sq, .c7-gic, .c7-bag) {
@@ -70,25 +69,6 @@
 #s-char .c7-slot.empty .c7-sq {
   background-color: #27190fe8;
   background-image: none;
-}
-#s-char .c7-bag .ck { border-radius: 7px; }
-
-/* The existing central/class emblems use the same painted brass frame as the lobby. */
-#s-char :is(.c7-bigem, .c7-cem) {
-  background: url('../art/a2-portrait-v3.webp') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
-  box-shadow: none;
-}
-#s-char .c7-bigem { padding: 16px; }
-#s-char .c7-cem { padding: 11px; }
-#s-char :is(.c7-bigem, .c7-cem) .emblem {
-  border: 0;
-  background: none;
-  box-shadow: none;
-}
-#s-char :is(.c7-bigem, .c7-cem) .emblem img { width: 100%; height: 100%; }
-#s-char .c7-bigem [aria-label="사제 문장 · 햇살 성표"] img,
-#s-char .c7-cem [aria-label="사제 문장 · 햇살 성표"] img {
-  content: url('../art/icon-a2-priest-v3.webp');
 }
 
 /* Character-specific switches and utility controls. Existing hit boxes stay intact. */
@@ -109,8 +89,7 @@
 #s-char .c7-fc[aria-pressed="true"],
 #s-char .c7-mode button[aria-pressed="true"],
 #s-char .c7-taps > button[aria-pressed="true"],
-#s-char .c7-pre[aria-pressed="true"],
-#s-char .c7-cs.now {
+#s-char .c7-pre[aria-pressed="true"] {
   background-color: #f3e2ba;
   background-image: var(--a2-paper);
   background-size: cover;
@@ -149,21 +128,8 @@
   text-shadow: none;
 }
 #s-char .c7-tier.pending { background: #e8c77a14; }
-#s-char .c7-bnr .c7-cloth > b { color: var(--a2-ink); }
-#s-char .c7-cs:not(.now) { border-color: var(--a2-brass); color: var(--a2-ink); }
 
 /* Local action classes are not shared .btn controls. Keep the familiar red action cue. */
-#s-char .c7-acts .g-sign,
-#s-char .c7-recb {
-  background: url('../art/a2-tab-idle-v3.webp') 12.962963% 55.172414% / 103.913043% 108.613861% no-repeat;
-  background-blend-mode: normal;
-  border-color: transparent;
-  border-radius: 10px;
-  box-shadow: none;
-  color: var(--a2-ink);
-}
-#s-char .c7-acts .g-sign::before,
-#s-char .c7-acts .g-sign::after { content: none; }
 #s-char :is(.c7-cta, .c7-hcta) {
   background-color: #811d14;
   background-image: var(--a2-wood);

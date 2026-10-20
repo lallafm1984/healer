@@ -30,8 +30,6 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .tb-title { flex: 1; font-family: var(--font-display); font-weight: 400; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tb-back, .tb-set { border: 0; background: none; font-size: 22px; width: 40px; height: 44px; cursor: pointer; color: var(--ink); }
 .tb-back { margin-left: -10px; }
-.tb-gold { white-space: nowrap; color: var(--mute); }
-.tb-gold b { color: var(--gold-hi); font-weight: 400; font-family: var(--font-display); font-size: 17px; }
 
 /* S01 타이틀 */
 #s-title { cursor: pointer; background: radial-gradient(ellipse at 50% 35%, #382E21 0%, #17130F 70%); }
@@ -83,21 +81,14 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .segs li small { margin-left: 4px; color: var(--mute); font-size: 11px; }
 .segs li.boss { border-color: #6A3C26; }
 .guides { display: flex; flex-direction: column; gap: 6px; }
-.gdet { background: #1E1812; border: 2px solid var(--line); border-radius: 12px; padding: 0 10px; }
-.gdet summary { cursor: pointer; padding: 10px 2px; font-family: var(--font-display); font-size: 15px; list-style-position: inside; }
-.gdet[open] { padding-bottom: 12px; }
 .gr { display: inline-block; font-size: 12px; padding: 0 6px; border-radius: 6px; border: 1.5px solid var(--g); color: var(--g); margin: 1px 0; }
 
 /* S05 편성 */
 .pcards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .pcard { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: start; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; }
-.prole { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #17130F; font-family: var(--font-display); font-size: 16px; border: 2px solid var(--line); }
 .pcard b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
 .pcard small { margin-left: 6px; color: var(--mute); font-size: 11px; }
 .pcard p { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: #CFC8B4; }
-.prole.two { font-size: 13px; letter-spacing: -0.5px; }
-.pcard p.ppas b { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--gold-hi); margin-right: 2px; }
-.pcat { font-style: normal; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #17130F; font-size: 10px; font-weight: 700; border: 1.5px solid var(--line); margin-right: 4px; vertical-align: -3px; }
 .star { color: var(--gold-hi); letter-spacing: -1px; }
 .hint ul { padding-left: 16px; }
 
@@ -154,7 +145,6 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .gbtns .btn small { font-family: var(--font-body); font-size: 11px; color: inherit; opacity: 0.8; }
 .gbtns .btn.primary { flex: 1; }
 .bag li { cursor: pointer; }
-.bag.picking li.on { border-color: var(--gold); background: #2A2416; }
 .bag .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; }
 .bag .pick.on { background: var(--gold); border-color: var(--gold); }
 .sec .btn.mini { vertical-align: 2px; }
@@ -194,7 +184,7 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .char .panel h2 small { font-family: var(--font-body); font-size: 12px; color: var(--mute); margin-left: 6px; }
 /* 해제 가능 디버프 점 (25): 켜짐 = 그 직업이 지울 수 있음 */
 
-.ppas, .pcard p { word-break: keep-all; }
+.pcard p { word-break: keep-all; }
 
 .tier details { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; }
 .tier summary { list-style: none; display: grid; grid-template-columns: 52px 1fr 14px; gap: 10px; align-items: center; padding: 10px 12px; cursor: pointer; }
@@ -226,20 +216,9 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .pcard p.pab b { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--gc); margin-right: 4px; }
 .pcard p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 .pcard p.pab small, .pcard p small { margin-left: 0; }
-.pcard p.papt { color: var(--mute); font-size: 11px; }
-.pcard p.papt span { color: var(--gold-hi); letter-spacing: -1px; }
 .pcard.tap { cursor: pointer; }
 .pcard.tap.on { border-color: var(--gold); background: #22201A; }
-.mdetail { list-style: none; border-color: var(--gold); margin-top: -2px; }
-.mdetail h4 small { font-family: var(--font-body); font-size: 11px; color: var(--mute); margin-left: 4px; }
-.mdetail .mute, .ns .mute { color: var(--mute); }
-.mdetail .mxp { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mute); }
-.mdetail .bar { flex: 1; height: 6px; border-radius: 999px; background: #0E0B09; overflow: hidden; border: 1px solid #362D22; }
-.mdetail .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
 .btn.danger { background: #5A1F1C; border-color: #A2392F; color: #FFD9D2; }
-.gbtns.posts .btn { flex: 1; }
-.mdetail .gbtns { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 6px; }
-.mdetail .gbtns .btn { font-size: 14px; min-height: 0; padding: 8px 6px; }
 .pickhead { display: flex; align-items: baseline; gap: 8px; }
 .pickhead small { color: var(--mute); font-size: 12px; }
 .pcard.picked { border-color: var(--gold); background: #22201A; }
@@ -280,7 +259,6 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .afxlist li b { color: #F2C6D0; margin-right: 4px; }
 .afxlist li.good b { color: #CFEBC5; }
 .afxlist li small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
-.chips.tiers .chip { font-size: 13px; }
 .chalstep { display: flex; align-items: center; justify-content: center; gap: 18px; }
 .chalstep b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); min-width: 110px; text-align: center; }
 .chalstep .btn { width: 52px; font-size: 22px; padding: 6px 0; }

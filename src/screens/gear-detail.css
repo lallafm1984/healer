@@ -117,7 +117,6 @@
   #app #s-char .c7-confirm-actions { bottom: -16px; }
 }
 
-@keyframes screenFxExit { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
 /* 보상 화면에서는 캐릭터 배경 없이 동일한 장비 시트만 올린다. */
 #app #s-char.c7-item-overlay { background: transparent; pointer-events: none; }
 #app #s-char.c7-item-overlay::before { content: none; }

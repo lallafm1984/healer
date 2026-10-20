@@ -26,7 +26,6 @@
 .boss-illustration { object-fit: contain; filter: drop-shadow(0 5px 4px rgba(0, 0, 0, .42)); }
 #battle #dmgNums { left: 12px; top: 12px; width: 88px; height: 94px; }
 #battle .stage-main { gap: 7px; align-self: center; }
-#battle .stage-top { gap: 6px; }
 #battle .boss-heading { flex: 1; min-width: 0; }
 #battle #encounterLabel { display: block; margin: 0 0 3px; color: #c8bb9e; font-size: 10px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #battle #bossName { display: flex; align-items: center; gap: 5px; font-size: 20px; line-height: 1.15; color: #fff3d8; }
@@ -34,7 +33,6 @@
 #battle #bossName .grade { flex: none; margin: 0; padding: 3px 4px; font-size: 10px; line-height: 1; border-color: #4D473F; color: #CCC5B6; }
 #battle #bossName .grade.elite { color: #251b0c; }
 #battle #pauseBtn { width: 44px; height: 44px; border: 1px solid #6a5b43; border-radius: 12px; background: rgba(32, 26, 18, .88); color: #f4dfb2; font-size: 15px; }
-#battle .stage-meta { flex-wrap: wrap; gap: 3px 6px; }
 #battle #phase { max-width: 100%; border: 0; padding: 0; border-radius: 0; background: none; color: #C6BEAC; font-size: 10px; }
 #battle #timer { margin-left: 0; color: #D0C8B6; font-size: 11px; }
 #battle #timer.over { color: #ff9f8c; }
