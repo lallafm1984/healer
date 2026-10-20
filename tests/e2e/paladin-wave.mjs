@@ -14,7 +14,9 @@ export default async function paladinWave(url,shots){
    delete f.tx.on.endlessLight;delete f.tx.on.freeWave;delete f.lock.lightWave;f.tx.any=!!o.free;
    if(o.endless)f.tx.on.endlessLight=true;if(o.free)f.tx.on.freeWave=true;if(o.lock)f.lock.lightWave={left:10,total:10};
    if(o.lift)f.party.forEach(u=>u.lift={until:f.t+100,fall:1,aim:'party'});
-  },o);await p.clock.runFor(40);};
+  },o);await p.clock.runFor(40);
+  // CI · 바쁜 맥에서 가끔 40ms 안에 자원 그림이 새 상태를 못 그림: 방패 조각 수가 신성한 힘과 맞을 때까지 조금 더 (최대 400ms)
+  for(let i=0;i<10&&await p.evaluate(()=>document.querySelectorAll('.job-gauge .shield-segment:not([hidden])').length!==window.__proto.F.power3);i++)await p.clock.runFor(40);};
   const snap=()=>p.evaluate(()=>{
    const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect(),a=q('.paladin-wave-aura'),g=q('.job-gauge'),ar=r(a),gr=r(g),wr=r(q('#wheel')),it=q('#aux:not([hidden])')?r(q('#aux')):{top:r(q('#side')).bottom};
    return {on:!a.hidden&&g.dataset.waveReady==='true',count:g.querySelectorAll('.paladin-wave-aura').length,registeredLayer:+getComputedStyle(a).zIndex>+getComputedStyle(g.querySelector('.gauge-base')).zIndex&&+getComputedStyle(a).zIndex<+getComputedStyle(g.querySelector('.gauge-number')).zIndex,
@@ -41,6 +43,7 @@ export default async function paladinWave(url,shots){
   ok((await snap()).aux===(aux?2:0),`${width} 보조 특성 ${aux}`);
   for(const [name,expected] of [['이슬','이슬'],['빛방패','빛방패'],['끝까지지킴','끝까지지킴'],['말없는수호기사','말없는수호'],['Alexander','Alexa'],['힐러A12호','힐러A12'],[null,'미지정']]){
    await p.evaluate(name=>{const f=window.__proto.F;f.beacon=name===null?null:f.party[0].id;if(name!==null)f.party[0].nick=name;},name);await p.clock.runFor(40);
+   for(let i=0;i<10&&await p.evaluate(x=>document.querySelector('.paladin-beacon-name')?.textContent!==x,expected);i++)await p.clock.runFor(40); // CI에서 가끔 40ms 안에 이름이 안 바뀜 (화면 갱신이 늦음)
    const label=await p.evaluate(()=>{
     const q=s=>document.querySelector(s),e=q('.paladin-beacon-name'),r=e.getBoundingClientRect(),a=q('.resource-art').getBoundingClientRect(),i={top:q('#aux:not([hidden])')?.getBoundingClientRect().top??q('#side').getBoundingClientRect().bottom},w=q('#wheel').getBoundingClientRect();const range=document.createRange();range.selectNodeContents(e);
     return {text:e.textContent,title:e.title,description:q('.job-gauge').getAttribute('aria-label'),safe:r.bottom<i.top&&r.right<w.left&&[...document.querySelectorAll('#aux [data-tal]')].every(b=>{const x=b.getBoundingClientRect();return r.bottom<=x.top||r.right<=x.left||r.left>=x.right;})&&r.top>=a.top+a.height*440/464&&range.getBoundingClientRect().width<=r.width,

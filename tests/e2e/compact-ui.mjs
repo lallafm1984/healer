@@ -313,8 +313,13 @@ export default async function compactUi(url, shots) {
             && normal.toolbarButtons === 0 && compact.toolbarButtons === 0,
           `${tag}: 작은 패널 재배치 전후 대상 버튼·목록 없음, 빈자리에 대체 버튼 없음`);
           const board = await page.locator('#board').boundingBox();
+          // CI에서 #336 뒤 가끔 탭 직후 전투 시계가 안 감 (t 0.65 → 0.65): 원인을 보려고 rAF 횟수 · 일시정지 · 안내 상태를 함께 남기고, 늦게라도 가면 통과
+          await page.evaluate(() => { if (!window.__rafWrapped) { const o = window.requestAnimationFrame.bind(window); window.__rafN = 0; window.requestAnimationFrame = cb => o(ts => { window.__rafN++; cb(ts); }); window.__rafWrapped = true; } });
+          const raf0 = await page.evaluate(() => window.__rafN);
           await page.touchscreen.tap(board.x + target.point.x, board.y + target.point.y);
           await page.clock.runFor(80);
+          for (let i = 0; i < 10 && await page.evaluate(t0 => window.__proto.F.t <= t0, target.t); i++) await page.clock.runFor(60);
+          const diag = await page.evaluate(r0 => ({ raf: window.__rafN - r0, pull: window.__proto.pullLeft, coach: !!window.__proto.coach, hidden: document.hidden, over: window.__proto.F.over, battleHidden: document.querySelector('#battle').hidden }), raf0);
           const chosen = await page.evaluate(t => ({
             sameFight: window.__proto.F === window.__directTargetFight,
             selected: window.__proto.F.cast?.key === 'heal' && window.__proto.F.cast?.uid === t.id,
@@ -323,7 +328,7 @@ export default async function compactUi(url, shots) {
           }), target);
           ok(chosen.sameFight && chosen.selected && chosen.taps === target.taps + 1
             && chosen.t > target.t && chosen.noModal && chosen.pauseHidden,
-          `${tag}: 보드 실제 탭 한 번이 같은 전투의 선택 대상에게 기본 치유 1회 시전`, { ...chosen, before: { taps: target.taps, t: target.t } });
+          `${tag}: 보드 실제 탭 한 번이 같은 전투의 선택 대상에게 기본 치유 1회 시전`, { ...chosen, before: { taps: target.taps, t: target.t }, diag });
 
           // 대표 크기에서 상태·취소·재진입을 추가 검사. 행렬 전체를 불필요하게 반복하지 않는다.
           if (width === 360 && height === 780 && party.n === 5) {
@@ -366,6 +371,8 @@ async function skillCircleStates(page, ok, shots) {
       f.cd.hymn = state === 'cooling' ? 180 : 0;
     }, state);
     await page.clock.runFor(120);
+    // CI에서 가끔 휠이 120ms 안에 쿨다운으로 안 바뀜 (#336 뒤, 같은 전투 시계 멈춤과 함께): 조금 더 기다림
+    if (state === 'cooling') for (let i = 0; i < 10 && await page.evaluate(() => document.querySelectorAll('#wheel .slot.cooling').length < 3); i++) await page.clock.runFor(60);
   };
   for (const compact of [true]) {
     if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
