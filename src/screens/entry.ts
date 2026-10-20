@@ -21,7 +21,7 @@ const s = screen('s-entry', '주간 도전', { enter() { render(); } });
 
 function render(): void {
   // 주간 도전이 아니면 편성으로 (예전 경로)
-  if (!Flow.chal) { Flow.party = null; Flow.rerolls = 0; go('s-party'); return; }
+  if (!Flow.chal) { Flow.party = null; go('s-party'); return; }
   const c = contentOf(Flow.content), d = Flow.diff, open = G.save.chalOpen;
   Flow.chal = Math.max(1, Math.min(open, CHAL.max, Flow.chal));
   const m = runMode(G.save, c, d, { chal: Flow.chal });

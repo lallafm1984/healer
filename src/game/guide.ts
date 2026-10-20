@@ -23,7 +23,6 @@ import { lvPower, RAMP_LV, rampDiffs, rampFour, rampPlace, rampRefLevel, rampXp 
 import { G, lockOf } from './state';
 
 export type Fit = '여유' | '적정' | '도전' | '위험';
-export const FITS: Fit[] = ['여유', '적정', '도전', '위험'];
 /** 적합도 설명 (출전 화면 안내 · 화면 읽기) */
 export const FIT_TEXT: Record<Fit, string> = {
   '여유': '쉽게 깨는 칸',

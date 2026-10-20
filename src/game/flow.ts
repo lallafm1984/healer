@@ -14,8 +14,6 @@ export const Flow: {
   party: RosterEntry[] | null;
   /** 파티 배치·첫 전투 시드 (미리보기와 실제 시작 위치가 같게) */
   seed: number;
-  /** 이번 입장에서 다시 뽑은 횟수 (1회 무료, 02 9장) */
-  rerolls: number;
   result: BattleResult | null;
   settle: Settlement | null;
   /** 다음 출발에 띄울 튜토리얼 안내 (한 번 쓰면 비움) */
@@ -30,7 +28,7 @@ export const Flow: {
   chal: number;
   /** 길드 탭 「길드파티로 출전」 (30): 다음 편성을 길드파티로 시작 */
   preferGuild: boolean;
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], chal: 0, preferGuild: false };
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], chal: 0, preferGuild: false };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 

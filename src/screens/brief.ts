@@ -2,29 +2,20 @@
  * 편성 화면·주간 도전 입장이 같이 쓰는 부품 (27 3-2·3-3, 2026-10-08 입장 화면을 편성에 합침):
  * 흐름 상단, 경고 줄 (미달일 때만), 공략 시트 (구간 노드 줄 + 보스별 공략 접기 + 어픽스).
  */
-import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { AFFIXES, type AffixKey } from '../data/affixes';
 import { G } from '../game/state';
 import { battle, esc } from './kit';
-import { placeArt } from './art';
 
 const svg = (d: string, sw = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>');
-export const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>');
 /** 공략 (펼친 책) */
 export const BOOK = svg('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/>', 2);
 
 /** 흐름 화면 상단 (편성·주간 도전 입장, 시안 .hd): 뒤로 · (문양) · 제목 + 아래 작은 글 · 오른쪽 끝 (버튼 등) */
 export function flowHead(back: string, title: string, sub: string, mark = '', right = ''): string {
   return `<header class="topbar f-hd"><button class="tb-back" type="button" data-go="${back}" aria-label="뒤로">${BACK}</button>${mark}<span class="f-tb"><b class="f-ttl">${esc(title)}</b><small class="cap f-hcap">${sub}</small></span><span class="f-sp"></span>${right}</header>`;
-}
-
-/** 상단 뒤에 장소 그림 (어둡게 깔림, 28 4장 입장 머리) */
-export function cover(c: ContentDef, inner: string): string {
-  const pa = placeArt(c.key);
-  return `<div class="f-cover${pa.url ? ' art' : ''}"${pa.url ? ` style="--cv:url('${pa.url}')"` : ''}>${inner}</div>`;
 }
 
 /** 경고 한 줄 (! + 글 + 오른쪽 버튼) */

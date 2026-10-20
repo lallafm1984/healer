@@ -893,7 +893,7 @@ function heroListHtml(): string {
 /** 시안 3: 중앙 문장·짧은 소개·2열 스킬 카드. 전환 규칙은 기존 상태 모듈을 사용한다. */
 function heroSheet(k: HeroKey): string {
   const h = HEROES[k], st = heroStatus(k), open = switchOpen();
-  const available = (st.state === 'open' || st.state === 'quest') && open.ok;
+  const available = st.state === 'open' && open.ok;
   const label = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? lockWord(k) : !open.ok ? open.why : `${h.name}${josa(h.name, '으로', '로')} 전환`;
   return `<div class="sheet-dim" data-sheetx></div><section class="sheet c7-job-sheet" data-hdet="${k}" aria-labelledby="jobDetailTitle" aria-describedby="jobDetailIntro">
     <button type="button" class="c7-dialog-close" data-sheetx aria-label="직업 상세 닫기">닫기</button>

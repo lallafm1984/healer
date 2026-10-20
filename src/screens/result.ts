@@ -8,7 +8,7 @@ import { EXPED, guildLvOf, REQ, STORY } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
-import { HEROES, type HeroKey } from '../data/heroes';
+import type { HeroKey } from '../data/heroes';
 import { EXPLORE_DROP, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { levelUpMilestones } from '../data/milestones';
 import { Flow, newSeed } from '../game/flow';
@@ -317,11 +317,6 @@ function notesHtml(x: Settlement): string {
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람
     if (gd.boosted.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></button>`);
-  }
-  const q = x.heroQuest;
-  if (q) {
-    const h = HEROES[q.hero];
-    out.push(`<button class="r-note${q.unlocked ? ' hi' : ''}" type="button" data-go="s-char" data-arg="hero">${uiIcon('star')}<span>${q.unlocked ? `<b>${h.name} 해금!</b> 직업에서 바꾸기` : `직업 퀘스트 「${esc(h.unlock.quest!.name)}」 <b>${q.n} / ${q.need}</b>`}</span></button>`);
   }
   if (x.missions.length) out.push(`<button class="r-note" type="button" data-go="s-missions" aria-label="임무 완료: ${x.missions.map(esc).join(', ')}">${gameIcon('mission', uiIcon('quest'))}<span>임무 완료 <b>${x.missions.length}</b> · 보상 받기</span></button>`);
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';

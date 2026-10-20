@@ -57,7 +57,7 @@ function startDuo(): void {
 
 /** 3인 탐험 「녹슨 고원」 쉬움. 끝나면 보통 정산·보상으로 (탐험은 튜토리얼 뒤에도 하는 콘텐츠) */
 function startExplore(): void {
-  Flow.content = 'plateau'; Flow.diff = '쉬움'; Flow.seed = newSeed(); Flow.rerolls = 0;
+  Flow.content = 'plateau'; Flow.diff = '쉬움'; Flow.seed = newSeed();
   Flow.party = recruitParty(contentOf('plateau').fights('쉬움')[0], Flow.seed);
   Flow.coach = 'explore';
   depart();

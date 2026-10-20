@@ -124,7 +124,7 @@ export function openStamina(): void {
  * 휴식은 클리어할 때 쓰고, 전투 전에는 휴식을 보여 주지 않음 (충전은 위 휴식 칸 · 로비 소켓 · 상점)
  */
 export function sortie(): void {
-  Flow.party = null; Flow.rerolls = 0;
+  Flow.party = null;
   go('s-party');
 }
 

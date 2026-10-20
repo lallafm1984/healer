@@ -34,7 +34,6 @@ export function gainText(g: Gain): string {
   const out: string[] = [];
   if (g.gold) out.push(`골드 +${fmt(g.gold)}`);
   if (g.items?.length) out.push(g.items.map(i => i.name).join(', '));
-  if (g.deco) out.push(`「${g.deco}」`);
   return out.join(' · ');
 }
 
