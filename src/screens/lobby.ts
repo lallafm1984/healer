@@ -214,14 +214,14 @@ function shopPlate(): string {
 }
 
 /**
- * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위 · 종류를 골라 골드로 사는 미확인 장비. Lv 10 (MERCHANT.lv) 전엔 잠금 글.
+ * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위를 골라 골드로 사는 미확인 장비 (종류 무작위). Lv 10 (MERCHANT.lv) 전엔 잠금 글.
  * 이름은 다른 팻말처럼 세 글자 (「떠돌이 상인」은 팻말에서 두 줄로 꺾였음)
  * 둘째 줄 = 한 개 값 대신 짧은 말 (팻말 한 줄 6자 안팎, 값은 상인 화면에)
  */
 function merchantPlate(): string {
   const o = merchantOffer(G.save);
   return plate(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', gameIcon('merchant', uiIcon('shop')), '행상인',
-    ['미확인 장비', o.open ? '골드로 사기' : `Lv ${MERCHANT.lv}에 열림`]);
+    ['미확인 장비', o.open ? '골드로 사기' : `Lv ${MERCHANT.lv}부터`]); // 「Lv 10에 열림」은 팻말 한 줄에서 잘렸음 (S25 「Lv 10에 …」)
 }
 
 /**
