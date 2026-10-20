@@ -82,6 +82,8 @@ export default async function tutorial(url, shots) {
 
   // ---- 3인 탐험: 소생 안내 → 휴식 → 순찰병 → 순간 치유 안내 ----
   await page.click('#tutNext'); await page.clock.runFor(3100 + 1200);
+  // 느린 러너에서는 판 그림을 읽느라 시작이 늦어 안내가 아직 없을 수 있음: 전투 1초 뒤 안내가 뜰 때까지 조금씩 (최대 3초 더)
+  for (let i = 0; i < 15 && (await coach())?.need !== 'swipe:renew'; i++) await page.clock.runFor(200);
   ok(await page.evaluate(() => window.__proto.F.party.length === 3 && window.__proto.dungeon.segs.join() === 'field,patrol'), '탐험 = 3인, 잡몹 → 순찰병');
   c = await coach();
   ok(c?.need === 'swipe:renew' && /← 쪽으로 쓸기/.test(c.text) && await page.isVisible('#wheel .slot.coach-hi[data-slot="renew"]'), '안내: 소생은 칸에서 ← 쪽으로 쓸기 (휠 소생 칸 반짝임)');

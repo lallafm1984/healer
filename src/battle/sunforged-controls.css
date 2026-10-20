@@ -114,7 +114,8 @@
 #battle #controls .slot .cd { inset: 8%; z-index: 2; pointer-events: none; opacity: .42; }
 #battle #controls .slot.cooling .sic { opacity: 1; filter: brightness(.28) saturate(.35); }
 #battle #controls .slot.cooling .nm { top: calc(50% - var(--skill-state-size)); font-size: var(--skill-state-size); }
-#battle #controls .slot.cooling .ct { top: calc(50% + var(--skill-state-size) - .5px / var(--controls-scale, 1)); font-size: var(--skill-state-size); }
+/* 쿨다운 중 비용은 0.9배 · 1px 위: 세 자리 초 (「180초」) 아래에서 「10.5%」 귀퉁이가 원 테에 닿았음 (320×640, QA 2026-10-20) */
+#battle #controls .slot.cooling .ct { top: calc(50% + var(--skill-state-size) - 1.5px / var(--controls-scale, 1)); font-size: calc(var(--skill-state-size) * .9); }
 #battle #controls .slot.cooling .cds {
   display: block;
   top: 50%;
