@@ -1,0 +1,12 @@
+/* 버튼 터치 연출 (2026-10-20 Lim 「버튼 ui 터치시 클릭 연출」, tap-fx.ts): 버튼 빛은 tap-fx.ts의 filter 애니메이션,
+ * 여기는 화면을 거의 덮는 누름 칸 (타이틀 등)에 누른 자리 황동 빛 하나 (#tapfx 층, 손을 막지 않음). */
+#tapfx { position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; overflow: hidden; contain: strict; }
+#tapfx .tapfx {
+  position: absolute; display: block; border-radius: 50%; pointer-events: none;
+  border: 1.5px solid rgb(255 226 150 / 0.75);
+  background: radial-gradient(circle, rgb(255 248 220 / 0.6), rgb(255 214 120 / 0.2) 50%, transparent 72%);
+  animation: tapfx-spot 0.42s ease-out forwards;
+}
+#tapfx .tapfx.quiet { border-color: rgb(255 226 150 / 0.4); animation: tapfx-quiet 0.3s ease-out forwards; }
+@keyframes tapfx-spot { 0% { opacity: 1; transform: scale(0.4); } 100% { opacity: 0; transform: scale(1.25); } }
+@keyframes tapfx-quiet { 0% { opacity: 0.5; } 100% { opacity: 0; } }

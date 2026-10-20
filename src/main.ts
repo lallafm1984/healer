@@ -60,6 +60,7 @@ import './screens/talent-sheet.css';
 import './screens/merchant.css';
 import './screens/touch-floor.css';
 import './screens/menu-buttons.css';
+import './screens/tap-fx.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';
@@ -78,11 +79,13 @@ import { commit, G, refreshDay, syncAds } from './game/state';
 import { go } from './screens/kit';
 import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
+import { mountTapFx } from './screens/tap-fx';
 import { applyArtVars, warmArt } from './art';
 import { prepareVillage } from './screens/village';
 
 applyArtVars();
 mountTabs(document.getElementById('tabs')!);
+mountTapFx(() => !!G.save.settings.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches); // 버튼 터치 연출 (2026-10-20 Lim)
 pushSettings();
 commit(); // 저장 형식 확인용 (첫 실행이면 새로 만듦, 옛 저장은 새 형식으로)
 refreshDay();
