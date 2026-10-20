@@ -21,14 +21,11 @@ const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
  */
 export function staminaCell(): string {
   const v = view(), label = staminaLabel();
-  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('rest')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span><small class="tb-st-t"><i class="tb-st-plus" aria-hidden="true"${charging(v) ? '' : ' hidden'}>+1</i><span data-stam-tb>${nextText(v)}</span></small></button>`;
+  // 2026-10-20 Lim 「헤더에 휴식게이지에 배경이미지와 시간표시제거, 가득찾을때 최대 같은 텍스트 제거」: 고리 그림 + 지금/최대만 (남은 시간 · 가득 · 무제한 글은 팝업 · 읽어 주는 글에만)
+  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('rest')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span></button>`;
 }
 /** 고리 채움 (0~1): 다음 +1까지 지난 몫. 가득 · 무제한이면 1 */
 const ringOf = (v: ReturnType<typeof view>) => (v.unlimited || !v.next ? 1 : Math.min(1, Math.max(0, 1 - v.next / STAMINA.regenMs)));
-/** 차는 중 (다음 +1까지 시간이 있음) */
-const charging = (v: ReturnType<typeof view>) => !v.unlimited && !!v.next;
-/** 숫자 아래 한 줄: 다음 +1까지 남은 시간 (앞의 「+1」은 배지) · 가득 · 무제한 */
-const nextText = (v: ReturnType<typeof view>) => (v.unlimited ? '무제한' : v.next ? staminaClock(v.next) : '가득');
 function staminaLabel(): string {
   const v = view();
   return `휴식 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
@@ -139,11 +136,6 @@ export function refreshCells(): void {
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
   document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
   document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
-  document.querySelectorAll<HTMLElement>('[data-stam-tb]').forEach(el => {
-    el.textContent = nextText(v);
-    const plus = el.previousElementSibling as HTMLElement | null;
-    if (plus?.classList.contains('tb-st-plus')) plus.hidden = !charging(v);
-  });
   document.querySelectorAll<HTMLElement>('[data-stam-ring]').forEach(el => { el.style.setProperty('--p', ringOf(v).toFixed(3)); });
   document.querySelectorAll<HTMLElement>('[data-stamina-open]').forEach(el => { const l = staminaLabel(); el.setAttribute('aria-label', l); el.title = l; });
 }
