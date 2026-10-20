@@ -14,7 +14,9 @@ export default async function paladinWave(url,shots){
    delete f.tx.on.endlessLight;delete f.tx.on.freeWave;delete f.lock.lightWave;f.tx.any=!!o.free;
    if(o.endless)f.tx.on.endlessLight=true;if(o.free)f.tx.on.freeWave=true;if(o.lock)f.lock.lightWave={left:10,total:10};
    if(o.lift)f.party.forEach(u=>u.lift={until:f.t+100,fall:1,aim:'party'});
-  },o);await p.clock.runFor(40);};
+  },o);await p.clock.runFor(40);
+  // CI · 바쁜 맥에서 가끔 40ms 안에 자원 그림이 새 상태를 못 그림: 방패 조각 수가 신성한 힘과 맞을 때까지 조금 더 (최대 400ms)
+  for(let i=0;i<10&&await p.evaluate(()=>document.querySelectorAll('.job-gauge .shield-segment:not([hidden])').length!==window.__proto.F.power3);i++)await p.clock.runFor(40);};
   const snap=()=>p.evaluate(()=>{
    const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect(),a=q('.paladin-wave-aura'),g=q('.job-gauge'),ar=r(a),gr=r(g),wr=r(q('#wheel')),it=q('#aux:not([hidden])')?r(q('#aux')):{top:r(q('#side')).bottom};
    return {on:!a.hidden&&g.dataset.waveReady==='true',count:g.querySelectorAll('.paladin-wave-aura').length,registeredLayer:+getComputedStyle(a).zIndex>+getComputedStyle(g.querySelector('.gauge-base')).zIndex&&+getComputedStyle(a).zIndex<+getComputedStyle(g.querySelector('.gauge-number')).zIndex,
