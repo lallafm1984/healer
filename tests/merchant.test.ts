@@ -16,9 +16,9 @@ const at = (lv: number, gold = 1e6): SaveData => {
 };
 const grade = (o: number[], g: string) => o[ITEM_GRADES.indexOf(g as never)];
 
-describe('값: 450 × (1 + 내 Lv ÷ 10), 10골드 단위', () => {
-  it('Lv 10 900 · 45 2,480 · 70 3,600 · 100 4,950', () => {
-    expect([10, 45, 70, 100].map(merchantGold)).toEqual([900, 2480, 3600, 4950]);
+describe('값: 100 × 내 Lv (Lim 「100레벨 기준 만골드」)', () => {
+  it('Lv 10 1,000 · 45 4,500 · 70 7,000 · 100 10,000', () => {
+    expect([10, 45, 70, 100].map(merchantGold)).toEqual([1000, 4500, 7000, 10000]);
     expect(MERCHANT.lv).toBe(10);
   });
 });
@@ -47,11 +47,11 @@ describe('등급 확률: 그 레벨 어려움 바탕 표 + 영웅 (Lv 45부터, 
 
 describe('사기', () => {
   it('고른 부위 · 종류, 장비 레벨 = 내 레벨, 골드를 값만큼 쓰고 가방에', () => {
-    const s = at(60, 10000), r = rngFrom(7);
+    const s = at(60, 20000), r = rngFrom(7);
     const it = buyUnknown(s, 'neck', 'pendant', r);
     if (typeof it === 'string') throw new Error(it);
     expect(it.slot).toBe('neck'); expect(it.kind).toBe('pendant'); expect(it.lv).toBe(60);
-    expect(s.player.gold).toBe(10000 - merchantGold(60));
+    expect(s.player.gold).toBe(20000 - merchantGold(60));
     expect(s.gear.bag.some(b => b.id === it.id)).toBe(true);
   });
   it('여러 번 사면 등급 비율이 확률표와 맞음 (Lv 100 영웅 8% 안팎, 전설 없음)', () => {
