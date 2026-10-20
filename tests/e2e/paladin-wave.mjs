@@ -41,6 +41,7 @@ export default async function paladinWave(url,shots){
   ok((await snap()).aux===(aux?2:0),`${width} 보조 특성 ${aux}`);
   for(const [name,expected] of [['이슬','이슬'],['빛방패','빛방패'],['끝까지지킴','끝까지지킴'],['말없는수호기사','말없는수호'],['Alexander','Alexa'],['힐러A12호','힐러A12'],[null,'미지정']]){
    await p.evaluate(name=>{const f=window.__proto.F;f.beacon=name===null?null:f.party[0].id;if(name!==null)f.party[0].nick=name;},name);await p.clock.runFor(40);
+   for(let i=0;i<10&&await p.evaluate(x=>document.querySelector('.paladin-beacon-name')?.textContent!==x,expected);i++)await p.clock.runFor(40); // CI에서 가끔 40ms 안에 이름이 안 바뀜 (화면 갱신이 늦음)
    const label=await p.evaluate(()=>{
     const q=s=>document.querySelector(s),e=q('.paladin-beacon-name'),r=e.getBoundingClientRect(),a=q('.resource-art').getBoundingClientRect(),i={top:q('#aux:not([hidden])')?.getBoundingClientRect().top??q('#side').getBoundingClientRect().bottom},w=q('#wheel').getBoundingClientRect();const range=document.createRange();range.selectNodeContents(e);
     return {text:e.textContent,title:e.title,description:q('.job-gauge').getAttribute('aria-label'),safe:r.bottom<i.top&&r.right<w.left&&[...document.querySelectorAll('#aux [data-tal]')].every(b=>{const x=b.getBoundingClientRect();return r.bottom<=x.top||r.right<=x.left||r.left>=x.right;})&&r.top>=a.top+a.height*440/464&&range.getBoundingClientRect().width<=r.width,
