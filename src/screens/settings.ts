@@ -1,7 +1,7 @@
 /** S21 설정 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김. 칸 탭 기본 힐·스킬 배치(S17)는 캐릭터 → 스킬로 옮김 */
 import { MAX_LEVEL } from '../data/progression';
 import { Flow } from '../game/flow';
-import { commit, G, heroNow, resetSave, setTestMaxLevel } from '../game/state';
+import { commit, G, heroNow, resetSave, setTestLevelUp, setTestMaxLevel, TEST_LEVEL_STEP } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, go, previous, screen, topBar } from './kit';
 
@@ -26,6 +26,7 @@ export function pushSettings(): void {
 function render(): void {
   const st = G.save.settings;
   const chip = (name: string, val: string, cur: string, label: string) => `<button class="chip" type="button" data-set="${name}" data-val="${val}" aria-pressed="${cur === val}">${label}</button>`;
+  const lvLock = Flow.running || G.save.player.level >= MAX_LEVEL;
   const tog = (name: string, label: string) => `<label class="toggle"><input type="checkbox" data-tog="${name}"${(st as unknown as Record<string, boolean>)[name] ? ' checked' : ''}> ${label}</label>`;
   s.el.innerHTML = `${topBar({ back, title: '설정' })}
     <div class="ns-body settings">
@@ -41,7 +42,10 @@ function render(): void {
         ${tog('devJobs', '전 직업 선택')}<p>구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.</p>
         ${tog('devGold', '골드 무제한')}<p>골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
         ${tog('devStamina', '휴식 무제한')}<p>클리어해도 휴식이 줄지 않고 휴식 보너스가 늘 붙습니다.</p>
-        <button class="btn" type="button" id="devMaxLevel"${Flow.running || G.save.player.level >= MAX_LEVEL ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
+        <div class="row dev-level">
+          <button class="btn" type="button" id="devLevelUp"${lvLock ? ' disabled' : ''}>레벨 +${TEST_LEVEL_STEP}</button>
+          <button class="btn" type="button" id="devMaxLevel"${lvLock ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
+        </div>
         <p id="devLevelStatus" role="status">현재 Lv. ${G.save.player.level}${Flow.running ? ' · 정산 후 변경 가능' : ' · 장비·재화 유지'}</p>
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
         <button class="btn" type="button" id="resetSave">${confirmReset ? '한 번 더 누르면 삭제' : '저장 지우고 처음부터'}</button>
@@ -56,11 +60,13 @@ s.el.addEventListener('click', e => {
   const c = t.closest<HTMLElement>('[data-set]');
   if (c) { (G.save.settings as unknown as Record<string, string>)[c.dataset.set!] = c.dataset.val!; saveSettings(); return; }
   if (t.closest('#toSkills')) { go('s-char', 'skill'); return; }
-  if (t.closest('#devMaxLevel')) {
+  const lvBtn = t.closest<HTMLButtonElement>('#devLevelUp, #devMaxLevel');
+  if (lvBtn) {
     const scrollTop = s.el.querySelector('.settings')?.scrollTop ?? 0;
-    setTestMaxLevel();
+    if (lvBtn.id === 'devLevelUp') setTestLevelUp(); else setTestMaxLevel();
     pushSettings(); render();
     s.el.querySelector('.settings')!.scrollTop = scrollTop;
+    s.el.querySelector<HTMLButtonElement>(`#${lvBtn.id}:not(:disabled)`)?.focus({ preventScroll: true });
     return;
   }
   if (t.closest('#tutAgain')) {
