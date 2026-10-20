@@ -3,7 +3,7 @@
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
  *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 재설정):
  *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
- *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 길드 회관 (길드를 빼 두면 없음) · 대장간 · 잡화점. 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
+ *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 길드 회관 (길드를 빼 두면 없음) · 대장간 · 잡화점 · 행상인 (106, 미확인 장비). 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
  *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
@@ -11,7 +11,7 @@ import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content'
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
+import { jobProductId, MERCHANT, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { HERO_KEYS, HEROES } from '../data/heroes';
 import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
@@ -20,6 +20,7 @@ import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { guide } from '../game/guide';
+import { merchantOffer } from '../game/merchant';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay, rerollOpen } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
@@ -213,6 +214,17 @@ function shopPlate(): string {
 }
 
 /**
+ * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위 · 종류를 골라 골드로 사는 미확인 장비. Lv 10 (MERCHANT.lv) 전엔 잠금 글.
+ * 이름은 다른 팻말처럼 세 글자 (「떠돌이 상인」은 팻말에서 두 줄로 꺾였음)
+ * 둘째 줄 = 한 개 값 대신 짧은 말 (팻말 한 줄 6자 안팎, 값은 상인 화면에)
+ */
+function merchantPlate(): string {
+  const o = merchantOffer(G.save);
+  return plate(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', gameIcon('merchant', uiIcon('shop')), '행상인',
+    ['미확인 장비', o.open ? '골드로 사기' : `Lv ${MERCHANT.lv}에 열림`]);
+}
+
+/**
  * 휴식 충전: 휴식이 던전 한 판 몫 (10) 밑이고 충전할 수 있을 때만 왼쪽 맨 아래에 나옴 (다른 소켓 자리는 그대로).
  * 0이면 휴식 보너스 (클리어 경험치 · 골드 × REST_BONUS)를 못 받아 빛남. 누르면 휴식 창 (광고 +30 하루 3번, 광고 제거면 바로)
  */
@@ -223,9 +235,9 @@ function restSock(): string {
     `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
-/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 대장간 · 잡화점). 길드는 하단 탭 (2026-10-18) */
+/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 대장간 · 잡화점 · 행상인). 길드는 하단 탭 (2026-10-18) */
 const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
-  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${forgePlate()}${shopPlate()}</nav>`;
+  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${forgePlate()}${shopPlate()}${merchantPlate()}</nav>`;
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). */
 function journey(): string {

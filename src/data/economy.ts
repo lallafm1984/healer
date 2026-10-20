@@ -7,6 +7,7 @@
  * v17 (2026-10-16 Lim, 91 디아2식 장비): 강화 · 강화석 · 정제 강화석을 없애고 골드를 되살림 (「범용적으로 사용하기 위해서 골드 재화를 다시 넣자」).
  * 쓰는 재화는 골드 하나 (클리어 · 판매 · 임무 · 상자 · 도감, 재설정 · 캐릭터 칸 · 앞으로 상점).
  */
+import type { DiffName } from './difficulty';
 import type { HeroKey } from './heroes';
 
 // ---------- 휴식 보너스 (90, 2026-10-16 Lim 「그러자」): 81 2장의 입장 비용을 바꿈. 코드 · 저장 이름은 stamina 그대로 ----------
@@ -47,6 +48,17 @@ export const NOADS: Product = { id: 'noads', name: '광고 제거 패키지', pr
 export const PAID_HEROES: HeroKey[] = ['shaman', 'monk', 'astrologer', 'warder'];
 export const JOB_PRICE = '2,200원';
 export const jobProductId = (h: HeroKey) => `job_${h}`;
+
+// ---------- 행상인 · 미확인 장비 (106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처」) ----------
+/**
+ * 미확인 장비: 부위를 골라 골드로 사면 그때 종류 · 등급 · 옵션 · 특수능력이 정해짐 (Lim 「부위만 고르게」) (아이템 레벨 = 지금 직업 레벨, 직업 전용 70%).
+ * 등급 = 그 레벨 diff 판 바탕 표 (장소 Lv 1~44 고급 · 희귀, 45부터 희귀) + 영웅 hero × heroRamp (Lv 45부터, Lv 100에 8% = 20인 보통 첫 판 확률), 전설 없음.
+ * 값 = perLv × 내 Lv (2026-10-20 Lim 「100레벨 기준 만골드로 계산해보자」: Lv 10 1,000 · 45 4,500 · 60 6,000 · 70 7,000 · 100 10,000, 던전 어려움 휴식 판 7~10판 몫). 하루 횟수 · 천장 없음.
+ * Lv 100 20인 악몽 다시 깬 판 골드 (기본 1,355 · 휴식 2,711)라 한 개 = 4~7판: 번 골드를 모두 써도 영웅은 판에서 나오는 양의 5~10% (106 3장)
+ */
+export const MERCHANT = { lv: 10, perLv: 100, hero: 0.08, diff: '어려움' as DiffName };
+/** 미확인 장비 한 개 값 (내 레벨) */
+export const merchantGold = (lv: number): number => MERCHANT.perLv * lv;
 
 // ---------- 캐릭터 칸 (68 2장): 칸 하나에 캐릭터 하나. Lim 2026-10-12 「둘 다」 = 골드로 모아 사거나 앱 결제로 바로 ----------
 /**
