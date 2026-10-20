@@ -214,7 +214,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
       if (!hasSprout(v)) putSprout(f, v, { ...o });
       v.lastHeal = f.t; if (v.sulking) v.sulking = false;
     }
-    emit(f, { type: 'sound', name: 'renew' });
+    emit(f, { type: 'sound', name: 'hymn' }); // 큰 기술 소리 hymn-druid (108 2장 연결 보완)
   } else if (key === 'rebirth') {
     const hp = (f.tx.rebirths ? TX.secondSpring.hp : REBIRTH.hp) + sv(f, 'quickRebirth'); // 두 번째 봄 (77): 두 번째는 25%
     if (u.alive || !reviveUnit(f, u, hp)) { emit(f, { type: 'msg', text: '환생 실패: 되살릴 빈 칸 없음' }); return; } // 빠른 환생 (42 드루 08)
@@ -289,7 +289,7 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
     const c = cellOf(f, u), reach = sanctuaryReach(f); // 넓은 성역 (77): 2칸, 초당 회복 −25%
     const sec = raidSec(f, 'sanctuary', SANCTUARY.sec); // 길어진 노래 · 긴 성역 (42)
     f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= reach.r).map(x => x.i)), end: f.t + sec, hps: SANCTUARY.hps * reach.hps, cell: c.i, at: f.t };
-    emit(f, { type: 'sound', name: 'chime' });
+    emit(f, { type: 'sound', name: 'hymn' }); // 큰 기술 소리 hymn-paladin (108 2장 연결 보완, 예전엔 공통 chime)
     emit(f, { type: 'msg', text: `빛의 성역: ${sec}초` });
   } else if (key === 'handGuard') {
     u.immune = HAND_GUARD.sec;
