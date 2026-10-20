@@ -45,11 +45,8 @@ export const FAME_LOW_GAP = 10;
 /** 모집 공고 하나: 전 직업 무작위 3명 · 내 Lv × 30 골드. 희귀 성격 또는 희귀 스킬 보유자는 지원자당 3%. */
 export const POST = { name: '모집 공고', per: 30, cands: 3, rareChance: 0.03 };
 export const postGold = (myLv: number) => POST.per * myLv;
-/** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자는 레벨 상관없이 (원석이 섞임) */
+/** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자 (길드 Lv에 따라 하루 1~3명)는 2026-10-20 Lim 「길드원 모집은 새공고만 있게, 명성에따른 지원은 없다」로 없앰 */
 export const POST_LV_GAP = 5;
-/** 명성 지원자: 길드 Lv 2 ~ 9 하루 1명 · 10 ~ 19 2명 · 20 ~ 30 3명, 사흘 동안 머묾 */
-export const appsPerDay = (guildLv: number) => (guildLv >= 20 ? 3 : guildLv >= 10 ? 2 : guildLv >= 2 ? 1 : 0);
-export const APP_DAYS = 3;
 /** 스킬 다시 뽑기: 내 Lv × 60 골드 (93 5-5) */
 export const rerollGold = (myLv: number) => 60 * myLv;
 /**

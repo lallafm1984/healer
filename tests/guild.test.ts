@@ -5,11 +5,11 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
-import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
+import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  appsPerDay, deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
+  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { birthV25, growthOf, growWeights, lvAdds, lvPoints, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
@@ -103,7 +103,6 @@ describe('열림 · 길드 Lv · 정원 (93 6-2)', () => {
     expect(guildLvOf(n0 + 3)).toEqual({ lv: 2, cap: 3, next: n0 + n1, have: 3, need: n1 });
     expect(guildLvOf(GUILD_STEPS[29])).toEqual({ lv: 30, cap: 31, next: null, have: 0, need: null });
     expect(guildLvOf(GUILD_STEPS[29] + 99999)).toMatchObject({ lv: 30, cap: 31, next: null, need: null });
-    expect([1, 2, 9, 10, 19, 20, 30].map(appsPerDay)).toEqual([0, 1, 1, 2, 2, 3, 3]);
     const s = save(30);
     for (let i = 0; i < 2; i++) add(s, 'mage', i);
     expect(Gd.full(s)).toBe(true);
@@ -217,40 +216,14 @@ describe('영입 (93 4-2)', () => {
     expect(Gd.hire(s, 0)).toBe('');
     expect(s.guild.post?.cands.map(c => c.nick)).toEqual([cands[2].nick]);
   });
-  it.each(['post', 'app'] as const)('%s 영입 시 다른 경로의 같은 지원자도 제거하고 나머지는 보존한다', channel => {
+  it('공고 영입 시 그 지원자만 빼고 나머지 지원자는 보존한다 (명성 지원자는 2026-10-20 없앰)', () => {
     const s = save(30);
     Gd.postRecruit(s, rng);
     const cands = [...s.guild.post!.cands];
-    s.guild.apps = cands.slice(0, 2).map(m => ({ m, until: '2026-10-21' }));
-    expect(channel === 'post' ? Gd.hire(s, 0) : Gd.hireApp(s, 0)).toBe('');
+    expect(Gd.hire(s, 0)).toBe('');
     expect(s.guild.members.map(m => m.nick)).toEqual([cands[0].nick]);
     expect(s.guild.post?.cands.map(m => m.nick)).toEqual(cands.slice(1).map(m => m.nick));
-    expect(s.guild.apps.map(a => a.m.nick)).toEqual([cands[1].nick]);
-  });
-  it('명성 지원자: 길드 Lv 2부터 하루 1명 (Lv 10 2명 · Lv 20 3명), 사흘 머묾, 적은 역할부터', () => {
-    const T = new Date(2026, 9, 7, 12).getTime();
-    const s = save(30);
-    add(s, 'warrior', 0); add(s, 'warrior', 1);
-    Gd.refreshApps(s, rng, T);
-    expect(s.guild.apps).toEqual([]);
-    s.guild.fame = GUILD_STEPS[1];
-    s.guild.appsDay = '';
-    Gd.refreshApps(s, rng, T);
-    Gd.refreshApps(s, rng, T + 3600e3);
-    expect(s.guild.apps.length).toBe(1);
-    expect(CLASSES[s.guild.apps[0].m.cls].role).not.toBe('tank');
-    expect(s.guild.apps[0].until).toBe('2026-10-09');
-    Gd.refreshApps(s, rng, T + 864e5);
-    expect(s.guild.apps.length).toBe(2);
-    Gd.refreshApps(s, rng, T + 3 * 864e5);
-    expect(s.guild.apps.length).toBe(2); // 첫 사람은 떠나고 새 사람
-    s.guild.fame = GUILD_STEPS[9]; // 길드 Lv 10: 하루 2명
-    Gd.refreshApps(s, rng, T + 4 * 864e5);
-    expect(s.guild.apps.length).toBe(3);
-    const nick = s.guild.apps[0].m.nick;
-    expect(Gd.hireApp(s, 0)).toBe('');
-    expect(s.guild.members.some(m => m.nick === nick)).toBe(true);
-    expect(s.guild.apps.length).toBe(2);
+    expect(['apps' in s.guild, 'appsDay' in s.guild]).toEqual([false, false]);
   });
 });
 
@@ -530,7 +503,8 @@ describe('저장 v19 (길드 v2)', () => {
     expect(m).not.toHaveProperty('apt0');
     expect(memberSkillLevel(m)).toBe(4);
     expect(d).not.toHaveProperty('users');
-    expect(d.guild).toMatchObject({ founded: true, storySeen: true, fame: 60, nextId: 4, picks: { '5': [3] }, apps: [] }); // v24: 옛 명성 × 2 (103)
+    expect(d.guild).toMatchObject({ founded: true, storySeen: true, fame: 60, nextId: 4, picks: { '5': [3] } }); // v24: 옛 명성 × 2 (103)
+    expect(d.guild).not.toHaveProperty('apps'); // v29: 명성 지원자 없음
     expect(d.guild).not.toHaveProperty('scouts');
     // 다시 불러도 그대로
     expect(migrate(JSON.parse(JSON.stringify(d))).guild).toEqual(d.guild);
@@ -620,7 +594,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(28);
+    expect(SAVE_VERSION).toBe(29);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;

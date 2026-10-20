@@ -1,9 +1,9 @@
 /**
  * 길드 탭 (길드 v2 `93` · FM `97`, 사슬 4번). Lv 15에 결성 이야기로 열림.
- * 2026-10-19 선택 시안 1: 현황은 구분선 목록, 영입은 짧은 채널 탭과 지원자 비교 목록.
+ * 2026-10-19 선택 시안 1: 현황은 구분선 목록, 영입은 모집 공고 지원자 비교 목록.
  * #233 공통 디자인 유지 (상점 · 편성과 같은 길드 홀 돌색, guild-hall.css): 위 = 하위 탭 (현황 · 길드원 · 영입) + 길드 홀 그림 머리 (이름 · Lv · 정원 · 명성).
  * 2026-10-19 Lim 「길드컨테츠 ui 디자인이 형편없다 … 필요한 정보만 텍스트」 → C안. 같은 날 추가 요청으로 기록과 스킬 뽑기 제거:
- *  현황 = 오늘의 부탁 · 주간 할 일을 바로 표시. 영입 = 모집 공고 하나 (전 직업 무작위) · 명성 지원자.
+ *  현황 = 오늘의 부탁 · 주간 할 일을 바로 표시. 영입 = 모집 공고 하나 (전 직업 무작위). 명성 지원자는 2026-10-20 Lim 「길드원 모집은 새공고만 있게, 명성에따른 지원은 없다」로 없앰.
  *  길드원 = 판 하나 (편성과 같은 파티원 줄) → 아래 시트 (레벨 경험치 막대 · 능력치 · 후원 · 보내기).
  *  공통 부품: 판 (.g-card 머리 = 그림 · 제목 · 숫자 · ⓘ), 줄 (.g-row), 숫자 칸 (.g-tiles), 알약 (.g-pill). 규칙 · 긴 설명은 ⓘ를 눌러야 보임.
  * 육성 포인트 · 훈련 · 자질 · 전투력 숫자 · 인연 스카우트는 없앰 (97: 크는 길은 출전 경험뿐).
@@ -15,13 +15,12 @@ import { CONTENT } from '../data/content';
 import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, LV_DOUBLE, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
-import { dayKey, daysBetween } from '../game/clock';
 import { Flow } from '../game/flow';
 import { claimExped } from '../game/economy';
 import { guideCtx, rankStages, realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
 import { abilityStars, profileOf, STAT_NAMES } from '../data/fm';
-import { capOf, foundGuild, inviteStory, postCost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, hireApp, postRecruit, refreshApps, release } from '../game/guild';
+import { capOf, foundGuild, inviteStory, postCost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, postRecruit, release } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -31,11 +30,11 @@ import { sheetDialog } from './dialog';
 
 type Sub = 'home' | 'members' | 'recruit';
 const SUBS: [Sub, string][] = [['home', '현황'], ['members', '길드원'], ['recruit', '영입']];
-/** 열린 시트: 길드원 · 공고 지원자 · 명성 지원자 */
-type Sheet = { k: 'mem'; id: number } | { k: 'cand'; i: number } | { k: 'app'; i: number } | null;
+/** 열린 시트: 길드원 · 공고 지원자 */
+type Sheet = { k: 'mem'; id: number } | { k: 'cand'; i: number } | null;
 type MemberAction = { kind: 'sponsor' | 'release'; id: number };
-/** tip = 펼친 설명, csel = 영입에서 고른 판 */
-const st: { sub: Sub; sheet: Sheet; msg: string; ask: MemberAction | null; tip: string | null; csel: string } = { sub: 'home', sheet: null, msg: '', ask: null, tip: null, csel: '' };
+/** tip = 펼친 설명 */
+const st: { sub: Sub; sheet: Sheet; msg: string; ask: MemberAction | null; tip: string | null } = { sub: 'home', sheet: null, msg: '', ask: null, tip: null };
 type MemberRole = 'tank' | 'melee' | 'ranged' | 'any';
 type MemberSort = 'level' | 'ability' | 'name';
 const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
@@ -44,7 +43,7 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshApps(G.save, Math.random); refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } st.sub = 'home'; st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; st.csel = ''; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } st.sub = 'home'; st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
 const modal = sheetDialog(s.el, closeSheet);
 
@@ -73,7 +72,7 @@ const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stat
 
 /** 위: 하위 탭 (상점과 같은 .subtabs). 영입 = 지원자 빨간 점 */
 function tabs(): string {
-  const g = G.save.guild, cands = (g.post?.cands.length || 0) + g.apps.length;
+  const g = G.save.guild, cands = g.post?.cands.length || 0;
   const extra: Record<Sub, string> = {
     home: '',
     members: '',
@@ -135,7 +134,7 @@ function lockHtml(why: string): string {
   const feat = (icon: string, name: string, line: string) => `<li class="g-row g-feat"><span class="g-ri">${icon}</span><div class="g-rm"><b>${name}</b><span class="g-sub wrap">${line}</span></div></li>`;
   return `<section class="g-card g-lockp"><header class="g-hd lockline"><span class="g-hi">${LOCK}</span><h3>${esc(why)}</h3><span class="g-meta">지금 Lv ${topLevel(G.save)}</span></header>
     <ul class="g-rows">
-      ${feat(IC.post(), '영입', '모집 공고 · 명성 지원자')}
+      ${feat(IC.post(), '영입', '모집 공고')}
       ${feat(IC.flag(), '길드파티', '함께 출전할수록 레벨 · 능력치가 오름')}
     </ul></section>`;
 }
@@ -168,12 +167,6 @@ const infoBtn = (key: string, label: string) => `<button type="button" class="g-
 const tipBox = (key: string, html: string) => (st.tip === key ? `<div class="g-tip" role="note">${html}</div>` : '');
 function secHtml(x: Sec): string {
   return `<section class="g-card${x.flat ? ' g-flat' : ''}" data-sec="${x.key}" id="guild-panel-${x.key}">${x.flat ? '' : `<header class="g-hd"><span class="g-hi">${x.icon}</span><h3>${x.title}</h3>${x.meta ? `<span class="g-meta">${x.meta}</span>` : ''}${x.tip ? infoBtn(x.key, x.title) : ''}</header>`}${x.tip ? tipBox(x.key, x.tip) : ''}${x.body}</section>`;
-}
-/** 영입 채널: 큰 그림 메뉴 대신 짧은 탭, 고른 채널의 목록을 바로 표시한다. */
-function hub(secs: Sec[]): string {
-  if (secs.length === 1) return secHtml(secs[0]);
-  const cur = secs.find(x => x.key === st.csel) ?? secs[0];
-  return `<nav class="g-hub" role="tablist" aria-label="영입 경로">${secs.map(x => `<button type="button" role="tab" class="g-hubt" data-csel="${x.key}" ${x === cur ? `aria-controls="guild-panel-${x.key}"` : ''} aria-selected="${x === cur}"><b>${x.title}</b>${x.key === 'app' ? `<small>${G.save.guild.apps.length}</small>` : ''}${x.dot ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`).join('')}</nav>${secHtml(cur)}`;
 }
 /** 보상 · 상태 알약: 그림 + 짧은 글 (그림 뜻은 읽어 주는 글로) */
 const pill = (ic: string, t: string, cls = '', sr = '') => `<span class="g-pill${cls ? ` ${cls}` : ''}">${ic}${sr ? `<span class="sr">${sr} </span>` : ''}${t}</span>`;
@@ -261,16 +254,14 @@ function membersHtml(): string {
 function recruitHtml(): string {
   const g = G.save.guild, cap = capOf(G.save), isFull = full(G.save), gold = resourceBalance(G.save, 'gold'), my = topLevel(G.save);
   const side = (attr: string, label: string) => `<span class="g-side"><button class="btn mini primary" type="button" ${attr}${isFull ? ' disabled' : ''}>${label}</button></span>`;
-  const candRow = (c: GuildMember, i: number, k: 'cand' | 'app', note = '') => memRowHtml(card(c), {
-    attrs: `data-${k}="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: st.sheet?.k === k && st.sheet.i === i, tag: note,
-    extra: k === 'app' ? side(`data-hireapp="${i}"`, '영입') : '',
+  const candRow = (c: GuildMember, i: number) => memRowHtml(card(c), {
+    attrs: `data-cand="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: st.sheet?.k === 'cand' && st.sheet.i === i,
   });
-  const days = (until: string) => { const d = daysBetween(dayKey(), until) + 1; return d <= 1 ? '오늘까지' : `${d}일`; };
   const waitRows = g.storyWait.map(k => { const s = STORY[k], p = profileOf(s.nick, s.pers, CLASSES[s.cls].role as Exclude<MemberRole, 'any'>); return memRowHtml({ ...card({ nick: s.nick, cls: s.cls, pers: s.pers, ab: s.ab, lv: topLevel(G.save), stats: { ...p.stats, ...s.boost } as GuildMember['stats'] }), grown: false }, { // 합류 전: 바탕 + 레벨업 점수는 화면에서
     tag: '합류 대기', extra: side(`data-istory="${k}"`, '영입') }); }).join('');
   const cost = postCost(G.save), count = POST.cands;
   const post = g.post, room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
-  const cands = post ? `<ul class="pcards g-list g-candidates">${post.cands.map((c, i) => candRow(c, i, 'cand')).join('')}</ul>` : `<p class="g-empty0">공고를 내면 지원자 ${count}명이 찾아옵니다.<small>Lv ${Math.max(1, my - 5)} 이상 · ${roomTxt}</small></p>`;
+  const cands = post ? `<ul class="pcards g-list g-candidates">${post.cands.map((c, i) => candRow(c, i)).join('')}</ul>` : `<p class="g-empty0">공고를 내면 지원자 ${count}명이 찾아옵니다.<small>Lv ${Math.max(1, my - 5)} 이상 · ${roomTxt}</small></p>`;
   const postSec: Sec = {
     key: 'post', flat: true, icon: IC.post(), title: POST.name, dot: !!post?.cands.length,
     body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>${post ? `지원자 ${post.cands.length}명` : POST.name}<small> · ${roomTxt}</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">모든 직업 무작위 · 희귀 등장 ${POST.rareChance * 100}%</p></div>
@@ -280,12 +271,7 @@ function recruitHtml(): string {
     tip: `<p>모든 직업에서 지원자 ${count}명이 무작위로 찾아옵니다 (Lv ${Math.max(1, my - 5)} 이상). 지원자마다 ${POST.rareChance * 100}% 확률로 희귀 성격 또는 희귀 스킬을 가진 사람이 등장합니다.</p><p>지원자를 누르면 능력치와 스킬을 확인하고 영입할 수 있습니다. 정원 안에서 모두 영입할 수 있으며, 영입하지 않은 지원자는 대기합니다. 새 공고를 내면 대기 중인 지원자는 돌아갑니다.</p>`,
   };
 
-  const appSec: Sec | null = cap.lv >= 2 ? {
-    key: 'app', flat: true, icon: IC.fame(), title: '명성 지원자', meta: `${g.apps.length}명`, sum: `${g.apps.length}명`, dot: g.apps.length > 0,
-    body: `<div class="g-offer-title g-app-title"><h3>명성 지원자 ${g.apps.length}명</h3>${infoBtn('app', '명성 지원자')}</div>${g.apps.length ? `<ul class="pcards g-list g-candidates">${g.apps.map((a, i) => candRow(a.m, i, 'app', days(a.until))).join('')}</ul>` : '<p class="g-empty0">내일 새로 옴</p>'}`,
-    tip: '<p>길드 명성을 보고 날마다 새로 찾아옵니다. 사흘 동안 머물며, 남은 기간은 이름 옆에 표시됩니다.</p>',
-  } : null;
-  return `${isFull ? `<p class="warnbox g-full">정원 ${g.members.length} / ${cap.cap} 가득<small>길드 레벨을 올리면 정원이 늘어납니다.</small></p>` : ''}${waitRows ? `<section class="g-card g-story-wait"><header class="g-hd"><h3>합류 대기</h3></header><ul class="pcards g-list">${waitRows}</ul></section>` : ''}${hub([postSec, appSec].filter((x): x is Sec => !!x))}`;
+  return `${isFull ? `<p class="warnbox g-full">정원 ${g.members.length} / ${cap.cap} 가득<small>길드 레벨을 올리면 정원이 늘어납니다.</small></p>` : ''}${waitRows ? `<section class="g-card g-story-wait"><header class="g-hd"><h3>합류 대기</h3></header><ul class="pcards g-list">${waitRows}</ul></section>` : ''}${secHtml(postSec)}`;
 }
 
 // ---------- 아래 시트 (편성 화면 파티원 시트와 같은 모양) ----------
@@ -299,12 +285,12 @@ function sheetHtml(): string {
   const x = st.sheet;
   if (!x) return '';
   const g = G.save.guild, isFull = full(G.save);
-  if (x.k === 'cand' || x.k === 'app') {
-    const c = x.k === 'cand' ? g.post?.cands[x.i] : g.apps[x.i]?.m;
+  if (x.k === 'cand') {
+    const c = g.post?.cands[x.i];
     if (!c) return '';
     const d = card(c);
     return sheetBox(`${c.nick} 상세`, `${sheetHead(d)}${memDetailHtml(d)}`,
-      `<footer class="g-hire-footer">${isFull ? '<p class="g-hire-limit">정원 가득</p>' : ''}<div class="g-hire-actions"><button class="btn2" type="button" data-shut>닫기</button><button class="btn mini primary" type="button" data-${x.k === 'cand' ? 'hire' : 'hireapp'}="${x.i}"${isFull ? ' disabled' : ''}>영입</button></div></footer>`);
+      `<footer class="g-hire-footer">${isFull ? '<p class="g-hire-limit">정원 가득</p>' : ''}<div class="g-hire-actions"><button class="btn2" type="button" data-shut>닫기</button><button class="btn mini primary" type="button" data-hire="${x.i}"${isFull ? ' disabled' : ''}>영입</button></div></footer>`);
   }
   const m = memberById(x.id);
   if (!m) return '';
@@ -424,8 +410,6 @@ s.el.addEventListener('click', e => {
   // ⓘ 설명: 누르면 펼치고 다시 누르면 접음
   const tip = t.closest<HTMLElement>('[data-tip]');
   if (tip) { const k = tip.dataset.tip!; st.tip = st.tip === k ? null : k; render(); return; }
-  const cs = t.closest<HTMLElement>('[data-csel]');
-  if (cs) { st.csel = cs.dataset.csel!; st.tip = null; postReplace = false; render(); return; }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
   if (t.closest('#found')) { foundGuild(save); commit(); render(); return; }
   if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length; st.msg = sponsorRest(save) || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
@@ -447,8 +431,6 @@ s.el.addEventListener('click', e => {
   }
   const h = t.closest<HTMLButtonElement>('[data-hire]');
   if (h) { if (!h.disabled) { const err = hire(save, Number(h.dataset.hire)); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
-  const ha = t.closest<HTMLButtonElement>('[data-hireapp]');
-  if (ha) { if (!ha.disabled) { const err = hireApp(save, Number(ha.dataset.hireapp)); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
   const x = st.sheet;
   if (x?.k === 'mem' && t.closest('.g-msheet')) {
     const button = t.closest<HTMLButtonElement>('[data-sponsor], [data-release]');
@@ -456,13 +438,11 @@ s.el.addEventListener('click', e => {
     return;
   }
   const sub = t.closest<HTMLElement>('[data-sub]');
-  if (sub) { st.sub = sub.dataset.sub as Sub; st.sheet = null; st.ask = null; st.tip = null; st.csel = ''; postReplace = false; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
+  if (sub) { st.sub = sub.dataset.sub as Sub; st.sheet = null; st.ask = null; st.tip = null; postReplace = false; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   const mem = t.closest<HTMLElement>('[data-mem]');
   if (mem) { openSheet({ k: 'mem', id: Number(mem.dataset.mem) }, `[data-mem="${mem.dataset.mem}"]`); return; }
   const cand = t.closest<HTMLElement>('[data-cand]');
-  if (cand) { openSheet({ k: 'cand', i: Number(cand.dataset.cand) }, `[data-cand="${cand.dataset.cand}"]`); return; }
-  const app = t.closest<HTMLElement>('[data-app]');
-  if (app) openSheet({ k: 'app', i: Number(app.dataset.app) }, `[data-app="${app.dataset.app}"]`);
+  if (cand) openSheet({ k: 'cand', i: Number(cand.dataset.cand) }, `[data-cand="${cand.dataset.cand}"]`);
 });
 
 // 누를 수 있는 줄 (role="button")은 Enter·Space로도, Esc = 시트 닫기

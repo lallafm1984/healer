@@ -87,7 +87,6 @@ export default async function guildExt(url, shots) {
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-sub="recruit"]'); await page.clock.runFor(50);
-  await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
   ok(/1,500/.test(await text('#guild-post-cost')) && !await page.isDisabled('#s-guild [data-post="normal"]') && /3명/.test(await text('#s-guild [data-sec="post"]')), '통합 공고: Lv 50 비용 1,500 · 지원자 3명 표시');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   sv = await save();
@@ -95,7 +94,6 @@ export default async function guildExt(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.gold = 10000; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-sub="recruit"]'); await page.clock.runFor(50);
-  await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
   const beforePost = JSON.stringify((await save()).guild.post);
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   ok((await save()).player.gold === 10000 && JSON.stringify((await save()).guild.post) === beforePost && await page.isVisible('#s-guild .g-post-confirm[role="dialog"]'), '새 공고 첫 누름: 지원자와 골드 유지 · 확인 팝업');
@@ -235,18 +233,10 @@ export default async function guildExt(url, shots) {
     const recruitHero = await page.locator('#s-guild .guild-hero').boundingBox();
     ok(homeHero.height === memberHero.height && memberHero.height === recruitHero.height, `${name}: 세 탭의 길드 이름판 높이 일치`);
     ok(await fit(), `${name}: 영입 가로 넘침 없음`);
-    await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
     ok(homeStyle === memberStyle && memberStyle === await cardStyle() && !homeStyle.startsWith('["none"'), `${name}: 현황·길드원·모집 공고의 갈색 카드 배경·테두리 통일`);
-    const noOverlap = await page.locator('#s-guild .g-recruit').evaluate(el => {
-      const hub = el.querySelector('.g-hub').getBoundingClientRect(), panel = el.querySelector('[data-sec="post"]').getBoundingClientRect();
-      const tabs = [...el.querySelectorAll('.g-hubt')].map(e => e.getBoundingClientRect());
-      return panel.top >= Math.max(hub.bottom, ...tabs.map(t => t.bottom)) && el.scrollWidth <= el.clientWidth + 1;
-    });
-    ok(noOverlap, `${name}: 공고 지원자 목록에서도 메뉴와 본문 겹침 없음`);
+    const onlyPost = await page.locator('#s-guild .g-recruit').evaluate(el => !!el.querySelector('[data-sec="post"]') && !el.querySelector('.g-hub, [data-csel], [data-sec="app"]') && el.scrollWidth <= el.clientWidth + 1);
+    ok(onlyPost, `${name}: 영입 = 모집 공고 판 하나 (경로 탭 · 명성 지원자 없음, 2026-10-20) · 가로 넘침 없음`);
     await page.screenshot({ path: `${shots}/guild_recruit_${name}.png`, fullPage: true });
-    await page.click('#s-guild [data-csel="app"]'); await page.clock.runFor(50);
-    ok(memberStyle === await cardStyle() && await fit(), `${name}: 명성 지원자도 공통 갈색 카드 · 가로 넘침 없음`);
-    await page.screenshot({ path: `${shots}/guild_fame_applicants_${name}.png`, fullPage: false });
 
   }
 
