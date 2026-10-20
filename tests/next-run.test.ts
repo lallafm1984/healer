@@ -1,6 +1,5 @@
 // 결과 화면 「다음」 갈 곳: 탐험 · 던전은 모험 길잡이 (86) 추천 가운데 방금 깬 칸이 아닌 첫 곳 (Lv 20까지는 70 순서), 레이드는 다음 장소
 import { beforeEach, describe, expect, it } from 'vitest';
-import { contentOf, stageOf } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
 import type { ItemGrade } from '../src/data/equipment';
 import { presetGear } from './fixtures/preset-gear';
@@ -37,19 +36,19 @@ describe('결과 화면 다음 갈 곳', () => {
     expect(nextRun('rustfort', '쉬움')).toEqual({ content: 'rustfort', diff: '보통' });
   });
 
-  it('순차 구간 뒤: 장비가 되면 레벨이 앞선 곳 악몽 (92: 내 레벨 악몽은 도전), 방금 깬 칸이면 그다음 추천', () => {
+  it('순차 구간 뒤: 장비가 좋아도 악몽은 추천 안 함 (2026-10-20 Lim), 방금 깬 칸이면 그다음 추천 · 악몽 판 뒤 「다음」도 악몽 아님', () => {
     G.save.player.level = 50; wear('희귀');
     const g = guide()!;
-    expect(g.diff).toBe('악몽');
-    expect(stageOf(contentOf(g.content), g.diff)).toBeLessThanOrEqual(45);
+    expect(g.diff).not.toBe('악몽');
     const n = nextRun(g.content, g.diff)!;
     expect(n).not.toEqual(g);
-    expect(n.diff).toBe('악몽');
+    expect(n.diff).not.toBe('악몽');
+    expect(nextRun(g.content, '악몽')?.diff).not.toBe('악몽');
   });
 
-  it('레이드는 다음 장소를 지금 난이도로, 악몽이 레벨로 잠겼으면 가장 낮은 열린 난이도', () => {
+  it('레이드는 다음 장소를 지금 난이도로 (악몽 판 뒤면 어려움, 악몽은 「다음」으로 안 고름), 그 난이도가 잠겼으면 가장 낮은 열린 난이도', () => {
     G.save.player.level = 50;
     expect(nextRun('abyss1', '보통')).toEqual({ content: 'abyss2', diff: '보통' });
-    expect(nextRun('abyss1', '악몽')).toEqual({ content: 'abyss2', diff: '쉬움' });
+    expect(nextRun('abyss1', '악몽')).toEqual({ content: 'abyss2', diff: '어려움' });
   });
 });
