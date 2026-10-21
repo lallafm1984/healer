@@ -120,10 +120,10 @@
       "ko": "흩날리는 빛",
       "file": "src/sfx/priest-scatter.ogg",
       "name": "priest-scatter",
-      "seconds": 1.1,
+      "seconds": 0.8,
       "channels": 2,
       "sample_rate": 44100,
-      "sha256": "99a4055146cce4e89a4ed943a7579a556eed94925a4876aff47f2c9b3e0b9e94"
+      "sha256": "3ba70114c18ebbcd0a33fd95156e9e23045104363a6f3c64b07e48ac2d391c0f"
     },
     {
       "ko": "평온 준비",
@@ -161,5 +161,14 @@
       "sample_rate": 44100,
       "sha256": "a4f70c07dcf8ea3ae51a5de4312bc1f2de916544fac24b2638bb9b3d4a76ccaf"
     }
-  ]
+  ],
+  "latest_revision": {
+    "date": "2026-10-21",
+    "name": "priest-scatter",
+    "request": "흩날리는 빛이 경쾌하게 잘들리게 수정",
+    "previous_sha256": "99a4055146cce4e89a4ed943a7579a556eed94925a4876aff47f2c9b3e0b9e94",
+    "human_listening": "not performed",
+    "status": "user-approved",
+    "approval_request": "다시 깃에 머지"
+  }
 }

@@ -129,12 +129,12 @@
   {
     "name": "priest-scatter",
     "ko": "흩날리는 빛",
-    "duration": 1.1,
-    "rms": -24.07,
-    "description": "A quick descending cascade of three clear delicate crystal chimes, distinct rounded sparkling notes scattering lightly with a short clean decay.",
+    "duration": 0.8,
+    "rms": -20.61,
+    "description": "A brisk cascade of clear glass notes, a lively compact scattering of light with an immediate attack, stronger presence and a short clean release.",
     "retained": false,
-    "prompt": "A quick descending cascade of three clear delicate crystal chimes, distinct rounded sparkling notes scattering lightly with a short clean decay. One small shower of luminous glass droplets. Bright pure upper midrange notes, not scratchy noise, gentle clear attacks. Complete gesture ends within 0.8 seconds followed by silence. No hiss, wind, metallic rattle, voice, choir, backing music, rhythm or ambience.",
-    "texture": "맑은 결정 세 음이 가볍게 흩어지는 소리"
+    "prompt": "Edit the existing Agent Audio crystal cascade into a brisk 0.8-second gesture. Preserve its glass character, move excessively high partials down slightly, bring the midrange forward, and raise its audible level. Immediate rounded attack, quick successive notes and a short clean release. No new voice, music, percussion or ambience.",
+    "texture": "짧고 경쾌하게 흩어지는 또렷한 결정음"
   },
   {
     "name": "priest-ready",
