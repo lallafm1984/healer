@@ -137,8 +137,14 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   return true;
 }
 
-/** 직업 공통 시전음 파일 이름 (2026-10-21 Lim 「시전음은 따로 만들어서 알려줄 테니 직업 공동으로 적용할 수 있도록」): src/sfx/cast-loop.ogg */
-export const CAST_LOOP = 'cast-loop';
+/**
+ * 시전음 파일 (2026-10-21 Lim 「시전음은 따로 만들어서 알려줄 테니 직업 공동으로 적용할 수 있도록」):
+ * 직업 파일 src/sfx/cast-loop-<직업>.ogg가 있으면 그것, 없으면 공통 src/sfx/cast-loop.ogg, 둘 다 없으면 조용 (null)
+ */
+export const castLoopFor = (hero: string): string | null =>
+  `cast-loop-${hero}` in urlOf ? `cast-loop-${hero}` : 'cast-loop' in urlOf ? 'cast-loop' : null;
+// 사제 시전음 (Lim이 준 파일, 원본 RMS 약 −13 dBFS): 효과음 아래로 깔리게 줄임
+VOL['cast-loop-priest'] = 0.45;
 
 /**
  * 이음새 없이 도는 소리 (시전하는 동안의 시전음). 파일이 없거나 소리가 꺼져 있으면 null.
