@@ -1,14 +1,15 @@
 /**
  * 자동 밸런스 (38 0-6, src/sim/balance.ts). 실행: npm run balance -- [장소 키 …] [--diff 어려움,악몽] [--n 40] [--check] [--write] [--report 파일.md]
  * 장소를 안 주면 만든 장소 모두. --check = 재기만 (배율을 찾지 않음), --write = 찾은 값을 src/data/tune.ts에 씀,
- * --report = 장소 × 난이도 시뮬 보고서 한 장 (38 0-7)을 마크다운 표로 씀
+ * --report = 장소 × 난이도 시뮬 보고서 한 장 (38 0-7)을 마크다운 표로 씀.
+ * 장소 Lv 20까지 쉬움 · 보통은 초보 하한도 봄 (처음 하는 사람 사제 NOVICE_N판, sim/novice 목표 아래로 가는 배율은 안 씀)
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { ALL_DIFFS, CONTENT } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { TUNE, type Tune } from '../src/data/tune';
-import { applyRows, balanceable, balanceOne, BASE_HEROES, BUSY, renderTune, rewriteTuneFile, stdLabel, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, balanceable, balanceOne, BASE_HEROES, BUSY, NOVICE_N, renderTune, rewriteTuneFile, stdLabel, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
 const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
@@ -45,6 +46,7 @@ for (const c of places) {
     const f = why(r.now);
     console.log(`  ${d.padEnd(3)} ${stdLabel(r.std)} ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now, c)}${f ? ` | 실패: ${f}` : ''}`);
     if (r.next) console.log(`      → dmg ${r.next.dmg} = ${mTxt(r.next.m)}`);
+    if (r.novice) console.log(`      초보 (사제 ${NOVICE_N}판) ${Math.round(r.novice.before)}% → ${Math.round(r.novice.after)}% · 목표 ${r.novice.target}%${r.novice.capped ? ' · 초보 하한으로 내림' : ''}`);
   }
 }
 
