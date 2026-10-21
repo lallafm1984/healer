@@ -131,10 +131,11 @@ export default async function lobbyA2(url, shots) {
         ok(await picked(), `${width}: 다음 목표 터치 → 목표가 골라진 모험 선택`);
         await goLobby(page);
 
-        await page.locator(`${lobby} .lb-raid`).tap(); await tick(page);
-        ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 레이드 → 10인 레이드 탭`);
-        await goLobby(page); await page.locator(`${lobby} .lb-shop`).tap(); await tick(page);
-        ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop [data-prod="noads"]'), `${width}: 잡화점 → 상점 상품 탭 (골드 탭은 2026-10-16 없앰)`);
+        // 오른쪽 팻말 = 상점 · 행상인 (2026-10-21 Lim 「레이드, 대장간 제거, 잡화점은 상점으로」, 「새 직업」 · 「골드로 사기」 줄 없음)
+        const plates = await page.locator(`${lobby} .lb-right .lb-plate`).evaluateAll(els => els.map(el => el.innerText.replace(/\s+/g, ' ').trim()));
+        ok(plates.length === 2 && /^상점/.test(plates[0]) && /^행상인/.test(plates[1]) && !plates.some(t => /레이드|대장간|잡화점|새 직업|골드로 사기/.test(t)), `${width}: 오른쪽 팻말 = 상점 · 행상인 (레이드 · 대장간 · 새 직업 · 골드로 사기 없음)`, plates);
+        await page.locator(`${lobby} .lb-shop`).tap(); await tick(page);
+        ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop [data-prod="noads"]'), `${width}: 상점 팻말 → 상점 상품 (골드 탭은 2026-10-16 없앰)`);
         // 상점은 탭 막대 없이 「← 상점」, 뒤로 = 로비 (2026-10-18 상점은 로비에서만)
         ok(await page.isHidden('#tabs'), `${width}: 상점에는 하단 탭 막대 없음`);
         await page.locator('#s-shop .tb-back').tap(); await tick(page);
@@ -143,11 +144,8 @@ export default async function lobbyA2(url, shots) {
         ok(await page.isVisible('#s-missions'), `${width}: 임무 → 임무 화면`);
         await page.locator('#s-missions .tb-back').tap(); await tick(page);
         ok(await page.isVisible(lobby), `${width}: 임무 닫기 → 로비`);
-        // 일일 상자 소켓은 임무에 합침 (2026-10-16 A안), 대장간 = 캐릭터 › 장비
+        // 일일 상자 소켓은 임무에 합침 (2026-10-16 A안). 대장간 팻말은 2026-10-21 뺌 (장비 정리 · 판매는 캐릭터 탭)
         ok(await page.locator(`${lobby} .lb-chest, #lbChest`).count() === 0, `${width}: 일일 상자 소켓 없음 (임무에 합침)`);
-        await page.locator(`${lobby} .lb-forge`).tap(); await tick(page);
-        ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="gear"]', 'aria-selected') === 'true', `${width}: 대장간 → 캐릭터 장비`);
-        await goLobby(page);
         await page.locator(`${lobby} .lb-chal .lb-main`).tap(); await tick(page);
         ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', `${width}: 주간 도전 → 던전 선택 화면`);
         await goLobby(page); await page.locator(`${lobby} .tb-set`).tap(); await tick(page);

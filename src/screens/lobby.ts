@@ -3,7 +3,8 @@
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
  *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 판매):
  *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
- *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 대장간 · 잡화점 · 행상인 (106, 미확인 장비). 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
+ *  오른쪽 나무 팻말 = 마을 건물: 상점 · 행상인 (106, 미확인 장비). 레이드 · 대장간 팻말은 2026-10-21 Lim 「로비 화면에서 우측에 레이드, 대장간 제거, 잡화점은 상점으로」로 뺐다
+ *  (레이드는 전투 탭, 장비 정리 · 판매는 캐릭터 탭). 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
  *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
@@ -11,9 +12,7 @@ import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content'
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { jobProductId, MERCHANT, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
-import { HERO_KEYS, HEROES } from '../data/heroes';
-import { adventureTabOf } from '../data/adventure-regions';
+import { MERCHANT, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildPartyNeed, guildSeatCount } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
@@ -22,7 +21,7 @@ import { chestState, claimChalChest, claimChest, claimMission, missionReady } fr
 import { guide } from '../game/guide';
 import { merchantOffer } from '../game/merchant';
 import { chalGate } from '../game/runmode';
-import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
+import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
@@ -183,47 +182,23 @@ function chalSock(): string {
       icon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
 }
 /**
- * 레이드 (예전 「첨탑」, 10인 Lv 45 · 20인 Lv 70): 열림은 실제 레벨로 적음 (개발 빌드 「레벨 잠금 무시」여도),
- * 둘째 줄 = 이번 주 받은 레이드 장비 수 (보스 × 난이도마다 주 1회). 휴식은 입장 비용이 아니라 적지 않는다 (90).
- * 누르면 지난 판이 레이드면 그 인원 탭, 아니면 열린 것 중 큰 레이드 탭
- */
-function raidPlate(): string {
-  const s = G.save, lv = s.player.level, r10 = contentOf('abyss1'), r20 = contentOf('cathedral1');
-  const open = lv >= r10.unlockLv, both = lv >= r20.unlockLv, got = s.weekly.loot.length;
-  const last = s.last && contentOf(s.last.content as ContentKey);
-  const tab = last?.kind === 'raid' ? adventureTabOf(last) : both ? 'raid20' : 'raid10';
-  return plate(`lb-raid${open ? '' : ' lock'}`, ` data-go="s-content" data-arg="${tab}"`, gameIcon(both ? 'raid20' : 'raid', uiIcon('star')), '레이드',
-    [both ? '10인 · 20인' : '10인 레이드', !open ? `Lv ${r10.unlockLv}에 열림` : got ? `주 첫 보상 ${got}` : '매 판 장비']); // #301 「주 첫 판만 크게」: 매 판 장비, 칸마다 주 첫 판은 레이드 표 (103 다른 문제점 7, 판 한 줄 6자 안팎)
-}
-
-/**
- * 대장간 (2026-10-16 새로): 필요 없는 장비 정리 (분해 → 장비 개편 뒤 판매 · 골드). 빨간 숫자 = 가방의 새 장비.
- * 지금은 캐릭터 › 장비로 감. 옵션 재설정은 2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」로 없앰 (예전 Lv 20부터 둘째 줄 「옵션 재설정」)
- */
-function forgePlate(): string {
-  const n = newGearCount();
-  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', '장비 판매'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
-}
-
-/**
- * 잡화점 = 상점 (상품 한 쪽): 광고 제거 · 새 직업. 둘 다 샀으면 「상품」.
+ * 상점 (예전 「잡화점」, 2026-10-21 Lim 「잡화점은 상점으로」): 상품 한 쪽. 둘째 줄 = 광고 제거, 샀으면 「상품」.
+ * 「새 직업 N」 줄은 같은 날 Lim 「새직업, 골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」로 뺐다 (글은 lobby-menu.css에서 가운데).
  * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」). 시즌 패스 (예전 빨간 숫자) · 공훈은 2026-10-20 Lim이 없앰
  */
 function shopPlate(): string {
-  const s = G.save, noads = adsFree(s), jobs = HERO_KEYS.filter(h => HEROES[h].unlock.buy && !s.bought.includes(jobProductId(h))).length;
-  const lines = [noads ? '' : '광고 제거', jobs ? `새 직업 ${jobs}` : ''].filter(Boolean);
-  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines.length ? lines : ['상품'], '');
+  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '상점', [adsFree(G.save) ? '상품' : '광고 제거'], '');
 }
 
 /**
  * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위를 골라 골드로 사는 미확인 장비 (종류 무작위). Lv 10 (MERCHANT.lv) 전엔 잠금 글.
- * 이름은 다른 팻말처럼 세 글자 (「떠돌이 상인」은 팻말에서 두 줄로 꺾였음)
- * 둘째 줄 = 한 개 값 대신 짧은 말 (팻말 한 줄 6자 안팎, 값은 상인 화면에)
+ * 이름은 세 글자 (「떠돌이 상인」은 팻말에서 두 줄로 꺾였음). 둘째 줄 = 「미확인 장비」 (값은 상인 화면에), 잠겼으면 셋째 줄 「Lv 10부터」
+ * (「Lv 10에 열림」은 S25에서 「Lv 10에 …」로 잘렸음). 「골드로 사기」 줄은 2026-10-21 Lim 「…골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」로 뺐다
  */
 function merchantPlate(): string {
   const o = merchantOffer(G.save);
   return plate(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', gameIcon('merchant', uiIcon('shop')), '행상인',
-    ['미확인 장비', o.open ? '골드로 사기' : `Lv ${MERCHANT.lv}부터`]); // 「Lv 10에 열림」은 팻말 한 줄에서 잘렸음 (S25 「Lv 10에 …」)
+    ['미확인 장비', ...(o.open ? [] : [`Lv ${MERCHANT.lv}부터`])]);
 }
 
 /**
@@ -237,9 +212,9 @@ function restSock(): string {
     `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
-/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 대장간 · 잡화점 · 행상인). 길드는 하단 탭 (2026-10-18) */
+/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (상점 · 행상인, 2026-10-21). 길드는 하단 탭 (2026-10-18) */
 const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
-  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${forgePlate()}${shopPlate()}${merchantPlate()}</nav>`;
+  <nav class="lb-side lb-right" aria-label="마을 건물">${shopPlate()}${merchantPlate()}</nav>`;
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). */
 function journey(): string {
