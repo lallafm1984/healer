@@ -39,7 +39,7 @@ export interface ContentDef {
   name: string;
   /** 지역 · 세력 (11 4장) */
   place: string;
-  /** 장소 레벨 (= 열림 레벨). 탐험 · 던전은 쉬움 적 레벨 (난이도마다 LEVEL_STEP 더함, 61), 레이드는 최소 적 레벨 (들어가면 내 레벨로 맞춰짐, 32) */
+  /** 장소 레벨 (= 열림 레벨). 탐험 · 던전은 쉬움 적 레벨 (난이도마다 LEVEL_STEP 더함, 61), 레이드는 적 레벨 (2026-10-21부터 내 레벨을 안 따라감, 예전 32 「레벨 맞춤」) */
   stageLv: number;
   /** 이 레벨부터 열림 */
   unlockLv: number;
@@ -666,8 +666,8 @@ export const isLeveling = (c: ContentDef) => c.kind !== 'raid';
 export const LEVEL_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 2, '어려움': 4, '악몽': 6 };
 
 /**
- * 적 레벨. 탐험 · 던전 = 장소 레벨 + 난이도 (고정, 61 1-2). 레이드 = 최소 적 레벨 (열림 레벨, 난이도만 따로 잠긴 건 그 레벨).
- * 레이드의 실제 적 레벨은 내 레벨과 이것 중 큰 쪽 (runmode, 32)
+ * 적 레벨. 탐험 · 던전 = 장소 레벨 + 난이도 (고정, 61 1-2). 레이드 = 열림 레벨 (난이도만 따로 잠긴 건 그 레벨, 악몽 diffUnlock).
+ * 레이드도 이 값에 고정 (2026-10-21 Lim, runmode. 예전엔 내 레벨과 이것 중 큰 쪽, 32)
  */
 export const stageOf = (c: ContentDef, d: DiffName) =>
   (isLeveling(c) && !c.hidden ? Math.min(100, c.stageLv + LEVEL_STEP[d]) : c.diffUnlock?.[d] ?? c.stageLv);

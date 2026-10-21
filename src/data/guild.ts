@@ -37,7 +37,7 @@ export function guildLvOf(fame: number): { lv: number; cap: number; next: number
 export const FAME = { explore: 1, dungeon: 2, raid10: 4, raid20: 6, first: 6 };
 /**
  * 낮은 장소 (2026-10-20 Lim 카드 「넷 다」, 103 다른 문제점): 그 판 적 레벨이 내 Lv − 이것보다 낮으면 이긴 판 명성 · 길드 첫 처치 없음 (첫 처치 기록도 안 남김).
- * 레이드 적은 max(내 Lv, 레이드 Lv)라 늘 받음. 첫 처치 칸 472개를 쓸어 담는 것 (4,648명성 > 길드 Lv 30 3,920) · 지난 던전 반복을 막음
+ * 레이드도 같음 (2026-10-21부터 레이드 적이 장소 레벨에 고정, 예전엔 max(내 Lv, 레이드 Lv)라 늘 받았음). 첫 처치 칸 472개를 쓸어 담는 것 (4,648명성 > 길드 Lv 30 3,920) · 지난 던전 반복을 막음
  */
 export const FAME_LOW_GAP = 10;
 
