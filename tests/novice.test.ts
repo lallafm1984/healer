@@ -86,3 +86,12 @@ describe('초보 검사 (초반 순차 레벨링 구간)', () => {
     }
   });
 });
+
+describe('초보 하한 지킴 (2026-10-22 Lim 「추천대로」, data/tune)', () => {
+  it('예전에 가장 낮던 녹슨 고원 보통 · 고철 더미 언덕 보통도 처음 하는 사람이 목표 근처 (시드 1 ~ 20, 흔들림 10%p)', () => {
+    for (const key of ['plateau', 'scrapheap']) {
+      const x = cell(key, '보통');
+      expect(measureNovice(x, 'priest', 20).rate, x.c.name).toBeGreaterThanOrEqual(noviceTarget(x)! - 10);
+    }
+  });
+});

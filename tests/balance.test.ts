@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { TUNE } from '../src/data/tune';
 import * as E from '../src/engine';
-import { applyRows, BUSY, closeIn, findDmg, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, BUSY, closeIn, findDmg, noviceCap, noviceCellOf, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 import { rampPlayer } from '../src/sim/ramp';
 import { recommendedFor, SLOTS } from '../src/data/equipment';
 
@@ -130,5 +130,21 @@ describe('장소 레벨 목표 곡선 (2026-10-19 Lim 「초반 쉽게 후반 �
     }
     const early = CONTENT.find(x => x.ready && stageOf(x, '보통') <= 10)!;
     expect(targetOf(early, '보통')).toEqual({ min: 97, max: 100, aim: 99 });
+  });
+});
+
+describe('초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안)', () => {
+  it('지키는 가장 큰 배율: 지금 배율이 지키면 그대로, 아니면 내려 찾고 사이를 좁힘', () => {
+    expect(noviceCap(m => m <= 1.5, 1.23)).toBe(1.23);
+    const got = noviceCap(m => m <= 0.97, 1.23);
+    expect(got).toBeLessThanOrEqual(0.97);
+    expect(got).toBeGreaterThan(0.94);
+    expect(noviceCap(() => false, 1, 0.4)).toBe(0.4); // 끝까지 못 지키면 찾는 범위 아래 끝
+  });
+  it('보는 칸 = 장소 Lv 20까지 쉬움 · 보통 (녹슨 고원 쉬움은 튜토리얼 판)', () => {
+    expect(noviceCellOf(contentOf('plateau'), '쉬움')).toMatchObject({ d: '쉬움', tut: true });
+    expect(noviceCellOf(contentOf('rustfort'), '보통')).toMatchObject({ d: '보통', tut: false });
+    expect(noviceCellOf(contentOf('rustfort'), '어려움')).toBeNull();
+    expect(noviceCellOf(contentOf('mossroot'), '보통')).toBeNull();
   });
 });

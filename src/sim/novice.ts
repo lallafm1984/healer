@@ -14,6 +14,7 @@ import { gearStatsOf, specsOf } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
 import { rampDiffs, rampPlace } from '../data/progression';
 import { TALENTS } from '../data/talents';
+import type { Tune } from '../data/tune';
 import { autoHealer, noviceHealer } from '../engine/auto';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
@@ -64,8 +65,8 @@ export interface NoviceRun {
   fails: number;
 }
 
-/** 한 판: 장소의 구간을 차례로 (구간 사이 휴식). opts = 초보 값 바꿔 보기 */
-export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pilot = 'novice', opts?: Partial<NoviceOpts>): NoviceRun {
+/** 한 판: 장소의 구간을 차례로 (구간 사이 휴식). opts = 초보 값 바꿔 보기, tune = 모든 구간에 이 보정 (data/tune 대신, 자동 밸런스 초보 하한) */
+export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pilot = 'novice', opts?: Partial<NoviceOpts>, tune?: Tune): NoviceRun {
   const { c, d } = x, segs = c.fights(d), stageLv = stageOf(c, d);
   const first = c.key === 'tutorial';
   const rp = first ? { lv: 1, eq: {} } : rampPlayer(c, d, hero, seed);
@@ -78,7 +79,7 @@ export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pil
   for (let i = 0; i < segs.length; i++) {
     const f = create({
       encounter: segs[i], diff: d, seed: seed + i * 7919, hero, level: rp.lv, heroLv: rp.lv, stageLv,
-      talents, party, affixes: affixes.length ? affixes : undefined, carry, gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero),
+      talents, party, affixes: affixes.length ? affixes : undefined, carry, tune, gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero),
     });
     while (!f.over && f.t < MAX_T) { healer(f); step(f); f.events.length = 0; }
     out.time += f.t;
@@ -103,11 +104,11 @@ export interface NoviceMeasure {
   apm: number;
 }
 /** 시드 seed0 ~ seed0 + n − 1 */
-export function measureNovice(x: NoviceCell, hero: HeroKey, n: number, pilot: Pilot = 'novice', opts?: Partial<NoviceOpts>, seed0 = 1): NoviceMeasure {
+export function measureNovice(x: NoviceCell, hero: HeroKey, n: number, pilot: Pilot = 'novice', opts?: Partial<NoviceOpts>, seed0 = 1, tune?: Tune): NoviceMeasure {
   let wins = 0, time = 0, all = 0, lv = 0, gear = 0, presses = 0;
   const fails: Record<string, number> = {};
   for (let s = seed0; s < seed0 + n; s++) {
-    const r = runNovice(x, hero, s, pilot, opts);
+    const r = runNovice(x, hero, s, pilot, opts, tune);
     all += r.time; lv += r.lv; gear += r.gear; presses += r.presses;
     if (r.win) { wins++; time += r.time; } else fails[r.reason] = (fails[r.reason] || 0) + 1;
   }

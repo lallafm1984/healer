@@ -10,6 +10,8 @@
  * 받는 피해가 치유 한 번 크기로 분당 BUSY번이 안 되면 피해 배율을 올림 (클리어율이 목표값 아래로 가지 않는 만큼만).
  * 순차 레벨링 구간 (70, 장소 Lv 20까지) 어려움 · 악몽은 권장 장비 대신 그 난이도가 처음 열린 플레이어의 레벨 · 드롭 장비 (sim/ramp, 2026-10-13 Lim
  * 「Lv 1 어려움이 자동 힐로 안 깨짐」: 권장 장비로는 녹슨 고원 어려움 80%, 실제 Lv 3 · 장비 1~2개로는 3%).
+ * 초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안): 순차 레벨링 구간 쉬움 · 보통은 처음 하는 사람 (사제, 길의 레벨 · 드롭 장비)의 클리어율이
+ * 초보 목표 (NOVICE_TARGET, 튜토리얼 판 TUT_TARGET) 아래로 가는 피해 배율을 쓰지 않는다. 숙련 목표 · 바쁨 하한보다 먼저 (그 배율보다 높으면 내림).
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
@@ -25,6 +27,7 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
+import { measureNovice, noviceCells, noviceTarget, type NoviceCell } from './novice';
 import { rampLevel, rampPlayer, usesRamp } from './ramp';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
@@ -204,6 +207,35 @@ export interface Row {
   verdict: Verdict;
   /** 목표 밖 (또는 바쁨 하한 아래)이라 찾은 새 피해 배율과 그때 결과 */
   next?: { dmg: number; m: Measure };
+  /** 초보 하한 칸: 처음 하는 사람 클리어율 (지금 배율 · 쓴 배율), 목표, 초보 하한으로 내렸는지 */
+  novice?: { before: number; after: number; target: number; capped: boolean };
+}
+
+/** 초보 하한 판 수 (사제, 시드 1 ~ n: npm run sim:novice 기본과 같음) */
+export const NOVICE_N = 40;
+/** 초보 하한을 보는 칸 (순차 레벨링 구간 쉬움 · 보통, sim/novice 칸) */
+export const noviceCellOf = (c: ContentDef, d: DiffName): NoviceCell | null =>
+  d === '쉬움' || d === '보통' ? noviceCells([d]).find(x => x.c.key === c.key && x.d === d) ?? null : null;
+/** 배율 → 처음 하는 사람 클리어율 (잰 값은 기억) */
+function noviceProbe(x: NoviceCell, base: Tune, n: number) {
+  const seen = new Map<number, number>(), target = noviceTarget(x)!;
+  const rate = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measureNovice(x, 'priest', n, 'novice', undefined, 1, { ...base, dmg }).rate); return seen.get(dmg)!; };
+  return { target, rate, ok: (dmg: number) => rate(dmg) >= target };
+}
+/**
+ * 초보 하한을 지키는 가장 큰 배율 (hi 아래, 0.01 단위). hi가 지키면 hi. 아래로 0.85배씩 내려 지키는 값을 찾고 그 사이를 좁힘
+ * (클리어율이 배율에 따라 준다고 봄, sim/novice 측정: 녹슨 고원 보통 1.23 → 8% · 1.11 → 48% · 0.98 → 93%)
+ */
+export function noviceCap(ok: (dmg: number) => boolean, hi: number, lo = LO): number {
+  if (ok(hi)) return hi;
+  let bad = hi, good = hi;
+  do { good = Math.max(lo, Math.round(good * 0.85 * 100) / 100); if (ok(good)) break; bad = good; } while (good > lo);
+  for (let i = 0; i < 6 && bad - good > 0.015; i++) {
+    const mid = Math.round(((good + bad) / 2) * 100) / 100;
+    if (mid <= good || mid >= bad) break;
+    if (ok(mid)) good = mid; else bad = mid;
+  }
+  return good;
 }
 
 /** 쉬움 · 보통인데 클리어율은 목표 안이고 바쁨 하한 아래 */
@@ -220,15 +252,25 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const base = cur ?? {};
   const seen = new Map<number, Measure>();
   const at = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measure(c, d, n, { ...base, dmg })); return seen.get(dmg)!.rate; };
+  const nx = noviceCellOf(c, d), nov = nx ? noviceProbe(nx, base, NOVICE_N) : null;
+  /** 초보 하한: 고른 배율이 처음 하는 사람에게 목표 아래면 지키는 가장 큰 배율로 내림 */
+  const capped = (r: Row): Row => {
+    if (!nov) return r;
+    const curDmg = base.dmg ?? 1, pick = r.next?.dmg ?? curDmg, top = noviceCap(nov.ok, pick);
+    if (top < pick) { at(top); r.next = { dmg: top, m: seen.get(top)! }; }
+    r.novice = { before: nov.rate(curDmg), after: nov.rate(top), target: nov.target, capped: top < pick };
+    return r;
+  };
   if (verdict === 'ok') {
-    if (!tooIdle(d, now, c)) return row;
+    if (!tooIdle(d, now, c)) return capped(row);
     // 바쁨 하한: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지 다시).
     // 클리어율은 목표값 (aim, 찾기와 같이 1 차이까지) 아래로 내리지 않음: 넘으면 마지막으로 괜찮던 배율과 그 사이에서 목표값에 맞춤
     const curDmg = base.dmg ?? 1, aim = targetOf(c, d).aim, floor = aim - 1;
     let ok = curDmg, m = now;
     for (let i = 0; i < 3 && tooIdle(d, m, c); i++) {
-      const want = Math.ceil(ok * (BUSY[d]! / m.busy) * 100) / 100;
+      let want = Math.ceil(ok * (BUSY[d]! / m.busy) * 100) / 100;
       if (want - ok < 0.015) break;
+      if (nov && !nov.ok(want)) { want = noviceCap(nov.ok, want, ok); if (want - ok < 0.015) break; } // 바쁨을 올려도 초보 하한 아래로는 안 감
       if (at(want) >= floor) { ok = want; m = seen.get(want)!; continue; }
       findDmg(at, aim, ok, want);
       // 잰 배율 중 아래 선을 넘은 가장 큰 값 (선 근처는 판 수에 따라 흔들려서 가장 가까운 값이 선 밑일 수 있음)
@@ -236,7 +278,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
       break;
     }
     if (ok > curDmg) row.next = { dmg: ok, m: seen.get(ok)! };
-    return row;
+    return capped(row);
   }
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
@@ -244,7 +286,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const r = findDmg(at, targetOf(c, d).aim, LO, hi);
   const dmg = lowerOnly(d) && r.rate >= targetOf(c, d).aim - 1 ? closeIn(at, d, r.dmg, curDmg, 4, targetOf(c, d).aim) : r.dmg;
   row.next = { dmg, m: seen.get(dmg)! };
-  return row;
+  return capped(row);
 }
 
 function lowerOnly(d: DiffName): boolean { return TARGET[d].max >= 100; }
