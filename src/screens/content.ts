@@ -27,7 +27,7 @@ import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT, tutLockedContent } from '../game/tutorial';
-import { esc, fmt, go, previous, screen, topBar } from './kit';
+import { esc, fmt, freshEntry, go, goingBack, previous, screen, topBar } from './kit';
 import { classEmblem, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sortie } from './stamina';
 
@@ -78,8 +78,8 @@ const SHORT: Partial<Record<ContentKey, string>> = {
   camp1: '진영 막사', camp2: '진영 훈련장', camp3: '진영 지휘소', coast1: '해안 선착장', coast2: '해안 물길', coast3: '해안 소용돌이',
   heart1: '심장 뿌리다리', heart2: '심장문', heart3: '심실',
 };
-/** 마지막으로 고른 분류 (27 3-1) */
-let tab: Tab = 'dungeon';
+/** 지금 분류. 메뉴에 새로 들어오면 첫 칸 탐험 (2026-10-21 Lim 「항상 첫번째 탭」, 예전 27 3-1은 마지막으로 고른 분류) */
+let tab: Tab = KINDS[0].kind;
 /** 분류마다 마지막 고른 장소 */
 const pick: Partial<Record<Tab, ContentKey>> = {};
 /** 장소마다 마지막 고른 난이도 */
@@ -315,9 +315,11 @@ function cta(c: ContentDef | null, d: DiffName): string {
 
 const s = screen('s-content', '모험 선택', {
   tab: 'battle',
-  // arg = 열 분류 (로비: 주간 도전 → dungeon, 첨탑 → raid10) 또는 고를 장소 · 난이도 (로비 「출전」 · 다음 목표). 없으면 마지막 고른 분류
+  // arg = 열 분류 (로비: 주간 도전 → dungeon, 레이드 팻말 → raid10 · raid20) 또는 고를 장소 · 난이도 (로비 「출전」 · 다음 목표 · 길드 부탁).
+  // 없으면 첫 분류 탐험 (2026-10-21 Lim 「각 메뉴에 들어갔을때 그전의 탭화면을 유지 하지 말고 항상 첫번째 탭」), 「←」로 돌아오면 보던 분류
   enter(arg) {
     rewardKey = null;
+    const fresh = freshEntry();
     if (KINDS.some(t => t.kind === arg)) tab = arg as Tab;
     const to = arg && typeof arg === 'object' ? arg as Pick<typeof Flow, 'content' | 'diff'> : null;
     // 로비 「출전」 · 다음 목표: 바로 편성으로 가지 않고 그 장소 · 난이도를 골라 둔 이 화면 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」)
@@ -326,21 +328,25 @@ const s = screen('s-content', '모험 선택', {
       tab = tabOf(c); selectContent(c); diffPick[c.key] = to.diff;
       shownGuide = g ? `${g.content}/${g.diff}` : '';
     }
-    // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
-    else if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
+    // 편성에서 「←」로 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
+    else if (goingBack() && previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
       const c = contentOf(Flow.content);
       if (!c.hidden) { tab = tabOf(c); selectContent(c); diffPick[c.key] = Flow.diff; }
     }
-    // 첫 던전 안내 차례면 녹슨 요새를 짚어 줌 (분류를 골라 들어왔거나 편성에서 돌아오면 그대로)
+    // 첫 던전 안내 차례면 녹슨 요새를 짚어 줌 (튜토리얼 안내라 첫 분류 규칙보다 먼저. 분류를 골라 들어왔거나 편성에서 돌아오면 그대로)
     else if (!arg && firstDungeonNow()) { tab = 'dungeon'; selectContent(contentOf('rustfort')); }
-    // 길잡이 추천이 지난번과 다르면 (레벨 업 · 클리어 · 장비) 그 칸을 고른 채로 (86). 같으면 마지막에 고른 그대로
-    else if (!arg && G.save.tut >= TUT.done) {
-      const g = guide(), k = g ? `${g.content}/${g.diff}` : '';
-      if (g && k !== shownGuide) {
-        const c = contentOf(g.content);
-        tab = tabOf(c); selectContent(c); diffPick[c.key] = g.diff;
+    // 새로 들어오면 탐험. 길잡이 추천이 지난번과 다르면 (레벨 업 · 클리어 · 장비) 그 분류에서 그 칸을 골라 둠 (86): 탐험이면 바로 보이고,
+    // 다른 분류면 그 분류 칸의 금빛 점 · 누르면 그 칸 (로비 「출전」은 바로 그 칸으로). 같으면 분류마다 마지막에 고른 그대로
+    else if (!arg && fresh) {
+      tab = KINDS[0].kind;
+      if (G.save.tut >= TUT.done) {
+        const g = guide(), k = g ? `${g.content}/${g.diff}` : '';
+        if (g && k !== shownGuide) {
+          const c = contentOf(g.content);
+          pick[tabOf(c)] = c.key; diffPick[c.key] = g.diff;
+        }
+        shownGuide = k;
       }
-      shownGuide = k;
     }
     render(false);
   },

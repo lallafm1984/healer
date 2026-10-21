@@ -118,7 +118,7 @@ export default async function character(url, shots) {
   ok(/긴 숨결/.test(t1) && /넓은 원/.test(t1) && (await page.locator('#s-char .c7-tier:first-child .c7-pk.off .ui-icon').count()) === 3 && (await page.locator('#s-char [data-tcell]').count()) === 0 && /Lv 5에 열림/.test(await text('#s-char .c7-tsum')), '잠긴 단 = 메달마다 자물쇠 + 이름 (누를 수 없음), Lv 5에 열림');
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-char [data-csub="talent"]', 'aria-selected') === 'true', '다른 탭에 갔다 와도 보던 하위 탭');
+  ok(await page.getAttribute('#s-char [data-csub="gear"]', 'aria-selected') === 'true', '다른 탭에 갔다 오면 첫 하위 탭 장비 (2026-10-21 Lim 「항상 첫번째 탭」)');
   await patchSave(page, { player: { level: 25 } });
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);

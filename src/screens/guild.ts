@@ -24,7 +24,7 @@ import { capOf, foundGuild, postCost, restSponsor, sponsor, sponsorRest, sponsor
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
-import { esc, fmt, go, screen, topBar } from './kit';
+import { esc, fmt, go, goingBack, screen, topBar } from './kit';
 import { currencyAmount, departureArrow, gameIcon, LOCK, uiIcon } from './art';
 import { sheetDialog } from './dialog';
 import { sfx } from '../sfx';
@@ -44,7 +44,7 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } st.sub = 'home'; st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
 const modal = sheetDialog(s.el, closeSheet);
 
