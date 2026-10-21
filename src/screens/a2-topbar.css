@@ -12,7 +12,9 @@
  * 설정은 초상과 같은 둥근 황동 테 (a2-portrait-v3). 화면 높이 800 이하 (S25)는 이름 · 경험치 줄을 줄여 위아래 여백을 울트라처럼 남김 (Lim).
  * 위 줄 휴식 칸 규칙은 여기 한 곳 (stamina.css에 두지 않음).
  * 골드는 91에서 막대 옆 · 「← 제목」 줄에 다시 넣었다가 2026-10-17 Lim 「헤드에서 골드 재화는 빼자 · 닉네임이 UI 테두리에 걸치지 않게」로 뺌
- * (S25 · 플립 · 울트라 384는 골드 줄이 막대 아래로 내려가 이름이 판 위 테두리에 걸렸음). 위 정보창에 재화 칸을 다시 넣지 않는다.
+ * (S25 · 플립 · 울트라 384는 골드 줄이 막대 아래로 내려가 이름이 판 위 테두리에 걸렸음).
+ * 2026-10-22 Lim 「헤드 메뉴에 골드 표시를 넣어보자」: 이름 · 경험치 칸은 건드리지 않고, 휴식 고리 오른쪽을 두 줄로 (위 휴식 지금/최대 · 아래 골드).
+ * 가로 자리가 없어 (S25 · 플립 360) 휴식 칸 폭 · 고리 크기 · 터치 44px은 그대로.
  */
 .ns {
   --a2-header-height: 80px;
@@ -75,6 +77,15 @@
 .ns .tb-mmo .tb-cur.tb-st b { font: 800 17px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 4px #000c; }
 .ns .tb-mmo .tb-cur.tb-st .tb-st-v small { font: 700 12px/1 var(--font-body); color: #f1e2c2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 4px #000c; }
 .ns .tb-mmo .tb-cur.tb-st:active { filter: brightness(.94); }
+/* 골드 줄 (2026-10-22): 휴식 숫자를 고리 위쪽 절반으로 올리고, 아래 절반에 금화 + 수. 휴식 칸 위에 얹힌 글이라 누르면 휴식 창 (pointer-events 없음) */
+.ns .tb-mmo .tb-wal { position: relative; }
+.ns .tb-mmo .tb-cur.tb-st .tb-st-v { align-self: flex-start; margin-top: 5px; }
+.ns .tb-mmo .tb-cur.tb-gold {
+  position: absolute; left: 44px; bottom: 5px; gap: 3px; pointer-events: none;
+}
+.ns .tb-mmo .tb-gold .currency-icon { display: inline-grid; place-items: center; flex: none; width: 15px; height: 15px; }
+.ns .tb-mmo .tb-gold .currency-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.ns .tb-mmo .tb-cur.tb-gold b { font: 800 13px/1 var(--font-body); color: #ffe2a0; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 4px #000c; }
 .ns .tb-mmo .tb-cur.tb-st:focus-visible { outline: 2px solid #ffe398; outline-offset: 2px; }
 
 /* 설정: 초상과 같은 둥근 황동 테 */
