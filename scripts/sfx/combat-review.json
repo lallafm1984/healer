@@ -1,0 +1,3976 @@
+{
+  "generator": "Agent Audio / Stable Audio 3 Medium, local TFLite CPU, 8 steps, CFG 1",
+  "screening_method": "Local CLAP description similarity + signal screening; not human listening or an artistic guarantee",
+  "screening_model": "laion/clap-htsat-unfused@8fa0f1c6d0433df6e97c127f64b2a1d6c0dcda8a",
+  "human_listening": "not performed",
+  "sounds": [
+    {
+      "name": "deny",
+      "where": "잠긴 탭 · 레벨 · 골드 부족 · 못 하는 버튼, 전투에서 마나 부족 · 못 쓰는 스킬",
+      "source": "deny-07.wav",
+      "generation": {
+        "name": "deny",
+        "round": 7,
+        "prompt": "One palm-muted wooden block knock, warm and rounded but clearly woody in the middle register, with a tiny downward pitch bend. A quiet refusal sound. A single brief sound, lasting 0.20 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Very short, softly damped, midrange-focused.",
+        "seed": 20268020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "0818cbe67424332767e3aa285a1163ddaf8402eed2e1f4b679210ec605ac9c24",
+      "previous_sha256": "0d66e4a1e4d65a11d3aea50cd1b7a37f826b1e914d15abd3e04907df798cf2dc",
+      "sha256": "bad02b45cf1836a32ffbac4af8d48e8db0f557099417705a3d02071611b7dbb4",
+      "seconds": 0.085,
+      "encoded_peak_db": -2.98,
+      "metrics": {
+        "seconds": 0.085,
+        "onset_seconds": 0.515,
+        "tail_db": -30.78,
+        "phone_band_db": -0.32,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.49
+      },
+      "semantic": {
+        "desired": 0.3539,
+        "game_sfx": 0.0536,
+        "alternatives": {
+          "A person speaking words.": 0.1344,
+          "A person singing a song.": -0.0082,
+          "Continuous music with a melody and rhythm.": -0.0364,
+          "Background room noise and static hiss.": 0.0168,
+          "Traffic and engine noise.": 0.1223,
+          "Birds chirping outdoors.": -0.0436
+        }
+      },
+      "candidates": [
+        {
+          "source": "deny-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "deny-07.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "win",
+      "where": "전투 승리 (결과 화면으로 넘어갈 때)",
+      "source": "win-01.wav",
+      "generation": {
+        "name": "win",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. An original short victory sting for a warm storybook fantasy game. A confident string lift, a light woodwind answer, and a small harp accent resolve into one bright final chord. Celebratory without becoming an orchestral trailer; the final chord decays naturally. One isolated event near the start; the active sound and its natural tail finish within 2.6 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. An original miniature instrumental cue, one short resolved gesture only; no backing track, percussion groove, vocals, bells, or recognizable existing melody.",
+        "seed": 20262089,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 4.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "16e7b65d29bcdd7e965dfaa2728027f8fdf27df8bae3456d9f640fe8b1530da9",
+      "previous_sha256": "5ccf499be974c1e2446214be7d98a97bdc74af2fef3a0471ad962219364191b5",
+      "sha256": "11476639cc17479e8acd3e86c41aea5501e1befac42b9de132884fd8283ecd5d",
+      "seconds": 1.11,
+      "encoded_peak_db": -2.92,
+      "metrics": {
+        "seconds": 1.11,
+        "onset_seconds": 0.0,
+        "tail_db": -29.72,
+        "phone_band_db": -1.07,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.45
+      },
+      "semantic": {
+        "desired": 0.5598,
+        "game_sfx": 0.4055,
+        "alternatives": {
+          "A person speaking words.": 0.1219,
+          "A person singing a song.": -0.0023,
+          "Continuous music with a melody and rhythm.": 0.1104,
+          "Background room noise and static hiss.": -0.002,
+          "Traffic and engine noise.": 0.0305,
+          "Birds chirping outdoors.": 0.0012
+        }
+      },
+      "candidates": [
+        {
+          "source": "win-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "lose",
+      "where": "전멸 · 시간 끝 · 포기",
+      "source": "lose-01.wav",
+      "generation": {
+        "name": "lose",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. An original brief defeat sting using a soft wooden flute and a muted plucked string. A small descending gesture settles quietly with a little unresolved warmth. Disappointment without tragedy, ridicule, or horror; leave room for an immediate retry. One isolated event near the start; the active sound and its natural tail finish within 2.2 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. An original miniature instrumental cue, one short resolved gesture only; no backing track, percussion groove, vocals, bells, or recognizable existing melody.",
+        "seed": 20262080,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "4270d48247fb6d3e7ef823ce8f32b40cc4aa10f70dbffca10c7e23fef336bce8",
+      "previous_sha256": "25b4a942e3f99da2a3199643bce642ccb22f1c82387c276d6d6a0375a0113368",
+      "sha256": "ba4cc9fba2fec0395e27f05945a158611d777a0c801ba5e7592a8cd11c07b63b",
+      "seconds": 0.565,
+      "encoded_peak_db": -4.24,
+      "metrics": {
+        "seconds": 0.565,
+        "onset_seconds": 0.005,
+        "tail_db": -31.25,
+        "phone_band_db": -0.14,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.28,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.3589,
+        "game_sfx": 0.3146,
+        "alternatives": {
+          "A person speaking words.": 0.3636,
+          "A person singing a song.": 0.1621,
+          "Continuous music with a melody and rhythm.": 0.0387,
+          "Background room noise and static hiss.": 0.0596,
+          "Traffic and engine noise.": 0.0481,
+          "Birds chirping outdoors.": -0.0339
+        }
+      },
+      "candidates": [
+        {
+          "source": "lose-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "tick",
+      "where": "시작 카운트다운 3 · 2 · 1, 보스 기술 예고 마지막 3초, 튜토리얼 안내 뜸",
+      "source": "tick-01.wav",
+      "generation": {
+        "name": "tick",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. One small wooden block makes a short precise tick with a rounded upper-mid attack and immediate decay. Neutral countdown feedback, distinct from a button click. Keep it audible at low volume without a sharp electronic beep or lingering resonance. One isolated event near the start; the active sound and its natural tail finish within 0.12 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262021,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "b98d5873182cc7690951e8372257eb6a573b14285d5305b0d3847db68030be47",
+      "previous_sha256": "4eb5f6902d8b77e9bcace1b8d695a092c0428bdccb82070d1e1f05e822257f43",
+      "sha256": "85adb40f97e10496ce5da6306b4a0ad88ce09af13166398cc9ee1142917c7522",
+      "seconds": 0.12,
+      "encoded_peak_db": -6.75,
+      "metrics": {
+        "seconds": 0.12,
+        "onset_seconds": 0.0,
+        "tail_db": -30.45,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -6.77,
+        "rms_db": -29.91
+      },
+      "semantic": {
+        "desired": 0.3703,
+        "game_sfx": 0.0898,
+        "alternatives": {
+          "A person speaking words.": 0.1633,
+          "A person singing a song.": 0.0315,
+          "Continuous music with a melody and rhythm.": -0.0816,
+          "Background room noise and static hiss.": 0.0959,
+          "Traffic and engine noise.": 0.0491,
+          "Birds chirping outdoors.": -0.0273
+        }
+      },
+      "candidates": [
+        {
+          "source": "tick-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "battle-start",
+      "where": "「전투 시작!」 띠",
+      "source": "battle-start-02.wav",
+      "generation": {
+        "name": "battle-start",
+        "round": 2,
+        "prompt": "One broad wooden drum impact begins a battle, followed by a compact breathy horn accent and a fast air release. A single brief sound, lasting 0.78 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble.",
+        "seed": 20263020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "9d3f948c4a44fcf53af5335ca335e7cd809600456a3f73947c1b5440d0705447",
+      "previous_sha256": "745f6bbcb15c8896e65642979f8173edbcd46f2e09cf96d9e9bf152a4eba7b19",
+      "sha256": "270bd3c70f524757b263686db62ac4b51e51dfbc7ad746509779cd9946d31772",
+      "seconds": 0.385,
+      "encoded_peak_db": -2.98,
+      "metrics": {
+        "seconds": 0.385,
+        "onset_seconds": 0.065,
+        "tail_db": -31.54,
+        "phone_band_db": -8.54,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.56
+      },
+      "semantic": {
+        "desired": 0.4587,
+        "game_sfx": 0.0828,
+        "alternatives": {
+          "A person speaking words.": 0.1007,
+          "A person singing a song.": -0.1155,
+          "Continuous music with a melody and rhythm.": -0.0809,
+          "Background room noise and static hiss.": 0.0431,
+          "Traffic and engine noise.": 0.0485,
+          "Birds chirping outdoors.": 0.0182
+        }
+      },
+      "candidates": [
+        {
+          "source": "battle-start-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "battle-start-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "boss-phase",
+      "where": "보스 페이즈 넘어감 띠",
+      "source": "boss-phase-02.wav",
+      "generation": {
+        "name": "boss-phase",
+        "round": 2,
+        "prompt": "A textured stone rumble rises into a dark resonant air swell, then locks into a low-mid metallic pulse. A single brief sound, lasting 0.98 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble.",
+        "seed": 20263021,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "cbedc02749775f0b1a81db15c43c758b135f965e6813d8fbdafd2c51fa2c9867",
+      "previous_sha256": "753a3caba241d234b90b1e3db0532d7bdaf1b98ef0c30a6d8fdc3762d474433f",
+      "sha256": "5e58be1a597ac7c416c5542a89196f3ff7950df03a26f33c8b46cc2e09ce96cf",
+      "seconds": 1.125,
+      "encoded_peak_db": -5.38,
+      "metrics": {
+        "seconds": 1.125,
+        "onset_seconds": 0.065,
+        "tail_db": -30.27,
+        "phone_band_db": -7.05,
+        "clipped_fraction": 0.0,
+        "peak_db": -5.53,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4187,
+        "game_sfx": 0.1645,
+        "alternatives": {
+          "A person speaking words.": 0.2307,
+          "A person singing a song.": -0.1448,
+          "Continuous music with a melody and rhythm.": -0.0772,
+          "Background room noise and static hiss.": 0.133,
+          "Traffic and engine noise.": 0.0812,
+          "Birds chirping outdoors.": 0.097
+        }
+      },
+      "candidates": [
+        {
+          "source": "boss-phase-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "boss-phase-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "boss-enrage",
+      "where": "광폭화 띠",
+      "source": "boss-enrage-01.wav",
+      "generation": {
+        "name": "boss-enrage",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A powerful non-vocal surge of rough air, strained wood, and dark metallic resonance erupts once and settles into a short growling texture. Urgent escalation, distinct from a normal phase shift. No animal or human roar, prolonged siren, or cinematic bass drop. One isolated event near the start; the active sound and its natural tail finish within 1.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262078,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.5,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "9d7a867315875547b15b945760457de1cfec3fa01fe6cdbf6507004c552eac0b",
+      "previous_sha256": "8fcd10793851eaf182d3c9d074f5a35af80bcdda1e5cfb1b4cda6e64dbb4866b",
+      "sha256": "8a1158e8205cd32c01a6723fa5551d913ecf0f1fc2e11a56972c4f74327879aa",
+      "seconds": 1.5,
+      "encoded_peak_db": -2.92,
+      "metrics": {
+        "seconds": 1.5,
+        "onset_seconds": 0.0,
+        "tail_db": -32.33,
+        "phone_band_db": -9.69,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.26
+      },
+      "semantic": {
+        "desired": 0.5319,
+        "game_sfx": 0.1738,
+        "alternatives": {
+          "A person speaking words.": 0.0035,
+          "A person singing a song.": -0.3027,
+          "Continuous music with a melody and rhythm.": -0.1274,
+          "Background room noise and static hiss.": 0.0534,
+          "Traffic and engine noise.": -0.0375,
+          "Birds chirping outdoors.": -0.0728
+        }
+      },
+      "candidates": [
+        {
+          "source": "boss-enrage-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "mob-down",
+      "where": "판 위 적 · 쫄 처치, 감옥 깨짐",
+      "source": "mob-down-02.wav",
+      "generation": {
+        "name": "mob-down",
+        "round": 2,
+        "prompt": "A small puff of air collapses inward with a brief dry crumble and a soft wooden fragment tick. A single brief sound, lasting 0.39 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Clear foreground object sound in a completely silent recording space.",
+        "seed": 20263022,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "48c99eef784876fe7df5544e5e4dbf15ce91a71ea71d21aff4ca356214dc358f",
+      "previous_sha256": "6b320dbe9800533f54debb43580e366575742119dd8fef464749f6f025eb2200",
+      "sha256": "6c83b232be4dcec8f54c44b813a3691d9c82392689a2a8f90a7faf6670220e5e",
+      "seconds": 0.095,
+      "encoded_peak_db": -2.94,
+      "metrics": {
+        "seconds": 0.095,
+        "onset_seconds": 0.045,
+        "tail_db": -30.19,
+        "phone_band_db": -0.8,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.23
+      },
+      "semantic": {
+        "desired": 0.2386,
+        "game_sfx": 0.1389,
+        "alternatives": {
+          "A person speaking words.": 0.0434,
+          "A person singing a song.": -0.1311,
+          "Continuous music with a melody and rhythm.": -0.1935,
+          "Background room noise and static hiss.": 0.0818,
+          "Traffic and engine noise.": 0.1275,
+          "Birds chirping outdoors.": -0.0233
+        }
+      },
+      "candidates": [
+        {
+          "source": "mob-down-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "mob-down-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "cast",
+      "where": "시전 시간이 있는 스킬 시작",
+      "source": "cast-09.wav",
+      "generation": {
+        "name": "cast",
+        "round": 9,
+        "prompt": "A very short soft inward whoosh of air, like drawing air through a small wooden tube, gathering and immediately stopping. A tiny warm spell charge. A single brief sound, lasting 0.26 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb. Very short, softly damped, midrange-focused.",
+        "seed": 20270020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "8adad69e0fa056e518d591d9c72a437937d1ef57c53ecc71dcd0c382c8a069aa",
+      "previous_sha256": "a3042d36189d68937518a20b348a1963dce969a75c4a56550d0a36e32d5d8650",
+      "sha256": "09dafe9c4ab4190d4b22e647d87ed924c2bdcee3fcecf77f1c2367342316cd91",
+      "seconds": 0.145,
+      "encoded_peak_db": -2.92,
+      "metrics": {
+        "seconds": 0.145,
+        "onset_seconds": 1.085,
+        "tail_db": -33.44,
+        "phone_band_db": -0.69,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.22
+      },
+      "semantic": {
+        "desired": 0.2094,
+        "game_sfx": 0.1494,
+        "alternatives": {
+          "A person speaking words.": 0.184,
+          "A person singing a song.": -0.046,
+          "Continuous music with a melody and rhythm.": -0.0498,
+          "Background room noise and static hiss.": 0.1223,
+          "Traffic and engine noise.": 0.0842,
+          "Birds chirping outdoors.": 0.0949
+        }
+      },
+      "candidates": [
+        {
+          "source": "cast-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "cast-07.wav",
+          "screening": "reject",
+          "reasons": [
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "cast-08.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "cast-09.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "crit",
+      "where": "치명타 힐 (직업 힐 소리 대신)",
+      "source": "crit-02.wav",
+      "generation": {
+        "name": "crit",
+        "round": 2,
+        "prompt": "A rounded luminous pulse lands with one quick high harp harmonic and a brief spray of soft granular light. A single brief sound, lasting 0.39 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263023,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "08179c68bce5232339a9f27cd754115906992e42bb83d0437ee66faf9d16bc9c",
+      "previous_sha256": "b8d421aa9fcc58d061c9fe8560e03ece21e498d001d8ba2e761f83285a85567c",
+      "sha256": "6dc80c8049568149affaf606259943b9f326de6480f797c9c52857cca5b3b8c4",
+      "seconds": 0.6,
+      "encoded_peak_db": -6.61,
+      "metrics": {
+        "seconds": 0.6,
+        "onset_seconds": 0.055,
+        "tail_db": -27.33,
+        "phone_band_db": -0.01,
+        "clipped_fraction": 0.0,
+        "peak_db": -6.59,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.355,
+        "game_sfx": 0.2928,
+        "alternatives": {
+          "A person speaking words.": 0.0058,
+          "A person singing a song.": -0.0131,
+          "Continuous music with a melody and rhythm.": -0.0544,
+          "Background room noise and static hiss.": -0.1548,
+          "Traffic and engine noise.": -0.0887,
+          "Birds chirping outdoors.": -0.0854
+        }
+      },
+      "candidates": [
+        {
+          "source": "crit-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "crit-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "chime",
+      "where": "평온 · 수호 영혼 · 봉화 · 별자리 같은 큰 순간 (모든 직업 공통 차임)",
+      "source": "chime-04.wav",
+      "generation": {
+        "name": "chime",
+        "round": 4,
+        "prompt": "One clear glassy plucked string chord, a very short soft harp strum with warm overlapping upper-mid harmonics and a smooth shimmering decay. A single brief sound, lasting 0.91 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Very short, softly damped, midrange-focused.",
+        "seed": 20265028,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "7dffbd35c63a13d66003ebefef11150934324ed01fe5f9885fcede235bc0159c",
+      "previous_sha256": "fa074fcf7178b2cef40bec448d575d5c386aaa6618ebe74d95f419433a673b8d",
+      "sha256": "e0d20e87e27d603bf88320279e7db4a44844e31529004539ecf2ad91a7d7fa9b",
+      "seconds": 1.275,
+      "encoded_peak_db": -6.04,
+      "metrics": {
+        "seconds": 1.275,
+        "onset_seconds": 0.005,
+        "tail_db": -31.2,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -6.16,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.1927,
+        "game_sfx": 0.1392,
+        "alternatives": {
+          "A person speaking words.": -0.0774,
+          "A person singing a song.": -0.0473,
+          "Continuous music with a melody and rhythm.": 0.0621,
+          "Background room noise and static hiss.": -0.247,
+          "Traffic and engine noise.": -0.0261,
+          "Birds chirping outdoors.": -0.0148
+        }
+      },
+      "candidates": [
+        {
+          "source": "chime-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "chime-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "chime-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "chime-04.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "dispel",
+      "where": "해제 성공",
+      "source": "dispel-01.wav",
+      "generation": {
+        "name": "dispel",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A thin gritty magical film is brushed away in one quick swish, ending in a clean bright glass-like glint. The rough-to-clear transition must be unmistakable, like removing contamination. Compact, crisp, and satisfying, without glass breaking or a cleansing song. One isolated event near the start; the active sound and its natural tail finish within 0.5 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262027,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "3cb2212ce62285dfb999b97bd3fd072eaf6a6ee3a15727cf59cfcd8dd73af6d7",
+      "previous_sha256": "d0032c44ff4de3cf4b2191e239797a39aa92d6e4586a68c41a032d9c8f48b307",
+      "sha256": "7a2fdfafb2afb642b12be52846424237e666406c9985b51dcb47401b781433de",
+      "seconds": 0.5,
+      "encoded_peak_db": -7.57,
+      "metrics": {
+        "seconds": 0.5,
+        "onset_seconds": 0.005,
+        "tail_db": -29.26,
+        "phone_band_db": -0.08,
+        "clipped_fraction": 0.0,
+        "peak_db": -7.6,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.1973,
+        "game_sfx": 0.4102,
+        "alternatives": {
+          "A person speaking words.": 0.1028,
+          "A person singing a song.": -0.0391,
+          "Continuous music with a melody and rhythm.": 0.0329,
+          "Background room noise and static hiss.": -0.0515,
+          "Traffic and engine noise.": 0.013,
+          "Birds chirping outdoors.": -0.0377
+        }
+      },
+      "candidates": [
+        {
+          "source": "dispel-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "revive",
+      "where": "부활 · 되살리기 (그 순간의 차임 대신)",
+      "source": "revive-01.wav",
+      "generation": {
+        "name": "revive",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A soft low air current rises and gathers into a warm resonant center, followed by one gentle luminous pulse and a short harp overtone. A life returning, hopeful and grounded. Keep the build brief, with no gasp, heartbeat loop, or religious choir. One isolated event near the start; the active sound and its natural tail finish within 1.6 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262079,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.5,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "4ff537b96ae4a08e0e81dc3587764274da45d39d608b491c69fd8d7929c4a0dc",
+      "previous_sha256": "07596dd5ce8d9198b704b679f00031ed4b2460e27e411fc73e848cbd07434ab3",
+      "sha256": "14a621481afce40a4fbe299ff4789719b85c12844c752a0810d8660719e9b019",
+      "seconds": 1.22,
+      "encoded_peak_db": -3.98,
+      "metrics": {
+        "seconds": 1.22,
+        "onset_seconds": 0.0,
+        "tail_db": -32.35,
+        "phone_band_db": -2.66,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.06,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.1808,
+        "game_sfx": 0.0619,
+        "alternatives": {
+          "A person speaking words.": 0.006,
+          "A person singing a song.": 0.0117,
+          "Continuous music with a melody and rhythm.": 0.0108,
+          "Background room noise and static hiss.": -0.0809,
+          "Traffic and engine noise.": 0.0571,
+          "Birds chirping outdoors.": 0.0334
+        }
+      },
+      "candidates": [
+        {
+          "source": "revive-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "gauge",
+      "where": "기믹 성공 (보스 기절 · 그릇 채움 · 모래시계 · 응원), 성언 준비",
+      "source": "gauge-01.wav",
+      "generation": {
+        "name": "gauge",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. Two small upward plucked harmonics arrive in a compact sequence, the second settling into a soft dry sparkle. A clear readiness or successful-objective cue, lighter and shorter than the signature magical resonance. No bell, repeating alert, or reward fanfare. One isolated event near the start; the active sound and its natural tail finish within 0.9 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262028,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "378a7feba19eb35fd11a99e4a688d00be9b1b84156d9ff359503cac74fd15648",
+      "previous_sha256": "93d2af5a397aedc6b5788dd7a5d6417fdc00d1d6f5c20de2fca625e770709e5f",
+      "sha256": "45e7c16eff5b35d5dbf14262122635a54f0b48f82622c66a195bd524f6612304",
+      "seconds": 0.63,
+      "encoded_peak_db": -3.72,
+      "metrics": {
+        "seconds": 0.63,
+        "onset_seconds": 0.0,
+        "tail_db": -30.01,
+        "phone_band_db": -1.94,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.78,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4314,
+        "game_sfx": 0.046,
+        "alternatives": {
+          "A person speaking words.": 0.0662,
+          "A person singing a song.": -0.0186,
+          "Continuous music with a melody and rhythm.": 0.0308,
+          "Background room noise and static hiss.": -0.0849,
+          "Traffic and engine noise.": 0.0499,
+          "Birds chirping outdoors.": -0.1789
+        }
+      },
+      "candidates": [
+        {
+          "source": "gauge-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "talent-use",
+      "where": "특성 버튼 발동",
+      "source": "talent-use-01.wav",
+      "generation": {
+        "name": "talent-use",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A quick inward air pull releases into one rounded empowering pulse, with a small warm textured shimmer at the edge. An activated special ability, intentional and compact. Use a neutral fantasy timbre that fits any healer class, without a heroic fanfare. One isolated event near the start; the active sound and its natural tail finish within 0.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262029,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "1e69c0d1bcf0be69390fd06522f42604606404712eb611af6cb419cd4864c3ac",
+      "previous_sha256": "42261b2cfc3758f2bf657a514d4cab22852d0badebefce2a6bcd10edaf6cb310",
+      "sha256": "55c6d8dadc58c5498f028f97255e66f97aef90d17d24a44a83113a3e53687e6f",
+      "seconds": 0.285,
+      "encoded_peak_db": -6.55,
+      "metrics": {
+        "seconds": 0.285,
+        "onset_seconds": 0.135,
+        "tail_db": -29.86,
+        "phone_band_db": -15.02,
+        "clipped_fraction": 0.0,
+        "peak_db": -6.6,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4967,
+        "game_sfx": 0.1642,
+        "alternatives": {
+          "A person speaking words.": 0.3482,
+          "A person singing a song.": 0.0599,
+          "Continuous music with a melody and rhythm.": -0.009,
+          "Background room noise and static hiss.": 0.1796,
+          "Traffic and engine noise.": 0.112,
+          "Birds chirping outdoors.": 0.0484
+        }
+      },
+      "candidates": [
+        {
+          "source": "talent-use-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "proc",
+      "where": "장비 특수능력 발동 (칸 위 금색 이름)",
+      "source": "proc-01.wav",
+      "generation": {
+        "name": "proc",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. One tiny muted magical glint appears with a rounded glassy contact and a very short soft decay. Subtle equipment-effect feedback meant to stay behind healing and warnings. No tune, bright ringing, or large attack; do not demand attention. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262030,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "79f7ed7a87be8e76af9e223d33d98f2ef9229e7587ca72337a8271194f945836",
+      "previous_sha256": "b7136831d93be960ba111092fe4169b7a5ac4f1f286d3d65ca42cc2636b2fbf3",
+      "sha256": "e391006e3fa5899fa6d780e4ac692dbb5a222d4be2b87403c9022b70054bfb4b",
+      "seconds": 0.4,
+      "encoded_peak_db": -3.12,
+      "metrics": {
+        "seconds": 0.4,
+        "onset_seconds": 0.0,
+        "tail_db": -24.19,
+        "phone_band_db": -0.1,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -24.13
+      },
+      "semantic": {
+        "desired": 0.3793,
+        "game_sfx": 0.2969,
+        "alternatives": {
+          "A person speaking words.": 0.1159,
+          "A person singing a song.": -0.06,
+          "Continuous music with a melody and rhythm.": -0.0316,
+          "Background room noise and static hiss.": -0.0011,
+          "Traffic and engine noise.": 0.0176,
+          "Birds chirping outdoors.": -0.0298
+        }
+      },
+      "candidates": [
+        {
+          "source": "proc-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-priest",
+      "where": "사제 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-priest-01.wav",
+      "generation": {
+        "name": "heal-priest",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A small warm holy-light pulse lands immediately, combining a rounded breath of air with one soft harp harmonic and fine luminous grain. Clear central impact, then a fast smooth decay. Gentle confidence and frequent-use comfort, with no cathedral reverb or choir. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262031,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "74b0ca730e7cebc1f18cc99733999f7e4f3ca7e8efc3ae4868fc968bc4059529",
+      "previous_sha256": "9720c26fdccf3b344589f4345636ac8a562c59d5e738138aba06eac5bea9e396",
+      "sha256": "0447a9a0563258f2c01bd1de91bc921f32b3fbf2aaf057f99b91f8416aa65609",
+      "seconds": 0.4,
+      "encoded_peak_db": -5.31,
+      "metrics": {
+        "seconds": 0.4,
+        "onset_seconds": 0.025,
+        "tail_db": -21.45,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -5.26,
+        "rms_db": -20.01
+      },
+      "semantic": {
+        "desired": 0.2683,
+        "game_sfx": 0.3873,
+        "alternatives": {
+          "A person speaking words.": 0.1167,
+          "A person singing a song.": 0.0507,
+          "Continuous music with a melody and rhythm.": 0.0872,
+          "Background room noise and static hiss.": -0.002,
+          "Traffic and engine noise.": 0.0287,
+          "Birds chirping outdoors.": -0.0795
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-priest-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-priest",
+      "where": "사제 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-priest-01.wav",
+      "generation": {
+        "name": "renew-priest",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A thin ribbon of warm light wraps once around a person and settles with a soft glassy harmonic. The sound curves upward rather than striking, suggesting a sustained blessing being applied. One short application event, not repeated healing ticks. One isolated event near the start; the active sound and its natural tail finish within 0.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262032,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "96f3fd026aec46af0add486ff583469b7f77234364de7abe3b3c7309e7bf489e",
+      "previous_sha256": "ef6d5d760dada39f79c7977ba111c2e3001f1ea765fcc2e911b678894ff76a82",
+      "sha256": "485f43247f3a1a018d5c3c9d1a61fb34e468931770b0195ce534a5f9af4645c1",
+      "seconds": 0.75,
+      "encoded_peak_db": -2.94,
+      "metrics": {
+        "seconds": 0.75,
+        "onset_seconds": 0.0,
+        "tail_db": -29.71,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.35
+      },
+      "semantic": {
+        "desired": 0.2799,
+        "game_sfx": 0.4007,
+        "alternatives": {
+          "A person speaking words.": 0.0462,
+          "A person singing a song.": -0.0716,
+          "Continuous music with a melody and rhythm.": 0.0023,
+          "Background room noise and static hiss.": -0.0942,
+          "Traffic and engine noise.": -0.1023,
+          "Birds chirping outdoors.": -0.1074
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-priest-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-priest",
+      "where": "사제 공대 큰 기술",
+      "source": "hymn-priest-01.wav",
+      "generation": {
+        "name": "hymn-priest",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A broad healing light unfolds from a soft harp sweep into warm bowed-string harmonics and a smooth airy bloom. One large restorative release, spacious in texture but close and controlled. A clear onset and calm taper, no sung hymn or cathedral choir. One isolated event near the start; the active sound and its natural tail finish within 1.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262082,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "703172405541de1c89d13e69e8e9c03009465eeeca9eebf2e46413a3fab3fc66",
+      "previous_sha256": "01410a4604b4c82a83b240c662dabf16682105d79c2b5517263580c59cfcfb41",
+      "sha256": "6b1073132553f31954f6d44e70057fedbc4d341f332bb6c39588328f661f9b23",
+      "seconds": 1.045,
+      "encoded_peak_db": -3.07,
+      "metrics": {
+        "seconds": 1.045,
+        "onset_seconds": 0.005,
+        "tail_db": -29.54,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.02
+      },
+      "semantic": {
+        "desired": 0.2134,
+        "game_sfx": 0.2468,
+        "alternatives": {
+          "A person speaking words.": -0.0654,
+          "A person singing a song.": -0.0796,
+          "Continuous music with a melody and rhythm.": -0.0785,
+          "Background room noise and static hiss.": -0.1537,
+          "Traffic and engine noise.": -0.0265,
+          "Birds chirping outdoors.": -0.0362
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-priest-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-druid",
+      "where": "드루이드 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-druid-01.wav",
+      "generation": {
+        "name": "heal-druid",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A fresh leaf flick and a soft woody pulse meet in one quick restorative impact, with a small breathy flute-like resonance. Organic, springy, and gentle, distinct from watery healing. No birds, continuous forest ambience, or brittle twig snap. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262033,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "c5fbd54c35a6d3e22a48532c70bc63e8332624b4d21664f3a83dcb3971977e4c",
+      "previous_sha256": "8d2caa5eba7bb8d959e07c475a788d9de24b5d23095f59517d511bf671c52cfa",
+      "sha256": "1f34379eb79dc06083fabcc46910b6ef9fad307b75f889006f30a5fb43e1bb11",
+      "seconds": 0.235,
+      "encoded_peak_db": -3.02,
+      "metrics": {
+        "seconds": 0.235,
+        "onset_seconds": 0.035,
+        "tail_db": -29.86,
+        "phone_band_db": -1.39,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -28.48
+      },
+      "semantic": {
+        "desired": 0.2518,
+        "game_sfx": 0.0524,
+        "alternatives": {
+          "A person speaking words.": 0.0696,
+          "A person singing a song.": -0.0528,
+          "Continuous music with a melody and rhythm.": -0.1898,
+          "Background room noise and static hiss.": 0.0886,
+          "Traffic and engine noise.": 0.0991,
+          "Birds chirping outdoors.": -0.0063
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-druid-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-druid",
+      "where": "드루이드 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-druid-09.wav",
+      "generation": {
+        "name": "renew-druid",
+        "round": 9,
+        "prompt": "One close broad rustle of fresh leaves and a flexible twig bending, supported by a warm hollow wooden creak. A soft full-bodied movement with no sharp initial click. A single brief sound, lasting 0.52 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Very short, softly damped, midrange-focused.",
+        "seed": 20270021,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "451d6c55def710ad83928386f1e572e55ba31dc0ed86302749615a0c26d4a9b5",
+      "previous_sha256": "62ea1d0c3feba24aae86f05a29d75e70dcdc1e993267d1ae957b0f5500f8a722",
+      "sha256": "93b25cf01df55fa0c3c7182742444339775d3bc671b4db77375a0d96674a3c59",
+      "seconds": 0.745,
+      "encoded_peak_db": -3.1,
+      "metrics": {
+        "seconds": 0.745,
+        "onset_seconds": 0.045,
+        "tail_db": -38.12,
+        "phone_band_db": -3.31,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -29.05
+      },
+      "semantic": {
+        "desired": 0.1662,
+        "game_sfx": 0.1659,
+        "alternatives": {
+          "A person speaking words.": -0.068,
+          "A person singing a song.": -0.1852,
+          "Continuous music with a melody and rhythm.": -0.2881,
+          "Background room noise and static hiss.": -0.072,
+          "Traffic and engine noise.": -0.0391,
+          "Birds chirping outdoors.": 0.0785
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-druid-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "renew-druid-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "renew-druid-07.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "renew-druid-08.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-druid-09.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-druid",
+      "where": "드루이드 공대 큰 기술",
+      "source": "hymn-druid-07.wav",
+      "generation": {
+        "name": "hymn-druid",
+        "round": 7,
+        "prompt": "Fantasy forest magic sound effect: a powerful soft whoosh of rustling leaves opens outward, with a resonant hollow wooden breath. A lush airy nature spell, one full-bodied swell and decay. A single brief sound, lasting 1.17 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Rounded attack with a clear full-bodied sound, no isolated sharp click or tiny transient spike. Very short, softly damped, midrange-focused.",
+        "seed": 20268028,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "ca3eb2276f56947bb7eda2484b956f4225a50bcbc0fe9478dc5b80133bc98871",
+      "previous_sha256": "67e577fd73f470cc4a72f43e871a638da7a0c9ccf622d3e0c73953901fb23735",
+      "sha256": "cc80e987f2c46e64593feb00d4f8fb519f8ed0de194519e984bac2f691d7e6e0",
+      "seconds": 1.8,
+      "encoded_peak_db": -3.36,
+      "metrics": {
+        "seconds": 1.8,
+        "onset_seconds": 0.055,
+        "tail_db": -24.41,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.69
+      },
+      "semantic": {
+        "desired": 0.3391,
+        "game_sfx": 0.3623,
+        "alternatives": {
+          "A person speaking words.": 0.0484,
+          "A person singing a song.": -0.1272,
+          "Continuous music with a melody and rhythm.": -0.1276,
+          "Background room noise and static hiss.": 0.0189,
+          "Traffic and engine noise.": 0.1471,
+          "Birds chirping outdoors.": 0.1405
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-druid-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-druid-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-druid-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "hymn-druid-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-druid-05.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-druid-06.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak",
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-druid-07.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-paladin",
+      "where": "성기사 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-paladin-01.wav",
+      "generation": {
+        "name": "heal-paladin",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A warm luminous impact touches polished brass with a rounded firm attack and a short resonant glow. Protective, solid, and slightly weightier than airy healing. Keep the metallic edge soft, with no ringing bell, sword strike, or fanfare. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262035,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "98a18ca38edac445c87fa9e955da89008cef93dd23a08c546287fd94f5f45673",
+      "previous_sha256": "81d2967dde5dcc0fc7ec3621ad3e6b0ff62fc8a2155af00310a420e08997c730",
+      "sha256": "9aae061bf5b5dcd285916e00d2ad843e9df55cf1143c5bdcb0987335e4f87651",
+      "seconds": 0.4,
+      "encoded_peak_db": -2.93,
+      "metrics": {
+        "seconds": 0.4,
+        "onset_seconds": 0.035,
+        "tail_db": -22.86,
+        "phone_band_db": -0.22,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -24.78
+      },
+      "semantic": {
+        "desired": 0.4932,
+        "game_sfx": 0.2023,
+        "alternatives": {
+          "A person speaking words.": 0.037,
+          "A person singing a song.": -0.0904,
+          "Continuous music with a melody and rhythm.": -0.1109,
+          "Background room noise and static hiss.": -0.0383,
+          "Traffic and engine noise.": 0.0432,
+          "Birds chirping outdoors.": -0.1301
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-paladin-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-paladin",
+      "where": "성기사 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-paladin-01.wav",
+      "generation": {
+        "name": "renew-paladin",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A smooth golden energy band closes around a polished shield with a low-mid resonant hum and a precise soft catch. One reassuring protective application. Rounded metallic warmth rather than sharp impact, without an ongoing electrical buzz. One isolated event near the start; the active sound and its natural tail finish within 0.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262036,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "d7bc6253f52493a6fa292e968e71552f9e53de52ad6c077971ebd4f3615c1db2",
+      "previous_sha256": "46c2602bf4fb5ee27940ba40cc3d633793116290c4391eaa63a6514f0954cc29",
+      "sha256": "02b2bb46d6f7f26bcb10b52eb95b899b378f101521cb830ec0249f8d3444847b",
+      "seconds": 0.705,
+      "encoded_peak_db": -2.87,
+      "metrics": {
+        "seconds": 0.705,
+        "onset_seconds": 0.005,
+        "tail_db": -30.98,
+        "phone_band_db": -0.02,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -24.6
+      },
+      "semantic": {
+        "desired": 0.2034,
+        "game_sfx": 0.2562,
+        "alternatives": {
+          "A person speaking words.": 0.0989,
+          "A person singing a song.": -0.073,
+          "Continuous music with a melody and rhythm.": -0.116,
+          "Background room noise and static hiss.": 0.0303,
+          "Traffic and engine noise.": -0.0018,
+          "Birds chirping outdoors.": -0.0264
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-paladin-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-paladin",
+      "where": "성기사 공대 큰 기술",
+      "source": "hymn-paladin-03.wav",
+      "generation": {
+        "name": "hymn-paladin",
+        "round": 3,
+        "prompt": "A broad wave of protective golden energy expands from a firm brass-like pulse into warm layered metallic harmonics. A single brief sound, lasting 1.17 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Very short, softly damped, midrange-focused.",
+        "seed": 20264033,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "d406e8900cf8cc656507cde2584654580c540979a873fbd4436592a58a00b7cf",
+      "previous_sha256": "d6630ac98a8d893c0f990cc3c28f05c6063a4039ba86839f2335905dddc62cce",
+      "sha256": "31d032354d0c38de581de0e5375208b6ad09063a9903eda24fd2de0390f59fa3",
+      "seconds": 1.385,
+      "encoded_peak_db": -3.1,
+      "metrics": {
+        "seconds": 1.385,
+        "onset_seconds": 0.705,
+        "tail_db": -32.37,
+        "phone_band_db": -0.01,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.75
+      },
+      "semantic": {
+        "desired": 0.2252,
+        "game_sfx": 0.4788,
+        "alternatives": {
+          "A person speaking words.": 0.2038,
+          "A person singing a song.": -0.0839,
+          "Continuous music with a melody and rhythm.": 0.0444,
+          "Background room noise and static hiss.": 0.0104,
+          "Traffic and engine noise.": 0.168,
+          "Birds chirping outdoors.": 0.0488
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-paladin-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-paladin-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "hymn-paladin-03.wav",
+          "screening": "pass",
+          "reasons": []
+        },
+        {
+          "source": "hymn-paladin-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "hymn-paladin-05.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "hymn-paladin-06.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "heal-shaman",
+      "where": "주술사 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-shaman-01.wav",
+      "generation": {
+        "name": "heal-shaman",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A compact arc of clear water rises and lands in one rounded splash, with two tiny fluid droplets and a soft hollow body. Refreshing restorative magic, immediate and tactile. No faucet, drinking, ocean bed, or high squeaky bubble tones. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262037,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "06d77b5fe3c928da75348621f9767a4323d70f57645cc48aa96cfff340774bbc",
+      "previous_sha256": "e22669e307a113467cf31fb4a12049070e0514797e6f301519d1fbe52775a0f2",
+      "sha256": "184d7b9ccbb539d281ad7a61b1a7c78ae8a4af3b3fcb81cbbfb4a48334e59b38",
+      "seconds": 0.375,
+      "encoded_peak_db": -3.1,
+      "metrics": {
+        "seconds": 0.375,
+        "onset_seconds": 0.045,
+        "tail_db": -31.35,
+        "phone_band_db": -0.33,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.79
+      },
+      "semantic": {
+        "desired": 0.4009,
+        "game_sfx": 0.2357,
+        "alternatives": {
+          "A person speaking words.": 0.1389,
+          "A person singing a song.": -0.0142,
+          "Continuous music with a melody and rhythm.": -0.0555,
+          "Background room noise and static hiss.": 0.0187,
+          "Traffic and engine noise.": 0.0588,
+          "Birds chirping outdoors.": -0.0179
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-shaman-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-shaman",
+      "where": "주술사 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-shaman-03.wav",
+      "generation": {
+        "name": "renew-shaman",
+        "round": 3,
+        "prompt": "A soft hollow wooden contact anchors a small spiral of clear water that circles once and settles. A single brief sound, lasting 0.52 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Clear foreground object sound in a completely silent recording space. Very short, softly damped, midrange-focused.",
+        "seed": 20264020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "bf0dcb9a256cbaf596fa30a06fcbfb739ac3dc84fe681537f21ff34d8157742b",
+      "previous_sha256": "ba81d41973993eb85511dde90cb36e17f8a86148efa37b0d77b47e057ef26a7c",
+      "sha256": "37f71ac498eea50a2e1f5c305710a1d062a4bebd6bbbb5630229c170e3fd3c13",
+      "seconds": 0.53,
+      "encoded_peak_db": -2.96,
+      "metrics": {
+        "seconds": 0.53,
+        "onset_seconds": 0.0,
+        "tail_db": -32.71,
+        "phone_band_db": -0.06,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -25.5
+      },
+      "semantic": {
+        "desired": 0.1495,
+        "game_sfx": 0.2079,
+        "alternatives": {
+          "A person speaking words.": 0.1672,
+          "A person singing a song.": -0.0814,
+          "Continuous music with a melody and rhythm.": -0.1156,
+          "Background room noise and static hiss.": 0.0157,
+          "Traffic and engine noise.": 0.0558,
+          "Birds chirping outdoors.": -0.0021
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-shaman-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-shaman-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-shaman-03.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-shaman",
+      "where": "주술사 공대 큰 기술",
+      "source": "hymn-shaman-02.wav",
+      "generation": {
+        "name": "hymn-shaman",
+        "round": 2,
+        "prompt": "A wide sheet of clean water unfurls with a rounded hollow resonance, then breaks into a short veil of soft rain droplets. A single brief sound, lasting 1.17 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition. ",
+        "seed": 20263045,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "abc7017a2a192226b973ebf3ad05d8fca6e8363a7b68f862e70da777ed660917",
+      "previous_sha256": "ad28c92f1a8a4c6ac15c0a575e47dcd4e2d4741bb262fd588a539c56d2927a9d",
+      "sha256": "99e04bef65d8bfb5b06cb72a341d5bc7ec8dd921ce84062fe3ad88f4c09c83e1",
+      "seconds": 1.305,
+      "encoded_peak_db": -2.96,
+      "metrics": {
+        "seconds": 1.305,
+        "onset_seconds": 0.015,
+        "tail_db": -29.83,
+        "phone_band_db": -0.51,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.28
+      },
+      "semantic": {
+        "desired": 0.4375,
+        "game_sfx": 0.2655,
+        "alternatives": {
+          "A person speaking words.": 0.0335,
+          "A person singing a song.": -0.1617,
+          "Continuous music with a melody and rhythm.": -0.1807,
+          "Background room noise and static hiss.": -0.1187,
+          "Traffic and engine noise.": -0.0578,
+          "Birds chirping outdoors.": -0.0289
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-shaman-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "hymn-shaman-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-monk",
+      "where": "수도사 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-monk-01.wav",
+      "generation": {
+        "name": "heal-monk",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A gentle palm-driven air pulse meets a soft bamboo contact and a wisp of warm mist. Quick, rhythmic, and controlled, with a rounded tactile center and no hard slap. A restorative martial gesture, not tea pouring, a punch, or a human breath. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262039,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "cc85ad6cd0a17c009c0fd5d6adf065612b28f4c9e1ca285e0081d88e78c06507",
+      "previous_sha256": "ba8de6f6d72284f7b0aaa374145f9bb6f33e93e8b5a0881da0731e5546a0abb7",
+      "sha256": "ca79c0c8c77c0912eab74195c70b6a548f56283c9db338107b549db5c514586e",
+      "seconds": 0.125,
+      "encoded_peak_db": -2.87,
+      "metrics": {
+        "seconds": 0.125,
+        "onset_seconds": 0.445,
+        "tail_db": -31.63,
+        "phone_band_db": -1.29,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.03
+      },
+      "semantic": {
+        "desired": 0.1723,
+        "game_sfx": 0.0405,
+        "alternatives": {
+          "A person speaking words.": 0.1222,
+          "A person singing a song.": -0.0764,
+          "Continuous music with a melody and rhythm.": -0.1897,
+          "Background room noise and static hiss.": 0.0999,
+          "Traffic and engine noise.": 0.1134,
+          "Birds chirping outdoors.": 0.0515
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-monk-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-monk",
+      "where": "수도사 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-monk-01.wav",
+      "generation": {
+        "name": "renew-monk",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A light silk sweep wraps around a small misty air current, ending in a softly damped jade-like contact. Calm protective energy applied once, smooth and close. No human exhale, ceramic cup, bell, or persistent wind-chime texture. One isolated event near the start; the active sound and its natural tail finish within 0.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262040,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "bed20fd95961db4bec580758eaf48d0e269c9669285f8207fc8e43c0bcc00897",
+      "previous_sha256": "678611cba5237ef0ec251ad7a85242fcb429c4b4a7c07813e09db6a2b154568d",
+      "sha256": "9ea448879d496402d9fddb237ced808097c0ee09de059f06a3c9ed07236c2190",
+      "seconds": 0.285,
+      "encoded_peak_db": -3.36,
+      "metrics": {
+        "seconds": 0.285,
+        "onset_seconds": 1.305,
+        "tail_db": -32.35,
+        "phone_band_db": -1.3,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.08
+      },
+      "semantic": {
+        "desired": 0.3099,
+        "game_sfx": 0.1761,
+        "alternatives": {
+          "A person speaking words.": 0.1665,
+          "A person singing a song.": -0.0667,
+          "Continuous music with a melody and rhythm.": -0.1316,
+          "Background room noise and static hiss.": 0.1212,
+          "Traffic and engine noise.": 0.052,
+          "Birds chirping outdoors.": 0.1725
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-monk-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-monk",
+      "where": "수도사 공대 큰 기술",
+      "source": "hymn-monk-01.wav",
+      "generation": {
+        "name": "hymn-monk",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A broad rounded wave of warm mist expands with a flowing silk whoosh and a few softly resonant bamboo textures. Strong restorative inner energy, calm rather than explosive. One smooth release with a clear end, no chant, breath voice, or meditation music. One isolated event near the start; the active sound and its natural tail finish within 1.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262086,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "e53a54a2f23e9996ff627dcdcebdb28f69e41a82e903cb018860542ecb77a2a0",
+      "previous_sha256": "f6b6b697462bda6b8e25da62f2af38523dfb10c3b4b04c8a00518ee496b939a5",
+      "sha256": "8cee34b8b759d1910782b3cd7cf2ff126308dec5abc7aa8ed612f0f1e5405bd8",
+      "seconds": 1.8,
+      "encoded_peak_db": -2.99,
+      "metrics": {
+        "seconds": 1.8,
+        "onset_seconds": 0.0,
+        "tail_db": -21.26,
+        "phone_band_db": -0.73,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.28
+      },
+      "semantic": {
+        "desired": 0.3684,
+        "game_sfx": 0.4434,
+        "alternatives": {
+          "A person speaking words.": 0.2851,
+          "A person singing a song.": -0.0466,
+          "Continuous music with a melody and rhythm.": 0.1034,
+          "Background room noise and static hiss.": 0.0743,
+          "Traffic and engine noise.": 0.0021,
+          "Birds chirping outdoors.": 0.0216
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-monk-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-astrologer",
+      "where": "점성술사 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-astrologer-05.wav",
+      "generation": {
+        "name": "heal-astrologer",
+        "round": 5,
+        "prompt": "One tiny muted glass-harp pluck, a clear high-mid glassy pop with a delicate string harmonic. Damp it immediately after the pluck so the entire sound ends in 0.18 seconds. A single brief sound, lasting 0.26 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Clear foreground object sound in a completely silent recording space. Very short, softly damped, midrange-focused.",
+        "seed": 20266020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "39be6c3e27869d4b76aa46518bc5f8bac65ac94ff802c5dad65c610b58a20f70",
+      "previous_sha256": "92abf04c04437784ced44f49071a8db24e054913b8226742512d4c37fbb0f0ac",
+      "sha256": "254492d0ab273cca4beb14ecacd05fe33030e04b9a14fc6ab44502bef8db685b",
+      "seconds": 0.39,
+      "encoded_peak_db": -3.08,
+      "metrics": {
+        "seconds": 0.39,
+        "onset_seconds": 0.0,
+        "tail_db": -29.65,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.1
+      },
+      "semantic": {
+        "desired": 0.1877,
+        "game_sfx": 0.0833,
+        "alternatives": {
+          "A person speaking words.": 0.0587,
+          "A person singing a song.": -0.016,
+          "Continuous music with a melody and rhythm.": -0.0542,
+          "Background room noise and static hiss.": -0.1091,
+          "Traffic and engine noise.": -0.1148,
+          "Birds chirping outdoors.": -0.1729
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-astrologer-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "heal-astrologer-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "heal-astrologer-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "heal-astrologer-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "heal-astrologer-05.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-astrologer",
+      "where": "점성술사 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-astrologer-05.wav",
+      "generation": {
+        "name": "renew-astrologer",
+        "round": 5,
+        "prompt": "Two very close light glass-string plucks blend into one smooth airy high harmonic, delicate, non-melodic and softly damped, ending after 0.3 seconds. A single brief sound, lasting 0.52 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Very short, softly damped, midrange-focused.",
+        "seed": 20266021,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "cbaee6e08f261c94964e4f670f4d0cc606a092ae8f77c8dbe31af3269ea6e0c8",
+      "previous_sha256": "360d296455ef26b05596d04f5b7062c5802f7af49bb4036e0e48b4af9af83238",
+      "sha256": "9e91bb3f552a82b671f4d32dfe30a7327a7b016152219704ff01472863f37f7a",
+      "seconds": 0.58,
+      "encoded_peak_db": -7.2,
+      "metrics": {
+        "seconds": 0.58,
+        "onset_seconds": 0.0,
+        "tail_db": -29.45,
+        "phone_band_db": -6.62,
+        "clipped_fraction": 0.0,
+        "peak_db": -7.24,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.2355,
+        "game_sfx": 0.1834,
+        "alternatives": {
+          "A person speaking words.": 0.1873,
+          "A person singing a song.": 0.0319,
+          "Continuous music with a melody and rhythm.": 0.064,
+          "Background room noise and static hiss.": -0.032,
+          "Traffic and engine noise.": -0.0138,
+          "Birds chirping outdoors.": -0.1489
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-astrologer-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-astrologer-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "renew-astrologer-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-astrologer-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-astrologer-05.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-astrologer",
+      "where": "점성술사 공대 큰 기술",
+      "source": "hymn-astrologer-02.wav",
+      "generation": {
+        "name": "hymn-astrologer",
+        "round": 2,
+        "prompt": "A curved stream of fine luminous particles draws inward, pauses briefly in a rounded harmonic center, then opens into a short broad celestial shimmer. A single brief sound, lasting 1.17 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb. Clear foreground object sound in a completely silent recording space.",
+        "seed": 20263046,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "46487208235be1620badd74c7c56182a7c17dd5fd0a2a9c4ce931ba2481646b1",
+      "previous_sha256": "e2b7d41199db111b42f1e4f88cfaa94095d15b5bbddd9588cb11f7c185d41d9b",
+      "sha256": "accd48e9306429a4aef965a160fe44f044cb3f7ae875279cf1c1c82bdb3141f0",
+      "seconds": 1.165,
+      "encoded_peak_db": -2.96,
+      "metrics": {
+        "seconds": 1.165,
+        "onset_seconds": 1.295,
+        "tail_db": -34.92,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.31
+      },
+      "semantic": {
+        "desired": 0.2251,
+        "game_sfx": 0.3235,
+        "alternatives": {
+          "A person speaking words.": 0.2179,
+          "A person singing a song.": -0.0833,
+          "Continuous music with a melody and rhythm.": -0.0884,
+          "Background room noise and static hiss.": 0.1763,
+          "Traffic and engine noise.": 0.2054,
+          "Birds chirping outdoors.": 0.0676
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-astrologer-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "hymn-astrologer-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heal-warder",
+      "where": "결계사 직접 힐 (자주, 음정 셋 중 무작위)",
+      "source": "heal-warder-01.wav",
+      "generation": {
+        "name": "heal-warder",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A small crystalline membrane flexes inward and releases one soft resonant pulse, with a precise rounded contact and a short low-mid glassy body. Dense, controlled protective healing. No shattering, bell strike, brittle high ring, or energy-gun sound. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262043,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "ff487eddbf186460921956f9211b12b118a41e502660146e2002b46b6e5ef951",
+      "previous_sha256": "6254d3aaf274a883d44a9f83be62a4cc29ba002b9f48fdc522d4062894ec0ad3",
+      "sha256": "ecd5fef7dfea31d30ab067ae3af9b034acea5318c4921998b52f37aed8cfc14d",
+      "seconds": 0.32,
+      "encoded_peak_db": -2.94,
+      "metrics": {
+        "seconds": 0.32,
+        "onset_seconds": 0.0,
+        "tail_db": -32.2,
+        "phone_band_db": -1.09,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.03
+      },
+      "semantic": {
+        "desired": 0.2275,
+        "game_sfx": 0.1069,
+        "alternatives": {
+          "A person speaking words.": 0.0179,
+          "A person singing a song.": -0.0543,
+          "Continuous music with a melody and rhythm.": -0.1434,
+          "Background room noise and static hiss.": 0.107,
+          "Traffic and engine noise.": 0.0865,
+          "Birds chirping outdoors.": -0.0204
+        }
+      },
+      "candidates": [
+        {
+          "source": "heal-warder-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "renew-warder",
+      "where": "결계사 지속 힐 · 보호 · 표식 · 토템 걸기",
+      "source": "renew-warder-15.wav",
+      "generation": {
+        "name": "renew-warder",
+        "round": 15,
+        "prompt": "A miniature crystalline dome closes with a layered glass resonance and lands in one rounded protective pulse that decays quickly. A compact magical barrier with warm weight and stability, clear glassy midrange harmonics. No glass destruction, bass drop, or ongoing drone. A single brief sound, lasting 0.52 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Clear foreground object sound in a completely silent recording space. Very short, softly damped, midrange-focused.",
+        "seed": 20276020,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "ba6f83cdee9b6ddfc131bba5316d63054cefd352f51188d884dbe4a1e24be694",
+      "previous_sha256": "07ed671b7accbdb324e464c2a530c34426fe675f4c1ac287931152b2b405591a",
+      "sha256": "c2d15cdd38121a7afc80c7fa08265ac0af417923fc167d0f229cf7d257b58ee4",
+      "seconds": 0.8,
+      "encoded_peak_db": -2.94,
+      "metrics": {
+        "seconds": 0.8,
+        "onset_seconds": 0.005,
+        "tail_db": -25.86,
+        "phone_band_db": -0.01,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.7
+      },
+      "semantic": {
+        "desired": 0.1854,
+        "game_sfx": 0.3128,
+        "alternatives": {
+          "A person speaking words.": 0.1288,
+          "A person singing a song.": -0.1162,
+          "Continuous music with a melody and rhythm.": -0.113,
+          "Background room noise and static hiss.": -0.0082,
+          "Traffic and engine noise.": -0.006,
+          "Birds chirping outdoors.": -0.0516
+        }
+      },
+      "candidates": [
+        {
+          "source": "renew-warder-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-warder-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-warder-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-05.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-06.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-07.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-08.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "renew-warder-09.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-10.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-11.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-12.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-13.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-14.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "renew-warder-15.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "hymn-warder",
+      "where": "결계사 공대 큰 기술",
+      "source": "hymn-warder-01.wav",
+      "generation": {
+        "name": "hymn-warder",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A large crystalline dome rises with a broad layered glass resonance, then lands in one rounded protective pulse and decays smoothly. Strong containment, weight, and stability, clearly different from starry sparkle. No glass destruction, bass drop, or ongoing drone. One isolated event near the start; the active sound and its natural tail finish within 1.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262088,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "951215e8d459c480717f9039c3f347ad8b6812b3bb56e3a6699d9b3e4dc58b0f",
+      "previous_sha256": "7075a89c8453324eb831a0120ff93141b7df00d70b039a0e7e83ab512dff86dc",
+      "sha256": "da2221e913f596a5e966678db3ae873b46f10937aaf6bc4f37c9b2bf164b5d06",
+      "seconds": 1.425,
+      "encoded_peak_db": -3.05,
+      "metrics": {
+        "seconds": 1.425,
+        "onset_seconds": 0.005,
+        "tail_db": -29.63,
+        "phone_band_db": -0.1,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.78
+      },
+      "semantic": {
+        "desired": 0.1285,
+        "game_sfx": 0.5191,
+        "alternatives": {
+          "A person speaking words.": 0.0223,
+          "A person singing a song.": -0.1812,
+          "Continuous music with a melody and rhythm.": -0.1131,
+          "Background room noise and static hiss.": -0.005,
+          "Traffic and engine noise.": -0.0352,
+          "Birds chirping outdoors.": 0.0829
+        }
+      },
+      "candidates": [
+        {
+          "source": "hymn-warder-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "buster",
+      "where": "탱커 강타 예고 · 졸개 내려찍기 예고",
+      "source": "buster-01.wav",
+      "generation": {
+        "name": "buster",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. One heavy padded wooden drum hit gives a clear low-mid thump with a brief dry skin rattle. A focused warning of a coming single heavy strike. Strong attack, short decay, recognizable on a phone speaker, with no reliance on deep sub-bass. One isolated event near the start; the active sound and its natural tail finish within 0.8 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262045,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "db4661550a96f0714f7ac347c1beefde618da931bffd29c93d02c3df15ae2440",
+      "previous_sha256": "9a2fd7a7c55f93f6708ed66ce3f8b003ced6095361a64e1a8d0d6ae3f40f50cc",
+      "sha256": "69eecd548a6d38a435be4b21355ec4d95717ebfa7c0e26bf5f9f1a9b5f962e60",
+      "seconds": 0.325,
+      "encoded_peak_db": -4.65,
+      "metrics": {
+        "seconds": 0.325,
+        "onset_seconds": 0.015,
+        "tail_db": -33.03,
+        "phone_band_db": -14.33,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.58,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.5003,
+        "game_sfx": 0.0792,
+        "alternatives": {
+          "A person speaking words.": 0.1808,
+          "A person singing a song.": 0.006,
+          "Continuous music with a melody and rhythm.": -0.0145,
+          "Background room noise and static hiss.": -0.0376,
+          "Traffic and engine noise.": 0.022,
+          "Birds chirping outdoors.": 0.002
+        }
+      },
+      "candidates": [
+        {
+          "source": "buster-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "aoe",
+      "where": "광역 예고 · 보스가 강해짐",
+      "source": "aoe-04.wav",
+      "generation": {
+        "name": "aoe",
+        "round": 4,
+        "prompt": "A strong short rough gust of air rises in pitch and opens outward once, with a clear full-bodied midrange whoosh and soft low-middle resonance. No sharp click, impact, explosion or long background wind. A single brief sound, lasting 0.65 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Rounded attack with a clear full-bodied sound, no isolated sharp click or tiny transient spike. Very short, softly damped, midrange-focused.",
+        "seed": 20265024,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "3d34094486e9f03d97edc7faae063059c958222bddc4bafbf3e41bc1eeb710ff",
+      "previous_sha256": "06ca80d5d39839f6f1e481a209bbcb1fa35851dd03cc549986117dc72bb52926",
+      "sha256": "c53a8724c1babddf0ae3b8e7d3a7f47ae1eaf546a914b13291f3b46d6870de5b",
+      "seconds": 0.935,
+      "encoded_peak_db": -5.69,
+      "metrics": {
+        "seconds": 0.935,
+        "onset_seconds": 0.045,
+        "tail_db": -32.18,
+        "phone_band_db": -8.3,
+        "clipped_fraction": 0.0,
+        "peak_db": -5.31,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4238,
+        "game_sfx": 0.1576,
+        "alternatives": {
+          "A person speaking words.": 0.1206,
+          "A person singing a song.": -0.1159,
+          "Continuous music with a melody and rhythm.": -0.0364,
+          "Background room noise and static hiss.": 0.084,
+          "Traffic and engine noise.": 0.0471,
+          "Birds chirping outdoors.": 0.0948
+        }
+      },
+      "candidates": [
+        {
+          "source": "aoe-01.wav",
+          "screening": "pass",
+          "reasons": []
+        },
+        {
+          "source": "aoe-04.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "zone",
+      "where": "장판 예고",
+      "source": "zone-01.wav",
+      "generation": {
+        "name": "zone",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A short rough scrape travels across stone, followed by two close gritty cracks and a compact earth resonance. A ground-danger warning with tactile midrange detail. Distinguishable from a drum or magical whoosh, without a long earthquake bed. One isolated event near the start; the active sound and its natural tail finish within 0.9 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262047,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "993120fb2ab6bb82d91a509a6cd3313ed37fa49da3c692ab8a2f39539fd650f2",
+      "previous_sha256": "e37641df4d008f4833ccd27f55d6363d1654e363e28d75db34d543bf6283462b",
+      "sha256": "c0cad021b519551d622eecb17b560f89872c5458db8e5149cad325ad1fb00ee7",
+      "seconds": 0.435,
+      "encoded_peak_db": -4.2,
+      "metrics": {
+        "seconds": 0.435,
+        "onset_seconds": 0.055,
+        "tail_db": -36.29,
+        "phone_band_db": -1.5,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.9
+      },
+      "semantic": {
+        "desired": 0.317,
+        "game_sfx": 0.268,
+        "alternatives": {
+          "A person speaking words.": 0.0224,
+          "A person singing a song.": -0.2232,
+          "Continuous music with a melody and rhythm.": -0.1238,
+          "Background room noise and static hiss.": -0.0717,
+          "Traffic and engine noise.": -0.0221,
+          "Birds chirping outdoors.": 0.058
+        }
+      },
+      "candidates": [
+        {
+          "source": "zone-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "burst",
+      "where": "전염 · 부풀기 · 불안정한 마력 · 폭탄 쫄 터짐",
+      "source": "burst-03.wav",
+      "generation": {
+        "name": "burst",
+        "round": 3,
+        "prompt": "One compact muffled magical pressure pop breaks into a very short rough fizz. A single brief sound, lasting 0.39 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Damped at its source, very brief resonance, no sustained sound or reverb. Very short, softly damped, midrange-focused.",
+        "seed": 20264024,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "3e2f03afccb2860604339aa4d7f9a611d10598150ffb9713b1561e180135705c",
+      "previous_sha256": "189fcc10cd2f4e7f834e0986f83485476fed80f85e1257526ae4efebbae76b21",
+      "sha256": "2e6721a47bbc951c7d32c51c255d12b534590a9c35c64468acbdfbbabd8f45e8",
+      "seconds": 0.085,
+      "encoded_peak_db": -3.88,
+      "metrics": {
+        "seconds": 0.085,
+        "onset_seconds": 0.075,
+        "tail_db": -30.44,
+        "phone_band_db": -0.35,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.84,
+        "rms_db": -20.01
+      },
+      "semantic": {
+        "desired": 0.3476,
+        "game_sfx": 0.0503,
+        "alternatives": {
+          "A person speaking words.": 0.1973,
+          "A person singing a song.": 0.0036,
+          "Continuous music with a melody and rhythm.": -0.0421,
+          "Background room noise and static hiss.": 0.0151,
+          "Traffic and engine noise.": 0.1188,
+          "Birds chirping outdoors.": 0.0278
+        }
+      },
+      "candidates": [
+        {
+          "source": "burst-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "burst-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail",
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "burst-03.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "heart",
+      "where": "파티원 체력 30% 밑 (가장 낮은 1명, 1.1초마다)",
+      "source": "heart-07.wav",
+      "generation": {
+        "name": "heart",
+        "round": 7,
+        "prompt": "A pair of soft muted hand-drum thumps resembling one heartbeat, rounded and woody with clear upper bass and midrange. One restrained lub-dub pulse and silence. A single brief sound, lasting 0.33 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Very short, softly damped, midrange-focused.",
+        "seed": 20268024,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "7f54dbffcd4e5945aa82ee7906324edc5cf0c91b1d6f2c746d96361c93b52997",
+      "previous_sha256": "3b075a23fb16db4ed43fd58cd342a53c0e05f7d4e0eaf254b9e6be140b151d54",
+      "sha256": "fedf6a6297d7fd9a91d0b47475b311f827562db81548ee875dd03af5eb1fd793",
+      "seconds": 0.085,
+      "encoded_peak_db": -4.21,
+      "metrics": {
+        "seconds": 0.085,
+        "onset_seconds": 0.485,
+        "tail_db": -40.06,
+        "phone_band_db": -5.77,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.29,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.2315,
+        "game_sfx": 0.1548,
+        "alternatives": {
+          "A person speaking words.": 0.1513,
+          "A person singing a song.": -0.0046,
+          "Continuous music with a melody and rhythm.": -0.002,
+          "Background room noise and static hiss.": 0.0558,
+          "Traffic and engine noise.": 0.1134,
+          "Birds chirping outdoors.": 0.0134
+        }
+      },
+      "candidates": [
+        {
+          "source": "heart-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "heart-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "heart-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "heart-07.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "death",
+      "where": "파티원 쓰러짐",
+      "source": "death-02.wav",
+      "generation": {
+        "name": "death",
+        "round": 2,
+        "prompt": "A padded armor weight settles with a brief dull metal rustle, followed by a small descending air resonance. A single brief sound, lasting 0.59 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition. ",
+        "seed": 20263030,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "6a8070f2a33483e68f5d3a8d6bcd4a13cb381cf02ce34ab4d979b4677a61368b",
+      "previous_sha256": "bccd6ddba2f57ce9facfcd7a6ec29da6d97cda973bedf2f9518d94371ad45956",
+      "sha256": "daa1187b7725ce9d5b2516620dd72de3c0bf0ea96cc70a77512cbc67f55357fb",
+      "seconds": 0.265,
+      "encoded_peak_db": -2.79,
+      "metrics": {
+        "seconds": 0.265,
+        "onset_seconds": 1.305,
+        "tail_db": -31.7,
+        "phone_band_db": -0.49,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.06,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.2557,
+        "game_sfx": 0.1179,
+        "alternatives": {
+          "A person speaking words.": 0.1736,
+          "A person singing a song.": -0.1259,
+          "Continuous music with a melody and rhythm.": -0.0403,
+          "Background room noise and static hiss.": 0.0762,
+          "Traffic and engine noise.": 0.0988,
+          "Birds chirping outdoors.": 0.0436
+        }
+      },
+      "candidates": [
+        {
+          "source": "death-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "death-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "debuff-disease",
+      "where": "질병 디버프 걸림",
+      "source": "debuff-disease-01.wav",
+      "generation": {
+        "name": "debuff-disease",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. One very short dry nonverbal cough-like rasp, softened and stylized with a small organic rattle. A distinct illness-status cue, restrained and not realistic or disgusting. No spoken words, repeated coughing, wet choking, or sustained voice. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. The single nonverbal rasp is intentional. No speech, sung voice, additional characters, bells, music, or background ambience.",
+        "seed": 20262051,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "3a273ef7cb54d0dccdff0490e585901a93ef3d11e08ec0e48efdbb52104b362e",
+      "previous_sha256": "347e8ba3eff0bcef6f588db7015f400fd3acb0801de46e76350753a1d0ffec5f",
+      "sha256": "eee7bd2c6242a58dc20a9d2980b1e71399abd893d18338355eae36f0f5b222a3",
+      "seconds": 0.345,
+      "encoded_peak_db": -2.89,
+      "metrics": {
+        "seconds": 0.345,
+        "onset_seconds": 0.615,
+        "tail_db": -36.64,
+        "phone_band_db": -0.23,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.1
+      },
+      "semantic": {
+        "desired": 0.5558,
+        "game_sfx": 0.2576,
+        "alternatives": {
+          "A person speaking words.": 0.238,
+          "A person singing a song.": 0.0514,
+          "Continuous music with a melody and rhythm.": -0.0829,
+          "Background room noise and static hiss.": 0.0852,
+          "Traffic and engine noise.": 0.1173,
+          "Birds chirping outdoors.": 0.0006
+        }
+      },
+      "candidates": [
+        {
+          "source": "debuff-disease-01.wav",
+          "screening": "pass",
+          "reasons": []
+        },
+        {
+          "source": "debuff-disease-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "debuff-poison",
+      "where": "독 디버프 걸림",
+      "source": "debuff-poison-07.wav",
+      "generation": {
+        "name": "debuff-poison",
+        "round": 7,
+        "prompt": "Two small bubbles pop in thick sticky liquid almost together. A brief wet gurgle with rounded hollow pops and no sustained bubbling. A single brief sound, lasting 0.33 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb. Very short, softly damped, midrange-focused.",
+        "seed": 20268025,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "d00920add444ee166cad501662f25924bde93584cb668ba6d353a20aaa16f218",
+      "previous_sha256": "e47a224946dd7f3d6c297c40efc66db0ed1a278fb8775b7c8a6f5c0bf42b9467",
+      "sha256": "eeef3e5e9e9de18e485f3ee138efb5a1f4a7859a337c3d5156df3bd782f22621",
+      "seconds": 0.415,
+      "encoded_peak_db": -2.88,
+      "metrics": {
+        "seconds": 0.415,
+        "onset_seconds": 0.215,
+        "tail_db": -33.13,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.29
+      },
+      "semantic": {
+        "desired": 0.509,
+        "game_sfx": 0.2115,
+        "alternatives": {
+          "A person speaking words.": 0.1414,
+          "A person singing a song.": -0.069,
+          "Continuous music with a melody and rhythm.": -0.0759,
+          "Background room noise and static hiss.": -0.0032,
+          "Traffic and engine noise.": 0.0092,
+          "Birds chirping outdoors.": 0.026
+        }
+      },
+      "candidates": [
+        {
+          "source": "debuff-poison-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "debuff-poison-07.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "debuff-magic",
+      "where": "마법 디버프 걸림",
+      "source": "debuff-magic-01.wav",
+      "generation": {
+        "name": "debuff-magic",
+        "round": 1,
+        "prompt": "Original sound design for a warm tactile fantasy healer game. A compact arcane static flick snaps once and decays into a brief dry granular fizz. Lightly dissonant, precise, and sharper than a healing glint. Keep harsh treble controlled; no sci-fi laser beam, alarm beep, or sustained electricity. One isolated event near the start; the active sound and its natural tail finish within 0.4 seconds, followed by silence. Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center. A non-musical sound effect with no spoken or sung voice, bells, gong, backing music, ambience bed, or repeated rhythmic pattern.",
+        "seed": 20262053,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "8424d67d77f9a575a27280b966ff9c084fe2b8157a2900d3a1c8cfc70c1622eb",
+      "previous_sha256": "68d47f568a07e81862689647ef99c2f195d5e8b25a30d11112ee7e0a30bfeaaf",
+      "sha256": "08eee5d7d8d28e93407bd5824a85d5f7e94830e38091cbf5d8243e80d1c4d7d8",
+      "seconds": 0.08,
+      "encoded_peak_db": -2.96,
+      "metrics": {
+        "seconds": 0.08,
+        "onset_seconds": 0.0,
+        "tail_db": -32.34,
+        "phone_band_db": -3.74,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.43
+      },
+      "semantic": {
+        "desired": 0.4386,
+        "game_sfx": 0.13,
+        "alternatives": {
+          "A person speaking words.": 0.0488,
+          "A person singing a song.": -0.0213,
+          "Continuous music with a melody and rhythm.": -0.122,
+          "Background room noise and static hiss.": 0.1384,
+          "Traffic and engine noise.": 0.1217,
+          "Birds chirping outdoors.": 0.049
+        }
+      },
+      "candidates": [
+        {
+          "source": "debuff-magic-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "debuff-curse",
+      "where": "저주 디버프 걸림",
+      "source": "debuff-curse-04.wav",
+      "generation": {
+        "name": "debuff-curse",
+        "round": 4,
+        "prompt": "One short dry bowed-glass scrape bends down in pitch around the middle register and stops smoothly, with a small grainy air suction. Clear raspy midrange, no deep sub-bass or long drone. A single brief sound, lasting 0.39 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Damped at its source, very brief resonance, no sustained sound or reverb. Very short, softly damped, midrange-focused.",
+        "seed": 20265025,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "0355ff39005953c264fd1f8347f5e9763e3227b6bfcb2fab936d44cb551c8041",
+      "previous_sha256": "4a921a4b0a850e3d9750ea1f9f2bb3c7ec2ba191d32c42cfd8bab0ef50833939",
+      "sha256": "7e8a448b6907631794c27f448013bddbde1961a043d2e71b41f53cc8efab4b58",
+      "seconds": 0.545,
+      "encoded_peak_db": -3.01,
+      "metrics": {
+        "seconds": 0.545,
+        "onset_seconds": 1.155,
+        "tail_db": -29.71,
+        "phone_band_db": -0.02,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.86
+      },
+      "semantic": {
+        "desired": 0.5016,
+        "game_sfx": 0.28,
+        "alternatives": {
+          "A person speaking words.": 0.1647,
+          "A person singing a song.": -0.051,
+          "Continuous music with a melody and rhythm.": -0.0848,
+          "Background room noise and static hiss.": 0.057,
+          "Traffic and engine noise.": 0.1158,
+          "Birds chirping outdoors.": 0.1023
+        }
+      },
+      "candidates": [
+        {
+          "source": "debuff-curse-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "debuff-curse-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "debuff-curse-03.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail",
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "debuff-curse-04.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "attack-melee",
+      "where": "근접 공격",
+      "source": "attack-melee-01.wav",
+      "generation": {
+        "metadata": "not retained for the initial Agent Audio CLI pilot"
+      },
+      "source_sha256": "d7a9f4cfd3db7cc4f7913a60f72704761e821db3cf81d22d550e1ef89b09f864",
+      "previous_sha256": null,
+      "sha256": "8f0e99e33a315ff5b5cf162cdf08cfd62865139301964bd85b01a064c9fbfe46",
+      "seconds": 0.34,
+      "encoded_peak_db": -2.93,
+      "metrics": {
+        "seconds": 0.34,
+        "onset_seconds": 0.0,
+        "tail_db": -29.89,
+        "phone_band_db": -4.69,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -23.6
+      },
+      "semantic": {
+        "desired": 0.431,
+        "game_sfx": 0.1858,
+        "alternatives": {
+          "A person speaking words.": 0.1165,
+          "A person singing a song.": -0.0603,
+          "Continuous music with a melody and rhythm.": -0.0202,
+          "Background room noise and static hiss.": 0.0832,
+          "Traffic and engine noise.": 0.1034,
+          "Birds chirping outdoors.": 0.0934
+        }
+      },
+      "candidates": [
+        {
+          "source": "attack-melee-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "attack-heavy",
+      "where": "중장 무기 공격",
+      "source": "attack-heavy-01.wav",
+      "generation": {
+        "name": "attack-heavy",
+        "round": 1,
+        "prompt": "A heavy axe hits a wooden shield once, a solid woody crack with dull steel weight and a short decay. Audible event ends within 0.5 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262056,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "75817f8c70025daa661afb1d9bcad8af5d5e4283ec74014f1fccafd2942e6106",
+      "previous_sha256": null,
+      "sha256": "91bd764e339b3cd11d4135e13f57d93f4922d3ea3ae9b38a6953cf1f546db190",
+      "seconds": 0.19,
+      "encoded_peak_db": -3.04,
+      "metrics": {
+        "seconds": 0.19,
+        "onset_seconds": 0.0,
+        "tail_db": -31.61,
+        "phone_band_db": -1.1,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -25.85
+      },
+      "semantic": {
+        "desired": 0.1949,
+        "game_sfx": 0.1885,
+        "alternatives": {
+          "A person speaking words.": 0.0313,
+          "A person singing a song.": -0.0648,
+          "Continuous music with a melody and rhythm.": -0.0716,
+          "Background room noise and static hiss.": 0.001,
+          "Traffic and engine noise.": 0.0886,
+          "Birds chirping outdoors.": -0.0447
+        }
+      },
+      "candidates": [
+        {
+          "source": "attack-heavy-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "attack-bow",
+      "where": "궁수·사냥꾼 공격",
+      "source": "attack-bow-01.wav",
+      "generation": {
+        "name": "attack-bow",
+        "round": 1,
+        "prompt": "A bowstring releases once with a tight woody twang and a short feathered arrow swish. Audible event ends within 0.35 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262057,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "d8f9b9c5a59c8b6a8d1b9e9c629c454e2f3f26189046be9a54a4f0d630d7d399",
+      "previous_sha256": null,
+      "sha256": "9224f42b27f1e883917bb7997ee0383dcc90afadb99aedc935f8e148b133e804",
+      "seconds": 0.285,
+      "encoded_peak_db": -5.12,
+      "metrics": {
+        "seconds": 0.285,
+        "onset_seconds": 0.035,
+        "tail_db": -30.71,
+        "phone_band_db": -0.89,
+        "clipped_fraction": 0.0,
+        "peak_db": -5.1,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4263,
+        "game_sfx": 0.0956,
+        "alternatives": {
+          "A person speaking words.": 0.2844,
+          "A person singing a song.": -0.0194,
+          "Continuous music with a melody and rhythm.": -0.0493,
+          "Background room noise and static hiss.": 0.1145,
+          "Traffic and engine noise.": 0.0037,
+          "Birds chirping outdoors.": 0.034
+        }
+      },
+      "candidates": [
+        {
+          "source": "attack-bow-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "attack-magic",
+      "where": "마법사 공격",
+      "source": "attack-magic-01.wav",
+      "generation": {
+        "name": "attack-magic",
+        "round": 1,
+        "prompt": "One small arcane projectile snaps against a magical target, a rounded airy pop and brief glassy fizz. Audible event ends within 0.45 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262058,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "558ae9ab607f4cee772fecd73b67bb00435aa98991d00928af06e14ee48c10e8",
+      "previous_sha256": null,
+      "sha256": "aaf47b82aab85c6a70b4e73a4658ec1b14da5a758ae40665032cd92c2edd3cea",
+      "seconds": 0.45,
+      "encoded_peak_db": -3.08,
+      "metrics": {
+        "seconds": 0.45,
+        "onset_seconds": 0.0,
+        "tail_db": -25.16,
+        "phone_band_db": -1.43,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -28.64
+      },
+      "semantic": {
+        "desired": 0.3541,
+        "game_sfx": 0.3559,
+        "alternatives": {
+          "A person speaking words.": 0.1749,
+          "A person singing a song.": -0.0245,
+          "Continuous music with a melody and rhythm.": 0.0309,
+          "Background room noise and static hiss.": 0.0786,
+          "Traffic and engine noise.": 0.1241,
+          "Birds chirping outdoors.": 0.1352
+        }
+      },
+      "candidates": [
+        {
+          "source": "attack-magic-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "ally-hurt",
+      "where": "파티원 피격",
+      "source": "ally-hurt-01.wav",
+      "generation": {
+        "name": "ally-hurt",
+        "round": 1,
+        "prompt": "One muted impact against padded leather armor, a compact low middle thud with a tiny cloth rustle. Audible event ends within 0.3 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262059,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "fd4c502f92452e7fe09251fc889e4bba45f589396b902462a9e7c84e637ac066",
+      "previous_sha256": null,
+      "sha256": "8fbbc889c6a0d92c9ac3549dceda83ccf8e7a01cc6b4724e48d6f10172a74ac2",
+      "seconds": 0.165,
+      "encoded_peak_db": -4.26,
+      "metrics": {
+        "seconds": 0.165,
+        "onset_seconds": 0.075,
+        "tail_db": -31.86,
+        "phone_band_db": -7.29,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.32,
+        "rms_db": -20.01
+      },
+      "semantic": {
+        "desired": 0.4991,
+        "game_sfx": 0.0666,
+        "alternatives": {
+          "A person speaking words.": 0.2172,
+          "A person singing a song.": -0.082,
+          "Continuous music with a melody and rhythm.": -0.0467,
+          "Background room noise and static hiss.": 0.2265,
+          "Traffic and engine noise.": 0.107,
+          "Birds chirping outdoors.": 0.0844
+        }
+      },
+      "candidates": [
+        {
+          "source": "ally-hurt-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "attack-miss",
+      "where": "빗나감",
+      "source": "attack-miss-01.wav",
+      "generation": {
+        "name": "attack-miss",
+        "round": 1,
+        "prompt": "A quick dry blade swishes through empty air once, with no contact or impact. Audible event ends within 0.28 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262060,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "87e91bba6a5f82e025fc67fb0d1d16d0981aa664d85b7278e88f8624dfac8c36",
+      "previous_sha256": null,
+      "sha256": "a00c7d7f1ac6f67161b346d58f79b8599e2230e270fbedcdccb6723ed4c12d25",
+      "seconds": 0.165,
+      "encoded_peak_db": -3.24,
+      "metrics": {
+        "seconds": 0.165,
+        "onset_seconds": 0.045,
+        "tail_db": -30.34,
+        "phone_band_db": -3.19,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.24
+      },
+      "semantic": {
+        "desired": 0.4674,
+        "game_sfx": 0.2046,
+        "alternatives": {
+          "A person speaking words.": 0.1244,
+          "A person singing a song.": -0.1826,
+          "Continuous music with a melody and rhythm.": -0.1171,
+          "Background room noise and static hiss.": 0.1751,
+          "Traffic and engine noise.": 0.0973,
+          "Birds chirping outdoors.": 0.1054
+        }
+      },
+      "candidates": [
+        {
+          "source": "attack-miss-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "parry",
+      "where": "막기",
+      "source": "parry-01.wav",
+      "generation": {
+        "name": "parry",
+        "round": 1,
+        "prompt": "A steel blade glances off a small shield once, a firm short metallic clack with a damped ring. Audible event ends within 0.42 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262061,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "ecc5806698843135af60c9977bfe93faeab3f50b1d5ac6f53f1c8531b8d246b9",
+      "previous_sha256": null,
+      "sha256": "aed55f4b7281cdc38ec4f02e0a8d2d06b9dae3bdb4de5fb1cebd1663d3d916d6",
+      "seconds": 0.42,
+      "encoded_peak_db": -2.88,
+      "metrics": {
+        "seconds": 0.42,
+        "onset_seconds": 0.075,
+        "tail_db": -21.09,
+        "phone_band_db": -0.05,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -25.69
+      },
+      "semantic": {
+        "desired": 0.5671,
+        "game_sfx": 0.165,
+        "alternatives": {
+          "A person speaking words.": 0.1241,
+          "A person singing a song.": -0.0066,
+          "Continuous music with a melody and rhythm.": -0.0259,
+          "Background room noise and static hiss.": 0.0932,
+          "Traffic and engine noise.": 0.0293,
+          "Birds chirping outdoors.": -0.0098
+        }
+      },
+      "candidates": [
+        {
+          "source": "parry-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "shield",
+      "where": "보호막 적용·흡수",
+      "source": "shield-03.wav",
+      "generation": {
+        "name": "shield",
+        "round": 3,
+        "prompt": "A small glassy magical membrane flexes and closes in a warm rounded pulse with a muted crystalline click. A single brief sound, lasting 0.36 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Damped at its source, very brief resonance, no sustained sound or reverb. Clear foreground object sound in a completely silent recording space. Very short, softly damped, midrange-focused.",
+        "seed": 20264027,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "2851c4d7e72f0a6fe0cbe79086cad3e68b5ef6251c1185295b1d695e260180a2",
+      "previous_sha256": null,
+      "sha256": "4b7bc781a1a2cbb8ef19764a49bf1527bb2b5011ceda73837b8dd3e63df25bcc",
+      "seconds": 0.135,
+      "encoded_peak_db": -2.95,
+      "metrics": {
+        "seconds": 0.135,
+        "onset_seconds": 0.865,
+        "tail_db": -31.32,
+        "phone_band_db": -0.12,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.92
+      },
+      "semantic": {
+        "desired": 0.2023,
+        "game_sfx": 0.1611,
+        "alternatives": {
+          "A person speaking words.": 0.1511,
+          "A person singing a song.": -0.0637,
+          "Continuous music with a melody and rhythm.": -0.1333,
+          "Background room noise and static hiss.": 0.0606,
+          "Traffic and engine noise.": 0.099,
+          "Birds chirping outdoors.": -0.0153
+        }
+      },
+      "candidates": [
+        {
+          "source": "shield-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "shield-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail",
+            "weak phone-speaker midrange",
+            "unwanted sound class dominates"
+          ]
+        },
+        {
+          "source": "shield-03.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "ally-heal",
+      "where": "파티원 회복 능력",
+      "source": "ally-heal-02.wav",
+      "generation": {
+        "name": "ally-heal",
+        "round": 2,
+        "prompt": "One gentle liquid droplet opens into a soft warm restorative magical shimmer, smooth and brief. A single brief sound, lasting 0.33 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263034,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "07b426df6bc74ea7eb026a250c7fad09c2dd36f624a19609572108bcaffa351c",
+      "previous_sha256": null,
+      "sha256": "57b1849549d0fb167befd7e004a72a7b17aab7f0b37ea96c7ea73ea42d29bdcc",
+      "seconds": 0.175,
+      "encoded_peak_db": -3.01,
+      "metrics": {
+        "seconds": 0.175,
+        "onset_seconds": 0.005,
+        "tail_db": -34.97,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.2
+      },
+      "semantic": {
+        "desired": 0.2642,
+        "game_sfx": 0.0679,
+        "alternatives": {
+          "A person speaking words.": 0.1987,
+          "A person singing a song.": 0.1248,
+          "Continuous music with a melody and rhythm.": -0.0137,
+          "Background room noise and static hiss.": 0.035,
+          "Traffic and engine noise.": 0.1242,
+          "Birds chirping outdoors.": -0.039
+        }
+      },
+      "candidates": [
+        {
+          "source": "ally-heal-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "ally-heal-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "ally-support",
+      "where": "파티원 지원 능력",
+      "source": "ally-support-03.wav",
+      "generation": {
+        "name": "ally-support",
+        "round": 3,
+        "prompt": "A short cloth banner flick meets a warm resonant wooden contact and a soft uplifting air pulse. A single brief sound, lasting 0.36 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Very short, softly damped, midrange-focused.",
+        "seed": 20264028,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "c209ea93b7a0f7eb43203226e09abeafcc4eae5c6f21ed96f7a0eab212c3c831",
+      "previous_sha256": null,
+      "sha256": "414a99adf1f6ca2fbb7a317102ff4b920b8675bc068385b02452106fe2563084",
+      "seconds": 0.145,
+      "encoded_peak_db": -4.6,
+      "metrics": {
+        "seconds": 0.145,
+        "onset_seconds": 0.055,
+        "tail_db": -30.14,
+        "phone_band_db": -8.34,
+        "clipped_fraction": 0.0,
+        "peak_db": -4.68,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.5138,
+        "game_sfx": 0.1795,
+        "alternatives": {
+          "A person speaking words.": 0.1034,
+          "A person singing a song.": -0.137,
+          "Continuous music with a melody and rhythm.": -0.0632,
+          "Background room noise and static hiss.": -0.0,
+          "Traffic and engine noise.": 0.0161,
+          "Birds chirping outdoors.": 0.0818
+        }
+      },
+      "candidates": [
+        {
+          "source": "ally-support-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "ally-support-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak phone-speaker midrange"
+          ]
+        },
+        {
+          "source": "ally-support-03.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "ally-control",
+      "where": "파티원 방해 능력",
+      "source": "ally-control-01.wav",
+      "generation": {
+        "name": "ally-control",
+        "round": 1,
+        "prompt": "One dry arcane snap with a quick inward suction, a restrained sharp crack that immediately stops. Audible event ends within 0.4 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262065,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "77112d5b38ffbec526d1bc8f9f6b81dafa398adf8291d2ce94b31cd77d2fdb22",
+      "previous_sha256": null,
+      "sha256": "922470f3127297ef0a0f720f91cfbe366e297b164029e048ab5b34956aad6f3f",
+      "seconds": 0.11,
+      "encoded_peak_db": -2.8,
+      "metrics": {
+        "seconds": 0.11,
+        "onset_seconds": 0.0,
+        "tail_db": -30.87,
+        "phone_band_db": -5.51,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -24.12
+      },
+      "semantic": {
+        "desired": 0.4115,
+        "game_sfx": 0.0993,
+        "alternatives": {
+          "A person speaking words.": 0.0707,
+          "A person singing a song.": -0.061,
+          "Continuous music with a melody and rhythm.": -0.0763,
+          "Background room noise and static hiss.": 0.1861,
+          "Traffic and engine noise.": 0.0831,
+          "Birds chirping outdoors.": 0.0441
+        }
+      },
+      "candidates": [
+        {
+          "source": "ally-control-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "boss-impact",
+      "where": "보스 강타 착탄",
+      "source": "boss-impact-01.wav",
+      "generation": {
+        "name": "boss-impact",
+        "round": 1,
+        "prompt": "A heavy stone hammer slams a shield once, a forceful midrange crack and short dense earthy thump. Audible event ends within 0.65 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262066,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "017104bd3361ce4df4bbb95bacd85491f3dce6fad2f5b13fd5183ae5a05b3eb6",
+      "previous_sha256": null,
+      "sha256": "8954b279a8a484415037f8d8fc1c59cd589c850013f0a5c8ebe125d7fd264b58",
+      "seconds": 0.345,
+      "encoded_peak_db": -2.97,
+      "metrics": {
+        "seconds": 0.345,
+        "onset_seconds": 0.005,
+        "tail_db": -31.66,
+        "phone_band_db": -1.34,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -24.75
+      },
+      "semantic": {
+        "desired": 0.4866,
+        "game_sfx": 0.2485,
+        "alternatives": {
+          "A person speaking words.": -0.0016,
+          "A person singing a song.": -0.0545,
+          "Continuous music with a melody and rhythm.": -0.0992,
+          "Background room noise and static hiss.": -0.1196,
+          "Traffic and engine noise.": -0.0424,
+          "Birds chirping outdoors.": -0.0332
+        }
+      },
+      "candidates": [
+        {
+          "source": "boss-impact-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "boss-wave",
+      "where": "보스 광역 착탄",
+      "source": "boss-wave-02.wav",
+      "generation": {
+        "name": "boss-wave",
+        "round": 2,
+        "prompt": "A broad magical shockwave breaks outward once, a rounded low impact with a short rough air wash. A single brief sound, lasting 0.55 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263036,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "a8aee57f9b087b8bad7a44f67500a10852e8f4571750e1d4b5a316e9ce6964ad",
+      "previous_sha256": null,
+      "sha256": "07772a6fc07f5d528f92b8469750077a26e7f9edac75eedf3c70c77a07781800",
+      "seconds": 0.85,
+      "encoded_peak_db": -2.99,
+      "metrics": {
+        "seconds": 0.85,
+        "onset_seconds": 0.075,
+        "tail_db": -22.39,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.36
+      },
+      "semantic": {
+        "desired": 0.3313,
+        "game_sfx": 0.265,
+        "alternatives": {
+          "A person speaking words.": 0.1879,
+          "A person singing a song.": -0.0418,
+          "Continuous music with a melody and rhythm.": -0.0537,
+          "Background room noise and static hiss.": 0.1471,
+          "Traffic and engine noise.": 0.1681,
+          "Birds chirping outdoors.": 0.0798
+        }
+      },
+      "candidates": [
+        {
+          "source": "boss-wave-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "boss-wave-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "stone-break",
+      "where": "지면·감옥 파괴",
+      "source": "stone-break-03.wav",
+      "generation": {
+        "name": "stone-break",
+        "round": 3,
+        "prompt": "A small stone structure cracks once and a handful of gritty fragments quickly fall and settle. A single brief sound, lasting 0.42 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Very short, softly damped, midrange-focused.",
+        "seed": 20264029,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "ed8a3f9644ed6809c0f135f17e4a0836a6aca97129b175667957099813a52f69",
+      "previous_sha256": null,
+      "sha256": "712ee753b83ea527529b47fea2244c1308346fc7af67fa194677d56d40f9aeb8",
+      "seconds": 0.65,
+      "encoded_peak_db": -2.87,
+      "metrics": {
+        "seconds": 0.65,
+        "onset_seconds": 0.0,
+        "tail_db": -22.39,
+        "phone_band_db": -0.54,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.75
+      },
+      "semantic": {
+        "desired": 0.3913,
+        "game_sfx": 0.1563,
+        "alternatives": {
+          "A person speaking words.": -0.0584,
+          "A person singing a song.": -0.1395,
+          "Continuous music with a melody and rhythm.": -0.3107,
+          "Background room noise and static hiss.": 0.0177,
+          "Traffic and engine noise.": 0.1001,
+          "Birds chirping outdoors.": -0.0536
+        }
+      },
+      "candidates": [
+        {
+          "source": "stone-break-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "low acoustic-description match"
+          ]
+        },
+        {
+          "source": "stone-break-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "stone-break-03.wav",
+          "screening": "pass",
+          "reasons": []
+        },
+        {
+          "source": "stone-break-04.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "stone-break-05.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "stone-break-06.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-water",
+      "where": "물·거품·해일",
+      "source": "magic-water-01.wav",
+      "generation": {
+        "name": "magic-water",
+        "round": 1,
+        "prompt": "A compact sheet of water splashes once with two rounded droplets and a quick watery decay. Audible event ends within 0.65 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262069,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "1bb875949028f1f4828bf6a4cd0b523f85ad6842d27522b3faaf6298c68378c0",
+      "previous_sha256": null,
+      "sha256": "48cf08e383ab0b7412a7086209a1c72a73920d969da6bb070d324bd627fa90df",
+      "seconds": 0.385,
+      "encoded_peak_db": -2.9,
+      "metrics": {
+        "seconds": 0.385,
+        "onset_seconds": 0.005,
+        "tail_db": -26.81,
+        "phone_band_db": -1.15,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.66
+      },
+      "semantic": {
+        "desired": 0.2268,
+        "game_sfx": 0.1229,
+        "alternatives": {
+          "A person speaking words.": -0.0108,
+          "A person singing a song.": -0.0572,
+          "Continuous music with a melody and rhythm.": -0.1603,
+          "Background room noise and static hiss.": -0.0213,
+          "Traffic and engine noise.": 0.0064,
+          "Birds chirping outdoors.": -0.0329
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-water-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-fire",
+      "where": "화염·열기",
+      "source": "magic-fire-07.wav",
+      "generation": {
+        "name": "magic-fire",
+        "round": 7,
+        "prompt": "One small flame ignites with a rounded air puff and a brief soft crackle, then immediately extinguishes. A compact full-bodied fire burst. A single brief sound, lasting 0.39 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Rounded attack with a clear full-bodied sound, no isolated sharp click or tiny transient spike. Very short, softly damped, midrange-focused.",
+        "seed": 20268026,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "5664912eaece0e0b204ef5ca28fd20ebb1dfd9e96b16fc523bb403635c02be7b",
+      "previous_sha256": null,
+      "sha256": "738aaf6f41fa4f3aa53683f941dc077cfb3c3e963bb73d2c7c3b7eac783b5517",
+      "seconds": 0.515,
+      "encoded_peak_db": -3.02,
+      "metrics": {
+        "seconds": 0.515,
+        "onset_seconds": 0.055,
+        "tail_db": -31.4,
+        "phone_band_db": -0.14,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.16
+      },
+      "semantic": {
+        "desired": 0.2218,
+        "game_sfx": 0.2484,
+        "alternatives": {
+          "A person speaking words.": 0.075,
+          "A person singing a song.": -0.1434,
+          "Continuous music with a melody and rhythm.": -0.1122,
+          "Background room noise and static hiss.": 0.0393,
+          "Traffic and engine noise.": 0.0398,
+          "Birds chirping outdoors.": 0.0247
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-fire-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-fire-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "magic-fire-07.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-lightning",
+      "where": "번개·전기",
+      "source": "magic-lightning-09.wav",
+      "generation": {
+        "name": "magic-lightning",
+        "round": 9,
+        "prompt": "One short electrical spark zaps with a rounded midrange buzzing body, softly damped and immediately stopping. No loud click or long electrical hum. A single brief sound, lasting 0.33 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Rounded attack with a clear full-bodied sound, no isolated sharp click or tiny transient spike. Very short, softly damped, midrange-focused.",
+        "seed": 20270023,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "af51692e7cf62d1d1f415583f193f86b13c03b559a0ec2f8ac55fdca152de434",
+      "previous_sha256": null,
+      "sha256": "6821bd3edaba7ac8821b573a75dd10ee673ee94452d5882207b6ad82eaee6a0c",
+      "seconds": 0.135,
+      "encoded_peak_db": -2.9,
+      "metrics": {
+        "seconds": 0.135,
+        "onset_seconds": 0.945,
+        "tail_db": -29.86,
+        "phone_band_db": -5.45,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -29.15
+      },
+      "semantic": {
+        "desired": 0.287,
+        "game_sfx": 0.2087,
+        "alternatives": {
+          "A person speaking words.": 0.0711,
+          "A person singing a song.": -0.1358,
+          "Continuous music with a melody and rhythm.": -0.2004,
+          "Background room noise and static hiss.": 0.0963,
+          "Traffic and engine noise.": 0.1027,
+          "Birds chirping outdoors.": 0.0479
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-lightning-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail",
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "magic-lightning-07.wav",
+          "screening": "reject",
+          "reasons": [
+            "event too short",
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-lightning-08.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "magic-lightning-09.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-dark",
+      "where": "저주·어둠·생명 흡수",
+      "source": "magic-dark-03.wav",
+      "generation": {
+        "name": "magic-dark",
+        "round": 3,
+        "prompt": "A dark magical suction draws inward, a grainy bowed glass undertone and a short low airy close. A single brief sound, lasting 0.45 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb. Very short, softly damped, midrange-focused.",
+        "seed": 20264030,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "f75e58878e49c2aee3c840874f3efd8537dc6d4cb5c27b5bcc7b10d2005d99f1",
+      "previous_sha256": null,
+      "sha256": "e948c622fa2862250fbfb4f2777aeccc13292e332fd20892b5d3d26f57f3f585",
+      "seconds": 0.245,
+      "encoded_peak_db": -3.12,
+      "metrics": {
+        "seconds": 0.245,
+        "onset_seconds": 0.835,
+        "tail_db": -36.3,
+        "phone_band_db": -0.5,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -21.74
+      },
+      "semantic": {
+        "desired": 0.4519,
+        "game_sfx": 0.2334,
+        "alternatives": {
+          "A person speaking words.": 0.1404,
+          "A person singing a song.": -0.1657,
+          "Continuous music with a melody and rhythm.": -0.161,
+          "Background room noise and static hiss.": 0.1183,
+          "Traffic and engine noise.": 0.1687,
+          "Birds chirping outdoors.": 0.1047
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-dark-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-dark-02.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-dark-03.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-wind",
+      "where": "회오리·바람·낙하",
+      "source": "magic-wind-02.wav",
+      "generation": {
+        "name": "magic-wind",
+        "round": 2,
+        "prompt": "A short swirling gust of air rises and falls once, smooth clothlike movement with a soft end. A single brief sound, lasting 0.42 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263040,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "c3fd5fb39b11156d97eac098f0c1329655112e5980d6bb5f8b8da883dc0f4055",
+      "previous_sha256": null,
+      "sha256": "4803d1dc5a37dd8b12f50b9fc6fcb1adf776501860a9d05ef5fffa673082281c",
+      "seconds": 0.65,
+      "encoded_peak_db": -3.33,
+      "metrics": {
+        "seconds": 0.65,
+        "onset_seconds": 0.035,
+        "tail_db": -28.63,
+        "phone_band_db": -5.7,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.09,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.4108,
+        "game_sfx": 0.2318,
+        "alternatives": {
+          "A person speaking words.": 0.2364,
+          "A person singing a song.": -0.0725,
+          "Continuous music with a melody and rhythm.": -0.0143,
+          "Background room noise and static hiss.": 0.1904,
+          "Traffic and engine noise.": 0.1708,
+          "Birds chirping outdoors.": 0.1402
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-wind-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-wind-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-link",
+      "where": "연결·사슬·전이",
+      "source": "magic-link-01.wav",
+      "generation": {
+        "name": "magic-link",
+        "round": 1,
+        "prompt": "A taut magical thread plucks once with a light glassy ping and a tiny airy traveling tail. Audible event ends within 0.45 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262074,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "2a680fc3c8122342fb5e70ad50c742ab62387cf267905b5d78cee6d51ede58c1",
+      "previous_sha256": null,
+      "sha256": "ffb52981d0601d170c14a026ffa7c7c6c0976ab9065599d099af5903b6d619f7",
+      "seconds": 0.45,
+      "encoded_peak_db": -3.4,
+      "metrics": {
+        "seconds": 0.45,
+        "onset_seconds": 0.0,
+        "tail_db": -27.87,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.4,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.2734,
+        "game_sfx": 0.382,
+        "alternatives": {
+          "A person speaking words.": 0.2182,
+          "A person singing a song.": -0.0391,
+          "Continuous music with a melody and rhythm.": 0.1586,
+          "Background room noise and static hiss.": -0.0481,
+          "Traffic and engine noise.": 0.0835,
+          "Birds chirping outdoors.": 0.0245
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-link-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-shift",
+      "where": "위치 교환·시간 되감기",
+      "source": "magic-shift-02.wav",
+      "generation": {
+        "name": "magic-shift",
+        "round": 2,
+        "prompt": "A brief reversed air swoop converges into a soft hollow magical pop, then quickly vanishes. A single brief sound, lasting 0.42 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263041,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "37e1488ab11dcc6112b19f0a10416c9c7092e6f4a500026aed6871c017dd9178",
+      "previous_sha256": null,
+      "sha256": "1a991ba52f5d454fc0f788d1f5fd0a0be8c9fbfe5c598471ebaa8f6600f7db3a",
+      "seconds": 0.185,
+      "encoded_peak_db": -3.93,
+      "metrics": {
+        "seconds": 0.185,
+        "onset_seconds": 1.325,
+        "tail_db": -18.91,
+        "phone_band_db": -5.32,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.98,
+        "rms_db": -20.02
+      },
+      "semantic": {
+        "desired": 0.5195,
+        "game_sfx": 0.2295,
+        "alternatives": {
+          "A person speaking words.": 0.1643,
+          "A person singing a song.": -0.1408,
+          "Continuous music with a melody and rhythm.": -0.1211,
+          "Background room noise and static hiss.": 0.1523,
+          "Traffic and engine noise.": 0.1981,
+          "Birds chirping outdoors.": 0.094
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-shift-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "unfinished loud tail"
+          ]
+        },
+        {
+          "source": "magic-shift-02.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "magic-grow",
+      "where": "자연·소환·성장",
+      "source": "magic-grow-04.wav",
+      "generation": {
+        "name": "magic-grow",
+        "round": 4,
+        "prompt": "A bundle of fresh leaves unfolds once with a rounded wooden twig creak and soft air puff, close and full-bodied, a smooth organic rustle with no loud click. A single brief sound, lasting 0.42 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Rounded attack with a clear full-bodied sound, no isolated sharp click or tiny transient spike. Very short, softly damped, midrange-focused.",
+        "seed": 20265027,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "241c0627add938314c4132445d3c5a8628d0d7c8a2209744cc974c29d14b9126",
+      "previous_sha256": null,
+      "sha256": "ad5af11b2b81e1560f658f5b00c454868658468538973b0994a56f65a7d370ce",
+      "seconds": 0.465,
+      "encoded_peak_db": -2.96,
+      "metrics": {
+        "seconds": 0.465,
+        "onset_seconds": 0.035,
+        "tail_db": -31.88,
+        "phone_band_db": -4.3,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.75
+      },
+      "semantic": {
+        "desired": 0.3051,
+        "game_sfx": 0.162,
+        "alternatives": {
+          "A person speaking words.": 0.0561,
+          "A person singing a song.": -0.0966,
+          "Continuous music with a melody and rhythm.": -0.2313,
+          "Background room noise and static hiss.": -0.0627,
+          "Traffic and engine noise.": 0.0042,
+          "Birds chirping outdoors.": 0.0569
+        }
+      },
+      "candidates": [
+        {
+          "source": "magic-grow-01.wav",
+          "screening": "reject",
+          "reasons": [
+            "weak event dominated by a sharp peak"
+          ]
+        },
+        {
+          "source": "magic-grow-04.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "name": "status-stagger",
+      "where": "휘청·방해·실수",
+      "source": "status-stagger-01.wav",
+      "generation": {
+        "name": "status-stagger",
+        "round": 1,
+        "prompt": "One dry wooden rattle bends slightly downward and ends with a soft padded knock, a restrained stumble cue. Audible event ends within 0.35 seconds. Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.",
+        "seed": 20262077,
+        "generator": "agent-audio / pinned Stable Audio 3 Medium TFLite runtime (staged batch)",
+        "source_seconds": 2.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "source_sha256": "a02cf14fa5130a75dafdc40b4c6922d5b8ba2885e4f247d3b7bb2d653f91572f",
+      "previous_sha256": null,
+      "sha256": "4329def1fbfb02927dcc7939a16786d8a77bd205f1b7668ea3a3e014d07ead94",
+      "seconds": 0.35,
+      "encoded_peak_db": -2.9,
+      "metrics": {
+        "seconds": 0.35,
+        "onset_seconds": 0.025,
+        "tail_db": -31.41,
+        "phone_band_db": -0.29,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -25.35
+      },
+      "semantic": {
+        "desired": 0.2186,
+        "game_sfx": 0.2531,
+        "alternatives": {
+          "A person speaking words.": -0.0244,
+          "A person singing a song.": 0.0856,
+          "Continuous music with a melody and rhythm.": -0.0278,
+          "Background room noise and static hiss.": -0.0745,
+          "Traffic and engine noise.": 0.0029,
+          "Birds chirping outdoors.": 0.0327
+        }
+      },
+      "candidates": [
+        {
+          "source": "status-stagger-01.wav",
+          "screening": "pass",
+          "reasons": []
+        }
+      ]
+    }
+  ]
+}

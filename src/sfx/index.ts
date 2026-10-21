@@ -3,6 +3,7 @@
  * 없으면 sfx()가 false를 돌려 부른 쪽이 합성음 자리표시 (battle/core.ts Snd)를 낸다.
  * 이름 · 쓰는 곳 · 생성 문장은 scripts/sfx/sounds.mjs (107 표). 설정 「소리」를 끄면 아무것도 안 울림.
  */
+import { sfxTiming } from './timing';
 const files = import.meta.glob<string>('./*.{ogg,mp3,m4a,wav}', { eager: true, query: '?url', import: 'default' });
 
 const urlOf: Record<string, string> = {};
@@ -12,17 +13,16 @@ for (const [path, url] of Object.entries(files)) urlOf[path.slice(2).replace(/\.
 export const hasSfx = (name: string): boolean => name in urlOf;
 
 // 파일은 만들 때 같은 세기로 맞춤 (scripts/sfx/make.mjs). 여기서는 자주 · 겹쳐 울리는 것만 줄임
-// 시전 · 직접 힐은 또렷하게 (2026-10-20 Lim 「시전 · 힐 효과음 변경」), 파티원 공격은 바탕으로 작게
-const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, cast: 0.7, proc: 0.45, heart: 0.85, gauge: 0.8 };
-const volOf = (n: string) => VOL[n] ?? (n.startsWith('heal-') ? 0.75 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : n.startsWith('atk-') ? 0.32 : 0.85);
+const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, proc: 0.45, heart: 0.85, gauge: 0.8, 'ally-hurt': 0.45, shield: 0.55, parry: 0.55, 'status-stagger': 0.4 };
+Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85 });
+const volOf = (n: string) => VOL[n] ?? (n.startsWith('atk-') ? 0.32 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
-const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150 };
-const gapOf = (n: string) => GAP[n] ?? (n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : n.startsWith('atk-') ? 100 : 60);
+const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150, 'ally-hurt': 300, shield: 350, parry: 250, 'status-stagger': 900, 'boss-impact': 200, 'boss-wave': 300, 'stone-break': 300 };
+const gapOf = (n: string) => GAP[n] ?? (n.startsWith('atk-') ? 100 : n === 'priest-relay-hop' ? 350 : n === 'priest-crit' ? 450 : n.startsWith('attack-') ? 220 : n.startsWith('ally-') ? 450 : n.startsWith('magic-') ? 300 : n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : 60);
 /** 우선순위 (16 7-2): 소리가 많이 겹치면 낮은 것부터 안 냄 */
-const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
+const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, 'boss-impact': 2, 'boss-wave': 2, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
+const prioOf = (name: string) => PRIO[name] ?? (name.startsWith('atk-') ? 0 : name === 'priest-rescue' || name === 'priest-ready' ? 3 : /^(heal|renew|hymn|priest)-/.test(name) ? 2 : 1);
 const MAX_VOICES = 10;
-/** 파티원 공격 소리는 가장 낮은 순위: 이미 이만큼 울리고 있으면 안 냄 (힐 · 경고 자리를 남김) */
-const ATK_VOICES = 6;
 
 let on = true;
 let ctx: AudioContext | null = null;
@@ -81,6 +81,15 @@ function load(name: string): Promise<AudioBuffer | null> {
   return p;
 }
 
+/** Decode before the battle countdown ends, instead of waiting for idle menu warming. */
+export async function preloadSfx(): Promise<void> {
+  if (!audioCtx()) return;
+  const names = Object.keys(urlOf);
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    for (let name = names.pop(); name; name = names.pop()) await load(name);
+  }));
+}
+
 /** 처음 소리 문맥을 만들 때: 쉬는 틈에 모든 소리를 하나씩 미리 풀어 둠 (메뉴 · 공통 먼저) */
 function warm(): void {
   const names = Object.keys(urlOf).sort((a, b) => Number(b.startsWith('ui-')) - Number(a.startsWith('ui-')));
@@ -99,19 +108,28 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   if (!c || !out) return true;
   const now = performance.now();
   if (now - (lastAt.get(name) ?? -1e9) < gapOf(name)) return true;
-  const prio = PRIO[name] ?? (name.startsWith('atk-') ? 0 : 1);
-  if (voices >= (prio === 0 ? ATK_VOICES : MAX_VOICES) && prio < 3) return true;
+  const prio = prioOf(name);
+  const budget = prio === 0 ? 6 : prio === 1 ? MAX_VOICES - 3 : MAX_VOICES; // Reserve space for healing and warnings.
+  if (voices >= budget && prio < 3) return true;
   lastAt.set(name, now); lastAny = now;
   const start = (buf: AudioBuffer) => {
     if (!on || !out) return;
+    if (voices >= budget && prio < 3) return; // Recheck after asynchronous decoding.
     const src = c.createBufferSource(), g = c.createGain();
     src.buffer = buf;
-    if (o.rate) src.playbackRate.value = o.rate;
+    const timing = sfxTiming(buf.duration, o.rate);
+    const at = c.currentTime + (o.delay ?? 0);
+    src.playbackRate.value = timing.rate;
     g.gain.value = volOf(name) * (o.vol ?? 1);
+    if (timing.fadeAt !== null) {
+      g.gain.setValueAtTime(g.gain.value, at + timing.fadeAt);
+      g.gain.linearRampToValueAtTime(0, at + timing.seconds);
+    }
     src.connect(g).connect(out);
     voices++;
     src.onended = () => { voices = Math.max(0, voices - 1); src.disconnect(); g.disconnect(); };
-    src.start(c.currentTime + (o.delay ?? 0));
+    src.start(at);
+    src.stop(at + timing.seconds);
   };
   const buf = bufs.get(name);
   if (buf) start(buf);

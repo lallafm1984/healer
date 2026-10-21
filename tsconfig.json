@@ -15,5 +15,5 @@
     "allowJs": false,
     "noEmit": true
   },
-  "include": ["src", "tests", "vite.config.ts", "capacitor.config.ts"]
+  "include": ["src", "tests", "scripts/sfx/priest-lab.ts", "vite.config.ts", "capacitor.config.ts"]
 }

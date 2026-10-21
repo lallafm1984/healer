@@ -1,0 +1,263 @@
+{
+  "date": "2026-10-21",
+  "generation": "Agent Audio / local Stable Audio 3 / TFLite CPU",
+  "paid_api_calls": 0,
+  "human_listening": "not performed",
+  "method": "Signal screening and local CLAP; not a listening or artistic verdict. Initial pairs share prompt/seed. Retries may use revised prompts and seeds; this is not a controlled model benchmark.",
+  "attempted": {
+    "small-sfx": 4,
+    "medium": 4
+  },
+  "rejected": {
+    "small-sfx": 1,
+    "medium": 1
+  },
+  "candidates": [
+    {
+      "name": "attack-melee",
+      "label": "근접 타격",
+      "profile": "small-sfx",
+      "file": "attack-melee-small-sfx.wav",
+      "source": "attack-melee-01.wav",
+      "sha256": "113beaf62d0f8e24a99668468b09918ee39865883abff73a41ae309da8f7800e",
+      "generation": {
+        "name": "attack-melee",
+        "round": 1,
+        "prompt": "One short sword impact against leather-covered armor. A compact dry steel clack with a padded woody thump and a tiny scrape. One firm rounded impact, immediate attack, naturally damped within half a second. Close isolated fantasy RPG sound effect with clear midrange. The rest is silence. No voices, music, background noise or repeated hits.",
+        "seed": 20262020,
+        "generator": "agent-audio / pinned Stable Audio 3 small-sfx TFLite runtime (staged batch)",
+        "profile": "small-sfx",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.075,
+        "onset_seconds": 1.205,
+        "tail_db": -31.82,
+        "phone_band_db": -0.25,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -20.5
+      },
+      "semantic": {
+        "desired": 0.2385,
+        "game_sfx": 0.1264,
+        "alternatives": {
+          "A person speaking words.": 0.048,
+          "A person singing a song.": -0.0026,
+          "Continuous music with a melody and rhythm.": -0.1133,
+          "Background room noise and static hiss.": 0.0764,
+          "Traffic and engine noise.": 0.0715,
+          "Birds chirping outdoors.": -0.0592
+        }
+      },
+      "screening": "pass"
+    },
+    {
+      "name": "attack-melee",
+      "label": "근접 타격",
+      "profile": "medium",
+      "file": "attack-melee-medium.wav",
+      "source": "attack-melee-01.wav",
+      "sha256": "f69aff24010a41e4f1117e575e31452aadd918ad94f162524d94a7936280b3dd",
+      "generation": {
+        "name": "attack-melee",
+        "round": 1,
+        "prompt": "One short sword impact against leather-covered armor. A compact dry steel clack with a padded woody thump and a tiny scrape. One firm rounded impact, immediate attack, naturally damped within half a second. Close isolated fantasy RPG sound effect with clear midrange. The rest is silence. No voices, music, background noise or repeated hits.",
+        "seed": 20262020,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.245,
+        "onset_seconds": 1.255,
+        "tail_db": -30.7,
+        "phone_band_db": -0.44,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -26.28
+      },
+      "semantic": {
+        "desired": 0.4103,
+        "game_sfx": 0.1861,
+        "alternatives": {
+          "A person speaking words.": 0.1142,
+          "A person singing a song.": -0.167,
+          "Continuous music with a melody and rhythm.": -0.131,
+          "Background room noise and static hiss.": 0.0929,
+          "Traffic and engine noise.": 0.1124,
+          "Birds chirping outdoors.": 0.0563
+        }
+      },
+      "screening": "pass"
+    },
+    {
+      "name": "heal-priest",
+      "label": "치유",
+      "profile": "small-sfx",
+      "file": "heal-priest-small-sfx.wav",
+      "source": "heal-priest-01.wav",
+      "sha256": "c0408fbcebcee9a963bbe9ee0bda6a0e65ee5763259a75b6cecbd99ea396a243",
+      "generation": {
+        "name": "heal-priest",
+        "round": 1,
+        "prompt": "One soft glassy harp string pluck blended with one rounded water droplet. A warm clear bell-like harmonic opens gently and dies away quickly, a comforting healing spell in a fantasy RPG. One compact isolated sound, complete natural decay in less than one second, followed by silence. No voice, singing, musical sequence, background noise or repeated notes.",
+        "seed": 20262021,
+        "generator": "agent-audio / pinned Stable Audio 3 small-sfx TFLite runtime (staged batch)",
+        "profile": "small-sfx",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.85,
+        "onset_seconds": 0.0,
+        "tail_db": -23.67,
+        "phone_band_db": -0.03,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -22.05
+      },
+      "semantic": {
+        "desired": 0.3047,
+        "game_sfx": 0.2049,
+        "alternatives": {
+          "A person speaking words.": 0.1494,
+          "A person singing a song.": -0.0712,
+          "Continuous music with a melody and rhythm.": -0.0781,
+          "Background room noise and static hiss.": 0.0642,
+          "Traffic and engine noise.": -0.014,
+          "Birds chirping outdoors.": -0.0055
+        }
+      },
+      "screening": "pass"
+    },
+    {
+      "name": "heal-priest",
+      "label": "치유",
+      "profile": "medium",
+      "file": "heal-priest-medium.wav",
+      "source": "heal-priest-02.wav",
+      "sha256": "e54f8ae6e3aa8c1b50362c139852f3f2f7d6aabb9e74ebabb39379c1839e6b8c",
+      "generation": {
+        "name": "heal-priest",
+        "round": 2,
+        "prompt": "A single soft glassy harp pluck blended with a round liquid droplet, warm ringing harmonics and a short gentle decay. A single brief sound, lasting 0.55 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263020,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.85,
+        "onset_seconds": 0.045,
+        "tail_db": -27.31,
+        "phone_band_db": -0.0,
+        "clipped_fraction": 0.0,
+        "peak_db": -6.49,
+        "rms_db": -20.0
+      },
+      "semantic": {
+        "desired": 0.3014,
+        "game_sfx": 0.2681,
+        "alternatives": {
+          "A person speaking words.": 0.0127,
+          "A person singing a song.": -0.0486,
+          "Continuous music with a melody and rhythm.": -0.0212,
+          "Background room noise and static hiss.": -0.1846,
+          "Traffic and engine noise.": -0.1297,
+          "Birds chirping outdoors.": -0.1179
+        }
+      },
+      "screening": "pass"
+    },
+    {
+      "name": "shield",
+      "label": "보호막",
+      "profile": "small-sfx",
+      "file": "shield-small-sfx.wav",
+      "source": "shield-02.wav",
+      "sha256": "c4f96e5710c2179599b7fb02540c535b6e514cdbc7de41c3dbbf601055bcad0f",
+      "generation": {
+        "name": "shield",
+        "round": 2,
+        "prompt": "A softly struck and damped crystal bowl, a warm glassy clink with a rounded air pulse and short resonance. A single brief sound, lasting 0.49 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263020,
+        "generator": "agent-audio / pinned Stable Audio 3 small-sfx TFLite runtime (staged batch)",
+        "profile": "small-sfx",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.5,
+        "onset_seconds": 0.0,
+        "tail_db": -32.11,
+        "phone_band_db": -0.07,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -27.54
+      },
+      "semantic": {
+        "desired": 0.3729,
+        "game_sfx": 0.1559,
+        "alternatives": {
+          "A person speaking words.": 0.1265,
+          "A person singing a song.": -0.0693,
+          "Continuous music with a melody and rhythm.": -0.0812,
+          "Background room noise and static hiss.": 0.0085,
+          "Traffic and engine noise.": -0.0398,
+          "Birds chirping outdoors.": -0.0593
+        }
+      },
+      "screening": "pass"
+    },
+    {
+      "name": "shield",
+      "label": "보호막",
+      "profile": "medium",
+      "file": "shield-medium.wav",
+      "source": "shield-01.wav",
+      "sha256": "e938eb5dead9ba1a563a52212f37c9cc2296614c43052559e6c360699724cdff",
+      "generation": {
+        "name": "shield",
+        "round": 1,
+        "prompt": "One small crystal bowl is softly tapped and immediately damped by a hand, with a rounded airy pressure pulse. Clear warm glass resonance with a soft full-bodied middle register, like a protective magical dome closing. One brief isolated fantasy RPG sound effect with complete natural decay within half a second. Silence after. No shattering, voices, music, background drone or repetition.",
+        "seed": 20262022,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "metrics": {
+        "seconds": 0.23,
+        "onset_seconds": 0.0,
+        "tail_db": -31.33,
+        "phone_band_db": -0.09,
+        "clipped_fraction": 0.0,
+        "peak_db": -3.0,
+        "rms_db": -23.43
+      },
+      "semantic": {
+        "desired": 0.3525,
+        "game_sfx": 0.1171,
+        "alternatives": {
+          "A person speaking words.": 0.0521,
+          "A person singing a song.": -0.0807,
+          "Continuous music with a melody and rhythm.": -0.0863,
+          "Background room noise and static hiss.": 0.0586,
+          "Traffic and engine noise.": 0.1037,
+          "Birds chirping outdoors.": -0.0507
+        }
+      },
+      "screening": "pass"
+    }
+  ]
+}

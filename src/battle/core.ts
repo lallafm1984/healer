@@ -13,6 +13,8 @@ import { castText } from '../game/tooltip';
 import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { audioCtx, audioOut, sfx } from '../sfx';
+import { MAX_SFX_SECONDS } from '../sfx/timing';
+import { PRIEST_FEEDBACK_SOUNDS } from './priest-sound';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -185,6 +187,7 @@ export const Snd = {
   tone(freq: number, dur: number, type?: OscillatorType, vol?: number, slide?: number, delay?: number) {
     const ctx = audioCtx(), out = audioOut();
     if (!S.sound || !ctx || !out) return;
+    dur = Math.min(dur, MAX_SFX_SECONDS - (delay || 0) - .03);
     const t = ctx.currentTime + (delay || 0);
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type || 'sine';
@@ -198,6 +201,7 @@ export const Snd = {
   },
   play(name: string) {
     if (!S.sound) return;
+    if (S.hero === 'priest' && PRIEST_FEEDBACK_SOUNDS[name] && sfx(PRIEST_FEEDBACK_SOUNDS[name])) return;
     if (HERO_SND.has(name) && sfx(`${name}-${S.hero}`, name === 'heal' ? { rate: HEAL_RATE[(Math.random() * HEAL_RATE.length) | 0] } : {})) return;
     if (sfx(name)) return;
     this.synth(SYNTH[name] ?? name);
@@ -219,7 +223,6 @@ export const Snd = {
       case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.3, 'triangle', 0.06, 0, i * 0.12)); break;
       case 'lose': [392, 330, 262].forEach((f, i) => this.tone(f, 0.4, 'triangle', 0.06, 0, i * 0.18)); break;
       case 'error': this.tone(180, 0.12, 'square', 0.03); break;
-      case 'cast': this.tone(523, 0.08, 'sine', 0.025, 659); break;
       case 'zone': this.tone(70, 0.6, 'sine', 0.12, 55); this.tone(140, 0.4, 'triangle', 0.03, 90); break;
       case 'heart': this.tone(62, 0.12, 'sine', 0.13); this.tone(58, 0.14, 'sine', 0.1, 0, 0.18); break;
       case 'cough': this.tone(240, 0.07, 'sawtooth', 0.03, 150); this.tone(220, 0.07, 'sawtooth', 0.025, 140, 0.1); break;

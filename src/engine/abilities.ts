@@ -86,12 +86,15 @@ export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number 
       case 'share': share = m; break;
     }
   }
+  let absorbed = false;
   for (const m of u.mods) {
     if (m.k !== 'absorb' || m.until <= f.t || amt <= 0) continue;
     const take = Math.min(m.v, amt);
     m.v -= take; amt -= take;
+    if (take > 0) absorbed = true;
     if (m.v <= 1e-9) { m.until = 0; if (m.src === HEALER_SHIELD) shieldBroken(f, u); } // 깨진 막의 빛 (79 5-4)
   }
+  if (absorbed) emit(f, { type: 'sound', name: 'shield' });
   if (share && amt > 0 && !sharing) {
     const by = f.party.find(x => x.id === share!.by);
     if (by && by.alive && by !== u) {
