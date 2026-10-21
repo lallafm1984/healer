@@ -74,7 +74,7 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     const loops = Object.keys(fx).filter(k => fx[k].loop);
     expect(loops.sort()).toEqual([
       'astro-nova-loop', 'astro-sleep-loop', 'druid-moss-loop', 'monk-mist-loop', 'monk-pool-loop', 'paladin-beacon-loop', 'paladin-sanctuary-loop',
-      'priest-shelter-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-sea-loop', 'shaman-spring-loop', 'warder-citadel-loop',
+      'priest-guardian-loop', 'priest-shelter-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-sea-loop', 'shaman-spring-loop', 'warder-citadel-loop',
     ]); // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」)
     expect(Object.values(HERO_LOOP_FX).flat().sort()).toEqual(loops.sort());
     for (const h of HERO_KEYS) for (const k of HERO_LOOP_FX[h] ?? []) expect(heroSkillFx(h)).toContain(k);
@@ -85,7 +85,7 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect([loopFrame(c, 0), loopFrame(c, (c.frames - 0.5) / c.fps), loopFrame(c, c.frames / c.fps), loopFrame(c, -0.01)]).toEqual([0, c.frames - 1, 0, c.frames - 1]);
   });
   it('전투마다 지금 직업 것만 읽음 (하나에 2–5MB)', () => {
-    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-relay-jump', 'priest-renew', 'priest-serenity', 'priest-shelter-loop', 'priest-talent']);
+    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-guardian-loop', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-relay-jump', 'priest-renew', 'priest-serenity', 'priest-shelter-loop', 'priest-talent']);
     expect(heroSkillFx('druid')).toHaveLength(10); // 스킬 8 + 이끼 자리 루프 + 특성 버튼 발동
     for (const k of heroSkillFx('monk')) expect(k.startsWith('monk-')).toBe(true);
     // 전투 공통 효과 · 파티원 능력은 직업과 상관없이 늘 읽어 둠
