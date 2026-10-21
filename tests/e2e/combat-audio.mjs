@@ -25,7 +25,7 @@ export default async function combatAudio(url, shots) {
       createHash('sha256').update(readFileSync(`src/sfx/${name}.ogg`)).digest('hex'), name,
     ]));
     await page.addInitScript(({ names, hashes }) => {
-      const buffers = new WeakMap(), bytes = new WeakMap();
+      const buffers = new WeakMap(), bytes = new WeakMap(), playing = new WeakMap();
       window.__audioQA = { starts: [], decoded: [], failed: [], contexts: [] };
       const originalFetch = window.fetch;
       window.fetch = async (...args) => {
@@ -61,8 +61,19 @@ export default async function combatAudio(url, shots) {
       const start = AudioBufferSourceNode.prototype.start;
       AudioBufferSourceNode.prototype.start = function(...args) {
         const name = buffers.get(this.buffer);
-        if (name) window.__audioQA.starts.push({ name, at: performance.now(), rate: this.playbackRate.value });
+        if (name) {
+          const record = { name, at: performance.now(), rate: this.playbackRate.value,
+            startAt: args[0] ?? this.context.currentTime, stopAt: null };
+          playing.set(this, record);
+          window.__audioQA.starts.push(record);
+        }
         return start.apply(this, args);
+      };
+      const stop = AudioBufferSourceNode.prototype.stop;
+      AudioBufferSourceNode.prototype.stop = function(...args) {
+        const record = playing.get(this);
+        if (record) record.stopAt = args[0] ?? this.context.currentTime;
+        return stop.apply(this, args);
       };
     }, { names, hashes });
     await page.clock.install();
@@ -86,7 +97,9 @@ export default async function combatAudio(url, shots) {
     });
     const decoded = await page.evaluate(() => window.__audioQA.decoded);
     ok(new Set(decoded.map(x => x.name)).size === COMBAT_SOUNDS.length, `전투음 ${COMBAT_SOUNDS.length}종 실제 디코딩`);
-    ok(decoded.every(x => x.duration > 0 && x.duration <= 1.5), '모든 효과음 최대 1.5초');
+    // Chromium can expose Vorbis end padding (e.g. 1.5s boss-enrage decodes as 1.519s).
+    // The playback cap is the source's scheduled stop, checked below, not buffer length.
+    ok(decoded.every(x => x.duration > 0 && Number.isFinite(x.duration)), '전투음 디코딩 길이 정상');
     const states = await page.evaluate(() => window.__audioQA.contexts.map(c => c.state));
     ok(states.length > 0 && states.every(s => s === 'running'), '실제 오디오 출력 문맥 실행 중', states);
     await page.waitForTimeout(1800);
@@ -120,11 +133,17 @@ export default async function combatAudio(url, shots) {
     ok(muted.length === 0, '음소거 중 신규 재생 없음', muted);
     await page.evaluate(() => window.__battle.settings({ hero: 'priest', sound: true, vibrate: false }));
     await inject([{ type: 'sound', name: 'heal' }], ['heal-priest'], '음소거 해제 후 정상 복귀');
+    await inject([{ type: 'sound', name: 'boss-enrage' }], ['boss-enrage'], '1.5초 경계 효과음 재생');
+    const playback = await page.evaluate(() => window.__audioQA.starts.map(s => ({
+      name: s.name, seconds: s.stopAt === null ? null : s.stopAt - s.startAt,
+    })));
+    ok(playback.length > 0 && playback.every(s => s.seconds !== null && s.seconds > 0 && s.seconds <= 1.5 + 1e-6),
+      '모든 재생 효과음이 최대 1.5초 안에 종료하도록 예약됨', playback.filter(s => s.seconds === null || s.seconds <= 0 || s.seconds > 1.5 + 1e-6));
     await page.screenshot({ path: `${shots}/combat-audio.png` });
     const failed = await page.evaluate(() => window.__audioQA.failed);
     ok(failed.length === 0, '음원 HTTP·디코딩 오류 없음', failed);
     ok(errs.length === 0, '브라우저 실행 오류 없음', errs);
-    writeFileSync(`${shots}/combat-audio.json`, JSON.stringify({ checks, errs, decoded }, null, 2));
+    writeFileSync(`${shots}/combat-audio.json`, JSON.stringify({ checks, errs, decoded, playback }, null, 2));
     await context.close();
   } finally { await browser.close(); }
   return { fails, errs };
