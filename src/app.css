@@ -2,6 +2,8 @@
 :root { --banner-h: 70px; --tabs-h: 64px; }
 html, body { margin: 0; height: 100%; overscroll-behavior: none; }
 body { background: #0E0B09; }
+/* 게임 UI 글자는 길게 눌러도 선택되지 않게 (폰 WebView 선택 핸들·돋보기 방지). 전투판(battle.css)만이 아니라 메뉴 전체. 글자 입력칸은 없음 (설정은 체크박스뿐) */
+body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 #adBanner {
   position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h); z-index: 50;
   display: flex; align-items: flex-end; justify-content: center;
