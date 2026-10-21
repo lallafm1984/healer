@@ -2,11 +2,12 @@
  * 배경음 (2026-10-21 Lim 「mureka를 이용한 배경음 만들기」 · 「노래는 자르지 말고 … 구간별로 등록」).
  * 곡은 구간마다 여럿: 이 폴더의 <구간>-<번호>.ogg (Mureka로 만들어 배경음 등록판에 올린 곡을 scripts/bgm/import.py가 줄여 넣음).
  * 곡을 자르지 않고 통째로 틀고, 끝나면 그 구간의 다음 곡. 구간이 바뀌면 줄이며 바꾸고, 돌아오면 멈췄던 곡 · 자리부터 이어서.
- * 화면이 바뀌면 (kit go · 전투 show) syncBgm(화면 id) → 구간은 bgmFor. 전투는 시작할 때 setBattleKind로 탐험 · 던전 · 레이드를 알려 둠.
+ * 화면이 바뀌면 (kit go · 전투 show) syncBgm(화면 id) → 구간은 bgmFor. 전투 곡은 지역마다 (Lim 「탐험 던전 레이드는 각 지역에 맞는 테마 곡」):
+ * 전투 시작 때 setBattleRegion으로 그 장소의 지역 (출전 화면 지역, data/adventure-regions)을 알려 두고, 그 지역의 탐험 · 던전 · 레이드가 같은 곡을 씀.
  * 설정 「배경음」을 끄면 멈춤 (효과음 「소리」와 따로). 앱을 내리면 멈추고 돌아오면 이어서. 곡이 없는 구간은 조용히.
  * 길게 도는 곡이라 통째로 풀어 두지 않고 <audio>로 흘려 틂 (메모리를 거의 안 씀).
  */
-import type { ContentKind } from '../data/content';
+import type { AdventureRegionKey } from '../data/adventure-regions';
 
 const files = import.meta.glob<string>('./*.{ogg,opus,mp3,m4a}', { eager: true, query: '?url', import: 'default' });
 
@@ -17,21 +18,23 @@ for (const [path, url] of Object.entries(files).sort(([a], [b]) => a.localeCompa
   if (m) (lists[m[1]] ??= []).push(url);
 }
 
-export type BgmKey = 'title' | 'lobby' | ContentKind;
+export type BgmKey = 'title' | 'lobby' | AdventureRegionKey;
 
-let battleKind: ContentKind = 'dungeon';
-/** 전투 시작 때 (battle start): 이번 전투의 구간 */
-export function setBattleKind(k: ContentKind): void { battleKind = k; }
+let battleRegion: AdventureRegionKey = 'rust';
+/** 전투 시작 때 (battle start): 이번 전투 장소의 지역 */
+export function setBattleRegion(k: AdventureRegionKey): void { battleRegion = k; }
 
-/** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 전투 종류, 그 밖 = lobby (마을) */
+/** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 장소의 지역, 그 밖 = lobby (마을) */
 export function bgmFor(screen: string): BgmKey {
-  if (screen === 'battle' || screen === 'rest') return battleKind;
+  if (screen === 'battle' || screen === 'rest') return battleRegion;
   if (screen === 's-title' || screen === 's-story' || screen === 's-tut') return 'title';
   return 'lobby';
 }
 
-/** 구간마다 크기 (효과음보다 아래, 전투는 효과음이 많아 더 작게). 곡은 넣을 때 같은 세기로 맞춤 */
-const VOL: Record<string, number> = { title: 0.55, lobby: 0.45, explore: 0.32, dungeon: 0.32, raid: 0.34 };
+/** 구간마다 크기 (효과음보다 아래, 전투 = 지역 곡은 효과음이 많아 더 작게 BATTLE_VOL). 곡은 넣을 때 같은 세기로 맞춤 */
+const VOL: Record<string, number> = { title: 0.55, lobby: 0.45 };
+const BATTLE_VOL = 0.33;
+const volOf = (k: string) => VOL[k] ?? BATTLE_VOL;
 const FADE_IN = 1.6, FADE_OUT = 1.0;
 /** 결과 화면은 승리 · 패배 소리가 먼저 울리게 늦게 */
 const DELAY: Record<string, number> = { 's-settle': 1.8 };
@@ -88,7 +91,7 @@ function begin(key: BgmKey, idx: number, at: number, delay: number, my: number):
   el.preload = 'auto';
   el.volume = 0;
   el.src = list[idx % list.length];
-  const vol = VOL[key] ?? 0.4;
+  const vol = volOf(key);
   el.addEventListener('loadedmetadata', () => { if (at > 0 && at < el.duration - 5) el.currentTime = at; }, { once: true });
   // 곡이 끝나면 그 구간의 다음 곡 (짧게 쉬었다가)
   el.addEventListener('ended', () => {
@@ -109,7 +112,7 @@ function begin(key: BgmKey, idx: number, at: number, delay: number, my: number):
 function apply(delay = 0): void {
   const my = ++token;
   const key = on && want && bgmCount(want) ? want : null;
-  if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, VOL[key!] ?? 0.4, FADE_IN); } return; }
+  if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
   stop();
   if (!key) return;
   // 처음 트는 구간은 곡 하나를 골라서 (여럿이면 매번 같은 곡으로 시작하지 않게), 들었던 구간은 멈췄던 곳부터

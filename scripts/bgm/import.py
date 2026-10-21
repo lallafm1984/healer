@@ -7,7 +7,8 @@ Claude가 등록판 db의 tracks (use가 꺼지지 않은 곡)를 읽고 조각�
 1. 조각을 이어 원본으로 → 풀기 (MP3 · WAV · FLAC · OGG)
 2. 48 kHz로 (Opus는 48 kHz만), 세기 맞춤 (100 Hz 위 RMS −18 dBFS, 첨두 −1 dBFS를 넘지 않게) → 곡마다 들쭉날쭉하지 않게
 3. 맨 앞 20 ms · 맨 끝 0.5초만 짧게 페이드 (딸깍 소리 막기)
-4. Ogg Opus 스테레오 약 72 kbps (4분 곡 약 2.2 MB) → <구간>-<번호>.ogg. 구간의 옛 파일은 지우고 새로 씀
+4. Ogg Opus 스테레오 → <구간>-<번호>.ogg. 타이틀 · 로비 약 72 kbps (4분 곡 약 2.2 MB), 지역 전투 곡은 효과음에 묻혀 약 55 kbps (약 1.6 MB).
+   구간의 옛 파일은 지우고 새로 씀
 
 실행:
   uv run --no-project --with numpy --with soundfile python -I scripts/bgm/import.py <manifest.json> src/bgm
@@ -26,7 +27,9 @@ import soundfile as sf
 OUT_SR = 48000
 RMS_TARGET_DB = -18.0
 PEAK_MAX_DB = -1.0
-OPUS_LEVEL = 0.885  # libsndfile Opus 압축 정도 → 약 72 kbps 스테레오 (0.8 = 114, 0.9 = 64)
+# libsndfile Opus 압축 정도 → 스테레오 비트율 (0.8 = 114 kbps, 0.9 = 64): 타이틀 · 로비 약 72, 지역 전투 약 55
+OPUS_LEVEL = {"title": 0.885, "lobby": 0.885}
+OPUS_LEVEL_BATTLE = 0.918
 
 
 def db(x: float) -> float:
@@ -89,7 +92,7 @@ def main() -> None:
         y[-fo:] *= np.linspace(1, 0, fo)[:, None]
         count[s] = count.get(s, 0) + 1
         dst = out / f"{s}-{count[s]}.ogg"
-        with sf.SoundFile(str(dst), "w", OUT_SR, 2, format="OGG", subtype="OPUS", compression_level=OPUS_LEVEL) as f:
+        with sf.SoundFile(str(dst), "w", OUT_SR, 2, format="OGG", subtype="OPUS", compression_level=OPUS_LEVEL.get(s, OPUS_LEVEL_BATTLE)) as f:
             for i in range(0, len(y), 9600):
                 f.write(y[i : i + 9600])
         print(f"{dst.name} ← {it['name']}: {len(y) / OUT_SR:.0f}초, {dst.stat().st_size / 1048576:.2f} MB, 세기 {db(gain):+.1f} dB")

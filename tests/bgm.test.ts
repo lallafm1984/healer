@@ -2,7 +2,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bgmFor, setBattleKind } from '../src/bgm';
+import { bgmFor, setBattleRegion } from '../src/bgm';
+import { ADVENTURE_REGIONS } from '../src/data/adventure-regions';
 
 /** src/screens에서 만드는 화면 id (screen('s-…')) */
 function screenIds(): string[] {
@@ -14,13 +15,13 @@ function screenIds(): string[] {
 }
 
 describe('배경음', () => {
-  it('첫 장은 타이틀, 전투 · 구간 사이 휴식은 그 전투 종류, 그 밖 화면은 마을', () => {
+  it('첫 장은 타이틀, 전투 · 구간 사이 휴식은 그 장소의 지역 곡, 그 밖 화면은 마을', () => {
     expect(bgmFor('s-title')).toBe('title');
     expect(bgmFor('s-story')).toBe('title');
-    for (const k of ['explore', 'dungeon', 'raid'] as const) {
-      setBattleKind(k);
-      expect(bgmFor('battle')).toBe(k);
-      expect(bgmFor('rest')).toBe(k);
+    for (const r of ADVENTURE_REGIONS) {
+      setBattleRegion(r.key);
+      expect(bgmFor('battle')).toBe(r.key);
+      expect(bgmFor('rest')).toBe(r.key);
     }
     for (const id of ['s-lobby', 's-char', 's-guild', 's-shop', 's-party', 's-settle', 's-settings']) expect(bgmFor(id), id).toBe('lobby');
     const ids = screenIds();
@@ -28,12 +29,13 @@ describe('배경음', () => {
     for (const id of ids) expect(['title', 'lobby'], id).toContain(bgmFor(id));
   });
 
-  it('곡 파일은 <구간>-<번호>.ogg, 구간은 알려진 것, 번호는 1부터 빠짐없이, 한 곡 4 MB 밑 (폰 앱)', () => {
+  it('곡 파일은 <구간>-<번호>.ogg, 구간은 타이틀 · 로비 · 지역, 번호는 1부터 빠짐없이, 한 곡 4 MB 밑 (폰 앱)', () => {
     const files = existsSync('src/bgm') ? readdirSync('src/bgm').filter(f => /\.(ogg|opus|mp3|m4a)$/.test(f)) : [];
     const by: Record<string, number[]> = {};
     for (const f of files) {
-      const m = /^(title|lobby|explore|dungeon|raid)-(\d+)\.ogg$/.exec(f);
+      const m = /^([a-z]+)-(\d+)\.ogg$/.exec(f);
       expect(m, f).not.toBeNull();
+      expect(['title', 'lobby', ...ADVENTURE_REGIONS.map(r => r.key)], f).toContain(m![1]);
       (by[m![1]] ??= []).push(Number(m![2]));
       expect(statSync(join('src/bgm', f)).size, f).toBeLessThan(4 * 1024 * 1024);
     }
