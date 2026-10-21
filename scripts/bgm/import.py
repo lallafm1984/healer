@@ -6,7 +6,8 @@ Claude가 등록판 db의 tracks (use가 꺼지지 않은 곡)를 읽고 조각�
 곡은 자르지 않는다 (2026-10-21 Lim 「노래는 자르지 말고」). 하는 일:
 1. 조각을 이어 원본으로 → 풀기 (MP3 · WAV · FLAC · OGG)
 2. 48 kHz로 (Opus는 48 kHz만), 세기 맞춤 (100 Hz 위 RMS −18 dBFS, 첨두 −1 dBFS를 넘지 않게) → 곡마다 들쭉날쭉하지 않게
-3. 맨 앞 20 ms · 맨 끝 0.5초만 짧게 페이드 (딸깍 소리 막기)
+3. 맨 앞 20 ms · 맨 끝 0.5초만 짧게 페이드 (딸깍 소리 막기). 결과 곡 (victory · defeat, Lim 「30초 안밖」)만 40초를 넘으면
+   32초에서 2.5초 페이드로 끝냄 (Mureka가 길게 만들었을 때)
 4. Ogg Opus 스테레오 → <구간>-<번호>.ogg. 타이틀 · 로비 약 72 kbps (4분 곡 약 2.2 MB), 지역 전투 곡은 효과음에 묻혀 약 55 kbps (약 1.6 MB).
    구간의 옛 파일은 지우고 새로 씀
 
@@ -28,7 +29,10 @@ OUT_SR = 48000
 RMS_TARGET_DB = -18.0
 PEAK_MAX_DB = -1.0
 # libsndfile Opus 압축 정도 → 스테레오 비트율 (0.8 = 114 kbps, 0.9 = 64): 타이틀 · 로비 약 72, 지역 전투 약 55
-OPUS_LEVEL = {"title": 0.885, "lobby": 0.885}
+OPUS_LEVEL = {"title": 0.885, "lobby": 0.885, "victory": 0.885, "defeat": 0.885}
+# 결과 곡 길이 (초): 넘으면 CUE_CUT에서 CUE_FADE로 줄이며 끝냄
+CUE = {"victory", "defeat"}
+CUE_MAX, CUE_CUT, CUE_FADE = 40.0, 32.0, 2.5
 OPUS_LEVEL_BATTLE = 0.918
 
 
@@ -87,6 +91,10 @@ def main() -> None:
             x = np.repeat(x, 2, axis=1)
         y = resample(x[:, :2], sr, OUT_SR)
         y, gain = level(y, OUT_SR)
+        if s in CUE and len(y) > CUE_MAX * OUT_SR:
+            y = y[: int(CUE_CUT * OUT_SR)].copy()
+            fo = int(CUE_FADE * OUT_SR)
+            y[-fo:] *= np.linspace(1, 0, fo)[:, None]
         fi, fo = int(0.02 * OUT_SR), int(0.5 * OUT_SR)
         y[:fi] *= np.linspace(0, 1, fi, endpoint=False)[:, None]
         y[-fo:] *= np.linspace(1, 0, fo)[:, None]

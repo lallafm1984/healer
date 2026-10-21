@@ -28,6 +28,8 @@ let resultWin = true;
 export function setResultWin(v: boolean): void { resultWin = v; }
 /** 곡이 아직 없는 구간은 이 구간 곡으로 (결과 화면 곡이 없으면 마을 곡) */
 const FALLBACK: Partial<Record<BgmKey, BgmKey>> = { victory: 'lobby', defeat: 'lobby' };
+/** 한 번만 트는 구간 (결과 곡 = 30초 안팎, 처음부터 세게, Lim 「시작부터 강렬하게」): 바로 크게 시작, 끝나면 FALLBACK 구간 (마을 곡)이 이어짐 */
+const ONE_SHOT = new Set<BgmKey>(['victory', 'defeat']);
 
 /** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 장소의 지역, 결과 = victory · defeat, 그 밖 = lobby (마을) */
 export function bgmFor(screen: string): BgmKey {
@@ -42,8 +44,8 @@ const VOL: Record<string, number> = { title: 0.55, lobby: 0.45, victory: 0.5, de
 const BATTLE_VOL = 0.33;
 const volOf = (k: string) => VOL[k] ?? BATTLE_VOL;
 const FADE_IN = 1.6, FADE_OUT = 1.0;
-/** 결과 화면은 승리 · 패배 소리가 먼저 울리게 늦게 */
-const DELAY: Record<string, number> = { 's-settle': 1.8 };
+/** 화면마다 늦게 시작 (초). 결과 곡은 처음부터 세게라 바로 */
+const DELAY: Record<string, number> = {};
 
 let on = true;
 let want: BgmKey | null = null;
@@ -99,19 +101,25 @@ function begin(key: BgmKey, idx: number, at: number, delay: number, my: number):
   el.src = list[idx % list.length];
   const vol = volOf(key);
   el.addEventListener('loadedmetadata', () => { if (at > 0 && at < el.duration - 5) el.currentTime = at; }, { once: true });
-  // 곡이 끝나면 그 구간의 다음 곡 (짧게 쉬었다가)
+  // 곡이 끝나면 그 구간의 다음 곡 (짧게 쉬었다가). 한 번만 트는 구간은 이어 마을 곡
   el.addEventListener('ended', () => {
     if (cur?.el !== el) return;
-    const next = (idx + 1) % list.length;
     cur = null;
     el.removeAttribute('src'); el.load();
-    if (my === token) begin(key, next, 0, 1.2, my);
+    if (my !== token) return;
+    if (ONE_SHOT.has(key)) {
+      const fb = FALLBACK[key];
+      pos.delete(key); // 다음 결과 화면은 처음부터
+      if (fb && bgmCount(fb)) { const p = pos.get(fb); begin(fb, p ? p.idx : Math.floor(Math.random() * bgmCount(fb)), p ? p.t : 0, 0.8, my); }
+      return;
+    }
+    begin(key, (idx + 1) % list.length, 0, 1.2, my);
   });
   cur = { key, el, idx: idx % list.length };
   window.setTimeout(() => {
     if (my !== token || cur?.el !== el || document.hidden) return;
     tryPlay(el);
-    ramp(el, vol, FADE_IN);
+    if (ONE_SHOT.has(key)) el.volume = vol; else ramp(el, vol, FADE_IN);
   }, delay * 1000);
 }
 
@@ -122,7 +130,8 @@ function apply(delay = 0): void {
   if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
   stop();
   if (!key) return;
-  // 처음 트는 구간은 곡 하나를 골라서 (여럿이면 매번 같은 곡으로 시작하지 않게), 들었던 구간은 멈췄던 곳부터
+  // 처음 트는 구간은 곡 하나를 골라서 (여럿이면 매번 같은 곡으로 시작하지 않게), 들었던 구간은 멈췄던 곳부터 (한 번만 트는 곡은 늘 처음부터)
+  if (ONE_SHOT.has(key)) pos.delete(key);
   const p = pos.get(key);
   begin(key, p ? p.idx : Math.floor(Math.random() * bgmCount(key)), p ? p.t : 0, delay, my);
 }
