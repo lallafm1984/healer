@@ -10,19 +10,88 @@ import { ROD_HP } from './bossParts';
 import { cellOf, healTop, living, submerged, unitById } from './core';
 import { sv } from './specials';
 import { create, step } from './fight';
-import { canTarget, knows, use } from './healer';
+import { canTarget, knows as knowsNow, use as useNow } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './revive';
 import { dangerAt } from './movement';
-import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
+import { areaRadius, castOf, costOf, talentReady as talentReadyNow, useTalent as useTalentNow, waveMax, waveNeed } from './talents';
 import { chainPath, freeBeside } from './shaman';
 import { breathRange, misted } from './monk';
 import { asleep, fallSpec, starsNow } from './astro';
 import { circleRange, judgeReady, sealed, sealTargets } from './warder';
 import { absorbLeft } from './abilities';
 import { ONE_PER_CELL, shamanTotemAt, totemBreaks } from './totems';
-import { TX } from '../data/talents';
-import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
+import { TALENT_DEF, TX, type TalentKey } from '../data/talents';
+import { bigButton, lapseNow, noteDebuffs, noticed, noviceOf, recalls, rollSight, sightErr, tapCell, thinkTime, uidAt, type Novice, type NoviceAct, type NoviceOpts } from './novice';
+import type { ActionResult, Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
+
+// ---------- 초보 자동 힐러 (novice.ts): 판단은 아래 자동 힐러 그대로, 고른 첫 행동을 잡아 두었다가 생각 · 누르는 시간 뒤에 누름 ----------
+/** 초보 판단 중이면 그 사람 (noviceHealer가 autoHealer를 부르는 동안만) */
+let nov: Novice | null = null;
+/** 배운 스킬. 초보는 큰 버튼을 떠올릴 때만 */
+const knows = (f: Fight, k: SkillKey) => knowsNow(f, k) && (!nov || !bigButton(k) || recalls(f, nov, k));
+/** 특성 버튼 준비. 초보는 떠올릴 때만 */
+function talentReady(f: Fight, k: TalentKey): ActionResult {
+  const r = talentReadyNow(f, k);
+  return r.ok && nov && !recalls(f, nov, `talent:${k}`) ? { ok: false, reason: '초보: 떠올리지 못함' } : r;
+}
+/** 스킬 쓰기. 초보 판단 중이면 쓰지 않고 첫 행동만 잡아 둠 (쓸 수 있는 것만, 자동 힐러는 쓴 것으로 알고 판단을 끝냄) */
+function use(f: Fight, k: SkillKey, cell: number): ActionResult {
+  if (!nov) return useNow(f, k, cell);
+  if (nov.pick) return { ok: false, reason: '초보: 한 번에 하나' };
+  const r = wouldUse(f, k, cell);
+  if (r.ok) nov.pick = { kind: 'skill', k, cell };
+  return r;
+}
+function useTalent(f: Fight, k: TalentKey, cell?: number): ActionResult {
+  if (!nov) return useTalentNow(f, k, cell);
+  if (nov.pick) return { ok: false, reason: '초보: 한 번에 하나' };
+  const r = talentReadyNow(f, k);
+  if (!r.ok) return r;
+  if (TALENT_DEF[k].active!.cell) { const c = cell == null ? undefined : f.cells[cell]; if (!c || c.block === 'hole') return { ok: false, reason: '칸 선택' }; }
+  nov.pick = { kind: 'talent', k, cell };
+  return { ok: true };
+}
+/** healer.ts use와 같은 판정 (쓰지는 않음). 어긋나도 누르는 순간 진짜 use가 다시 보니 그 행동만 헛탭이 됨 */
+function wouldUse(f: Fight, k: SkillKey, cell: number): ActionResult {
+  if (f.over || !knowsNow(f, k)) return { ok: false };
+  const tg = canTarget(f, k, cell);
+  if (!tg.ok) return tg;
+  if (SKILLS[k].cd && (f.cd[k] ?? 0) > 0) return { ok: false, reason: '재사용 대기' };
+  if (f.lock[k] || (k === 'judgment' && !judgeReady(f))) return { ok: false };
+  if (f.mana < costOf(f, k, tg.u)) return { ok: false, reason: '마나 부족' };
+  return tg;
+}
+
+/**
+ * 초보 자동 힐러 (2026-10-22, novice.ts): 한가할 때 (시전 · GCD · 예약 없음) 자동 힐러를 돌려 첫 행동만 잡고,
+ * 고르는 시간 + 누르는 시간 (thinkTime) 뒤에 누름 (그동안 상황이 바뀌어도 고른 대로 · 가끔 옆 칸). 한눈파는 동안은 새로 고르지 않음.
+ * 시전 중에 다음 칸을 미리 누르지 않고 (숙련자 예약), 특성 · 차 한 잔 같은 GCD 밖 버튼도 한가할 때 하나씩
+ */
+export function noviceHealer(f: Fight, opts?: Partial<NoviceOpts>): void {
+  const n = noviceOf(f, opts);
+  noteDebuffs(f, n);
+  if (n.intent) {
+    if (f.t < n.due) return;
+    press(f, n, n.intent);
+    n.intent = null;
+    return;
+  }
+  if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued || f.over) return;
+  if (lapseNow(f, n)) return;
+  rollSight(f, n);
+  n.pick = null; nov = n;
+  try { autoHealer(f); } finally { nov = null; }
+  if (n.pick) { n.intent = n.pick; n.pick = null; n.due = f.t + thinkTime(f, n, n.intent); }
+}
+/** 고른 행동 누르기 (가끔 옆 칸). 안 되면 (빈 칸 · 마나 · 상황이 바뀜) 다음 틱에 다시 고름 */
+function press(f: Fight, n: Novice, a: NoviceAct): void {
+  const cell = tapCell(f, n, a);
+  const r = a.kind === 'skill' ? useNow(f, a.k, cell ?? 0) : useTalentNow(f, a.k, cell);
+  n.stats.presses++;
+  n.last = { uid: uidAt(f, cell), k: a.k };
+  if (!r.ok) { n.stats.fails++; if (r.reason === '빈 칸') f.stats.emptyTaps++; }
+}
 
 /**
  * 버스터를 맞을 사람이 버틸 만큼 차 있지 않으면 그 사람 (직업군 방어력이 있을 때만).
@@ -37,6 +106,7 @@ function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
     const u = unitById(f, t.units[0]);
     if (short(u, t.skill.dmg)) return { u: u!, soon: t.impact - f.t < 2 };
   }
+  if (nov && !nov.o.queue) return null; // 초보는 대기열 (다음 기술)을 안 읽음: 예고가 뜬 강타만
   for (const s of f.skills) {
     if (s.kind !== 'buster' || !s.dmg || s.mob != null || s.next - f.t > 4 || !s.active(f)) continue;
     const u = aggroTarget(f);
@@ -50,7 +120,8 @@ function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
  */
 function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
   // 어둠물 (P-TIDE, 59 5장): 잠긴 사람은 힐이 반만 드니 체력이 비슷하면 안 잠긴 사람 먼저
-  const p = f.zones.length && f.zones.some(z => z.tide) ? (u: Unit) => pct(u) + (submerged(f, u) ? TIDE_BIAS : 0) : pct;
+  const p0 = f.zones.length && f.zones.some(z => z.tide) ? (u: Unit) => pct(u) + (submerged(f, u) ? TIDE_BIAS : 0) : pct;
+  const n = nov, p = n ? (u: Unit) => p0(u) + sightErr(n, u) : p0; // 초보: 체력 막대를 조금 틀리게 읽음
   const low = live.reduce((a, b) => (p(b) < p(a) ? b : a));
   return f.armor && f.me.alive && !off(f, f.me) && pct(f.me) < 0.6 && pct(f.me) < pct(low) + 0.15 ? f.me : low;
 }
@@ -60,7 +131,8 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
  * 힐하면 손해인 사람: 뒤집힌 축복 (P-INVERT, 힐이 피해), 매혹 (P-CHARM, 힐하면 지배가 길어짐 → 그 사람은 두고 주변을),
  * 과부하 표식 (P-OVER)인데 모자란 양이 힐 한 번보다 적음 (넘친 치유가 이웃을 때림 → 정확히 채우기)
  */
-const off = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * healUnit(f))
+const off = (f: Fight, u: Unit) => (nov && !nov.o.tactics ? u.debuffs.length > 0 && u.debuffs.some(d => d.invert) : offTactic(f, u)); // 공략을 모르는 초보도 뒤집힌 축복은 화면이 막아 줌 (첫 탭 경고)
+const offTactic = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * healUnit(f))
   || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert))))
   || (f.zones.length > 0 && ringWait(f, u));
 /**
@@ -157,7 +229,11 @@ interface Gim {
   debt: { u: Unit; due: boolean } | null;
 }
 
+/** 기믹 공략을 모르는 초보: 신호 없음 (진동도 모르고 시전함) */
+const NO_GIM: Gim = { order: null, hit: [], pre: null, cure: null, aoe: false, save: false, adds: false, soul: null, link: null, spill: false, few: false, calm: Infinity, counter: false, hold: new Set(), big: false, veil: [], glassFill: false, inGlass: false, lift: [], liftClean: [], chain: null, mate: null, tide: null, debt: null };
+
 function gim(f: Fight): Gim {
+  if (nov && !nov.o.tactics) return NO_GIM;
   let order: Unit | null = null;
   if (f.order) {
     // 신기루 숫자 (54 4-1): 다음 번호가 둘로 보이면 걷힐 때까지 기다림
@@ -326,6 +402,8 @@ function dispelRank(g: Gim, u: Unit, ok: (d: Debuff) => boolean): number {
   if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
   return 2;
 }
+/** 디버프를 봤는지 (초보는 걸린 뒤 조금 지나서 알아챔) */
+const seen = (f: Fight, d: Debuff) => !nov || noticed(f, nov, d);
 /** 자동 힐러가 마지막으로 해제한 때 (함정이 아닌 해제 수 f.stats.dispels가 바뀐 시각) */
 const lastDispel = new WeakMap<Fight, { n: number; t: number }>();
 const noteDispel = (f: Fight) => {
@@ -377,7 +455,7 @@ export function autoHealer(f: Fight): void {
   const purifyOk = can('purify') && (f.cd.purify ?? 0) <= 0 && f.mana >= 4;
   const purifyNow = (): boolean => {
     if (!purifyOk) return false;
-    const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d);
+    const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d) && seen(f, d);
     const c = byDispel(g, all.filter(u => u.debuffs.some(ok)), ok);
     if (!c.length || !paced(f, g, c[0], ok)) return false;
     use(f, 'purify', cellIdx(c[0]));
@@ -413,7 +491,7 @@ export function autoHealer(f: Fight): void {
   // 신기루가 안 걷힌 예고에 찍힌 사람: 지속 힐만 미리 (진짜인지 모름)
   if (g.veil.length && f.mana > 15 && can('renew')) { const v = g.veil.find(u => u.hot <= 0); if (v) { use(f, 'renew', cellIdx(v)); return; } }
   const thrifty = f.mana < 25 || g.save; // 마나가 바닥나거나 아껴야 하면 무료 성언을 아끼지 않는다
-  if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
+  if (f.g.p >= 100 && knows(f, 'serenity') && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
   // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 · 치유 배율, 07 4장 · 34 1-6). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
   const hp = healUnit(f);
   // 기원 범위는 반경 1로만 셈: 넓은 원 (반경 2)까지 세면 기원을 더 자주 써서 마나가 먼저 바닥남 (2026-10-14 168곳 비교: 5인 악몽 62 → 58%)
@@ -606,12 +684,12 @@ function ctx(f: Fight, amt: number, r = 1, top = Infinity): Ctx | null {
 const tryUse = (f: Fight, k: SkillKey, u: Unit | null, idx: (u: Unit) => number): boolean => {
   const cell = u ? idx(u) : 0;
   if (!canTarget(f, k, cell).ok) return false;
-  if (busy(f, k) > 0 && busy(f, k) >= calmOf(f)) return false; // 진동 전에 시전이 안 끝남 → 다음 후보 (즉시 스킬)
+  if (busy(f, k) > 0 && (!nov || nov.o.tactics) && busy(f, k) >= calmOf(f)) return false; // 진동 전에 시전이 안 끝남 → 다음 후보 (즉시 스킬). 공략을 모르는 초보는 그냥 시전
   return use(f, k, cell).ok;
 };
 /** 지울 디버프가 있는 파티원: 해제 순서(byDispel) 다음, 곧 터지는 것 (독창 등 남은 시간이 짧은 것)부터 */
 const cleansable = (f: Fight, c: Ctx) => {
-  const ok = (d: Debuff) => HEROES[f.hero].dispel.includes(d.type) && !d.trap && !d.lock && !c.g.hold.has(d);
+  const ok = (d: Debuff) => HEROES[f.hero].dispel.includes(d.type) && !d.trap && !d.lock && !c.g.hold.has(d) && seen(f, d);
   const left = (u: Unit) => Math.min(...u.debuffs.filter(ok).map(d => d.left));
   const u = byDispel(c.g, c.all.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b)), ok)[0];
   return u && paced(f, c.g, u, ok) ? u : null;
@@ -1044,9 +1122,9 @@ function autoWarder(f: Fight): void {
   if (!melt && ready('lightBarrier') && f.mana > 50) { const t = live.find(u => u.role === 'tank' && (!sealed(f, u) || (u.seal ?? 0) - f.t < 3)); if (t) tryUse(f, 'lightBarrier', t, idx); }
 }
 
-/** 자동 힐러로 한 판 끝까지 */
-export function simulate(cfg: FightConfig, maxT = 700): Fight {
+/** 자동 힐러로 한 판 끝까지 (healer = noviceHealer면 초보) */
+export function simulate(cfg: FightConfig, maxT = 700, healer: (f: Fight) => void = autoHealer): Fight {
   const f = create(cfg);
-  while (!f.over && f.t < maxT) { autoHealer(f); step(f); f.events.length = 0; }
+  while (!f.over && f.t < maxT) { healer(f); step(f); f.events.length = 0; }
   return f;
 }

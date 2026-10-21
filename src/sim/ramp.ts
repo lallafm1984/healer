@@ -42,7 +42,7 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   for (const c of rampPlaces()) {
     const at: Partial<Record<DiffName, RampPlayer>> = {};
     for (const d of rampDiffs(c)) {
-      if (d === '어려움') at[d] = { lv: p.level, eq: { ...eq } };
+      at[d] = { lv: p.level, eq: { ...eq } }; // 길의 칸에 처음 들어갈 때 (쉬움 · 보통은 초보 검사 sim/novice가 씀)
       win(c, d, eq, p);
     }
     if (rampFour(c)) at['악몽'] = { lv: p.level, eq: { ...eq } }; // 길 끝 (어려움을 깬 뒤)
@@ -59,7 +59,7 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   return out;
 }
 
-/** 그 칸의 기준 플레이어 (usesRamp인 칸만) */
+/** 그 칸의 기준 플레이어 (어려움 · 악몽 = 자동 밸런스 usesRamp, 쉬움 · 보통 = 그 칸에 처음 들어갈 때 · 초보 검사 sim/novice) */
 export function rampPlayer(c: ContentDef, d: DiffName, hero: HeroKey, seed: number): RampPlayer {
   const p = flowOf(hero, seed).get(c.key)?.[d];
   if (!p) throw new Error(`순차 레벨링 기준 없음: ${c.key} ${d}`);

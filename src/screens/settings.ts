@@ -48,6 +48,7 @@ function render(): void {
       <section class="group"><h2>전투 화면</h2>${tog('reducedEffects', '시각 효과 줄이기')}<p>피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p></section>
       <section class="group dev"><h2>개발 빌드</h2>
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
+        ${tog('autoNovice', '자동 치유를 초보처럼')}<p>처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.</p>
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
         ${tog('devJobs', '전 직업 선택')}<p>구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.</p>
