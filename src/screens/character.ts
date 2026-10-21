@@ -1113,4 +1113,4 @@ s.el.addEventListener('pointercancel', endInv);
 // 끈 뒤에 오는 누름은 상세를 열지 않음 (잡고 있던 칸 · 목록 어디서든)
 s.el.addEventListener('click', e => { if (invSwallow) { invSwallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 s.el.addEventListener('wheel', stopFling, { passive: true });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet && !s.el.hidden) closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet && !s.el.hidden) { e.preventDefault(); closeSheet(); } });
