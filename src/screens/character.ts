@@ -32,6 +32,7 @@ import { classEmblem, currencyAmount, fxArt, gameIcon, gearArt, gearIcon, LOCK, 
 import { battle, current, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
+import { TAP_SLOP } from './tap-slop';
 import { sfx } from '../sfx';
 
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
@@ -1082,10 +1083,10 @@ s.el.addEventListener('pointerup', e => {
  * 장비 탭 본문은 화면에 딱 맞아 (Lim 2026-10-12, a2-character-compact.css) 대상 폰에서는 목록만 움직임.
  * 무대 최소로도 안 들어가는 낮은 화면(320×640)만 바깥 화면(.ns-body)이 넘침: 위로 끌면 목록 아랫줄이 하단 메뉴에 가려 있는 동안은 바깥 화면부터,
  * 다 보이면 목록, 목록 끝이면 다시 바깥 화면. 아래로 끌면 목록 먼저, 목록 맨 위면 바깥 화면.
- * 8px 넘게 끌었으면 누름(상세 열기)은 무시, 손가락은 놓은 뒤 조금 미끄러짐
+ * 8px 넘게 끌면 목록이 움직이고, 손가락은 놓은 뒤 조금 미끄러짐. 누름(상세 열기)은 TAP_SLOP 넘게 끌었을 때만 무시 (그 안이면 tap-slop이 누름으로 살림, 2026-10-21)
  */
 const INV_SLOP = 8;
-let inv: { id: number; y: number; t: number; v: number; moved: boolean; touch: boolean } | null = null;
+let inv: { id: number; y0: number; y: number; t: number; v: number; moved: boolean; far: number; touch: boolean } | null = null;
 let invSwallow = false, invFling = 0;
 function scrollInv(dy: number): boolean {
   const list = s.el.querySelector<HTMLElement>('.c7-bags'), body = s.el.querySelector<HTMLElement>('.ns-body');
@@ -1106,11 +1107,12 @@ function stopFling(): void { cancelAnimationFrame(invFling); invFling = 0; }
 s.el.addEventListener('pointerdown', e => {
   stopFling(); invSwallow = false;
   if (!(e.target as HTMLElement).closest('.c7-bags') || (e.pointerType === 'mouse' && e.button !== 0)) return;
-  inv = { id: e.pointerId, y: e.clientY, t: e.timeStamp, v: 0, moved: false, touch: e.pointerType !== 'mouse' };
+  inv = { id: e.pointerId, y0: e.clientY, y: e.clientY, t: e.timeStamp, v: 0, moved: false, far: 0, touch: e.pointerType !== 'mouse' };
 });
 s.el.addEventListener('pointermove', e => {
   if (!inv || e.pointerId !== inv.id) return;
   const dy = inv.y - e.clientY;
+  inv.far = Math.max(inv.far, Math.abs(inv.y0 - e.clientY));
   if (!inv.moved) {
     if (Math.abs(dy) < INV_SLOP) return;
     inv.moved = true;
@@ -1123,10 +1125,10 @@ s.el.addEventListener('pointermove', e => {
 });
 const endInv = (e: PointerEvent) => {
   if (!inv || e.pointerId !== inv.id) return;
-  const { moved, touch } = inv;
+  const { moved, far, touch } = inv;
   let v = e.timeStamp - inv.t > 80 ? 0 : inv.v;
   inv = null;
-  if (!moved) return;
+  if (!moved || far <= TAP_SLOP.scrolled) return;
   invSwallow = true;
   if (!touch || Math.abs(v) < 0.05 || G.save.settings.reducedEffects) return;
   let last = performance.now();
