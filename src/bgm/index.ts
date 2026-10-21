@@ -31,9 +31,13 @@ const FALLBACK: Partial<Record<BgmKey, BgmKey>> = { victory: 'lobby', defeat: 'l
 /** 한 번만 트는 구간 (결과 곡 = 30초 안팎, 처음부터 세게, Lim 「시작부터 강렬하게」): 바로 크게 시작, 끝나면 FALLBACK 구간 (마을 곡)이 이어짐 */
 const ONE_SHOT = new Set<BgmKey>(['victory', 'defeat']);
 
-/** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 장소의 지역, 결과 = victory · defeat, 그 밖 = lobby (마을) */
-export function bgmFor(screen: string): BgmKey {
-  if (screen === 'battle' || screen === 'rest') return battleRegion;
+/**
+ * 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 = 그 장소의 지역, 결과 = victory · defeat, 그 밖 = lobby (마을).
+ * 구간 사이 쉬는 화면은 배경음 없이 쉬는 효과음만 (2026-10-21 Lim 「쉬는 화면에서는 배경음악이 없이 효과음만」, battle rest-loop): null = 조용히, 전투로 돌아가면 멈췄던 자리부터
+ */
+export function bgmFor(screen: string): BgmKey | null {
+  if (screen === 'rest') return null;
+  if (screen === 'battle') return battleRegion;
   if (screen === 's-settle') return resultWin ? 'victory' : 'defeat';
   if (screen === 's-title' || screen === 's-story' || screen === 's-tut') return 'title';
   return 'lobby';

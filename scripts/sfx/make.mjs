@@ -29,6 +29,10 @@ const takes = takesAt >= 0 ? Math.max(1, Number(args[takesAt + 1]) || 1) : 1;
 const pats = args.filter((a, i) => !a.startsWith('--') && i !== takesAt + 1).map(p => new RegExp(`^${p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`));
 // 이름을 주면 전투 추가음 (combat.mjs: 보스 착탄 · 마법 …)도 고를 수 있음. 아무 이름 없이 돌리면 sounds.mjs 목록만
 const pick = args.includes('--first16') ? SOUNDS.filter(s => FIRST16.includes(s.name)) : pats.length ? [...SOUNDS, ...ADDED].filter(s => pats.some(r => r.test(s.name))) : SOUNDS;
+// synth = 생성 모델 대신 그 스크립트로 직접 만드는 소리 (경고 삐 소리 warn_beep.py): 여기서는 건너뜀
+const synth = pick.filter(s => s.synth);
+if (synth.length) console.log(`직접 만드는 소리는 건너뜀: ${synth.map(s => `${s.name} (scripts/sfx/${s.synth})`).join(', ')}`);
+pick.splice(0, pick.length, ...pick.filter(s => !s.synth));
 if (!pick.length) { console.error('고른 소리 없음'); process.exit(1); }
 mkdirSync(raw, { recursive: true });
 
@@ -49,6 +53,6 @@ if (!only) {
 }
 
 const params = join(raw, 'params.json');
-writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, presence: !!s.presence, loop: !!s.loop, punch: !!s.punch }))));
+writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, presence: !!s.presence, bright: !!s.bright, loop: !!s.loop, punch: !!s.punch }))));
 const p = spawnSync('uv', ['run', '--no-project', '--with', 'numpy', '--with', 'soundfile', 'python', join(root, 'scripts/sfx/process.py'), raw, out, params], { cwd: root, stdio: 'inherit' });
 process.exit(p.status ?? 1);

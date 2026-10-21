@@ -1,6 +1,8 @@
 /** Combat sound direction and review criteria. Raw candidates live outside version control. */
 import { SOUNDS } from './sounds.mjs';
 import { PRIEST_SOUNDS } from './priest.mjs';
+import { BOSS_SOUNDS } from './boss.mjs';
+import { BOSS_OWN_SOUNDS } from './boss-own.mjs';
 
 const style = 'Close, dry, tactile fantasy RPG sound effect. Rounded attack, clear midrange on a phone speaker, restrained treble. One isolated event, immediate onset and a natural short decay into silence. No speech, vocals, music, ambience, or repeating rhythm.';
 // 보스 기술 착탄은 배경음 · 파티원 공격 위로 크게 (2026-10-21 Lim 「각 보스들의 스킬 사용시 좀더 강력한 효과음으로 잘 들리게」):
@@ -40,7 +42,7 @@ const added = [
   match: description,
 }));
 /** make.mjs가 이름을 골라 다시 만들 수 있는 전투 추가음 (사제 확정음은 넣지 않음) */
-export const ADDED = added;
+export const ADDED = [...added, ...BOSS_SOUNDS, ...BOSS_OWN_SOUNDS];
 
 const combatGroups = new Set(['전투 진행', '힐러 공통', '직업', '경고', '파티원 공격']);
 // More concrete acoustic directions for candidates that repeatedly missed the
@@ -67,7 +69,9 @@ export const COMBAT_SOUNDS = [
   ...SOUNDS.filter(s => combatGroups.has(s.group) || ['deny', 'win', 'lose'].includes(s.name))
     .map(s => ({ ...s, match: s.match ?? s.prompt.split('Original sound design for a warm tactile fantasy healer game. ')[1]?.split('One isolated event')[0] ?? s.prompt })),
   ...added,
+  ...BOSS_SOUNDS,
+  ...BOSS_OWN_SOUNDS,
   ...PRIEST_SOUNDS.filter(p => !SOUNDS.some(s => s.name === p.name)),
 ].map(s => ({ ...s, ...(s.name === 'renew-warder' ? { gen: 3 } : {}),
   ...(retryPrompts[s.name] ? { retryPrompt: retryPrompts[s.name] } : {}) }));
-export const EXTRA_SOUNDS = [...added, ...PRIEST_SOUNDS.filter(p => !SOUNDS.some(s => s.name === p.name))];
+export const EXTRA_SOUNDS = [...added, ...BOSS_SOUNDS, ...BOSS_OWN_SOUNDS, ...PRIEST_SOUNDS.filter(p => !SOUNDS.some(s => s.name === p.name))];

@@ -17,13 +17,17 @@ const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab
 Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85, 'priest-scatter': .75 });
 // 보스 기술 착탄 · 주의 표시 경고는 배경음 위로 크게 (2026-10-21 Lim), 쉬는 화면 반복은 바탕으로
 Object.assign(VOL, { 'boss-impact': 1, 'boss-wave': 1, 'boss-zone': 1, 'warn-alert': 0.9, 'rest-loop': 0.6 });
-const volOf = (n: string) => VOL[n] ?? (n.startsWith('atk-') ? 0.42 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
+// 높고 가는 공격 소리 (도적 단검 · 궁수 화살)는 몸통이 작아 다른 직업 공격과 들리는 크기를 맞춤
+Object.assign(VOL, { 'atk-rogue': 0.55, 'atk-archer': 0.55, 'atk-mage': 0.5 }); // 마법사는 화염 폭발 (Lim 「너무 약하다」)
+/** 보스 기술 특성 착탄 (boss-<특성>-<hit|wave|ground>, scripts/sfx/boss.mjs) */
+const BOSS_THEME = /^boss-[a-z]+-(hit|wave|ground)$/;
+const volOf = (n: string) => VOL[n] ?? (BOSS_THEME.test(n) ? 1 : n.startsWith('atk-') ? 0.42 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
 const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150, 'ally-hurt': 300, shield: 350, parry: 250, 'status-stagger': 900, 'boss-impact': 200, 'boss-wave': 300, 'boss-zone': 300, 'stone-break': 300, 'warn-alert': 400 };
-const gapOf = (n: string) => GAP[n] ?? (n.startsWith('atk-') ? 100 : n === 'priest-relay-hop' ? 350 : n === 'priest-crit' ? 450 : n.startsWith('attack-') ? 220 : n.startsWith('ally-') ? 450 : n.startsWith('magic-') ? 300 : n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : 60);
+const gapOf = (n: string) => GAP[n] ?? (BOSS_THEME.test(n) ? 200 : n.startsWith('atk-') ? 100 : n === 'priest-relay-hop' ? 350 : n === 'priest-crit' ? 450 : n.startsWith('attack-') ? 220 : n.startsWith('ally-') ? 450 : n.startsWith('magic-') ? 300 : n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : 60);
 /** 우선순위 (16 7-2): 소리가 많이 겹치면 낮은 것부터 안 냄 */
 const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, 'boss-impact': 3, 'boss-wave': 3, 'boss-zone': 3, 'warn-alert': 3, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
-const prioOf = (name: string) => PRIO[name] ?? (name.startsWith('atk-') ? 0 : name === 'priest-rescue' || name === 'priest-ready' ? 3 : /^(heal|renew|hymn|priest)-/.test(name) ? 2 : 1);
+const prioOf = (name: string) => PRIO[name] ?? (BOSS_THEME.test(name) ? 3 : name.startsWith('atk-') ? 0 : name === 'priest-rescue' || name === 'priest-ready' ? 3 : /^(heal|renew|hymn|priest)-/.test(name) ? 2 : 1);
 const MAX_VOICES = 10;
 
 let on = true;
@@ -91,10 +95,18 @@ function load(name: string): Promise<AudioBuffer | null> {
   return p;
 }
 
-/** Decode before the battle countdown ends, instead of waiting for idle menu warming. */
-export async function preloadSfx(): Promise<void> {
+/**
+ * 보스 기술 착탄 소리 (특성 boss-<특성>-<방식> · 주요 보스 전용 bs-…, 수백 개): 앱 시작 때 모두 풀면 폰 메모리를 많이 써서
+ * 전투를 시작할 때 그 보스 것만 풂 (preloadSfx). 다른 보스 것은 내려 놓음
+ */
+const perBattle = (n: string) => n.startsWith('bs-') || BOSS_THEME.test(n);
+
+/** Decode before the battle countdown ends, instead of waiting for idle menu warming. boss = 이번 보스의 기술 착탄 소리 */
+export async function preloadSfx(boss: string[] = []): Promise<void> {
   if (!audioCtx()) return;
-  const names = Object.keys(urlOf);
+  const keep = new Set(boss);
+  for (const n of [...bufs.keys(), ...loading.keys()]) if (perBattle(n) && !keep.has(n)) { bufs.delete(n); loading.delete(n); }
+  const names = [...Object.keys(urlOf).filter(n => !perBattle(n)), ...boss.filter(n => n in urlOf)];
   await Promise.all(Array.from({ length: 4 }, async () => {
     for (let name = names.pop(); name; name = names.pop()) await load(name);
   }));
@@ -102,7 +114,7 @@ export async function preloadSfx(): Promise<void> {
 
 /** 처음 소리 문맥을 만들 때: 쉬는 틈에 모든 소리를 하나씩 미리 풀어 둠 (메뉴 · 공통 먼저) */
 function warm(): void {
-  const names = Object.keys(urlOf).sort((a, b) => Number(b.startsWith('ui-')) - Number(a.startsWith('ui-')));
+  const names = Object.keys(urlOf).filter(n => !perBattle(n)).sort((a, b) => Number(b.startsWith('ui-')) - Number(a.startsWith('ui-')));
   const idle = (fn: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout: 500 }) : setTimeout(fn, 40));
   const next = () => { const n = names.shift(); if (n && ctx) void load(n).then(() => idle(next)); };
   idle(next);

@@ -17,9 +17,9 @@ import { adventureRegionOf } from '../data/adventure-regions';
 import type { ContentKey } from '../data/content';
 import type { ClassKey } from '../data/classes';
 import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
-import { combatSounds } from './combat-sound';
+import { bossSoundsFor, combatSounds, impactSound } from './combat-sound';
 import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
-import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
+import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats, type Telegraph } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
@@ -63,6 +63,7 @@ function startBattle(guideSec = 0): void {
     affixes: S.affixes, bossMult: S.bossMult,
   });
   B.F = F;
+  void preloadSfx(bossSoundsFor(F.enc.script)); // 이 보스의 기술 착탄 소리만 풀어 둠 (다른 보스 것은 내려 놓음)
   ui.talArmed = null; slotPress = null; auxPress = null;
   buildAux();
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
@@ -72,7 +73,7 @@ function startBattle(guideSec = 0): void {
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
-    vibedTel: new Set(), warnedTel: new Set(), flowAt: new Map(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
+    vibedTel: new Set(), warnedTel: new Set(), flowAt: new Map(), telSnap: [], debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
   });
   closeTip(); resetBoardFx(); resetDmgNums();
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
@@ -468,7 +469,12 @@ const atkGap = (n: number) => (n >= 20 ? 260 : n >= 10 ? 170 : 90);
 function handleEvents(now: number): void {
   const F = B.F!;
   const priest = priestSounds(F);
-  if (S.sound) for (const cue of [...priest.cues, ...combatSounds(F, priest.combatEvents, { partyAttacks: false })]) sfx(cue.name, { vol: cue.vol });
+  // 이번에 떨어진 보스 기술: 지난번에 있던 예고 중 시간이 된 것 (엔진이 예고 순서대로 impact 사건을 냄 → 종류마다 차례로 짝)
+  const landed = new Map<string | undefined, Telegraph[]>();
+  for (const tl of ui.telSnap) if (tl.impact <= F.t + 1e-6 && !tl.fake) landed.set(tl.kind, [...(landed.get(tl.kind) ?? []), tl]);
+  const impact = (kind: string | undefined) => { const tl = landed.get(kind)?.shift(); return tl && impactSound(F.enc.script, tl); };
+  if (S.sound) for (const cue of [...priest.cues, ...combatSounds(F, priest.combatEvents, { partyAttacks: false, impact })]) sfx(cue.name, { vol: cue.vol });
+  ui.telSnap = F.tels.slice();
   // 빨간 주의 표시 (기술 예고 · 졸개 내려찍기 예고)가 새로 뜨면 경고음 하나 (2026-10-21 Lim). 같은 때 여럿 떠도 한 번
   let warn = F.events.some(e => e.type === 'fx' && e.name === 'warn');
   for (const tl of F.tels) if (!ui.warnedTel.has(tl.id)) {

@@ -9,6 +9,8 @@ import { SOUNDS } from '../scripts/sfx/sounds.mjs';
 // @ts-expect-error 생성 스크립트의 목록
 import { COMBAT_SOUNDS, EXTRA_SOUNDS } from '../scripts/sfx/combat.mjs';
 import { FX_SOUND } from '../src/battle/combat-sound';
+import { BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from '../src/battle/boss-themes';
+import { BOSSES } from '../src/data/bosses';
 import { PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS } from '../src/battle/priest-sound';
 
 type Sound = { name: string; group: string; where: string; ko: string; prompt: string; gen: number; keep: number; loop?: boolean };
@@ -40,6 +42,7 @@ function used(): Set<string> {
   }
   for (const base of ['heal', 'renew', 'hymn']) { out.delete(base); for (const h of HERO_KEYS) out.add(`${base}-${h}`); }
   for (const n of Object.values(FX_SOUND)) out.add(n);
+  for (const n of [...Object.values(BOSS_SKILL_SOUND), ...Object.values(BOSS_SKILL_OWN)]) out.add(n);
   for (const mapping of [PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS]) for (const n of Object.values(mapping)) out.add(n!);
   out.add('priest-relay-hop');
   const combat = readFileSync('src/battle/combat-sound.ts', 'utf8');
@@ -82,6 +85,14 @@ describe('효과음 목록 (107)', () => {
       expect(data.subarray(0, 4).toString(), sound.name).toBe('OggS');
       expect(data.length, sound.name).toBeGreaterThan(200);
     }
+  });
+
+  it('예고가 있는 보스 기술마다 특성 착탄 소리가 있고, 방식 (강타 · 광역 · 장판)이 예고 종류와 맞는다', () => {
+    const TAG: Record<string, string> = { buster: 'hit', aoe: 'wave', zone: 'ground' };
+    const kinds = new Map<string, string>();
+    for (const [script, def] of Object.entries(BOSSES)) for (const s of def.skills) if (s.kind && TAG[s.kind]) kinds.set(`${script}:${s.key}`, s.kind);
+    expect([...kinds.keys()].filter(id => !BOSS_SKILL_SOUND[id])).toEqual([]);
+    for (const [id, name] of Object.entries(BOSS_SKILL_SOUND)) expect(name, id).toMatch(new RegExp(`^boss-[a-z]+-${TAG[kinds.get(id) ?? ''] ?? '?'}$`));
   });
 
   it('코드가 부르는 소리는 모두 목록에 있고, 목록의 소리는 모두 어딘가에서 울림', () => {

@@ -15,13 +15,13 @@ function screenIds(): string[] {
 }
 
 describe('배경음', () => {
-  it('첫 장은 타이틀, 전투 · 구간 사이 휴식은 그 장소의 지역 곡, 결과는 승리 · 패배 곡, 그 밖 화면은 마을', () => {
+  it('첫 장은 타이틀, 전투는 그 장소의 지역 곡 (구간 사이 쉬는 화면은 배경음 없이), 결과는 승리 · 패배 곡, 그 밖 화면은 마을', () => {
     expect(bgmFor('s-title')).toBe('title');
     expect(bgmFor('s-story')).toBe('title');
     for (const r of ADVENTURE_REGIONS) {
       setBattleRegion(r.key);
       expect(bgmFor('battle')).toBe(r.key);
-      expect(bgmFor('rest')).toBe(r.key);
+      expect(bgmFor('rest')).toBeNull();
     }
     for (const id of ['s-lobby', 's-char', 's-guild', 's-shop', 's-party', 's-settings']) expect(bgmFor(id), id).toBe('lobby');
     setResultWin(true); expect(bgmFor('s-settle')).toBe('victory');

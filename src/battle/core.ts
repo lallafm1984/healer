@@ -8,7 +8,7 @@ import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
 import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engine';
+import { knows, SLOT_OF, type Fight, type RosterEntry, type Role, type Telegraph } from '../engine';
 import { castText } from '../game/tooltip';
 import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -151,7 +151,7 @@ export interface Coach { uid: number | null; freeze: boolean; until: number; nee
 export const ui = {
   selectedUnitId: null as number | null,
   pointer: null as Pointer | null, lastHealSnd: 0, lastAtkSnd: 0, tickSec: null as number | null, lowFlags: {} as Record<number, boolean>, lastLowVibe: 0, qAt: 0,
-  vibeAt: 0, vibedTel: new Set<number>(), warnedTel: new Set<number>(), flowAt: new Map<object, number>(), lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
+  vibeAt: 0, vibedTel: new Set<number>(), warnedTel: new Set<number>(), flowAt: new Map<object, number>(), telSnap: [] as Telegraph[], lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
   touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, busterHint: false,
   swipes: {} as Record<string, number>, swipeCancel: 0, swipeEmpty: 0,
   coach: null as Coach | null,
