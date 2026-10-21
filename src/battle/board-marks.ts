@@ -1,6 +1,6 @@
 /**
  * 전투판 칸 테두리 · 표식 그림 이름 (2026-10-16 Lim 「원형으로 표시하던 것들은 알기 쉽게 이미지화」, 89 문서 · QA · 디자이너 검수).
- * fx-edge-* = 육각 여섯 변에 한 장씩 붙이는 가로 띠 (그림 위 = 칸 바깥쪽), fx-ring-* = 둥근 고리. 그리기는 board.ts edgeRing · roundRing
+ * fx-edge-* = 육각 여섯 변에 한 장씩 붙이는 가로 띠 (그림 위 = 칸 바깥쪽), 둥근 고리 그림 (fx-ring-*)은 2026-10-21 수호 루프로 바꾸며 없앰. 그리기는 board.ts edgeRing
  */
 import type { Unit } from '../engine';
 
@@ -12,4 +12,4 @@ export const GIM_ICON: [(d: Unit['debuffs'][number]) => boolean, string][] = [
   [d => !!d.trap, 'icon-gim-burst'], [d => d.cureAt != null && d.cureAt < 1, 'icon-gim-full'],
 ];
 export const MARK_ART = [...Object.values(DEBUFF_EDGE), 'fx-edge-buster', 'fx-edge-flame', 'fx-edge-glass', 'fx-edge-plate', 'fx-edge-bark', 'fx-edge-mist', 'fx-edge-spark', 'fx-edge-ember', 'fx-edge-threat',
-  'fx-link-chain', 'fx-ring-guardian', 'icon-gim-focus', 'icon-gim-invert', 'icon-gim-link'];
+  'fx-link-chain', 'icon-gim-focus', 'icon-gim-invert', 'icon-gim-link'];

@@ -96,6 +96,7 @@ export const PXF = {
   'paladin-hand-guard': skill(24, 94),
   // 봉화 대상 칸 둘레에서 도는 루프 (스킬 기록이 아니라 board.ts, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프」)
   'paladin-beacon-loop': loop(36, 62, 12, 320),
+  'priest-guardian-loop': loop(36, 62, 12, 320), // 2026-10-21 Lim 「사제 수호 … 이미지대신 봉화처럼 이펙트로」: 칸 둘레 빛 고리 루프 (고리 = BEACON_RING)
   'paladin-talent': skill(20, 100, { size: 320 }),
   'paladin-sanctuary-loop': loop(36, 84, 12, 256),
   'shaman-ripple': skill(24, 88),
@@ -256,7 +257,7 @@ export const HERO_TALENT_FX: Partial<Record<HeroKey, PxfKey>> = {
 };
 /** 직업별 판 위 선 물건 루프 (스킬 기록이 아님): 그 직업 전투에서만 같이 읽어 둠 */
 export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = {
-  priest: ['priest-shelter-loop'], druid: ['druid-moss-loop'], paladin: ['paladin-beacon-loop', 'paladin-sanctuary-loop'],
+  priest: ['priest-shelter-loop', 'priest-guardian-loop'], druid: ['druid-moss-loop'], paladin: ['paladin-beacon-loop', 'paladin-sanctuary-loop'],
   shaman: ['shaman-spring-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-sea-loop'], monk: ['monk-pool-loop', 'monk-mist-loop'],
   astrologer: ['astro-nova-loop', 'astro-sleep-loop'], warder: ['warder-citadel-loop'],
 };

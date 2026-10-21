@@ -514,12 +514,6 @@ function edgeRing(name: string, x: number, y: number, R: number, band: number, a
   }
   return true;
 }
-function roundRing(name: string, x: number, y: number, R: number, alpha = 1): boolean {
-  const tex = artTexture(name);
-  if (!tex) return false;
-  ringArt.put(tex, x, y, R * 2, R * 2, alpha);
-  return true;
-}
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -1920,7 +1914,14 @@ export function render(now: number): void {
       if (!edgeRing('fx-edge-flame', x, y, R + w * 0.3, Math.max(6, s * 0.2), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xff5a3d, alpha: a });
     }
     // 힐러 표시 (25 3장 → 2026-10-16 검수: 선 굵기 · 점선으로만 갈리던 여섯 표시를 모양이 다른 그림으로). 반지름 · 끝나기 2초 전 깜빡임은 그대로, 녹는 열기 동안은 그림 위에 불티 (칸마다 fx-melt-embers)
-    if (u.guardian > 0) { const R = ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3); if (!roundRing('fx-ring-guardian', x, y, R + 2, 0.95)) dashCircle(overG, x, y, R, 2, 4, 3, melting ? MELT : C.ink, 0.9); } // 수호: 깃털 고리
+    // 수호 (2026-10-21 Lim 「사제 수호 사용시 파티원에게 표시되는 이미지대신 … 봉화처럼 이펙트로」): 예전 깃털 고리 그림 대신 봉화처럼 칸 둘레 빛 고리 루프 (priest-guardian-loop: 숨 쉬는 고리 · 도는 빛 깃털 · 하늘빛 혜성 · 빛가루).
+    // 끝나기 2초 전 깜빡임, 시각 효과 줄이기면 첫 장에서 멈춤, 띠가 아직 안 읽혔으면 예전 점선 원
+    if (u.guardian > 0) {
+      const R = ringRadius(`guardian${u.id}`, 'circle', x, y, r * BEACON_R, 3), lp = PXF['priest-guardian-loop'], lt = smoothFrame('priest-guardian-loop', S.reducedEffects ? 0 : loopFrame(lp, t));
+      const a = u.guardian < 2 ? 0.35 + 0.6 * pulse : 1;
+      if (lt) { if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear'; const d = (2 * R) / BEACON_RING; ringArt.put(lt, x, y, d, d, a); }
+      else dashCircle(overG, x, y, R, 2, 4, 3, melting ? MELT : C.ink, 0.9 * a);
+    }
     // 보호 (빛 그릇 보호막 등, u.shield): 빛 유리 띠 (그림 없으면 흰 이중 테두리)
     if (u.shield > 0) {
       const a = u.shield < 2 ? 0.35 + 0.6 * pulse : 0.95;

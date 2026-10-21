@@ -368,6 +368,44 @@ export default {
       loopGlints(g, t, [[0, -0.86], [-0.62, -0.22], [0.62, -0.22], [0, 0.36]], { size: 0.3, col: GOLD.core, glowCol: GOLD.glow });
     },
   },
+  /** 수호 영혼이 걸린 동안 (2026-10-21 Lim 「사제 수호 사용시 파티원에게 표시되는 이미지대신 … 봉화처럼 이펙트로」, 예전 깃털 고리 그림 fx-ring-guardian 대신 성기사 봉화 고리처럼 코드 루프):
+   *  칸 둘레 크림 금빛 고리가 숨 쉬듯 빛나고, 고리 위 빛 깃털 여섯이 바깥을 향해 살랑이며 천천히 돌고 (한 바퀴에 1/6칸 → 이어 붙음),
+   *  하늘빛 혜성 둘이 반대로 돌며 흰 · 하늘빛 가루가 고리에서 피어오르고 꼭짓점에 별빛이 반짝임. 좌표는 봉화와 같음 (고리 = RING, board.ts가 칸 테두리에 맞춤) */
+  'priest-guardian-loop': {
+    frames: 36, fps: 12, loop: true, logical: 62, size: 320, scope: 'target',
+    draw(g, { t }) {
+      const R = 0.72, br = wave(t, 1);
+      ringGlow(g, 0, 0, R, 0.1, GOLD.glow, 0.3 + 0.22 * br);
+      ringGlow(g, 0, 0, R, 0.05, SKY, 0.12 + 0.12 * wave(t, 2, 0.25));
+      g.save(); g.lineCap = 'round';
+      g.beginPath(); g.arc(0, 0, R, 0, TAU); g.lineWidth = 0.05; g.strokeStyle = C(GOLD.rim, 0.65); g.stroke();
+      g.lineWidth = 0.028; g.strokeStyle = C('#ffe9a8', 0.95); g.stroke();
+      g.lineWidth = 0.011; g.strokeStyle = C('#ffffff', 0.75 + 0.25 * br); g.stroke();
+      g.restore();
+      // 빛 깃털 여섯: 바깥을 향해 살랑이며 천천히 돎 (한 바퀴에 60° → 같은 모양으로 이어짐)
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i * TAU) / 6 + (TAU / 6) * t, x = Math.cos(a) * R, y = Math.sin(a) * R;
+        const sway = rad(12) * Math.sin(TAU * (t * 2 + i / 6)), L = 0.24 + 0.035 * wave(t, 2, i / 6);
+        glow(g, x, y, 0.17, GOLD.glow, 0.5); glow(g, x + Math.cos(a) * 0.1, y + Math.sin(a) * 0.1, 0.12, '#ffffff', 0.35);
+        g.save(); g.translate(x, y); g.rotate(a + Math.PI / 2 + sway); g.scale(L, L);
+        solid(g, gg => featherPath(gg, 0.24), { hi: '#fffbe8', lo: '#e8b04a', rim: '#4a300a', rimW: 0.06, a: 0.95, shine: 0.6, y0: -1, y1: 0 });
+        g.restore();
+      }
+      // 하늘빛 혜성 둘 (반대로 한 바퀴)
+      for (let k = 0; k < 2; k++) {
+        const P = s2 => { const a = -TAU * (t + k / 2) + (1 - s2) * 0.8; return { x: Math.cos(a) * R, y: Math.sin(a) * R }; };
+        comet(g, P, 0, 1, { w: 0.032, rim: NAVY, body: '#bfe8ff', core: '#ffffff', glowCol: SKY, a: 0.85, head: 0.7 });
+      }
+      // 고리에서 피어오르는 흰 · 하늘빛 가루 (한 바퀴에 정수 번)
+      for (let i = 0; i < 26; i++) {
+        const a0 = (i * TAU) / 26 + 0.15, life = frac(t * (i % 3 === 0 ? 2 : 1) + i * 0.173), x0 = Math.cos(a0) * R, y0 = Math.sin(a0) * R;
+        const x = x0 * (1 + 0.12 * life) + 0.035 * Math.sin(TAU * (life * 2 + i * 0.2)), y = y0 - 0.3 * life, sz = 0.011 + 0.006 * (i % 3), al = bell(life, 0, 0.15, 1);
+        glow(g, x, y, sz * 4, i % 2 ? SKY : GOLD.glow, 0.42 * al);
+        speck(g, x, y, sz, i % 2 ? '#e8f6ff' : '#fffbe8', al, wave(life, 3, i * 0.11));
+      }
+      loopGlints(g, t, [0, 1, 2, 3, 4, 5].map(i => { const a = -Math.PI / 2 + (i * TAU) / 6 + TAU / 12; return [Math.cos(a) * R, Math.sin(a) * R]; }), { size: 0.17, col: '#ffffff', glowCol: SKY });
+    },
+  },
   /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'halo' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
   'priest-talent': talentFx({ rim: '#5a3c0c', body: '#ffd56b', light: '#fff1b0', core: '#fffbe8', glow: '#ffcf6a', acc: '#d8f0ff', accGlow: '#9fd4ff' }, 'halo'),
 };
