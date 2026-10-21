@@ -87,6 +87,8 @@ export interface Settings {
   reducedEffects: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
   auto: boolean;
+  /** 개발 빌드: 자동 힐러를 처음 하는 사람처럼 (engine/novice, 2026-10-22). 옛 저장엔 없음 = 꺼짐 (숙련) */
+  autoNovice?: boolean;
   /** 개발 빌드: 콘텐츠 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */
   devUnlock: boolean;
   /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */

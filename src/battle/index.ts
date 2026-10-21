@@ -19,7 +19,7 @@ import type { ClassKey } from '../data/classes';
 import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import { bossSoundsFor, combatSounds, impactSound } from './combat-sound';
 import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
-import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats, type Telegraph } from '../engine';
+import { autoHealer, create, DT, noviceHealer, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats, type Telegraph } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
@@ -93,7 +93,7 @@ function startBattle(guideSec = 0): void {
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
   show('battle');
-  if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
+  if (S.auto) toast(`자동 힐러${S.autoNovice ? ' (초보)' : ''}가 플레이 중 (기록 안 남김)`);
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
   if (S.affixes && !R.idx) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
@@ -880,7 +880,7 @@ function frame(now: number): void {
         if (ui.coach && !ui.coach.freeze && now > ui.coach.until) clearCoach();
         if (!(ui.coach && ui.coach.freeze)) {
           acc += dt;
-          while (acc >= DT && !F.over) { if (S.auto) autoHealer(F); step(F); acc -= DT; }
+          while (acc >= DT && !F.over) { if (S.auto) (S.autoNovice ? noviceHealer : autoHealer)(F); step(F); acc -= DT; }
         }
       }
     }
@@ -935,12 +935,12 @@ function frame(now: number): void {
     void preloadSfx();
     startBattle(0);
   },
-  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
+  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; autoNovice?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
     setSfxOn(S.sound);
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
-    S.zoom = s.zoom !== false; S.auto = !!s.auto;
+    S.zoom = s.zoom !== false; S.auto = !!s.auto; S.autoNovice = !!s.autoNovice;
     S.compactSkills = true;
     S.reducedEffects = !!s.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
     $('battle').classList.toggle('reduced-effects', S.reducedEffects);
