@@ -12,6 +12,7 @@ import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engi
 import { castText } from '../game/tooltip';
 import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
+import { syncBgm } from '../bgm';
 import { audioCtx, audioOut, sfx } from '../sfx';
 import { MAX_SFX_SECONDS } from '../sfx/timing';
 import { PRIEST_FEEDBACK_SOUNDS } from './priest-sound';
@@ -322,6 +323,7 @@ function fitBanner(main: HTMLElement): void {
 /** 새 화면(.screen)이 늘어나도 하나만 보이게 */
 export function show(id: string): void {
   document.querySelectorAll<HTMLElement>('#app > .screen').forEach(s => { s.hidden = s.id !== id; });
+  syncBgm(id);
   // focus/scrollIntoView가 남긴 상위 offset이 다음 화면을 광고 뒤로 밀지 않게 함.
   $('app').scrollTop = 0; $('app').scrollLeft = 0;
   $('viewport').scrollTop = 0; $('viewport').scrollLeft = 0;

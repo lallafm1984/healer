@@ -12,6 +12,9 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
+import { setBattleRegion } from '../bgm';
+import { adventureRegionOf } from '../data/adventure-regions';
+import type { ContentKey } from '../data/content';
 import type { ClassKey } from '../data/classes';
 import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import { combatSounds } from './combat-sound';
@@ -895,6 +898,7 @@ function frame(now: number): void {
     closeTip();
     S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.onEnd = o.onEnd || null;
     S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() } as Run;
+    try { setBattleRegion(adventureRegionOf(o.content as ContentKey).key); } catch { /* 모르는 장소: 앞 지역 곡 그대로 */ } // 배경음 = 지역 곡
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;
     S.coach = o.coach || null;

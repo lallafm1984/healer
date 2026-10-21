@@ -25,6 +25,8 @@ const prioOf = (name: string) => PRIO[name] ?? (name.startsWith('atk-') ? 0 : na
 const MAX_VOICES = 10;
 
 let on = true;
+/** 설정 「효과음」 크기 (0~1) */
+let volume = 1;
 let ctx: AudioContext | null = null;
 let out: AudioNode | null = null;
 let voices = 0, lastAny = -1e9;
@@ -40,6 +42,12 @@ export function setSfxOn(v: boolean): void {
   else void ctx.suspend().catch(() => {});
 }
 
+/** 설정 「효과음」 크기 (0~1, 설정 막대): 모든 효과음 · 합성음이 지나는 출구 크기 */
+export function setSfxVolume(v: number): void {
+  volume = Math.max(0, Math.min(1, v));
+  if (out && ctx) (out as GainNode).gain.setTargetAtTime(0.9 * volume, ctx.currentTime, 0.03);
+}
+
 /** 소리 문맥 (합성음도 같이 씀). 처음이면 만들고, 멈춰 있으면 깨움. 못 만들면 null */
 export function audioCtx(): AudioContext | null {
   if (!on || typeof window === 'undefined') return null;
@@ -53,7 +61,7 @@ export function audioCtx(): AudioContext | null {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.15;
       const master = ctx.createGain();
-      master.gain.value = 0.9;
+      master.gain.value = 0.9 * volume;
       master.connect(comp).connect(ctx.destination);
       out = master;
       warm();
