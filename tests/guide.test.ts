@@ -61,12 +61,17 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
     expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // 레벨이 한참 앞서도 장비가 모자라면 도전 (88)
     expect(four(c, 28, 0)).toEqual(['적정', '적정', '위험', '위험']);
   });
-  it('레이드: 적이 내 레벨이라 레벨 몫 없음, 장비 몫만', () => {
-    const r = contentOf('abyss1');
-    expect(four(r, 60, 0)).toEqual(['여유', '적정', '도전', '위험']);
-    expect(four(r, 60, ADV)).toEqual(['여유', '여유', '적정', '위험']);
-    expect(four(r, 60, RARE)).toEqual(['여유', '여유', '적정', '도전']);
-    expect(four(r, 60, EPIC)).toEqual(['여유', '여유', '적정', '적정']);
+  it('레이드도 던전처럼 레벨 몫 (2026-10-21 Lim: 적이 장소 레벨에 고정, 예전엔 내 레벨이라 장비 몫만)', () => {
+    const r = contentOf('cathedral1'); // 쉬움 ~ 어려움 Lv 70 · 악몽 80
+    // 그 레이드 레벨에서는 예전 (적 = 내 레벨)과 같음
+    expect(four(r, 70, 0).slice(0, 3)).toEqual(['여유', '적정', '도전']);
+    expect(four(r, 70, ADV).slice(0, 3)).toEqual(['여유', '여유', '적정']);
+    expect([fitOf(r, '악몽', 80, RARE), fitOf(r, '악몽', 80, EPIC)]).toEqual(['도전', '적정']);
+    // 내가 높으면 쉬워짐 (힐러만 셈), 낮으면 (개발 잠금 해제) 어려워짐. 장비 미달은 그대로 적어도 도전
+    expect(four(contentOf('abyss1'), 100, RARE)).toEqual(['여유', '여유', '여유', '여유']);
+    expect(fitOf(r, '보통', 85, ADV)).toBe('여유');
+    expect(fitOf(r, '어려움', 100, 0)).toBe('도전');
+    expect(four(r, 60, ADV)).toEqual(['도전', '도전', '위험', '위험']);
   });
   it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 몫 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {

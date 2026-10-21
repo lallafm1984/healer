@@ -3,11 +3,12 @@
  * 적 레벨·어픽스·보스 배율·제한시간을 한곳에서 정해 전투 탭·편성·정산이 같은 값을 씀.
  * 2026-10-08 레벨 단계를 없앰: 적 레벨은 늘 내 레벨에 맞춰짐, 고르는 건 난이도 하나 (어픽스도 난이도에 붙음).
  * 2026-10-09 (34 1-2): 「2레벨 아래」 대신 적 레벨 = 내 레벨, 세기만 × 0.95 (data/rules RULES.enemy). 새 레벨 곡선은 경사가 커서 비율로 고정.
- * 2026-10-11 (61 1장, Lim): 탐험 · 던전은 레벨링 콘텐츠라 적 레벨이 장소 · 난이도에 고정 (stageOf). 내 레벨에 맞추는 건 10인 · 20인만.
+ * 2026-10-11 (61 1장, Lim): 탐험 · 던전은 레벨링 콘텐츠라 적 레벨이 장소 · 난이도에 고정 (stageOf).
+ * 2026-10-21 Lim 「레이드에서 공개모집 멤버는 해당 던전에 맞는 레벨대여야한다」: 10인 · 20인도 장소 레벨에 고정 (예전엔 max(내 Lv, 열림 레벨)). 내가 높으면 던전처럼 힐러만 셈.
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { CHAL, CHAL_ROTA, CHAL_ROTA_START, chalLimit, chalMult } from '../data/challenge';
-import { isLeveling, stageOf, type ContentDef } from '../data/content';
+import { stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { SaveData } from '../platform/storage';
 import { daysBetween, weekKey } from './clock';
@@ -31,8 +32,8 @@ export interface RunMode {
 }
 
 /**
- * 적 레벨: 탐험 · 던전 = 장소 레벨 + 난이도 (61 1-2, 고정), 레이드 = 내 레벨 (34 1-2, 세기는 엔진이 × 0.95)이고 열림 레벨보다 낮으면 열림 레벨.
- * 힐러 세기는 적 레벨보다 약해지지 않음 (engine create: 레벨이 모자라면 스킬 · 특성만 덜 열림).
+ * 적 레벨 = stageOf: 탐험 · 던전 = 장소 레벨 + 난이도 (61 1-2), 레이드 = 열림 레벨 (악몽은 diffUnlock, 2026-10-21부터 내 레벨을 안 따라감). 공개모집도 이 레벨 근처 (party recruitParty stageLv).
+ * 힐러 세기 = max(내 레벨, 적 레벨) (engine create: 레벨이 모자라면 스킬 · 특성만 덜 열림, 높으면 힐러만 셈).
  * 어픽스는 던전만, 적 레벨 기준 (레이드는 악몽 전용 기술, 탐험은 없음). 튜토리얼이 끝나기 전엔 콘텐츠 기본 레벨 · 어픽스 없음
  */
 export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number }, now = Date.now()): RunMode {
@@ -41,7 +42,7 @@ export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: n
     return { stage: Math.max(CHAL.lv, save.player.level), affixes: weekAffixes(now), bossMult: chalMult(st), limit: chalLimit(st), chal: st };
   }
   if (save.tut < TUT.done) return { stage: stageOf(c, d), affixes: [], chal: 0 };
-  const stage = isLeveling(c) ? stageOf(c, d) : Math.max(save.player.level, stageOf(c, d));
+  const stage = stageOf(c, d);
   return { stage, affixes: c.kind === 'dungeon' ? diffAffixes(d, stage) : [], chal: 0 };
 }
 

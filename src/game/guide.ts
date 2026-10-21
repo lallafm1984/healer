@@ -35,9 +35,8 @@ export const FIT_TEXT: Record<Fit, string> = {
 
 export interface Stage { content: ContentKey; diff: DiffName }
 
-/** 그 칸을 맞춘 기준 레벨: 탐험 · 던전 = 적 레벨 (순차 구간 장소는 70의 길에서 들어가는 레벨), 레이드 = 적 레벨 (내 레벨과 열림 레벨 중 큰 쪽) */
-export const refLevel = (c: ContentDef, d: DiffName, level: number) =>
-  (isLeveling(c) ? rampRefLevel(c, d) ?? stageOf(c, d) : Math.max(level, stageOf(c, d)));
+/** 그 칸을 맞춘 기준 레벨 = 적 레벨 (순차 구간 장소는 70의 길에서 들어가는 레벨). 레이드도 장소 레벨 (2026-10-21, 예전엔 내 레벨과 열림 레벨 중 큰 쪽) */
+export const refLevel = (c: ContentDef, d: DiffName) => (isLeveling(c) && rampRefLevel(c, d)) || stageOf(c, d);
 
 /**
  * 출전 화면 · 편성 「권장 레벨」 (92): 그 칸을 맞춘 플레이어 레벨. 순차 구간 장소는 길에서 들어가는 레벨 (온실 악몽 = 적 Lv 16이지만 Lv 11,
@@ -62,8 +61,8 @@ const OVER: Partial<Record<DiffName, number>> = {
 
 /** 빠듯함 점수 (−2 이하 여유 · −1 ~ +1 적정 · +2 ~ +3 도전 · +4 이상 위험). gear = 착용 장비 평균 점수 (avgScore) */
 export function challengeOf(c: ContentDef, d: DiffName, level: number, gear: number): number {
-  // 레이드는 적이 늘 내 레벨이라 레벨 몫 없음 (장비 몫만)
-  let s = diffStep(c, d) + (isLeveling(c) ? lvStep(refLevel(c, d, level), level) : 0);
+  // 레이드도 던전처럼 레벨 몫 (2026-10-21: 적이 장소 레벨에 고정, 예전엔 내 레벨이라 장비 몫만)
+  let s = diffStep(c, d) + lvStep(refLevel(c, d), level);
   // 순차 구간 장소 (장소 Lv 20까지)는 그 길의 드롭 장비로 맞춰서 장비 몫 없음
   if (isLeveling(c) && rampPlace(c)) return s;
   const rec = recommendedFor(c, d), over = OVER[d];
@@ -103,7 +102,7 @@ export function rankStages(ctx: GuideCtx): Stage[] {
       if (d === '악몽' || !ctx.open(c, d)) continue; // 악몽은 추천하지 않음 (2026-10-20 Lim)
       const first = !ctx.clears[c.key]?.[d];
       all.push({ c, d, fit: fitOf(c, d, ctx.level, ctx.gear), first, st: stageOf(c, d), xp: rampXp(c, d, { first, grade: 'A', win: true }),
-        gap: refLevel(c, d, ctx.level) - ctx.level });
+        gap: refLevel(c, d) - ctx.level });
     }
   }
   // 순차 구간: 길 첫 클리어를 장소 레벨 순 (장소 Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 보통 → 어려움, 그다음 장소 쉬움). 70 · 90의 길.

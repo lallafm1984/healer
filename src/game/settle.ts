@@ -131,7 +131,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const grade = r.win ? gradeOf(r.deaths) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
   // 따로 잠긴 난이도(10인 악몽 = 열림 + 15 등)는 그 레벨이 단계 (26 3장)
-  // 적 레벨은 전투가 넘겨준 값 (내 레벨, 32·13 3-2)
+  // 적 레벨은 전투가 넘겨준 값 (runmode: 장소 레벨, 주간 도전은 내 레벨, 13 3-2)
   const raid = raidSize(c), stage = r.stage ?? stageOf(c, r.diff);
   // 공개모집 일일 보너스: 오늘 첫 3번 (이긴 판만 셈, 13 2-2)
   const pub = !isGuildParty(roster);
@@ -171,9 +171,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   if (r.win) {
     // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
     // 등급은 콘텐츠 · 난이도 바탕 표 (일반 ~ 희귀) + 영웅 · 전설 확률 (88, equipment dropOdds). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
-    // 등급대 · 영웅 확률 레벨 (86 · 88): 탐험 · 던전은 장소 레벨, 레이드는 그 판 적 레벨, 주간 도전은 내 레벨. 전설은 내 레벨 100부터 20인만.
+    // 등급대 · 영웅 확률 레벨 (86 · 88): 탐험 · 던전은 장소 레벨, 레이드는 그 레이드 레벨, 주간 도전은 내 레벨. 전설은 내 레벨 100부터 20인만.
     // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
-    // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 레이드 적은 내 레벨까지 오르지만 (runmode) 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf). 주간 도전은 내 레벨 그대로
+    // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf, 2026-10-21부터 적 레벨도 같음). 주간 도전은 내 레벨 그대로
     const dropLv = r.chal ? stage : stageOf(c, r.diff);
     if (!noDrop) items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
     save.gear.bag.push(...items);

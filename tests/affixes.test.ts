@@ -213,9 +213,15 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const y = settle(r, result({ content: 'abyss1', diff: '보통', stage: 90, segIdx: 0, segN: 1 }), rng, [], T0);
     expect(y.xp).toBe(restRun(clearXp(90, '보통', 'S', { raid: 10, win: true })));
   });
-  it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
-    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
-    expect(runMode(save(60), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 60, affixes: [] });
+  it('레이드·탐험은 어픽스 없음. 레이드 적 레벨은 장소 레벨에 고정 (2026-10-21 Lim, 예전엔 내 레벨), 열림 레벨 전에 들어가도 (개발 빌드) 열림 레벨', () => {
+    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(45);
+    expect(runMode(save(100), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 60, affixes: [] });
+    expect(runMode(save(85), contentOf('cathedral1'), '어려움', { chal: 0 }).stage).toBe(70);
+    // 공개모집도 그 레이드 레벨 근처 (Lim 「레이드에서 공개모집 멤버는 해당 던전에 맞는 레벨대」): 내 Lv 60 · 80 · 100이어도 심연의 탑 1층 보통은 Lv 45 ± 3
+    for (const [key, my] of [['abyss1', 60], ['abyss1', 100], ['cathedral1', 85]] as const) {
+      const c = contentOf(key), st = runMode(save(my), c, '보통', { chal: 0 }).stage;
+      for (let seed = 1; seed <= 5; seed++) for (const m of E.recruitParty(c.fights('보통')[0], seed, { abilities: true, myLv: my, stageLv: st })) expect(Math.abs(m.lv! - st), `${key} 내 Lv ${my} · ${m.nick} Lv ${m.lv}`).toBeLessThanOrEqual(3);
+    }
     const dev = save(20); dev.settings.devUnlock = true;
     expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(45);
     expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(60);
