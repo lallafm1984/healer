@@ -135,7 +135,7 @@ function goldCell(): string {
   return `<span class="tb-cur tb-gold" data-gold role="img" aria-label="${label}" title="${label}">${currencyIcon('gold')}<b aria-hidden="true">${shortAmount(n)}</b></span>`;
 }
 /** 보이는 위 줄 골드를 지금 값으로 (저장할 때마다 · 화면을 다시 그리지 않는 곳에서 골드가 바뀌어도 바로) */
-export function refreshGold(): void {
+function refreshGold(): void {
   if (typeof document === 'undefined') return;
   const n = resourceBalance(G.save, 'gold'), shown = shortAmount(n), label = goldLabel(n);
   document.querySelectorAll<HTMLElement>('[data-gold]').forEach(el => {
