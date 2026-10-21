@@ -50,6 +50,11 @@
 /* 글자 위계 (UI 검수 2026-10-20): 설명 글이 16px로 위 스위치 이름 (13px)보다 컸음 → 설명 12.5px, 이름 14px · 스위치 바로 밑에 붙임 */
 #s-settings .toggle { font-size: 14px; font-weight: 500; }
 #s-settings.ns .group > p { margin: -6px 0 2px; font-size: 12.5px; line-height: 1.5; }
+/* 효과음 · 배경음 크기 막대 (2026-10-21): 이름 | 막대 | 값, 한 줄 44px (손가락) */
+#s-settings .vol-row { display: grid; grid-template-columns: 4.2em minmax(0, 1fr) 3em; align-items: center; gap: 10px; min-height: 44px; }
+#s-settings .vol-row label { color: var(--gk-ink); font-size: 14px; font-weight: 500; }
+#s-settings .vol-row input[type="range"] { width: 100%; height: 28px; margin: 0; accent-color: var(--gk-accent); }
+#s-settings .vol-row output { color: var(--gk-ink); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
 #s-settings.ns .group > h2 { font-weight: 800; }
 /* 임무 진행 숫자 (1/1 · 0/2): 10.8px → 12px, 이름과 같은 줄 기준 */
 #s-missions .mrow > div > small { font-size: 12px; font-variant-numeric: tabular-nums; }

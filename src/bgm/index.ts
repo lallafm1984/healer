@@ -42,7 +42,9 @@ export function bgmFor(screen: string): BgmKey {
 /** 구간마다 크기 (효과음보다 아래, 전투 = 지역 곡은 효과음이 많아 더 작게 BATTLE_VOL). 곡은 넣을 때 같은 세기로 맞춤 */
 const VOL: Record<string, number> = { title: 0.55, lobby: 0.45, victory: 0.5, defeat: 0.45 };
 const BATTLE_VOL = 0.33;
-const volOf = (k: string) => VOL[k] ?? BATTLE_VOL;
+/** 설정 「배경음」 크기 (0~1) */
+let userVol = 1;
+const volOf = (k: string) => (VOL[k] ?? BATTLE_VOL) * userVol;
 const FADE_IN = 1.6, FADE_OUT = 1.0;
 /** 화면마다 늦게 시작 (초). 결과 곡은 처음부터 세게라 바로 */
 const DELAY: Record<string, number> = {};
@@ -142,6 +144,12 @@ export function syncBgm(screen: string): void {
   if (next === want) return;
   want = next;
   apply(DELAY[screen] ?? 0);
+}
+
+/** 설정 「배경음」 크기 (0~1, 설정 막대). 지금 곡에도 바로 */
+export function setBgmVolume(v: number): void {
+  userVol = Math.max(0, Math.min(1, v));
+  if (cur && !cur.el.paused) ramp(cur.el, volOf(cur.key), 0.15);
 }
 
 /** 설정 「배경음」 */

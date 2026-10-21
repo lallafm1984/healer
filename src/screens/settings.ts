@@ -1,5 +1,6 @@
 /** S21 설정 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김. 칸 탭 기본 힐·스킬 배치(S17)는 캐릭터 → 스킬로 옮김 */
-import { setBgmOn } from '../bgm';
+import { setBgmOn, setBgmVolume } from '../bgm';
+import { setSfxVolume } from '../sfx';
 import { MAX_LEVEL } from '../data/progression';
 import { Flow } from '../game/flow';
 import { commit, G, heroNow, resetSave, setTestLevelUp, setTestMaxLevel, TEST_LEVEL_STEP } from '../game/state';
@@ -21,7 +22,10 @@ const s = screen('s-settings', '설정', {
 export function pushSettings(): void {
   const b = battle();
   b.settings({ ...G.save.settings, hero: heroNow() });
-  setBgmOn(G.save.settings.music !== false);
+  const st = G.save.settings;
+  setSfxVolume(st.sfxVol ?? 1);
+  setBgmVolume(st.musicVol ?? 1);
+  setBgmOn(st.music !== false);
   b.onSetting = (k, v) => { (G.save.settings as unknown as Record<string, unknown>)[k] = v; commit(); };
 }
 
@@ -29,10 +33,15 @@ function render(): void {
   const st = G.save.settings;
   const chip = (name: string, val: string, cur: string, label: string) => `<button class="chip" type="button" data-set="${name}" data-val="${val}" aria-pressed="${cur === val}">${label}</button>`;
   const lvLock = Flow.running || G.save.player.level >= MAX_LEVEL;
+  // 크기 막대: 0이면 꺼짐 (sound · music false), 올리면 켜짐. 움직이는 동안 바로 들리고, 손을 떼면 저장
+  const vol = (k: 'sfx' | 'music', label: string) => {
+    const v = (k === 'sfx' ? st.sound : st.music) ? Math.round(((k === 'sfx' ? st.sfxVol : st.musicVol) ?? 1) * 100) : 0;
+    return `<div class="vol-row"><label for="vol-${k}">${label}</label><input type="range" id="vol-${k}" data-vol="${k}" min="0" max="100" step="5" value="${v}" aria-valuetext="${v ? `${v}%` : '끔'}"><output for="vol-${k}">${v ? `${v}%` : '끔'}</output></div>`;
+  };
   const tog = (name: string, label: string) => `<label class="toggle"><input type="checkbox" data-tog="${name}"${(st as unknown as Record<string, boolean>)[name] ? ' checked' : ''}> ${label}</label>`;
   s.el.innerHTML = `${topBar({ back, title: '설정' })}
     <div class="ns-body settings">
-      <section class="group"><h2>소리·진동</h2><div class="row">${tog('sound', '효과음')}${tog('music', '배경음')}${tog('vibrate', '진동')}</div></section>
+      <section class="group"><h2>소리·진동</h2>${vol('sfx', '효과음')}${vol('music', '배경음')}<div class="row">${tog('vibrate', '진동')}</div></section>
       <section class="group"><h2>스킬 휠 위치</h2><div class="chips">${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}</div>
         <button class="btn" type="button" id="toSkills">칸 탭 기본 힐 · 스킬 배치 → 캐릭터</button></section>
       <section class="group"><h2>20인 판</h2>${tog('zoom', '탭한 칸 확대해 보여주기 (0.3초)')}</section>
@@ -56,6 +65,27 @@ function render(): void {
 }
 
 function saveSettings(): void { commit(); pushSettings(); render(); }
+
+/** 크기 막대 값 → 설정 (0 = 끔) */
+function applyVol(el: HTMLInputElement): void {
+  const st = G.save.settings, v = Number(el.value) / 100, on = v > 0;
+  if (el.dataset.vol === 'sfx') { st.sound = on; if (on) st.sfxVol = v; setSfxVolume(on ? v : 0); }
+  else { st.music = on; if (on) st.musicVol = v; setBgmVolume(on ? v : 0); setBgmOn(on); }
+  const text = on ? `${Math.round(v * 100)}%` : '끔';
+  el.setAttribute('aria-valuetext', text);
+  const out = el.parentElement?.querySelector('output');
+  if (out) out.textContent = text;
+}
+s.el.addEventListener('input', e => {
+  const el = (e.target as HTMLElement).closest<HTMLInputElement>('input[data-vol]');
+  if (el) applyVol(el);
+});
+s.el.addEventListener('change', e => {
+  const el = (e.target as HTMLElement).closest<HTMLInputElement>('input[data-vol]');
+  if (!el) return;
+  applyVol(el);
+  commit(); pushSettings(); // 다시 그리지 않음: 끌던 막대가 그대로 있게
+});
 
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
