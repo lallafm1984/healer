@@ -650,7 +650,7 @@ function skillHtml(): string {
     <section class="c7-sklist">${skillRows(lay)}</section>`;
 }
 
-// ---------- 특성: 어두운 특성판 · 금빛 그림 노드 · 직업별 프리셋 ----------
+// ---------- 특성: 어두운 특성판 · 금빛 그림 노드 · 직업별 프리셋. 단 = locked · pending (고를 단) · done (고른 단), 칸 상태 표시는 a2-talents.css ----------
 /**
  * 특성 그림: 정식 그림 `talent-<키>` (78 그림 요청)가 있으면 그것, 없으면 효과에 대응하는 그 직업 스킬 그림 (임시). 저장 키와 단·선택지 순서는 그대로 둔다.
  * 사제 특성은 예전부터 다른 직업 스킬 그림을 빌려 쓰던 것 (78 2장 B에서 정식 그림 요청)
@@ -750,7 +750,7 @@ function talentHtml(): string {
         ? `<span class="c7-pk off" aria-label="${p.name} · Lv ${t.lv}에 열림">${icon}</span>`
         : `<button type="button" class="c7-pk${focus && focus.i === i && focus.j === j ? ' focus' : ''}" data-tcell="${i}:${j}" aria-pressed="${selected}" aria-label="${p.name}${selected ? ' · 선택됨' : ''}">${icon}</button>`;
     }).join('');
-    return `<div class="c7-tier${locked ? ' locked' : ''}${pending ? ' pending' : ''}" data-tier="${i}"><span class="c7-tl"><b>Lv ${t.lv}</b><em>${locked ? '잠김' : pending ? '하나 선택' : '선택 완료'}</em></span><span class="c7-tnodes">${nodes}</span></div>`;
+    return `<div class="c7-tier${locked ? ' locked' : pending ? ' pending' : ' done'}" data-tier="${i}"><span class="c7-tl"><b>Lv ${t.lv}</b><em>${locked ? '잠김' : pending ? '하나 선택' : '선택 완료'}</em></span><span class="c7-tnodes">${nodes}</span></div>`;
   }).join('');
   return `<header class="c7-talent-title">${classEmblem(h)}<div><h2>${HEROES[h].name} 특성</h2></div><b>Lv ${lv}</b></header>
     <div class="c7-tsum"><p><span>${head}</span><small>언제든 무료로 변경</small></p><span class="c7-preset-wrap"><small>프리셋</small><span class="c7-pres" role="group" aria-label="프리셋">${presets}</span></span></div>

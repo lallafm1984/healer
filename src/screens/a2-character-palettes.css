@@ -93,31 +93,11 @@
 #s-char[data-sub="talent"] .c7-pk small {
   background-color: var(--c7-palette-panel);
 }
-#s-char[data-sub="talent"] .c7-tsum small,
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) small {
-  color: var(--c7-palette-muted);
-}
-#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #cbb3e3; }
-#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
+#s-char[data-sub="talent"] .c7-tsum small { color: var(--c7-palette-muted); }
+#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled) {
   background-color: var(--c7-palette-surface);
   background-image: none;
-}
-#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
   border-color: #a88cbd;
   color: #e1d4ec;
-}
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
-  box-shadow: 0 0 0 2px #1c112a, inset 0 0 0 1px #dac2ee33;
-}
-#s-char[data-sub="talent"] .c7-tier.pending .c7-pk:not([aria-pressed="true"]) .c7-tn {
-  border-color: #c4a5e2;
-  box-shadow: 0 0 0 2px #1c112a, 0 0 9px #b28ade26;
-}
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn::after {
-  background-color: var(--c7-palette-deep);
-  border-color: #977aad;
-  color: #dfd1eb;
 }
 #s-char[data-sub="talent"] .c7-tier { border-bottom-color: #b998d324; }
