@@ -55,7 +55,9 @@ function goals(): Goal[] {
   const out: Goal[] = [];
   const lvNow = G.save.player.level;
   // 처음 깨는 칸이면 「클리어 0/1」, 다시 도는 칸이면 「추천 Lv n」(적 레벨)
-  const g = G.save.tut < TUT.done ? { content: 'plateau' as ContentKey, diff: '쉬움' as DiffName } : guide(); // 튜토리얼 중엔 튜토리얼 탐험 (105 QA)
+  // 첫 던전 차례엔 출전(dest) · 안내문과 같은 녹슨 요새 쉬움 (길잡이는 탐험 보통을 먼저 꼽아 카드와 버튼이 다른 곳을 가리켰음)
+  const g = G.save.tut < TUT.done ? { content: 'plateau' as ContentKey, diff: '쉬움' as DiffName }
+    : firstDungeonNow() ? { content: 'rustfort' as ContentKey, diff: '쉬움' as DiffName } : guide(); // 튜토리얼 중엔 튜토리얼 탐험 (105 QA)
   if (g) {
     const c = contentOf(g.content), first = !G.save.clears[c.key]?.[g.diff];
     out.push({ title: c.name, tag: g.diff, sub: first ? '클리어' : '추천', prog: first ? '0/1' : `Lv ${stageOf(c, g.diff)}`, to: g });
