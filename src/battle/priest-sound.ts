@@ -28,8 +28,9 @@ export function priestSounds(f: Fight) {
     if (!name) continue;
     handlesHealing = true;
     if (key !== 'hymn') allowCrit = true;
-    // Hymn's visual record repeats on each healing tick. Only its opening is audible.
-    if (key === 'hymn') { if (explicit.has('hymn')) add(name); suppress.add('hymn'); continue; }
+    // Hymn's visual record (the note burst) repeats on each healing tick. Every note gets the hymn voice
+    // (2026-10-21 Lim 「찬가 음표 이펙트가 뜰 때마다 찬가 효과음도」); the ticks are a little softer than the opening.
+    if (key === 'hymn') { add(name, explicit.has('hymn') ? 1 : .85); suppress.add('hymn'); continue; }
     if (key === 'relay' && !explicit.has('renew')) add('priest-relay-hop', .65);
     else add(name);
     if (key === 'renew' || key === 'guardian' || key === 'relay') suppress.add('renew');

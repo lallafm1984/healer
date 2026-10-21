@@ -1,6 +1,8 @@
 /** Extra audible combat feedback. The engine stays deterministic; mixing belongs to the view. */
 import { ABILITIES } from '../data/abilities';
-import type { Fight, FightEvent, FxName } from '../engine/types';
+import type { Fight, FightEvent, FxName, Telegraph, TelKind } from '../engine/types';
+import { hasSfx } from '../sfx';
+import { BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from './boss-themes';
 
 export const FX_SOUND: Record<FxName, string> = {
   spawn: 'magic-grow', explode: 'burst', slam: 'boss-impact', warn: 'zone', shockwave: 'boss-wave',
@@ -24,8 +26,24 @@ export const FX_SOUND: Record<FxName, string> = {
 const ABILITY_SOUND = { def: 'shield', heal: 'ally-heal', sup: 'ally-support', ctl: 'ally-control', atk: 'attack-heavy' };
 export interface CombatCue { name: string; vol: number }
 
+/** 공통 착탄 소리 (특성 소리가 없을 때) */
+const IMPACT: Partial<Record<TelKind, string>> = { buster: 'boss-impact', aoe: 'boss-wave', zone: 'boss-zone' };
+/**
+ * 보스 기술이 떨어질 때 소리 (2026-10-21 Lim 「보스별로 스킬의 특성을 이용하여 개별적으로 효과음」 → 3번 「특성별 + 주요 보스는 기술마다」):
+ * 주요 보스 (레이드 · 던전 마지막 보스)는 그 기술만의 소리 (bs-<대본>-<기술>), 그 밖은 기술 특성 소리 (예: 불 광역 boss-fire-wave), 둘 다 없으면 공통 착탄
+ */
+export function impactSound(script: string, tl: Pick<Telegraph, 'kind' | 'skill'>): string | undefined {
+  const id = `${script}:${tl.skill.key}`;
+  for (const name of [BOSS_SKILL_OWN[id], BOSS_SKILL_SOUND[id]]) if (name && hasSfx(name)) return name;
+  return tl.kind && IMPACT[tl.kind];
+}
+/** 이 보스의 기술 착탄 소리 (기술마다 impactSound가 고를 것, 전투를 시작할 때 이것만 미리 풂, sfx preloadSfx) */
+export const bossSoundsFor = (script: string): string[] => [...new Set(
+  Object.keys(BOSS_SKILL_SOUND).filter(id => id.startsWith(`${script}:`)).map(id => BOSS_SKILL_OWN[id] ?? BOSS_SKILL_SOUND[id]))];
+
 /** Collapse an entire simulation frame to one cue per sound, including 20-person AoEs. */
-export function combatSounds(f: Fight, events: readonly FightEvent[], options: { partyAttacks?: boolean } = {}): CombatCue[] {
+/** impact = 이번에 떨어진 예고의 소리 (같은 종류 impact 사건 순서대로, battle/index.ts). 없으면 공통 착탄 */
+export function combatSounds(f: Fight, events: readonly FightEvent[], options: { partyAttacks?: boolean; impact?: (kind: TelKind | undefined) => string | undefined } = {}): CombatCue[] {
   const existing = new Set(events.flatMap(e =>
     e.type === 'sound' ? [e.name] :
     e.type === 'phase' ? [e.text === '광폭화' ? 'boss-enrage' : 'boss-phase'] :
@@ -53,7 +71,7 @@ export function combatSounds(f: Fight, events: readonly FightEvent[], options: {
       case 'bossHeal': add('magic-dark', 0.7); break;
       case 'cure': add('dispel', 0.6); break;
       case 'dispel': add('dispel', 0.6); break;
-      case 'impact': add(e.kind === 'buster' ? 'boss-impact' : e.kind === 'zone' ? 'stone-break' : 'boss-wave'); break;
+      case 'impact': add(options.impact?.(e.kind) ?? (e.kind === 'buster' ? 'boss-impact' : e.kind === 'zone' ? 'boss-zone' : 'boss-wave')); break;
       case 'ability': {
         if (e.fumble) { add('status-stagger', 0.4); break; }
         const u = f.party.find(u => u.id === e.id);
