@@ -11,7 +11,7 @@ import { COMBAT_SOUNDS, EXTRA_SOUNDS } from '../scripts/sfx/combat.mjs';
 import { FX_SOUND } from '../src/battle/combat-sound';
 import { PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS } from '../src/battle/priest-sound';
 
-type Sound = { name: string; group: string; where: string; ko: string; prompt: string; gen: number; keep: number };
+type Sound = { name: string; group: string; where: string; ko: string; prompt: string; gen: number; keep: number; loop?: boolean };
 const list = [...SOUNDS, ...EXTRA_SOUNDS] as Sound[];
 const names = new Set(list.map(s => s.name));
 
@@ -24,7 +24,7 @@ function files(dir: string): string[] {
 
 /** 코드가 내는 소리 이름: sfx · Snd.play · hasSfx · sound 부름의 글자 (조건 ? 'a' : 'b' 둘 다), 디버프 · 장비 카드 · 메뉴 소리 표, 엔진 사건 · 보스 예고 소리, 직업 소리 (heal · renew · hymn → -<직업>) */
 const PATS = [
-  /(?:sfx|Snd\.play|hasSfx|\.sound)\(\s*'([a-z-]+)'/g,
+  /(?:sfx|sfxLoop|Snd\.play|hasSfx|\.sound)\(\s*'([a-z-]+)'/g,
   /(?:sfx|Snd\.play)\([^;\n]*?\?\s*'([a-z-]+)'\s*:\s*'([a-z-]+)'/g,
   /\bgot\([^)\n]*'([a-z-]+)'\)/g,
   /'(loot(?:-[a-z]+)?|(?:debuff|ui|atk)-[a-z]+)'/g,
@@ -68,7 +68,7 @@ describe('효과음 목록 (107)', () => {
       expect(s.gen).toBeGreaterThanOrEqual(2);
       expect(s.keep).toBeGreaterThan(0);
       expect(s.keep).toBeLessThanOrEqual(s.gen);
-      expect(s.keep, s.name).toBeLessThanOrEqual(1.5);
+      if (!s.loop) expect(s.keep, s.name).toBeLessThanOrEqual(1.5); // 반복 소리 (쉬는 화면)는 한 번 소리 상한 밖
     }
   });
 

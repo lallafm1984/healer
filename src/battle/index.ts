@@ -72,7 +72,7 @@ function startBattle(guideSec = 0): void {
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
-    vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
+    vibedTel: new Set(), warnedTel: new Set(), flowAt: new Map(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
   });
   closeTip(); resetBoardFx(); resetDmgNums();
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
@@ -469,6 +469,16 @@ function handleEvents(now: number): void {
   const F = B.F!;
   const priest = priestSounds(F);
   if (S.sound) for (const cue of [...priest.cues, ...combatSounds(F, priest.combatEvents, { partyAttacks: false })]) sfx(cue.name, { vol: cue.vol });
+  // 빨간 주의 표시 (기술 예고 · 졸개 내려찍기 예고)가 새로 뜨면 경고음 하나 (2026-10-21 Lim). 같은 때 여럿 떠도 한 번
+  let warn = F.events.some(e => e.type === 'fx' && e.name === 'warn');
+  for (const tl of F.tels) if (!ui.warnedTel.has(tl.id)) {
+    ui.warnedTel.add(tl.id);
+    // 흐르는 장판의 다음 줄 (앞 줄이 맞은 순간 이어서 뜸)은 새 예고가 아님
+    const cont = tl.flow && Math.abs((ui.flowAt.get(tl.skill) ?? -9) - tl.start) < 0.05;
+    if (tl.flow) ui.flowAt.set(tl.skill, tl.impact);
+    if (!cont) warn = true;
+  }
+  if (warn && S.sound) sfx('warn-alert');
   // Class-specific party attacks remain below: one strongest hit per frame.
   let healSnd = false, critSnd = false, atk: { cls: ClassKey; w: number; crit: boolean } | null = null;
   // 부활 · 특성 버튼은 그 소리 파일이 있으면 엔진이 같이 낸 차임 대신 (107)
@@ -591,7 +601,7 @@ function handleEvents(now: number): void {
     }
   }
   for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind, b); // b.emote · b.cheer (43 4장)
-  if (atk && S.sound && now - ui.lastAtkSnd > atkGap(F.party.length)) { ui.lastAtkSnd = now; sfx(ATK_SFX[atk.cls], { vol: atk.crit ? 1.4 : 1, rate: 0.94 + Math.random() * 0.12 }); }
+  if (atk && S.sound && now - ui.lastAtkSnd > atkGap(F.party.length)) { ui.lastAtkSnd = now; sfx(ATK_SFX[atk.cls], { vol: atk.crit ? 1.3 : 1, rate: 0.94 + Math.random() * 0.12 }); }
   if (critSnd && (!priest.handlesHealing || priest.allowCrit)) Snd.play('crit');
   else if (!priest.handlesHealing && healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;
@@ -847,6 +857,12 @@ function syncCastLoop(casting: boolean): void {
   if (casting && !castLoop) { const name = castLoopFor(S.hero); castLoop = name ? sfxLoop(name) : null; }
   else if (!casting && castLoop) { castLoop.stop(); castLoop = null; }
 }
+/** 쉬는 화면 소리 (2026-10-21 Lim 「휴식 화면에서도 회복하는 (쉬는) 효과음이 길게」): 쉬는 화면이 떠 있는 동안 반복, 떠나면 천천히 줄이며 멈춤 */
+let restLoop: { stop(fade?: number): void } | null = null;
+function syncRestLoop(resting: boolean): void {
+  if (resting && !restLoop) restLoop = sfxLoop('rest-loop', { fade: 0.8 });
+  else if (!resting && restLoop) { restLoop.stop(0.9); restLoop = null; }
+}
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const F = B.F;
@@ -870,6 +886,7 @@ function frame(now: number): void {
   }
   else syncCastLoop(false);
   if (!$('rest').hidden && B.F) updateRest(now);
+  syncRestLoop(!$('rest').hidden && !!B.F && S.sound);
   requestAnimationFrame(frame);
 }
 

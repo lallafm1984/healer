@@ -17,6 +17,7 @@ import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FIRST16, SOUNDS } from './sounds.mjs';
+import { ADDED } from './combat.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const raw = join(root, '.sfx-raw'), out = join(root, 'src/sfx');
@@ -26,7 +27,8 @@ const again = args.includes('--again'), only = args.includes('--process');
 const takesAt = args.indexOf('--takes');
 const takes = takesAt >= 0 ? Math.max(1, Number(args[takesAt + 1]) || 1) : 1;
 const pats = args.filter((a, i) => !a.startsWith('--') && i !== takesAt + 1).map(p => new RegExp(`^${p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`));
-const pick = args.includes('--first16') ? SOUNDS.filter(s => FIRST16.includes(s.name)) : pats.length ? SOUNDS.filter(s => pats.some(r => r.test(s.name))) : SOUNDS;
+// 이름을 주면 전투 추가음 (combat.mjs: 보스 착탄 · 마법 …)도 고를 수 있음. 아무 이름 없이 돌리면 sounds.mjs 목록만
+const pick = args.includes('--first16') ? SOUNDS.filter(s => FIRST16.includes(s.name)) : pats.length ? [...SOUNDS, ...ADDED].filter(s => pats.some(r => r.test(s.name))) : SOUNDS;
 if (!pick.length) { console.error('고른 소리 없음'); process.exit(1); }
 mkdirSync(raw, { recursive: true });
 
@@ -47,6 +49,6 @@ if (!only) {
 }
 
 const params = join(raw, 'params.json');
-writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep }))));
+writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, presence: !!s.presence, loop: !!s.loop, punch: !!s.punch }))));
 const p = spawnSync('uv', ['run', '--no-project', '--with', 'numpy', '--with', 'soundfile', 'python', join(root, 'scripts/sfx/process.py'), raw, out, params], { cwd: root, stdio: 'inherit' });
 process.exit(p.status ?? 1);

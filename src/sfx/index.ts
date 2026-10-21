@@ -15,12 +15,14 @@ export const hasSfx = (name: string): boolean => name in urlOf;
 // 파일은 만들 때 같은 세기로 맞춤 (scripts/sfx/make.mjs). 여기서는 자주 · 겹쳐 울리는 것만 줄임
 const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, proc: 0.45, heart: 0.85, gauge: 0.8, 'ally-hurt': 0.45, shield: 0.55, parry: 0.55, 'status-stagger': 0.4 };
 Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85, 'priest-scatter': .75 });
-const volOf = (n: string) => VOL[n] ?? (n.startsWith('atk-') ? 0.32 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
+// 보스 기술 착탄 · 주의 표시 경고는 배경음 위로 크게 (2026-10-21 Lim), 쉬는 화면 반복은 바탕으로
+Object.assign(VOL, { 'boss-impact': 1, 'boss-wave': 1, 'boss-zone': 1, 'warn-alert': 0.9, 'rest-loop': 0.6 });
+const volOf = (n: string) => VOL[n] ?? (n.startsWith('atk-') ? 0.42 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
-const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150, 'ally-hurt': 300, shield: 350, parry: 250, 'status-stagger': 900, 'boss-impact': 200, 'boss-wave': 300, 'stone-break': 300 };
+const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150, 'ally-hurt': 300, shield: 350, parry: 250, 'status-stagger': 900, 'boss-impact': 200, 'boss-wave': 300, 'boss-zone': 300, 'stone-break': 300, 'warn-alert': 400 };
 const gapOf = (n: string) => GAP[n] ?? (n.startsWith('atk-') ? 100 : n === 'priest-relay-hop' ? 350 : n === 'priest-crit' ? 450 : n.startsWith('attack-') ? 220 : n.startsWith('ally-') ? 450 : n.startsWith('magic-') ? 300 : n.startsWith('debuff-') ? 400 : n.startsWith('renew-') ? 150 : 60);
 /** 우선순위 (16 7-2): 소리가 많이 겹치면 낮은 것부터 안 냄 */
-const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, 'boss-impact': 2, 'boss-wave': 2, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
+const PRIO: Record<string, number> = { heart: 3, buster: 3, aoe: 3, zone: 3, death: 3, 'boss-enrage': 3, 'boss-phase': 3, 'boss-impact': 3, 'boss-wave': 3, 'boss-zone': 3, 'warn-alert': 3, burst: 3, crit: 2, dispel: 2, chime: 2, revive: 2, gauge: 2, win: 3, lose: 3 };
 const prioOf = (name: string) => PRIO[name] ?? (name.startsWith('atk-') ? 0 : name === 'priest-rescue' || name === 'priest-ready' ? 3 : /^(heal|renew|hymn|priest)-/.test(name) ? 2 : 1);
 const MAX_VOICES = 10;
 
@@ -117,7 +119,8 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   const now = performance.now();
   if (now - (lastAt.get(name) ?? -1e9) < gapOf(name)) return true;
   const prio = prioOf(name);
-  const budget = prio === 0 ? 6 : prio === 1 ? MAX_VOICES - 3 : MAX_VOICES; // Reserve space for healing and warnings.
+  // 파티원 공격 (prio 0)도 보통 소리만큼 자리를 줌 (2026-10-21 Lim 「공격 효과음이 잘 안 들린다」: 6개 넘게 울리면 거의 다 빠졌음). 힐 · 경고 몫 3개는 남김
+  const budget = prio <= 1 ? MAX_VOICES - 3 : MAX_VOICES; // Reserve space for healing and warnings.
   if (voices >= budget && prio < 3) return true;
   lastAt.set(name, now); lastAny = now;
   const start = (buf: AudioBuffer) => {

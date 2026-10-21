@@ -53,7 +53,7 @@ export function combatSounds(f: Fight, events: readonly FightEvent[], options: {
       case 'bossHeal': add('magic-dark', 0.7); break;
       case 'cure': add('dispel', 0.6); break;
       case 'dispel': add('dispel', 0.6); break;
-      case 'impact': add(e.kind === 'buster' ? 'boss-impact' : e.kind === 'zone' ? 'stone-break' : 'boss-wave'); break;
+      case 'impact': add(e.kind === 'buster' ? 'boss-impact' : e.kind === 'zone' ? 'boss-zone' : 'boss-wave'); break;
       case 'ability': {
         if (e.fumble) { add('status-stagger', 0.4); break; }
         const u = f.party.find(u => u.id === e.id);

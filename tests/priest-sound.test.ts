@@ -40,7 +40,7 @@ describe('사제 전체 스킬 효과음', () => {
     expect(priestSounds(f).cues).toEqual([]);
   });
 
-  it('찬가는 시작에 한 번 울리고 광역 회복 틱에서는 반복하지 않는다', () => {
+  it('찬가는 시작과 광역 회복 틱 (음표 이펙트)마다 찬가 소리를 낸다', () => {
     const f = fight();
     expect(use(f, 'hymn', f.me.cell).ok).toBe(true);
     expect(priestSounds(f).cues.map(c => c.name)).toEqual(['hymn-priest']);
@@ -49,7 +49,8 @@ describe('사제 전체 스킬 효과음', () => {
     f.chTick = .99; healerTick(f);
     const tick = priestSounds(f);
     expect(f.events.some(e => e.type === 'heal')).toBe(true);
-    expect(tick.cues).toEqual([]);
+    expect(f.used?.map(u => u.key)).toEqual(['hymn']); // 음표 이펙트 기록
+    expect(tick.cues).toEqual([{ name: 'hymn-priest', vol: .85 }]);
     expect(tick.handlesHealing).toBe(true);
     expect(tick.allowCrit).toBe(false);
   });
