@@ -1,4 +1,5 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
+import { syncBgm } from '../bgm';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -66,6 +67,7 @@ export function go(id: string, arg?: unknown): void {
   s.enter?.(arg);
   s.el.scrollTop = 0;
   onTabs?.(s.tab);
+  syncBgm(id);
   // overflow:hidden ancestors can still be scrolled by focus/scrollIntoView.
   // Only the active screen's inner list may scroll; never carry this offset to a new screen.
   resetShellScroll();

@@ -1,4 +1,5 @@
 /** S21 설정 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김. 칸 탭 기본 힐·스킬 배치(S17)는 캐릭터 → 스킬로 옮김 */
+import { setBgmOn } from '../bgm';
 import { MAX_LEVEL } from '../data/progression';
 import { Flow } from '../game/flow';
 import { commit, G, heroNow, resetSave, setTestLevelUp, setTestMaxLevel, TEST_LEVEL_STEP } from '../game/state';
@@ -20,6 +21,7 @@ const s = screen('s-settings', '설정', {
 export function pushSettings(): void {
   const b = battle();
   b.settings({ ...G.save.settings, hero: heroNow() });
+  setBgmOn(G.save.settings.music !== false);
   b.onSetting = (k, v) => { (G.save.settings as unknown as Record<string, unknown>)[k] = v; commit(); };
 }
 
@@ -30,7 +32,7 @@ function render(): void {
   const tog = (name: string, label: string) => `<label class="toggle"><input type="checkbox" data-tog="${name}"${(st as unknown as Record<string, boolean>)[name] ? ' checked' : ''}> ${label}</label>`;
   s.el.innerHTML = `${topBar({ back, title: '설정' })}
     <div class="ns-body settings">
-      <section class="group"><h2>소리·진동</h2><div class="row">${tog('sound', '소리')}${tog('vibrate', '진동')}</div></section>
+      <section class="group"><h2>소리·진동</h2><div class="row">${tog('sound', '효과음')}${tog('music', '배경음')}${tog('vibrate', '진동')}</div></section>
       <section class="group"><h2>스킬 휠 위치</h2><div class="chips">${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}</div>
         <button class="btn" type="button" id="toSkills">칸 탭 기본 힐 · 스킬 배치 → 캐릭터</button></section>
       <section class="group"><h2>20인 판</h2>${tog('zoom', '탭한 칸 확대해 보여주기 (0.3초)')}</section>

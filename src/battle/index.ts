@@ -12,6 +12,8 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
+import { setBattleKind } from '../bgm';
+import { CONTENT } from '../data/content';
 import type { ClassKey } from '../data/classes';
 import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import { combatSounds } from './combat-sound';
@@ -895,6 +897,7 @@ function frame(now: number): void {
     closeTip();
     S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.onEnd = o.onEnd || null;
     S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() } as Run;
+    setBattleKind(CONTENT.find(c => c.key === o.content)?.kind ?? 'dungeon'); // 배경음 구간 (탐험 · 던전 · 레이드)
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;
     S.coach = o.coach || null;
