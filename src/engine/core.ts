@@ -367,7 +367,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (u.guardian > 0) {
       u.guardian = 0;
       u.hp = u.max * 0.4;
-      emit(f, { type: 'sound', name: 'chime' });
+      emit(f, { type: 'sound', name: f.cfg.proto ? 'chime' : 'priest-rescue' });
       emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
       if (sv(f, 'wakeGuard')) heal(f, u, intAmt(f, sv(f, 'wakeGuard')), true, true); // 깨어 있는 수호 (42 사제 06)
       return;

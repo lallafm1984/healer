@@ -1,0 +1,826 @@
+{
+  "paid_api_calls": 0,
+  "human_listening": "not performed",
+  "work": ".sfx-raw\\priest-flash-20261021-v5",
+  "flash_reference_recipe": {
+    "source": "src/sfx/heal-priest.ogg",
+    "method": "retime-sfx.shorten: pitch-preserving phase vocoder, original 40ms attack, 8ms crossfade",
+    "reference_phrase_seconds": 0.6,
+    "requested_output_seconds": 0.65,
+    "rms_dbfs": -24
+  },
+  "flash_generation": {
+    "generator": "Sound-design blend of shortened original healing audio and the new Agent Audio fast-air candidate; no additional model call",
+    "processing": {
+      "reference": "references/priest-flash.wav",
+      "reference_sha256": "5996ff7f82188952d6485e9a4e777de4b3d925382b8511dff56cdb3be6627c73",
+      "reference_gain": 0.1,
+      "generated_parent": "priest-flash-03.wav",
+      "parent_sha256": "b0c432fe07ae60e172c18994090873e28e1e2d950710236bd204681c1f2ab9dc",
+      "generated_gain": 0.9,
+      "level_match_dbfs": -24
+    },
+    "parent_generation": {
+      "request": {
+        "name": "priest-flash-03",
+        "reference": "E:\\claude\\healer\\.sfx-raw\\priest-flash-20261021-v5\\references\\priest-flash.wav",
+        "prompt": "A soft rising magical whoosh with a smooth resonant shimmering decay. Warm rounded synthetic harmonics within a short sweeping breath of wind, a fast luminous healing effect, clear middle register, one immediate full-bodied swell then a swift clean release. Smooth airy texture, restrained treble, short stereo tail. One isolated event finished within 0.6 seconds, then silence. No speaking, singing, human voice, vocal vowels, words, lyrics, percussion, bells or music.",
+        "strength": 0.5,
+        "seconds": 1.5,
+        "seed": 202610217,
+        "steps": 8,
+        "reference_sha256": "5996ff7f82188952d6485e9a4e777de4b3d925382b8511dff56cdb3be6627c73",
+        "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+        "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+      },
+      "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+      "duration_wall_seconds": 15.8,
+      "output": {
+        "seconds": 1.5,
+        "sample_rate": 44100,
+        "channels": 2,
+        "sample_width": 2
+      }
+    }
+  },
+  "flash_screening": {
+    "method": "Local CLAP at common -24dBFS RMS (headroom limited) + signal screening; no human listening. Listening files keep their intended mix levels.",
+    "criteria": {
+      "reference_similarity_min": 0.65,
+      "theme_match_min": 0.35,
+      "unwanted_margin": 0.08,
+      "tail_before_fade_max_db": -28
+    },
+    "candidates": [
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-01.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.9119,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2482,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3632,
+          "A person speaking words.": 0.4336,
+          "A person singing lyrics.": 0.1909,
+          "Continuous music with drums and rhythm.": -0.0063,
+          "Harsh distorted electrical buzzing.": -0.0347
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -7.5,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -51.67,
+        "gain_db": -1.13,
+        "sha256": "fbf1f6f5f6e4f913e29c790ac4e15e5afb33f480c5e0bb343dc357359dec6868",
+        "reasons": [
+          "unwanted sound class too strong"
+        ],
+        "screening": "reject"
+      },
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-02.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8886,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3077,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3137,
+          "A person speaking words.": 0.441,
+          "A person singing lyrics.": 0.2147,
+          "Continuous music with drums and rhythm.": 0.0119,
+          "Harsh distorted electrical buzzing.": 0.0838
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -7.05,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -50.12,
+        "gain_db": -1.77,
+        "sha256": "2d3dc76c3a4582ccfc9a8ddbef4f40e53a7b4dbdcf567fbdaadeb1d985dd39e5",
+        "reasons": [
+          "insufficient airy harmonic texture",
+          "unwanted sound class too strong"
+        ],
+        "screening": "reject"
+      },
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-03.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.4687,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.1043,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4697,
+          "A person speaking words.": 0.204,
+          "A person singing lyrics.": -0.0216,
+          "Continuous music with drums and rhythm.": 0.0534,
+          "Harsh distorted electrical buzzing.": -0.2192
+        },
+        "rms_dbfs": -25.8,
+        "peak_dbfs": -4.0,
+        "tail_before_fade_db": -78.9,
+        "expander_upper_dbfs": -50,
+        "gain_db": -3.13,
+        "sha256": "1994fa199a4a70860a9f57e5331a7dd031d43d916c3fa4dc670b300e57e1a2d4",
+        "reasons": [
+          "reference family similarity below .65"
+        ],
+        "screening": "reject"
+      },
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-04.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.9151,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.1766,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3444,
+          "A person speaking words.": 0.4002,
+          "A person singing lyrics.": 0.1606,
+          "Continuous music with drums and rhythm.": -0.0341,
+          "Harsh distorted electrical buzzing.": -0.0225
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -4.42,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -53.19,
+        "gain_db": 2.2,
+        "sha256": "dd3d076550ebb9c946d596e4a8e3ebdb870672d82829c911733347d1d6774938",
+        "reasons": [
+          "insufficient airy harmonic texture",
+          "unwanted sound class too strong"
+        ],
+        "screening": "reject"
+      },
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-05.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8222,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.148,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4094,
+          "A person speaking words.": 0.3618,
+          "A person singing lyrics.": 0.1154,
+          "Continuous music with drums and rhythm.": 0.0004,
+          "Harsh distorted electrical buzzing.": -0.0844
+        },
+        "rms_dbfs": -25.61,
+        "peak_dbfs": -4.0,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -50.81,
+        "gain_db": 0.0,
+        "sha256": "8c0e70b83d5a1df1ebfe579fe689e3b51af23da70a63862f7d3a92f51d790445",
+        "reasons": [
+          "unwanted sound class too strong"
+        ],
+        "screening": "reject"
+      },
+      {
+        "name": "priest-flash",
+        "source": "priest-flash-06.wav",
+        "seconds": 0.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.6765,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.1403,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.463,
+          "A person speaking words.": 0.2887,
+          "A person singing lyrics.": 0.0592,
+          "Continuous music with drums and rhythm.": 0.0275,
+          "Harsh distorted electrical buzzing.": -0.1546
+        },
+        "rms_dbfs": -25.81,
+        "peak_dbfs": -4.0,
+        "tail_before_fade_db": -173.22,
+        "expander_upper_dbfs": -50.71,
+        "gain_db": 0.0,
+        "sha256": "c36d610cd69b82365bd2681c672b2c5b13c77e29e7b5a8a602521ca7643693b9",
+        "reasons": [],
+        "screening": "pass"
+      }
+    ],
+    "selected": {
+      "priest-flash": "priest-flash-06.wav"
+    },
+    "retry": []
+  },
+  "guardian_recipe": {
+    "source": "src/sfx/priest-guardian.ogg",
+    "original_sha256": "b5b581aa9b4e37cdedc390eb6a5acf5f853336b4d0695a3aff643d7d479f2d45",
+    "method": "retime-sfx.py: pitch-preserving full-phrase shortening, 40ms original attack, 8ms crossfade, 35ms end fade",
+    "before_seconds": 1.45,
+    "after_seconds": 0.75
+  },
+  "guardian_screening": {
+    "method": "Signal check after pitch-preserving shortening of the existing guardian sound",
+    "metrics": {
+      "seconds": 0.75,
+      "onset_seconds": 0.0,
+      "tail_db": -29.19,
+      "phone_band_db": -2.6,
+      "clipped_fraction": 0.0,
+      "peak_db": -5.9,
+      "rms_db": -20.0
+    },
+    "reasons": [],
+    "human_listening": "not performed"
+  },
+  "changed": [
+    {
+      "name": "priest-flash",
+      "seconds": 0.65,
+      "channels": 2,
+      "rms_dbfs": -25.799146233296504,
+      "peak_dbfs": -3.8839133202253495,
+      "sha256": "0aec7e0c05ad158d09258c2cb936b0426c0f1db7a0ca03007bea13ab9406fa22",
+      "original_sha256": "51743304af597b70c59c746a14eae1f91616f7a5b8067e30959d325d79b43e9a"
+    },
+    {
+      "name": "priest-guardian",
+      "seconds": 0.75,
+      "channels": 2,
+      "rms_dbfs": -23.893337979193944,
+      "peak_dbfs": -9.502739257159192,
+      "sha256": "33eac22f3ae6ba94431902b67aee2786708be2c4a569fec5d1640805bf538259",
+      "original_sha256": "b5b581aa9b4e37cdedc390eb6a5acf5f853336b4d0695a3aff643d7d479f2d45"
+    }
+  ],
+  "preserved_count": 111,
+  "all_files": [
+    {
+      "name": "ally-control",
+      "seconds": 0.11,
+      "sha256": "922470f3127297ef0a0f720f91cfbe366e297b164029e048ab5b34956aad6f3f"
+    },
+    {
+      "name": "ally-heal",
+      "seconds": 0.17498866213151928,
+      "sha256": "57b1849549d0fb167befd7e004a72a7b17aab7f0b37ea96c7ea73ea42d29bdcc"
+    },
+    {
+      "name": "ally-hurt",
+      "seconds": 0.16498866213151928,
+      "sha256": "8fbbc889c6a0d92c9ac3549dceda83ccf8e7a01cc6b4724e48d6f10172a74ac2"
+    },
+    {
+      "name": "ally-support",
+      "seconds": 0.14498866213151929,
+      "sha256": "414a99adf1f6ca2fbb7a317102ff4b920b8675bc068385b02452106fe2563084"
+    },
+    {
+      "name": "aoe",
+      "seconds": 0.9349886621315193,
+      "sha256": "c53a8724c1babddf0ae3b8e7d3a7f47ae1eaf546a914b13291f3b46d6870de5b"
+    },
+    {
+      "name": "attack-bow",
+      "seconds": 0.2849886621315193,
+      "sha256": "9224f42b27f1e883917bb7997ee0383dcc90afadb99aedc935f8e148b133e804"
+    },
+    {
+      "name": "attack-heavy",
+      "seconds": 0.19,
+      "sha256": "91bd764e339b3cd11d4135e13f57d93f4922d3ea3ae9b38a6953cf1f546db190"
+    },
+    {
+      "name": "attack-magic",
+      "seconds": 0.45,
+      "sha256": "aaf47b82aab85c6a70b4e73a4658ec1b14da5a758ae40665032cd92c2edd3cea"
+    },
+    {
+      "name": "attack-melee",
+      "seconds": 0.34,
+      "sha256": "8f0e99e33a315ff5b5cf162cdf08cfd62865139301964bd85b01a064c9fbfe46"
+    },
+    {
+      "name": "attack-miss",
+      "seconds": 0.16498866213151928,
+      "sha256": "a00c7d7f1ac6f67161b346d58f79b8599e2230e270fbedcdccb6723ed4c12d25"
+    },
+    {
+      "name": "battle-start",
+      "seconds": 0.3849886621315193,
+      "sha256": "270bd3c70f524757b263686db62ac4b51e51dfbc7ad746509779cd9946d31772"
+    },
+    {
+      "name": "boss-enrage",
+      "seconds": 1.5,
+      "sha256": "8a1158e8205cd32c01a6723fa5551d913ecf0f1fc2e11a56972c4f74327879aa"
+    },
+    {
+      "name": "boss-impact",
+      "seconds": 0.3449886621315193,
+      "sha256": "8954b279a8a484415037f8d8fc1c59cd589c850013f0a5c8ebe125d7fd264b58"
+    },
+    {
+      "name": "boss-phase",
+      "seconds": 1.1249886621315193,
+      "sha256": "5e58be1a597ac7c416c5542a89196f3ff7950df03a26f33c8b46cc2e09ce96cf"
+    },
+    {
+      "name": "boss-wave",
+      "seconds": 0.85,
+      "sha256": "07772a6fc07f5d528f92b8469750077a26e7f9edac75eedf3c70c77a07781800"
+    },
+    {
+      "name": "burst",
+      "seconds": 0.08498866213151927,
+      "sha256": "2e6721a47bbc951c7d32c51c255d12b534590a9c35c64468acbdfbbabd8f45e8"
+    },
+    {
+      "name": "buster",
+      "seconds": 0.3249886621315193,
+      "sha256": "69eecd548a6d38a435be4b21355ec4d95717ebfa7c0e26bf5f9f1a9b5f962e60"
+    },
+    {
+      "name": "chest-open",
+      "seconds": 1.45,
+      "sha256": "ee422e1634ec68bedb3f0dde536602cf931fde04d139ff3eb130ac6ecd5596ff"
+    },
+    {
+      "name": "chime",
+      "seconds": 1.2749886621315192,
+      "sha256": "e0d20e87e27d603bf88320279e7db4a44844e31529004539ecf2ad91a7d7fa9b"
+    },
+    {
+      "name": "crit",
+      "seconds": 0.6,
+      "sha256": "6dc80c8049568149affaf606259943b9f326de6480f797c9c52857cca5b3b8c4"
+    },
+    {
+      "name": "death",
+      "seconds": 0.2649886621315193,
+      "sha256": "daa1187b7725ce9d5b2516620dd72de3c0bf0ea96cc70a77512cbc67f55357fb"
+    },
+    {
+      "name": "debuff-curse",
+      "seconds": 0.5449886621315193,
+      "sha256": "7e8a448b6907631794c27f448013bddbde1961a043d2e71b41f53cc8efab4b58"
+    },
+    {
+      "name": "debuff-disease",
+      "seconds": 0.3449886621315193,
+      "sha256": "eee7bd2c6242a58dc20a9d2980b1e71399abd893d18338355eae36f0f5b222a3"
+    },
+    {
+      "name": "debuff-magic",
+      "seconds": 0.08,
+      "sha256": "08eee5d7d8d28e93407bd5824a85d5f7e94830e38091cbf5d8243e80d1c4d7d8"
+    },
+    {
+      "name": "debuff-poison",
+      "seconds": 0.41498866213151925,
+      "sha256": "eeef3e5e9e9de18e485f3ee138efb5a1f4a7859a337c3d5156df3bd782f22621"
+    },
+    {
+      "name": "deny",
+      "seconds": 0.08498866213151927,
+      "sha256": "bad02b45cf1836a32ffbac4af8d48e8db0f557099417705a3d02071611b7dbb4"
+    },
+    {
+      "name": "depart",
+      "seconds": 1.109591836734694,
+      "sha256": "64ea1bb8221604ae819d2fed62d142335ccd0223bdb20fb74223f621e9c00136"
+    },
+    {
+      "name": "dispel",
+      "seconds": 0.5,
+      "sha256": "7a2fdfafb2afb642b12be52846424237e666406c9985b51dcb47401b781433de"
+    },
+    {
+      "name": "gauge",
+      "seconds": 0.63,
+      "sha256": "45e7c16eff5b35d5dbf14262122635a54f0b48f82622c66a195bd524f6612304"
+    },
+    {
+      "name": "gear-equip",
+      "seconds": 0.5,
+      "sha256": "45d3580762ec8f1181db911c760ec883957a82229cc4725dc09b1838de55f09d"
+    },
+    {
+      "name": "gear-lock",
+      "seconds": 0.3,
+      "sha256": "156bf70e24aa0943d2970628b80670a7813bcd038d6efa6e60fae049c9b5eed9"
+    },
+    {
+      "name": "gear-reroll",
+      "seconds": 1.0,
+      "sha256": "16c9e942030607f9441104d5fde59a4422ead5630c078f2d13d1a457d6be1ef2"
+    },
+    {
+      "name": "gear-sell",
+      "seconds": 0.6999773242630386,
+      "sha256": "36545546fcc11e7db80361e845963c1cb10105b3089a5175f021695921b23c4f"
+    },
+    {
+      "name": "gold-gain",
+      "seconds": 0.6,
+      "sha256": "3d6effd51963a5c8d009960b874519a4e77425b8f390f50d4c93c01999a35137"
+    },
+    {
+      "name": "gold-spend",
+      "seconds": 0.6,
+      "sha256": "322034a2cd1cbd356adfd8a1813104812ba56a50782ae9697ac49e8b5e24c8cb"
+    },
+    {
+      "name": "guild-levelup",
+      "seconds": 1.45,
+      "sha256": "485e96ed518fa417b91b9a3643d85921c565f09ef55856c10510da00c98371d8"
+    },
+    {
+      "name": "guild-recruit",
+      "seconds": 0.9,
+      "sha256": "7e31ff37a018b223924b68af2d11b0402806bd16e5bbd56fdb3ee263bd774242"
+    },
+    {
+      "name": "guild-release",
+      "seconds": 0.9,
+      "sha256": "79ce35e8f631b25ad5df3628e0cbbd0f64799a129058f28120c642206240e0fa"
+    },
+    {
+      "name": "heal-astrologer",
+      "seconds": 0.39,
+      "sha256": "254492d0ab273cca4beb14ecacd05fe33030e04b9a14fc6ab44502bef8db685b"
+    },
+    {
+      "name": "heal-druid",
+      "seconds": 0.23498866213151928,
+      "sha256": "1f34379eb79dc06083fabcc46910b6ef9fad307b75f889006f30a5fb43e1bb11"
+    },
+    {
+      "name": "heal-monk",
+      "seconds": 0.12498866213151927,
+      "sha256": "ca79c0c8c77c0912eab74195c70b6a548f56283c9db338107b549db5c514586e"
+    },
+    {
+      "name": "heal-paladin",
+      "seconds": 0.4,
+      "sha256": "9aae061bf5b5dcd285916e00d2ad843e9df55cf1143c5bdcb0987335e4f87651"
+    },
+    {
+      "name": "heal-priest",
+      "seconds": 1.25,
+      "sha256": "993ac0fcc39dbb37046037a714b23d087b11267440689629d1ccc99835cfcabf"
+    },
+    {
+      "name": "heal-shaman",
+      "seconds": 0.37498866213151927,
+      "sha256": "184d7b9ccbb539d281ad7a61b1a7c78ae8a4af3b3fcb81cbbfb4a48334e59b38"
+    },
+    {
+      "name": "heal-warder",
+      "seconds": 0.32,
+      "sha256": "ecd5fef7dfea31d30ab067ae3af9b034acea5318c4921998b52f37aed8cfc14d"
+    },
+    {
+      "name": "heart",
+      "seconds": 0.08498866213151927,
+      "sha256": "fedf6a6297d7fd9a91d0b47475b311f827562db81548ee875dd03af5eb1fd793"
+    },
+    {
+      "name": "hero-switch",
+      "seconds": 1.0,
+      "sha256": "4866b3541a93a88a7f3823e1cd9f509098d77291f0c3e99ed8a98acc049dc7c2"
+    },
+    {
+      "name": "hymn-astrologer",
+      "seconds": 1.1649886621315193,
+      "sha256": "accd48e9306429a4aef965a160fe44f044cb3f7ae875279cf1c1c82bdb3141f0"
+    },
+    {
+      "name": "hymn-druid",
+      "seconds": 1.45,
+      "sha256": "acbd22fa6952d04d3a36ca48ce957ce381b2bfbbeba7f55e77705eb182a1d592"
+    },
+    {
+      "name": "hymn-monk",
+      "seconds": 1.45,
+      "sha256": "7767d28e7431beed7be137dbd5778d8ab66c26653b15b5508f12db03fad4342b"
+    },
+    {
+      "name": "hymn-paladin",
+      "seconds": 1.3849886621315193,
+      "sha256": "31d032354d0c38de581de0e5375208b6ad09063a9903eda24fd2de0390f59fa3"
+    },
+    {
+      "name": "hymn-priest",
+      "seconds": 1.2849886621315192,
+      "sha256": "f0ef5081a3de2a0029ac6b317574975f634121b1a338379e58e167187eeee7ee"
+    },
+    {
+      "name": "hymn-shaman",
+      "seconds": 1.3049886621315192,
+      "sha256": "99e04bef65d8bfb5b06cb72a341d5bc7ec8dd921ce84062fe3ad88f4c09c83e1"
+    },
+    {
+      "name": "hymn-warder",
+      "seconds": 1.4249886621315193,
+      "sha256": "da2221e913f596a5e966678db3ae873b46f10937aaf6bc4f37c9b2bf164b5d06"
+    },
+    {
+      "name": "level-up",
+      "seconds": 1.45,
+      "sha256": "af9131f4957d8465969532f712589b674b2acb6f2cc6427c7fa77af2cb078fd2"
+    },
+    {
+      "name": "loot-legend",
+      "seconds": 1.45,
+      "sha256": "bd4238bb11dc5da56d9e9a33e4fd1374d6d34ac8ce21f70452b11b44244fb816"
+    },
+    {
+      "name": "loot-rare",
+      "seconds": 0.9,
+      "sha256": "5191b538ec08cc65d4214bd4e0ea92914fd06f0cd6a9bd2000c79182f10733a3"
+    },
+    {
+      "name": "loot",
+      "seconds": 0.5,
+      "sha256": "885097013b43549aee47f4ee3ccdc6cfb8e902fd3f716c85bc22453f3ca683fd"
+    },
+    {
+      "name": "lose",
+      "seconds": 0.5649886621315193,
+      "sha256": "ba4cc9fba2fec0395e27f05945a158611d777a0c801ba5e7592a8cd11c07b63b"
+    },
+    {
+      "name": "magic-dark",
+      "seconds": 0.24498866213151926,
+      "sha256": "e948c622fa2862250fbfb4f2777aeccc13292e332fd20892b5d3d26f57f3f585"
+    },
+    {
+      "name": "magic-fire",
+      "seconds": 0.5149886621315193,
+      "sha256": "738aaf6f41fa4f3aa53683f941dc077cfb3c3e963bb73d2c7c3b7eac783b5517"
+    },
+    {
+      "name": "magic-grow",
+      "seconds": 0.4649886621315193,
+      "sha256": "ad5af11b2b81e1560f658f5b00c454868658468538973b0994a56f65a7d370ce"
+    },
+    {
+      "name": "magic-lightning",
+      "seconds": 0.13498866213151928,
+      "sha256": "6821bd3edaba7ac8821b573a75dd10ee673ee94452d5882207b6ad82eaee6a0c"
+    },
+    {
+      "name": "magic-link",
+      "seconds": 0.45,
+      "sha256": "ffb52981d0601d170c14a026ffa7c7c6c0976ab9065599d099af5903b6d619f7"
+    },
+    {
+      "name": "magic-shift",
+      "seconds": 0.18498866213151927,
+      "sha256": "1a991ba52f5d454fc0f788d1f5fd0a0be8c9fbfe5c598471ebaa8f6600f7db3a"
+    },
+    {
+      "name": "magic-water",
+      "seconds": 0.3849886621315193,
+      "sha256": "48cf08e383ab0b7412a7086209a1c72a73920d969da6bb070d324bd627fa90df"
+    },
+    {
+      "name": "magic-wind",
+      "seconds": 0.65,
+      "sha256": "4803d1dc5a37dd8b12f50b9fc6fcb1adf776501860a9d05ef5fffa673082281c"
+    },
+    {
+      "name": "merchant-reveal",
+      "seconds": 1.0,
+      "sha256": "1021e201e4abc5a648bf32065536e052db9f7b360faad70585dc1097aec7a5eb"
+    },
+    {
+      "name": "mission-claim",
+      "seconds": 0.5896145124716553,
+      "sha256": "84b2f2a84ab382e49072e067bd7046b24b9fe18669ddf012413a839d4ed96dac"
+    },
+    {
+      "name": "mob-down",
+      "seconds": 0.09498866213151927,
+      "sha256": "6c83b232be4dcec8f54c44b813a3691d9c82392689a2a8f90a7faf6670220e5e"
+    },
+    {
+      "name": "parry",
+      "seconds": 0.42,
+      "sha256": "aed55f4b7281cdc38ec4f02e0a8d2d06b9dae3bdb4de5fb1cebd1663d3d916d6"
+    },
+    {
+      "name": "priest-crit",
+      "seconds": 0.55,
+      "sha256": "e8fd7583baea9952cd1b261bab53fa18f12bebbc3511364227fea587c2828089"
+    },
+    {
+      "name": "priest-flash",
+      "seconds": 0.65,
+      "sha256": "0aec7e0c05ad158d09258c2cb936b0426c0f1db7a0ca03007bea13ab9406fa22"
+    },
+    {
+      "name": "priest-guardian",
+      "seconds": 0.75,
+      "sha256": "33eac22f3ae6ba94431902b67aee2786708be2c4a569fec5d1640805bf538259"
+    },
+    {
+      "name": "priest-miracle",
+      "seconds": 1.1,
+      "sha256": "b3165259fc42d27be59bc0a992f29bf5b624a1c7a6817cb7174365f8997cb02e"
+    },
+    {
+      "name": "priest-prayer",
+      "seconds": 1.0449886621315192,
+      "sha256": "bb3f9cb431bd4b1b99a16745c8f0cab914b2c0c961cd2bd3b31a02eafea05c02"
+    },
+    {
+      "name": "priest-purify",
+      "seconds": 0.95,
+      "sha256": "0c7d19309c754ea0b4f23ba48059e7a2f401fff4c04ad029fc50196d5335ba72"
+    },
+    {
+      "name": "priest-ready",
+      "seconds": 0.97,
+      "sha256": "e2a4b32d92288c704bebf87df589393cd04ac05e0b731093a011295a8c656934"
+    },
+    {
+      "name": "priest-relay-hop",
+      "seconds": 0.65,
+      "sha256": "a4f70c07dcf8ea3ae51a5de4312bc1f2de916544fac24b2638bb9b3d4a76ccaf"
+    },
+    {
+      "name": "priest-relay",
+      "seconds": 0.82,
+      "sha256": "5262c06fa042de30bec6ac1e5067b120db4b964871c17c46d567f4b2cb93e8a7"
+    },
+    {
+      "name": "priest-rescue",
+      "seconds": 1.45,
+      "sha256": "0b2d46ea68b9039ff0fae755a5e966a0c0d3fb15ae7c471a4778ab6851553d3f"
+    },
+    {
+      "name": "priest-scatter",
+      "seconds": 1.1,
+      "sha256": "99a4055146cce4e89a4ed943a7579a556eed94925a4876aff47f2c9b3e0b9e94"
+    },
+    {
+      "name": "priest-serenity",
+      "seconds": 1.45,
+      "sha256": "549a12cb2920aab3feaed438436071ae6f7f6e47e6e9d591f80bc8f84ec279c6"
+    },
+    {
+      "name": "priest-shelter",
+      "seconds": 0.5249886621315193,
+      "sha256": "e85246013ea6f673016e257434eb13df8919864941dc2dc30ba9e870cc441404"
+    },
+    {
+      "name": "priest-zenith",
+      "seconds": 1.45,
+      "sha256": "06e948921544e9aea8018d9f5297818525bf1e59218da4b396aaba7c3a47c882"
+    },
+    {
+      "name": "proc",
+      "seconds": 0.4,
+      "sha256": "e391006e3fa5899fa6d780e4ac692dbb5a222d4be2b87403c9022b70054bfb4b"
+    },
+    {
+      "name": "purchase",
+      "seconds": 1.2,
+      "sha256": "239f2a48e51188764124f6b835da2c991bc2f6ab5ed677812d6487384ddf0efc"
+    },
+    {
+      "name": "renew-astrologer",
+      "seconds": 0.58,
+      "sha256": "9e91bb3f552a82b671f4d32dfe30a7327a7b016152219704ff01472863f37f7a"
+    },
+    {
+      "name": "renew-druid",
+      "seconds": 0.7449886621315193,
+      "sha256": "93b25cf01df55fa0c3c7182742444339775d3bc671b4db77375a0d96674a3c59"
+    },
+    {
+      "name": "renew-monk",
+      "seconds": 0.2849886621315193,
+      "sha256": "9ea448879d496402d9fddb237ced808097c0ee09de059f06a3c9ed07236c2190"
+    },
+    {
+      "name": "renew-paladin",
+      "seconds": 0.7049886621315192,
+      "sha256": "02b2bb46d6f7f26bcb10b52eb95b899b378f101521cb830ec0249f8d3444847b"
+    },
+    {
+      "name": "renew-priest",
+      "seconds": 0.55,
+      "sha256": "56e6029488c90ac0b795670d8b65b103fb11956fdef3945be3fa0d179e554496"
+    },
+    {
+      "name": "renew-shaman",
+      "seconds": 0.53,
+      "sha256": "37f71ac498eea50a2e1f5c305710a1d062a4bebd6bbbb5630229c170e3fd3c13"
+    },
+    {
+      "name": "renew-warder",
+      "seconds": 0.8,
+      "sha256": "c2d15cdd38121a7afc80c7fa08265ac0af417923fc167d0f229cf7d257b58ee4"
+    },
+    {
+      "name": "rest-bonus",
+      "seconds": 1.0,
+      "sha256": "348ce5ca7f74733a456571ef6686e09e5b4576406cf4a59d5a561ac4b0676dbf"
+    },
+    {
+      "name": "rest-charge",
+      "seconds": 1.0,
+      "sha256": "a9c147f1a59384fd3ee7971a7ef75963fb1e77c1fa6493b8497fabe6b371c2c2"
+    },
+    {
+      "name": "revive",
+      "seconds": 1.22,
+      "sha256": "14a621481afce40a4fbe299ff4789719b85c12844c752a0810d8660719e9b019"
+    },
+    {
+      "name": "shield",
+      "seconds": 0.13498866213151928,
+      "sha256": "4b7bc781a1a2cbb8ef19764a49bf1527bb2b5011ceda73837b8dd3e63df25bcc"
+    },
+    {
+      "name": "sortie",
+      "seconds": 0.6999773242630386,
+      "sha256": "9dcc2b7adcb2402774779e194df784af2a0e52be55d556da6cb4b5d5a4620c4c"
+    },
+    {
+      "name": "status-stagger",
+      "seconds": 0.34997732426303857,
+      "sha256": "4329def1fbfb02927dcc7939a16786d8a77bd205f1b7668ea3a3e014d07ead94"
+    },
+    {
+      "name": "stone-break",
+      "seconds": 0.65,
+      "sha256": "712ee753b83ea527529b47fea2244c1308346fc7af67fa194677d56d40f9aeb8"
+    },
+    {
+      "name": "talent-pick",
+      "seconds": 0.9,
+      "sha256": "5bd9fd1b8096ad1a0754883285b6a70ad4a119fd64a629c8f734b7b98cd4ee17"
+    },
+    {
+      "name": "talent-use",
+      "seconds": 0.2849886621315193,
+      "sha256": "55c6d8dadc58c5498f028f97255e66f97aef90d17d24a44a83113a3e53687e6f"
+    },
+    {
+      "name": "tick",
+      "seconds": 0.12,
+      "sha256": "85adb40f97e10496ce5da6306b4a0ad88ce09af13166398cc9ee1142917c7522"
+    },
+    {
+      "name": "title-start",
+      "seconds": 1.45,
+      "sha256": "8e1418ea02f7ef701950447cb2a4a096594a2a0d1567a36783bf0f3b2bd996db"
+    },
+    {
+      "name": "ui-close",
+      "seconds": 0.3,
+      "sha256": "0db40f9fa698a3b3d6681778e90a3124f75b9d1fca860151325889f12903438e"
+    },
+    {
+      "name": "ui-confirm",
+      "seconds": 0.45,
+      "sha256": "fa83b599d5408514b04c74be5aab5f02492654471b1dcbcaa776c01a548b387d"
+    },
+    {
+      "name": "ui-open",
+      "seconds": 0.34997732426303857,
+      "sha256": "12c830d35791b3519f4514e4b4636930b541456ea87835362ceb216f25c33d77"
+    },
+    {
+      "name": "ui-tab",
+      "seconds": 0.26231292517006805,
+      "sha256": "b6ca4af280146949ae1b53ef6c9e94bf05f4baaaff969ff202c168c6c2f5bb17"
+    },
+    {
+      "name": "ui-tap",
+      "seconds": 0.15,
+      "sha256": "fc7493642478252d35516abb1b14be72912d1c8c007e96bd4136452fb52c02a8"
+    },
+    {
+      "name": "ui-toggle",
+      "seconds": 0.14535147392290249,
+      "sha256": "369817c33b81d8837854c52ae3dd83837ba33dc169f97d2c0979e7f91b38b0f5"
+    },
+    {
+      "name": "win",
+      "seconds": 1.11,
+      "sha256": "11476639cc17479e8acd3e86c41aea5501e1befac42b9de132884fd8283ecd5d"
+    },
+    {
+      "name": "zone",
+      "seconds": 0.43498866213151927,
+      "sha256": "c0cad021b519551d622eecb17b560f89872c5458db8e5149cad325ad1fb00ee7"
+    }
+  ]
+}

@@ -1,0 +1,1496 @@
+{
+  "paid_api_calls": 0,
+  "human_listening": "not performed",
+  "preserved": [
+    {
+      "name": "heal-priest",
+      "hash": "993AC0FCC39DBB37046037A714B23D087B11267440689629D1CCC99835CFCABF"
+    },
+    {
+      "name": "priest-flash",
+      "hash": "51743304AF597B70C59C746A14EAE1F91616F7A5B8067E30959D325D79B43E9A"
+    },
+    {
+      "name": "priest-serenity",
+      "hash": "057E5B01248ED8AC6A696C2C78779748E4772B16F99ED37C7EF27084F1439B5A"
+    },
+    {
+      "name": "priest-purify",
+      "hash": "0C7D19309C754EA0B4F23BA48059E7A2F401FFF4C04AD029FC50196D5335BA72"
+    }
+  ],
+  "screening": {
+    "method": "Local CLAP acoustic-description match and separation from retained healing audio, plus signal checks; no human listening.",
+    "criteria": {
+      "acoustic_match_min": 0.22,
+      "unwanted_overrun_max": 0.025,
+      "heal_similarity_max_except_renew": 0.8,
+      "tail_before_fade_max_db": -18,
+      "phone_band_min_db": -16,
+      "source_clipped_fraction_max": 0.002
+    },
+    "candidates": [
+      {
+        "name": "renew-priest",
+        "source": "renew-priest-01.wav",
+        "reasons": [
+          "unfinished loud tail"
+        ],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 0.035,
+          "tail_db": -5.57,
+          "phone_band_db": -0.01,
+          "clipped_fraction": 0.0,
+          "peak_db": -16.46969664384715,
+          "rms_db": -27.101968624628974,
+          "channels": 2,
+          "expander_upper_dbfs": -59.13577413732198
+        },
+        "match": "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.",
+        "descriptors": {
+          "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.": 0.3919,
+          "A short fantasy video game sound effect.": 0.4674,
+          "A person speaking words.": 0.2528,
+          "A person singing lyrics.": 0.3204,
+          "Continuous background music with drums and a beat.": 0.0254,
+          "Background room noise and static hiss.": 0.1121,
+          "Traffic and engine noise.": 0.0362
+        },
+        "heal_similarity": 0.757,
+        "rank_score": 0.07158222794532776,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\renew-priest-01.wav",
+        "sha256": "e5b5d0a06d8c7b5b968b5be5b38e236537b49468261d1e130d1964d05ae59eaa",
+        "screening": "reject"
+      },
+      {
+        "name": "renew-priest",
+        "source": "renew-priest-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 0.035,
+          "tail_db": -27.51,
+          "phone_band_db": -1.14,
+          "clipped_fraction": 0.0,
+          "peak_db": -9.51992311995963,
+          "rms_db": -27.004542213324264,
+          "channels": 2,
+          "expander_upper_dbfs": -57.423668291734785
+        },
+        "match": "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.",
+        "descriptors": {
+          "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.": 0.3966,
+          "A short fantasy video game sound effect.": 0.3118,
+          "A person speaking words.": 0.1954,
+          "A person singing lyrics.": 0.0467,
+          "Continuous background music with drums and a beat.": -0.0857,
+          "Background room noise and static hiss.": 0.0818,
+          "Traffic and engine noise.": 0.0306
+        },
+        "heal_similarity": 0.5395,
+        "rank_score": 0.201152041554451,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\renew-priest-02.wav",
+        "sha256": "c289bb3903d3f818014d6e93e9e79231ded779aca873705840bd48854f85bcd2",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-prayer",
+        "source": "priest-prayer-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.0449886621315192,
+          "onset_seconds": 0.025,
+          "tail_db": -30.2,
+          "phone_band_db": -0.0,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.060697977065428,
+          "rms_db": -24.000518488128783,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence.",
+        "descriptors": {
+          "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence.": 0.6416,
+          "A short fantasy video game sound effect.": 0.3268,
+          "A person speaking words.": -0.054,
+          "A person singing lyrics.": -0.1206,
+          "Continuous background music with drums and a beat.": -0.1265,
+          "Background room noise and static hiss.": -0.2315,
+          "Traffic and engine noise.": -0.1132
+        },
+        "heal_similarity": 0.3787,
+        "rank_score": 0.695573017001152,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-prayer-01.wav",
+        "sha256": "1c5cf6a86002f6287ed0f692e34371414565118339f3838a8f2d75d8b5200c88",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-guardian",
+        "source": "priest-guardian-01.wav",
+        "reasons": [
+          "weak phone-speaker midrange"
+        ],
+        "metrics": {
+          "seconds": 2.0,
+          "onset_seconds": 0.0,
+          "tail_db": -29.63,
+          "phone_band_db": -18.93,
+          "clipped_fraction": 0.0,
+          "peak_db": -9.543750557098674,
+          "rms_db": -24.00066247586169,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.",
+        "descriptors": {
+          "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.": 0.4606,
+          "A short fantasy video game sound effect.": 0.2924,
+          "A person speaking words.": 0.2176,
+          "A person singing lyrics.": 0.2625,
+          "Continuous background music with drums and a beat.": 0.0048,
+          "Background room noise and static hiss.": 0.2132,
+          "Traffic and engine noise.": 0.0466
+        },
+        "heal_similarity": 0.6552,
+        "rank_score": 0.1980985403060913,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-guardian-01.wav",
+        "sha256": "40988a7d4e6238e0fa1ead320834357d814670163068a87b2d644bb94353b8fa",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-guardian",
+        "source": "priest-guardian-02.wav",
+        "reasons": [
+          "weak phone-speaker midrange"
+        ],
+        "metrics": {
+          "seconds": 1.5949886621315192,
+          "onset_seconds": 0.015,
+          "tail_db": -30.59,
+          "phone_band_db": -29.4,
+          "clipped_fraction": 0.0,
+          "peak_db": -10.713480044600647,
+          "rms_db": -24.00044595328959,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.",
+        "descriptors": {
+          "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.": 0.4915,
+          "A short fantasy video game sound effect.": 0.3441,
+          "A person speaking words.": 0.2589,
+          "A person singing lyrics.": 0.0421,
+          "Continuous background music with drums and a beat.": 0.0476,
+          "Background room noise and static hiss.": 0.1041,
+          "Traffic and engine noise.": 0.0024
+        },
+        "heal_similarity": 0.6274,
+        "rank_score": 0.23264434933662415,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-guardian-02.wav",
+        "sha256": "e9fb01583ce9e8233538278d6cb5e3a3cf58356d8dc3024706c9ab309e6cf9cd",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-guardian",
+        "source": "priest-guardian-04.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.9149886621315193,
+          "onset_seconds": 0.105,
+          "tail_db": -30.71,
+          "phone_band_db": -1.71,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.47776973629491,
+          "rms_db": -24.000440933011582,
+          "channels": 2,
+          "expander_upper_dbfs": -68.32668202100727
+        },
+        "match": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.",
+        "descriptors": {
+          "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.": 0.4651,
+          "A short fantasy video game sound effect.": 0.4753,
+          "A person speaking words.": 0.1793,
+          "A person singing lyrics.": 0.0759,
+          "Continuous background music with drums and a beat.": -0.026,
+          "Background room noise and static hiss.": 0.1718,
+          "Traffic and engine noise.": 0.0626
+        },
+        "heal_similarity": 0.5725,
+        "rank_score": 0.2858879119157791,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-guardian-04.wav",
+        "sha256": "f1483316fab8becb9adf9a19626d856735cfd762704128a237d20ca515fab863",
+        "screening": "pass"
+      },
+      {
+        "name": "hymn-priest",
+        "source": "hymn-priest-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.8549886621315193,
+          "onset_seconds": 0.015,
+          "tail_db": -30.46,
+          "phone_band_db": -1.25,
+          "clipped_fraction": 0.0,
+          "peak_db": -12.71790668041487,
+          "rms_db": -26.000462990134487,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One short majestic pipe organ chord with clear wooden flute pipes and a deep warm foundation, swelling once and releasing smoothly into silence.",
+        "descriptors": {
+          "One short majestic pipe organ chord with clear wooden flute pipes and a deep warm foundation, swelling once and releasing smoothly into silence.": 0.5348,
+          "A short fantasy video game sound effect.": 0.3374,
+          "A person speaking words.": 0.1566,
+          "A person singing lyrics.": 0.3967,
+          "Continuous background music with drums and a beat.": -0.0418,
+          "Background room noise and static hiss.": -0.0063,
+          "Traffic and engine noise.": -0.0424
+        },
+        "heal_similarity": 0.7849,
+        "rank_score": 0.13810700178146362,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\hymn-priest-01.wav",
+        "sha256": "1f688684b9d9ed31d4ec850022bafe425b77707efd0e8d02e706421a921fb9b2",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-relay",
+        "source": "priest-relay-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.0249886621315192,
+          "onset_seconds": 0.915,
+          "tail_db": -31.49,
+          "phone_band_db": -15.67,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -29.524279910490616,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.4208,
+          "A short fantasy video game sound effect.": 0.1423,
+          "A person speaking words.": 0.2734,
+          "A person singing lyrics.": -0.0422,
+          "Continuous background music with drums and a beat.": -0.0225,
+          "Background room noise and static hiss.": 0.085,
+          "Traffic and engine noise.": -0.105
+        },
+        "heal_similarity": 0.3181,
+        "rank_score": 0.14736783504486084,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-01.wav",
+        "sha256": "c485175db4523b7d352e4fb8edea0898724ac747f4f8f3e28ed37a1e20e90fbf",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-relay",
+        "source": "priest-relay-02.wav",
+        "reasons": [
+          "low acoustic-description match"
+        ],
+        "metrics": {
+          "seconds": 0.12,
+          "onset_seconds": 0.0,
+          "tail_db": -31.73,
+          "phone_band_db": -0.21,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -28.196341593209063,
+          "channels": 2,
+          "expander_upper_dbfs": -59.51200317799316
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.1043,
+          "A short fantasy video game sound effect.": 0.0688,
+          "A person speaking words.": 0.0844,
+          "A person singing lyrics.": 0.0457,
+          "Continuous background music with drums and a beat.": -0.02,
+          "Background room noise and static hiss.": 0.0619,
+          "Traffic and engine noise.": 0.1215
+        },
+        "heal_similarity": 0.3611,
+        "rank_score": -0.017208166420459747,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-02.wav",
+        "sha256": "b52734926cb8af9a7b913433f00ab0a9c7cf6cb41b843411babea9313454ed63",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-relay",
+        "source": "priest-relay-04.wav",
+        "reasons": [
+          "low acoustic-description match"
+        ],
+        "metrics": {
+          "seconds": 0.16498866213151928,
+          "onset_seconds": 0.045,
+          "tail_db": -29.66,
+          "phone_band_db": -0.34,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -26.19121548269959,
+          "channels": 2,
+          "expander_upper_dbfs": -57.32094964694248
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.1,
+          "A short fantasy video game sound effect.": 0.0413,
+          "A person speaking words.": 0.0853,
+          "A person singing lyrics.": -0.0236,
+          "Continuous background music with drums and a beat.": -0.0666,
+          "Background room noise and static hiss.": 0.0493,
+          "Traffic and engine noise.": 0.0671
+        },
+        "heal_similarity": 0.3611,
+        "rank_score": 0.014756523072719574,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-04.wav",
+        "sha256": "5609e2742efad5e8ac627b099931925eff34b94dd7052be70abf149c29a1ae4a",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-relay",
+        "source": "priest-relay-05.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.49498866213151926,
+          "onset_seconds": 0.515,
+          "tail_db": -30.3,
+          "phone_band_db": -8.69,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -26.237674437301187,
+          "channels": 2,
+          "expander_upper_dbfs": -58.08083144263623
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.2446,
+          "A short fantasy video game sound effect.": 0.1238,
+          "A person speaking words.": 0.2529,
+          "A person singing lyrics.": 0.0163,
+          "Continuous background music with drums and a beat.": 0.0642,
+          "Background room noise and static hiss.": 0.0266,
+          "Traffic and engine noise.": 0.0174
+        },
+        "heal_similarity": 0.3637,
+        "rank_score": -0.00832211971282959,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-05.wav",
+        "sha256": "3e23af414e6c356a04d40ce60c99a588a73c4d4678b64251115440a92d18b047",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-relay",
+        "source": "priest-relay-06.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.82,
+          "onset_seconds": 0.0,
+          "tail_db": -29.66,
+          "phone_band_db": -2.5,
+          "clipped_fraction": 0.0,
+          "peak_db": -11.184669314326555,
+          "rms_db": -25.002477913720686,
+          "channels": 2,
+          "expander_upper_dbfs": -60.72544587441641
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.4597,
+          "A short fantasy video game sound effect.": 0.5235,
+          "A person speaking words.": 0.2389,
+          "A person singing lyrics.": -0.0145,
+          "Continuous background music with drums and a beat.": 0.1442,
+          "Background room noise and static hiss.": 0.055,
+          "Traffic and engine noise.": -0.0111
+        },
+        "heal_similarity": 0.5207,
+        "rank_score": 0.2208014279603958,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-06.wav",
+        "sha256": "11d2ae8adbbc1908f4811cba65ce810dd6770033d53ec3c5dc4c63335473a848",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-miracle",
+        "source": "priest-miracle-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.2749886621315192,
+          "onset_seconds": 0.515,
+          "tail_db": -21.7,
+          "phone_band_db": -2.02,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.816144805207852,
+          "rms_db": -24.003140065553374,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "A brief reversed soft cymbal swell opens into one bright celesta chord, a sudden sparkling reveal with a rapid delicate metallic decay.",
+        "descriptors": {
+          "A brief reversed soft cymbal swell opens into one bright celesta chord, a sudden sparkling reveal with a rapid delicate metallic decay.": 0.5628,
+          "A short fantasy video game sound effect.": 0.4122,
+          "A person speaking words.": 0.1493,
+          "A person singing lyrics.": 0.0144,
+          "Continuous background music with drums and a beat.": -0.0151,
+          "Background room noise and static hiss.": 0.0688,
+          "Traffic and engine noise.": 0.0756
+        },
+        "heal_similarity": 0.4442,
+        "rank_score": 0.41358961164951324,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-miracle-01.wav",
+        "sha256": "c735bae2c8c5d69c531bb3f406fe99fe0073879f8def1714d8d805876284181b",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-shelter",
+        "source": "priest-shelter-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.1049886621315193,
+          "onset_seconds": 0.805,
+          "tail_db": -30.5,
+          "phone_band_db": -4.09,
+          "clipped_fraction": 0.0,
+          "peak_db": -5.922024352922786,
+          "rms_db": -26.001662873532084,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "A thick silk curtain unfurls gently and settles with a soft hollow wooden resonance, a warm sheltered swish and quiet enclosed release.",
+        "descriptors": {
+          "A thick silk curtain unfurls gently and settles with a soft hollow wooden resonance, a warm sheltered swish and quiet enclosed release.": 0.45,
+          "A short fantasy video game sound effect.": 0.3321,
+          "A person speaking words.": 0.1981,
+          "A person singing lyrics.": 0.0042,
+          "Continuous background music with drums and a beat.": -0.0789,
+          "Background room noise and static hiss.": 0.1616,
+          "Traffic and engine noise.": 0.1013
+        },
+        "heal_similarity": 0.4373,
+        "rank_score": 0.2518894672393799,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-shelter-01.wav",
+        "sha256": "5ca1570f36e87e57d6e633f13078e5923b1abd55e93ec4e75590bd512f96436c",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-zenith",
+        "source": "priest-zenith-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.7049886621315193,
+          "onset_seconds": 0.025,
+          "tail_db": -30.55,
+          "phone_band_db": -0.43,
+          "clipped_fraction": 0.0,
+          "peak_db": -6.485010305163991,
+          "rms_db": -24.00040727360998,
+          "channels": 2,
+          "expander_upper_dbfs": -58.28370424520778
+        },
+        "match": "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped.",
+        "descriptors": {
+          "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped.": 0.3874,
+          "A short fantasy video game sound effect.": 0.4751,
+          "A person speaking words.": 0.143,
+          "A person singing lyrics.": 0.0994,
+          "Continuous background music with drums and a beat.": -0.1439,
+          "Background room noise and static hiss.": -0.0528,
+          "Traffic and engine noise.": -0.0929
+        },
+        "heal_similarity": 0.6945,
+        "rank_score": 0.24434182047843933,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-zenith-01.wav",
+        "sha256": "7b78f89e43169dccc2db3d107f3a17a14f3ed6e21d32eca470f8e166e3ca4e81",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-scatter",
+        "source": "priest-scatter-01.wav",
+        "reasons": [
+          "unfinished loud tail"
+        ],
+        "metrics": {
+          "seconds": 1.75,
+          "onset_seconds": 0.0,
+          "tail_db": -16.9,
+          "phone_band_db": -0.05,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.381923499328458,
+          "rms_db": -26.015073285286157,
+          "channels": 2,
+          "expander_upper_dbfs": -57.59514812207078
+        },
+        "match": "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.",
+        "descriptors": {
+          "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.": 0.2903,
+          "A short fantasy video game sound effect.": 0.4075,
+          "A person speaking words.": 0.0553,
+          "A person singing lyrics.": 0.2231,
+          "Continuous background music with drums and a beat.": 0.1561,
+          "Background room noise and static hiss.": -0.1232,
+          "Traffic and engine noise.": -0.0634
+        },
+        "heal_similarity": 0.5168,
+        "rank_score": 0.06719522178173065,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-scatter-01.wav",
+        "sha256": "f762c356b024e93dd90c100b9f1c5226a340a34c806414cca8a8d26f989e7921",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-scatter",
+        "source": "priest-scatter-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.34,
+          "onset_seconds": 0.0,
+          "tail_db": -38.33,
+          "phone_band_db": -3.56,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.133910966548594,
+          "rms_db": -26.00041872680417,
+          "channels": 2,
+          "expander_upper_dbfs": -62.257085844934664
+        },
+        "match": "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.",
+        "descriptors": {
+          "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.": 0.2298,
+          "A short fantasy video game sound effect.": 0.2203,
+          "A person speaking words.": 0.1287,
+          "A person singing lyrics.": 0.0156,
+          "Continuous background music with drums and a beat.": -0.1846,
+          "Background room noise and static hiss.": -0.0549,
+          "Traffic and engine noise.": 0.0109
+        },
+        "heal_similarity": 0.356,
+        "rank_score": 0.10108262300491333,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-scatter-02.wav",
+        "sha256": "40f8e96836f9e0ac6b381548d4b517bc0be5a18c8cfe508fa2c1048f2e19df64",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-ready",
+        "source": "priest-ready-01.wav",
+        "reasons": [
+          "unfinished loud tail"
+        ],
+        "metrics": {
+          "seconds": 1.05,
+          "onset_seconds": 0.0,
+          "tail_db": -10.61,
+          "phone_band_db": -2.24,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.21488073493905,
+          "rms_db": -26.04263402725742,
+          "channels": 2,
+          "expander_upper_dbfs": -56.461595129256935
+        },
+        "match": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+        "descriptors": {
+          "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.": 0.5095,
+          "A short fantasy video game sound effect.": 0.3653,
+          "A person speaking words.": 0.1151,
+          "A person singing lyrics.": 0.1426,
+          "Continuous background music with drums and a beat.": 0.0841,
+          "Background room noise and static hiss.": -0.1058,
+          "Traffic and engine noise.": -0.073
+        },
+        "heal_similarity": 0.4465,
+        "rank_score": 0.36691714823246,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-ready-01.wav",
+        "sha256": "9823670cfeccd830ceb5e5dfbfb4e8ea17b1baa9d11bdcce9d91d1fde6fa4f12",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-ready",
+        "source": "priest-ready-02.wav",
+        "reasons": [
+          "weak event dominated by a sharp peak"
+        ],
+        "metrics": {
+          "seconds": 0.8,
+          "onset_seconds": 0.0,
+          "tail_db": -29.68,
+          "phone_band_db": -0.33,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -31.79004268062595,
+          "channels": 2,
+          "expander_upper_dbfs": -66.06204805237105
+        },
+        "match": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+        "descriptors": {
+          "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.": 0.3343,
+          "A short fantasy video game sound effect.": 0.1702,
+          "A person speaking words.": 0.1132,
+          "A person singing lyrics.": 0.0467,
+          "Continuous background music with drums and a beat.": -0.1013,
+          "Background room noise and static hiss.": -0.0196,
+          "Traffic and engine noise.": -0.0709
+        },
+        "heal_similarity": 0.3611,
+        "rank_score": 0.22110086679458618,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-ready-02.wav",
+        "sha256": "7d072dbda88a9888657933a5942b88efbce7105cc3ddb2786c7f583880587acb",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-ready",
+        "source": "priest-ready-04.wav",
+        "reasons": [
+          "low acoustic-description match",
+          "unwanted sound class dominates"
+        ],
+        "metrics": {
+          "seconds": 0.19498866213151927,
+          "onset_seconds": 0.005,
+          "tail_db": -32.37,
+          "phone_band_db": -1.11,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.0000883347026726,
+          "rms_db": -26.974017672726056,
+          "channels": 2,
+          "expander_upper_dbfs": -60.118255993042084
+        },
+        "match": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+        "descriptors": {
+          "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.": -0.1058,
+          "A short fantasy video game sound effect.": 0.0114,
+          "A person speaking words.": 0.1161,
+          "A person singing lyrics.": -0.0722,
+          "Continuous background music with drums and a beat.": -0.0579,
+          "Background room noise and static hiss.": 0.1549,
+          "Traffic and engine noise.": 0.0856
+        },
+        "heal_similarity": 0.3742,
+        "rank_score": -0.26066718995571136,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-ready-04.wav",
+        "sha256": "b47ce5e7c60ab0e75a5aeffdf97ad6a659b2c8febaca39c433cb1ca61bd5e38c",
+        "screening": "reject"
+      },
+      {
+        "name": "priest-ready",
+        "source": "priest-ready-05.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.97,
+          "onset_seconds": 0.0,
+          "tail_db": -30.48,
+          "phone_band_db": -1.48,
+          "clipped_fraction": 0.0,
+          "peak_db": -5.247571970049252,
+          "rms_db": -26.001223771202135,
+          "channels": 2,
+          "expander_upper_dbfs": -60.827843136831696
+        },
+        "match": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+        "descriptors": {
+          "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.": 0.5274,
+          "A short fantasy video game sound effect.": 0.312,
+          "A person speaking words.": 0.0558,
+          "A person singing lyrics.": 0.1519,
+          "Continuous background music with drums and a beat.": 0.0111,
+          "Background room noise and static hiss.": -0.1508,
+          "Traffic and engine noise.": -0.1031
+        },
+        "heal_similarity": 0.4709,
+        "rank_score": 0.3755589574575424,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-ready-05.wav",
+        "sha256": "893392c425b891c11533f4d0432f3b389a8ea726f973f583fc81f3ee71fc974e",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-crit",
+        "source": "priest-crit-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.55,
+          "onset_seconds": 0.0,
+          "tail_db": -22.4,
+          "phone_band_db": -12.74,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.923778973499429,
+          "rms_db": -29.109505019813916,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay.",
+        "descriptors": {
+          "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay.": 0.4863,
+          "A short fantasy video game sound effect.": 0.2977,
+          "A person speaking words.": 0.0826,
+          "A person singing lyrics.": 0.0071,
+          "Continuous background music with drums and a beat.": -0.1061,
+          "Background room noise and static hiss.": 0.0541,
+          "Traffic and engine noise.": 0.1029
+        },
+        "heal_similarity": 0.448,
+        "rank_score": 0.3834121450781822,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-crit-01.wav",
+        "sha256": "72c4e4cdd5a9432380ef2efeccee3758ec394fc82a483b2d5cb227a96d9502bb",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-rescue",
+        "source": "priest-rescue-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.75,
+          "onset_seconds": 0.0,
+          "tail_db": -21.73,
+          "phone_band_db": -0.37,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.608891360316611,
+          "rms_db": -23.00119717740339,
+          "channels": 2,
+          "expander_upper_dbfs": -56.848399294881226
+        },
+        "match": "A powerful feathered wing swoop catches suddenly with one deep rounded bronze shield impact, protective and reassuring, quickly decaying.",
+        "descriptors": {
+          "A powerful feathered wing swoop catches suddenly with one deep rounded bronze shield impact, protective and reassuring, quickly decaying.": 0.2537,
+          "A short fantasy video game sound effect.": 0.2953,
+          "A person speaking words.": 0.0694,
+          "A person singing lyrics.": -0.0615,
+          "Continuous background music with drums and a beat.": -0.1557,
+          "Background room noise and static hiss.": 0.1836,
+          "Traffic and engine noise.": 0.1016
+        },
+        "heal_similarity": 0.342,
+        "rank_score": 0.07001085579395294,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-rescue-01.wav",
+        "sha256": "30899b5df5af932d35e850bc00a04ad8c4cf350bf14be02e981fe727a5a05ff2",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-relay-hop",
+        "source": "priest-relay-hop-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 0.0,
+          "tail_db": -22.05,
+          "phone_band_db": -0.09,
+          "clipped_fraction": 0.0,
+          "peak_db": -15.112621151697834,
+          "rms_db": -29.02978072585502,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay.",
+        "descriptors": {
+          "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay.": 0.3771,
+          "A short fantasy video game sound effect.": 0.5211,
+          "A person speaking words.": 0.2469,
+          "A person singing lyrics.": 0.0458,
+          "Continuous background music with drums and a beat.": 0.1579,
+          "Background room noise and static hiss.": 0.0744,
+          "Traffic and engine noise.": 0.0356
+        },
+        "heal_similarity": 0.5403,
+        "rank_score": 0.13020005822181702,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-hop-01.wav",
+        "sha256": "8db9e343dbdcaec22025651112f8d03a1b810b54a13fbbb363d355d1d36e5807",
+        "screening": "pass"
+      }
+    ],
+    "selected": {
+      "renew-priest": "renew-priest-02.wav",
+      "priest-prayer": "priest-prayer-01.wav",
+      "priest-guardian": "priest-guardian-04.wav",
+      "hymn-priest": "hymn-priest-01.wav",
+      "priest-relay": "priest-relay-06.wav",
+      "priest-miracle": "priest-miracle-01.wav",
+      "priest-shelter": "priest-shelter-01.wav",
+      "priest-zenith": "priest-zenith-01.wav",
+      "priest-scatter": "priest-scatter-02.wav",
+      "priest-ready": "priest-ready-05.wav",
+      "priest-crit": "priest-crit-01.wav",
+      "priest-rescue": "priest-rescue-01.wav",
+      "priest-relay-hop": "priest-relay-hop-01.wav"
+    },
+    "retry": []
+  },
+  "sounds": [
+    {
+      "name": "renew-priest",
+      "seconds": 0.65,
+      "channels": 2,
+      "generation": {
+        "name": "renew-priest",
+        "round": 2,
+        "prompt": "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A single brief sound, lasting 0.42 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263020,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "renew-priest",
+        "source": "renew-priest-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 0.035,
+          "tail_db": -27.51,
+          "phone_band_db": -1.14,
+          "clipped_fraction": 0.0,
+          "peak_db": -9.51992311995963,
+          "rms_db": -27.004542213324264,
+          "channels": 2,
+          "expander_upper_dbfs": -57.423668291734785
+        },
+        "match": "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.",
+        "descriptors": {
+          "One tiny soft breathy pop, a delicate rounded glint of healing light with a fast silky release. A light touch, very brief and gentle.": 0.3966,
+          "A short fantasy video game sound effect.": 0.3118,
+          "A person speaking words.": 0.1954,
+          "A person singing lyrics.": 0.0467,
+          "Continuous background music with drums and a beat.": -0.0857,
+          "Background room noise and static hiss.": 0.0818,
+          "Traffic and engine noise.": 0.0306
+        },
+        "heal_similarity": 0.5395,
+        "rank_score": 0.201152041554451,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\renew-priest-02.wav",
+        "sha256": "c289bb3903d3f818014d6e93e9e79231ded779aca873705840bd48854f85bcd2",
+        "screening": "pass"
+      },
+      "file": "renew-priest.ogg",
+      "sha256": "92a53a7f196aefc1ba7e0490ddda4d11279f861139259200b8b46f957668978e",
+      "encoded_peak_dbfs": -9.413738409922873
+    },
+    {
+      "name": "priest-prayer",
+      "seconds": 1.0449886621315192,
+      "channels": 2,
+      "generation": {
+        "name": "priest-prayer",
+        "round": 1,
+        "prompt": "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262021,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-prayer",
+        "source": "priest-prayer-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.0449886621315192,
+          "onset_seconds": 0.025,
+          "tail_db": -30.2,
+          "phone_band_db": -0.0,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.060697977065428,
+          "rms_db": -24.000518488128783,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence.",
+        "descriptors": {
+          "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence.": 0.6416,
+          "A short fantasy video game sound effect.": 0.3268,
+          "A person speaking words.": -0.054,
+          "A person singing lyrics.": -0.1206,
+          "Continuous background music with drums and a beat.": -0.1265,
+          "Background room noise and static hiss.": -0.2315,
+          "Traffic and engine noise.": -0.1132
+        },
+        "heal_similarity": 0.3787,
+        "rank_score": 0.695573017001152,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-prayer-01.wav",
+        "sha256": "1c5cf6a86002f6287ed0f692e34371414565118339f3838a8f2d75d8b5200c88",
+        "screening": "pass"
+      },
+      "file": "priest-prayer.ogg",
+      "sha256": "bb3f9cb431bd4b1b99a16745c8f0cab914b2c0c961cd2bd3b31a02eafea05c02",
+      "encoded_peak_dbfs": -7.170947588002203
+    },
+    {
+      "name": "priest-guardian",
+      "seconds": 1.9149886621315193,
+      "channels": 2,
+      "generation": {
+        "name": "priest-guardian",
+        "round": 4,
+        "prompt": "One brisk feather wing swish and a damped bronze bowl resonance centered in the midrange, clear textured brushing followed by warm metallic overtones. No sub bass, deep hum or rumble. A single brief sound, lasting 1.07 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Strong audible midrange texture, with a soft woody contact; avoid bass-only rumble. Very short, softly damped, midrange-focused.",
+        "seed": 20265020,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-guardian",
+        "source": "priest-guardian-04.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.9149886621315193,
+          "onset_seconds": 0.105,
+          "tail_db": -30.71,
+          "phone_band_db": -1.71,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.47776973629491,
+          "rms_db": -24.000440933011582,
+          "channels": 2,
+          "expander_upper_dbfs": -68.32668202100727
+        },
+        "match": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.",
+        "descriptors": {
+          "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.": 0.4651,
+          "A short fantasy video game sound effect.": 0.4753,
+          "A person speaking words.": 0.1793,
+          "A person singing lyrics.": 0.0759,
+          "Continuous background music with drums and a beat.": -0.026,
+          "Background room noise and static hiss.": 0.1718,
+          "Traffic and engine noise.": 0.0626
+        },
+        "heal_similarity": 0.5725,
+        "rank_score": 0.2858879119157791,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-guardian-04.wav",
+        "sha256": "f1483316fab8becb9adf9a19626d856735cfd762704128a237d20ca515fab863",
+        "screening": "pass"
+      },
+      "file": "priest-guardian.ogg",
+      "sha256": "79fbfcdc35b4287ffd3eb28690c10586c87459b6700d0d3cbf558396f727e615",
+      "encoded_peak_dbfs": -8.434507726395942
+    },
+    {
+      "name": "hymn-priest",
+      "seconds": 1.8549886621315193,
+      "channels": 2,
+      "generation": {
+        "name": "hymn-priest",
+        "round": 1,
+        "prompt": "One short majestic pipe organ chord with clear wooden flute pipes and a deep warm foundation, swelling once and releasing smoothly into silence. One isolated fantasy game spell sound, beginning immediately and fully decaying within 2.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262023,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "hymn-priest",
+        "source": "hymn-priest-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.8549886621315193,
+          "onset_seconds": 0.015,
+          "tail_db": -30.46,
+          "phone_band_db": -1.25,
+          "clipped_fraction": 0.0,
+          "peak_db": -12.71790668041487,
+          "rms_db": -26.000462990134487,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One short majestic pipe organ chord with clear wooden flute pipes and a deep warm foundation, swelling once and releasing smoothly into silence.",
+        "descriptors": {
+          "One short majestic pipe organ chord with clear wooden flute pipes and a deep warm foundation, swelling once and releasing smoothly into silence.": 0.5348,
+          "A short fantasy video game sound effect.": 0.3374,
+          "A person speaking words.": 0.1566,
+          "A person singing lyrics.": 0.3967,
+          "Continuous background music with drums and a beat.": -0.0418,
+          "Background room noise and static hiss.": -0.0063,
+          "Traffic and engine noise.": -0.0424
+        },
+        "heal_similarity": 0.7849,
+        "rank_score": 0.13810700178146362,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\hymn-priest-01.wav",
+        "sha256": "1f688684b9d9ed31d4ec850022bafe425b77707efd0e8d02e706421a921fb9b2",
+        "screening": "pass"
+      },
+      "file": "hymn-priest.ogg",
+      "sha256": "2e906b2b969e52887f695e49e5227d685c71db78b3d55113e389cccb9e496560",
+      "encoded_peak_dbfs": -12.686238075423015
+    },
+    {
+      "name": "priest-relay",
+      "seconds": 0.82,
+      "channels": 2,
+      "generation": {
+        "generator": "Two-note stereo composition of newly generated Agent Audio light droplet; no additional model call",
+        "parent_generation": {
+          "name": "priest-relay-hop",
+          "round": 1,
+          "prompt": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+          "seed": 20262032,
+          "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+          "profile": "medium",
+          "source_seconds": 3.0,
+          "sample_rate": 44100,
+          "channels": 2
+        },
+        "processing": {
+          "source": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-hop-01.wav",
+          "source_sha256": "8db9e343dbdcaec22025651112f8d03a1b810b54a13fbbb363d355d1d36e5807",
+          "second_playback_ratio": 1.22,
+          "second_delay_seconds": 0.28,
+          "channel_gains": [
+            [
+              0.85,
+              0.55
+            ],
+            [
+              0.55,
+              0.85
+            ]
+          ],
+          "silence_padding_seconds": 0.18
+        }
+      },
+      "screening": {
+        "name": "priest-relay",
+        "source": "priest-relay-06.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.82,
+          "onset_seconds": 0.0,
+          "tail_db": -29.66,
+          "phone_band_db": -2.5,
+          "clipped_fraction": 0.0,
+          "peak_db": -11.184669314326555,
+          "rms_db": -25.002477913720686,
+          "channels": 2,
+          "expander_upper_dbfs": -60.72544587441641
+        },
+        "match": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+        "descriptors": {
+          "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.": 0.4597,
+          "A short fantasy video game sound effect.": 0.5235,
+          "A person speaking words.": 0.2389,
+          "A person singing lyrics.": -0.0145,
+          "Continuous background music with drums and a beat.": 0.1442,
+          "Background room noise and static hiss.": 0.055,
+          "Traffic and engine noise.": -0.0111
+        },
+        "heal_similarity": 0.5207,
+        "rank_score": 0.2208014279603958,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-06.wav",
+        "sha256": "11d2ae8adbbc1908f4811cba65ce810dd6770033d53ec3c5dc4c63335473a848",
+        "screening": "pass"
+      },
+      "file": "priest-relay.ogg",
+      "sha256": "5262c06fa042de30bec6ac1e5067b120db4b964871c17c46d567f4b2cb93e8a7",
+      "encoded_peak_dbfs": -11.106103877655148
+    },
+    {
+      "name": "priest-miracle",
+      "seconds": 1.2749886621315192,
+      "channels": 2,
+      "generation": {
+        "name": "priest-miracle",
+        "round": 1,
+        "prompt": "A brief reversed soft cymbal swell opens into one bright celesta chord, a sudden sparkling reveal with a rapid delicate metallic decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262025,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-miracle",
+        "source": "priest-miracle-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.2749886621315192,
+          "onset_seconds": 0.515,
+          "tail_db": -21.7,
+          "phone_band_db": -2.02,
+          "clipped_fraction": 0.0,
+          "peak_db": -4.816144805207852,
+          "rms_db": -24.003140065553374,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "A brief reversed soft cymbal swell opens into one bright celesta chord, a sudden sparkling reveal with a rapid delicate metallic decay.",
+        "descriptors": {
+          "A brief reversed soft cymbal swell opens into one bright celesta chord, a sudden sparkling reveal with a rapid delicate metallic decay.": 0.5628,
+          "A short fantasy video game sound effect.": 0.4122,
+          "A person speaking words.": 0.1493,
+          "A person singing lyrics.": 0.0144,
+          "Continuous background music with drums and a beat.": -0.0151,
+          "Background room noise and static hiss.": 0.0688,
+          "Traffic and engine noise.": 0.0756
+        },
+        "heal_similarity": 0.4442,
+        "rank_score": 0.41358961164951324,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-miracle-01.wav",
+        "sha256": "c735bae2c8c5d69c531bb3f406fe99fe0073879f8def1714d8d805876284181b",
+        "screening": "pass"
+      },
+      "file": "priest-miracle.ogg",
+      "sha256": "965d6f6b11a81b55b32bb0fd6672414b595b2c031bceb8be996d8017f9549b20",
+      "encoded_peak_dbfs": -4.794904844364884
+    },
+    {
+      "name": "priest-shelter",
+      "seconds": 1.1049886621315193,
+      "channels": 2,
+      "generation": {
+        "name": "priest-shelter",
+        "round": 1,
+        "prompt": "A thick silk curtain unfurls gently and settles with a soft hollow wooden resonance, a warm sheltered swish and quiet enclosed release. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.75 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262026,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-shelter",
+        "source": "priest-shelter-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.1049886621315193,
+          "onset_seconds": 0.805,
+          "tail_db": -30.5,
+          "phone_band_db": -4.09,
+          "clipped_fraction": 0.0,
+          "peak_db": -5.922024352922786,
+          "rms_db": -26.001662873532084,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "A thick silk curtain unfurls gently and settles with a soft hollow wooden resonance, a warm sheltered swish and quiet enclosed release.",
+        "descriptors": {
+          "A thick silk curtain unfurls gently and settles with a soft hollow wooden resonance, a warm sheltered swish and quiet enclosed release.": 0.45,
+          "A short fantasy video game sound effect.": 0.3321,
+          "A person speaking words.": 0.1981,
+          "A person singing lyrics.": 0.0042,
+          "Continuous background music with drums and a beat.": -0.0789,
+          "Background room noise and static hiss.": 0.1616,
+          "Traffic and engine noise.": 0.1013
+        },
+        "heal_similarity": 0.4373,
+        "rank_score": 0.2518894672393799,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-shelter-01.wav",
+        "sha256": "5ca1570f36e87e57d6e633f13078e5923b1abd55e93ec4e75590bd512f96436c",
+        "screening": "pass"
+      },
+      "file": "priest-shelter.ogg",
+      "sha256": "0e11b35e9f6a13fe4b25af5f6d321dee063c2380cf35fcba9c811ee09b99db6c",
+      "encoded_peak_dbfs": -5.9308884418201
+    },
+    {
+      "name": "priest-zenith",
+      "seconds": 1.7049886621315193,
+      "channels": 2,
+      "generation": {
+        "name": "priest-zenith",
+        "round": 1,
+        "prompt": "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped. One isolated fantasy game spell sound, beginning immediately and fully decaying within 2.25 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262027,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-zenith",
+        "source": "priest-zenith-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.7049886621315193,
+          "onset_seconds": 0.025,
+          "tail_db": -30.55,
+          "phone_band_db": -0.43,
+          "clipped_fraction": 0.0,
+          "peak_db": -6.485010305163991,
+          "rms_db": -24.00040727360998,
+          "channels": 2,
+          "expander_upper_dbfs": -58.28370424520778
+        },
+        "match": "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped.",
+        "descriptors": {
+          "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped.": 0.3874,
+          "A short fantasy video game sound effect.": 0.4751,
+          "A person speaking words.": 0.143,
+          "A person singing lyrics.": 0.0994,
+          "Continuous background music with drums and a beat.": -0.1439,
+          "Background room noise and static hiss.": -0.0528,
+          "Traffic and engine noise.": -0.0929
+        },
+        "heal_similarity": 0.6945,
+        "rank_score": 0.24434182047843933,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-zenith-01.wav",
+        "sha256": "7b78f89e43169dccc2db3d107f3a17a14f3ed6e21d32eca470f8e166e3ca4e81",
+        "screening": "pass"
+      },
+      "file": "priest-zenith.ogg",
+      "sha256": "75e2211cb7a2dfe4b5ba4ced7ec2fba74607dac727ffc39a60376c3f99824e1b",
+      "encoded_peak_dbfs": -6.5770358253939865
+    },
+    {
+      "name": "priest-scatter",
+      "seconds": 0.34,
+      "channels": 2,
+      "generation": {
+        "name": "priest-scatter",
+        "round": 2,
+        "prompt": "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing. A single brief sound, lasting 1.14 seconds, with an immediate attack and complete natural decay. Dry studio recording of one isolated fantasy game sound effect, followed by silence. No voice, music, background or repetition.  Damped at its source, very brief resonance, no sustained sound or reverb.",
+        "seed": 20263023,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-scatter",
+        "source": "priest-scatter-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.34,
+          "onset_seconds": 0.0,
+          "tail_db": -38.33,
+          "phone_band_db": -3.56,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.133910966548594,
+          "rms_db": -26.00041872680417,
+          "channels": 2,
+          "expander_upper_dbfs": -62.257085844934664
+        },
+        "match": "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.",
+        "descriptors": {
+          "A small handful of delicate glass wind chimes shimmers in one light falling cascade, many tiny irregular sparkling tinkles softly dispersing.": 0.2298,
+          "A short fantasy video game sound effect.": 0.2203,
+          "A person speaking words.": 0.1287,
+          "A person singing lyrics.": 0.0156,
+          "Continuous background music with drums and a beat.": -0.1846,
+          "Background room noise and static hiss.": -0.0549,
+          "Traffic and engine noise.": 0.0109
+        },
+        "heal_similarity": 0.356,
+        "rank_score": 0.10108262300491333,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-scatter-02.wav",
+        "sha256": "40f8e96836f9e0ac6b381548d4b517bc0be5a18c8cfe508fa2c1048f2e19df64",
+        "screening": "pass"
+      },
+      "file": "priest-scatter.ogg",
+      "sha256": "4dce0bfca600e730c8f2ef17e1272ef7a4949028b55a7839bb4c819d3a21d78b",
+      "encoded_peak_dbfs": -7.050785717796577
+    },
+    {
+      "name": "priest-ready",
+      "seconds": 0.97,
+      "channels": 2,
+      "generation": {
+        "generator": "Timing edit of newly generated Agent Audio sound; no additional model call",
+        "parent_generation": {
+          "name": "priest-ready",
+          "round": 1,
+          "prompt": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.8 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+          "seed": 20262029,
+          "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+          "profile": "medium",
+          "source_seconds": 3.0,
+          "sample_rate": 44100,
+          "channels": 2
+        },
+        "processing": {
+          "source": "priest-ready-01.wav",
+          "source_sha256": "0128105e39360076b880464b52194d0312856f28f62d23be7949d660f4bec500",
+          "source_keep_seconds": 1.85,
+          "output_phrase_seconds": 1.0,
+          "method": "phase vocoder n_fft=1024 hop=256, pitch preserved; 200ms silence padding"
+        }
+      },
+      "screening": {
+        "name": "priest-ready",
+        "source": "priest-ready-05.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.97,
+          "onset_seconds": 0.0,
+          "tail_db": -30.48,
+          "phone_band_db": -1.48,
+          "clipped_fraction": 0.0,
+          "peak_db": -5.247571970049252,
+          "rms_db": -26.001223771202135,
+          "channels": 2,
+          "expander_upper_dbfs": -60.827843136831696
+        },
+        "match": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+        "descriptors": {
+          "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.": 0.5274,
+          "A short fantasy video game sound effect.": 0.312,
+          "A person speaking words.": 0.0558,
+          "A person singing lyrics.": 0.1519,
+          "Continuous background music with drums and a beat.": 0.0111,
+          "Background room noise and static hiss.": -0.1508,
+          "Traffic and engine noise.": -0.1031
+        },
+        "heal_similarity": 0.4709,
+        "rank_score": 0.3755589574575424,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-ready-05.wav",
+        "sha256": "893392c425b891c11533f4d0432f3b389a8ea726f973f583fc81f3ee71fc974e",
+        "screening": "pass"
+      },
+      "file": "priest-ready.ogg",
+      "sha256": "e2a4b32d92288c704bebf87df589393cd04ac05e0b731093a011295a8c656934",
+      "encoded_peak_dbfs": -5.460174481016033
+    },
+    {
+      "name": "priest-crit",
+      "seconds": 0.55,
+      "channels": 2,
+      "generation": {
+        "name": "priest-crit",
+        "round": 1,
+        "prompt": "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.55 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262030,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-crit",
+        "source": "priest-crit-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.55,
+          "onset_seconds": 0.0,
+          "tail_db": -22.4,
+          "phone_band_db": -12.74,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.923778973499429,
+          "rms_db": -29.109505019813916,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay.",
+        "descriptors": {
+          "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay.": 0.4863,
+          "A short fantasy video game sound effect.": 0.2977,
+          "A person speaking words.": 0.0826,
+          "A person singing lyrics.": 0.0071,
+          "Continuous background music with drums and a beat.": -0.1061,
+          "Background room noise and static hiss.": 0.0541,
+          "Traffic and engine noise.": 0.1029
+        },
+        "heal_similarity": 0.448,
+        "rank_score": 0.3834121450781822,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-crit-01.wav",
+        "sha256": "72c4e4cdd5a9432380ef2efeccee3758ec394fc82a483b2d5cb227a96d9502bb",
+        "screening": "pass"
+      },
+      "file": "priest-crit.ogg",
+      "sha256": "a04b8d27ffc8f560d8d8b1451bb6f42ba6eae5f03eb4be87f8d44d7d1a2663cc",
+      "encoded_peak_dbfs": -8.860009015346455
+    },
+    {
+      "name": "priest-rescue",
+      "seconds": 1.75,
+      "channels": 2,
+      "generation": {
+        "name": "priest-rescue",
+        "round": 1,
+        "prompt": "A powerful feathered wing swoop catches suddenly with one deep rounded bronze shield impact, protective and reassuring, quickly decaying. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.75 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262031,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-rescue",
+        "source": "priest-rescue-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 1.75,
+          "onset_seconds": 0.0,
+          "tail_db": -21.73,
+          "phone_band_db": -0.37,
+          "clipped_fraction": 0.0,
+          "peak_db": -7.608891360316611,
+          "rms_db": -23.00119717740339,
+          "channels": 2,
+          "expander_upper_dbfs": -56.848399294881226
+        },
+        "match": "A powerful feathered wing swoop catches suddenly with one deep rounded bronze shield impact, protective and reassuring, quickly decaying.",
+        "descriptors": {
+          "A powerful feathered wing swoop catches suddenly with one deep rounded bronze shield impact, protective and reassuring, quickly decaying.": 0.2537,
+          "A short fantasy video game sound effect.": 0.2953,
+          "A person speaking words.": 0.0694,
+          "A person singing lyrics.": -0.0615,
+          "Continuous background music with drums and a beat.": -0.1557,
+          "Background room noise and static hiss.": 0.1836,
+          "Traffic and engine noise.": 0.1016
+        },
+        "heal_similarity": 0.342,
+        "rank_score": 0.07001085579395294,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-rescue-01.wav",
+        "sha256": "30899b5df5af932d35e850bc00a04ad8c4cf350bf14be02e981fe727a5a05ff2",
+        "screening": "pass"
+      },
+      "file": "priest-rescue.ogg",
+      "sha256": "268edf03c0ce5df05731fc59c192d88bc9a6a604e85d50a9bdde1f23cd7baff4",
+      "encoded_peak_dbfs": -7.917086118814574
+    },
+    {
+      "name": "priest-relay-hop",
+      "seconds": 0.65,
+      "channels": 2,
+      "generation": {
+        "name": "priest-relay-hop",
+        "round": 1,
+        "prompt": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+        "seed": 20262032,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "screening": {
+        "name": "priest-relay-hop",
+        "source": "priest-relay-hop-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 0.0,
+          "tail_db": -22.05,
+          "phone_band_db": -0.09,
+          "clipped_fraction": 0.0,
+          "peak_db": -15.112621151697834,
+          "rms_db": -29.02978072585502,
+          "channels": 2,
+          "expander_upper_dbfs": -55
+        },
+        "match": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay.",
+        "descriptors": {
+          "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay.": 0.3771,
+          "A short fantasy video game sound effect.": 0.5211,
+          "A person speaking words.": 0.2469,
+          "A person singing lyrics.": 0.0458,
+          "Continuous background music with drums and a beat.": 0.1579,
+          "Background room noise and static hiss.": 0.0744,
+          "Traffic and engine noise.": 0.0356
+        },
+        "heal_similarity": 0.5403,
+        "rank_score": 0.13020005822181702,
+        "prepared": ".sfx-raw\\priest-redesign-20261021\\review\\priest-relay-hop-01.wav",
+        "sha256": "8db9e343dbdcaec22025651112f8d03a1b810b54a13fbbb363d355d1d36e5807",
+        "screening": "pass"
+      },
+      "file": "priest-relay-hop.ogg",
+      "sha256": "a4f70c07dcf8ea3ae51a5de4312bc1f2de916544fac24b2638bb9b3d4a76ccaf",
+      "encoded_peak_dbfs": -15.0722060790513
+    }
+  ]
+}

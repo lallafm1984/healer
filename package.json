@@ -6,6 +6,7 @@
   "description": "나혼자 힐러 본 개발 (웹 TypeScript + Capacitor)",
   "scripts": {
     "dev": "vite",
+    "sfx:combat": "node scripts/sfx/refresh-combat.mjs",
     "fx:bake": "node scripts/vfx-bake.mjs",
     "fx:board": "node scripts/vfx-board.mjs",
     "fx:shot": "node scripts/vfx-shot.mjs",

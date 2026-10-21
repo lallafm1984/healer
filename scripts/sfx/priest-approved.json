@@ -1,0 +1,165 @@
+{
+  "schema": "healer.priest-audio-approval@1",
+  "status": "user-approved",
+  "approved_on": "2026-10-21",
+  "approval_request": "해당 효과음들을 머지해주고 사제 효과음을 정했음을 클로드에게도 알수 있도록 하자.",
+  "source_commit": "fe852f83374b209a1dc2dd876f41892d72f75b39",
+  "max_effect_seconds": 1.5,
+  "cast_start_enabled": false,
+  "cast_loop_enabled": false,
+  "files": [
+    {
+      "ko": "치유",
+      "file": "src/sfx/heal-priest.ogg",
+      "name": "heal-priest",
+      "seconds": 1.25,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "993ac0fcc39dbb37046037a714b23d087b11267440689629d1ccc99835cfcabf"
+    },
+    {
+      "ko": "순간 치유",
+      "file": "src/sfx/priest-flash.ogg",
+      "name": "priest-flash",
+      "seconds": 0.5,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "7fecc60e3fa2bb4534e0c7cf190e1e0a6f58fa919c74bc924ccffc1b1d20d0ef"
+    },
+    {
+      "ko": "소생",
+      "file": "src/sfx/renew-priest.ogg",
+      "name": "renew-priest",
+      "seconds": 0.55,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "56e6029488c90ac0b795670d8b65b103fb11956fdef3945be3fa0d179e554496"
+    },
+    {
+      "ko": "치유의 기원",
+      "file": "src/sfx/priest-prayer.ogg",
+      "name": "priest-prayer",
+      "seconds": 1.0449886621315192,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "bb3f9cb431bd4b1b99a16745c8f0cab914b2c0c961cd2bd3b31a02eafea05c02"
+    },
+    {
+      "ko": "정화",
+      "file": "src/sfx/priest-purify.ogg",
+      "name": "priest-purify",
+      "seconds": 0.95,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "0c7d19309c754ea0b4f23ba48059e7a2f401fff4c04ad029fc50196d5335ba72"
+    },
+    {
+      "ko": "수호 영혼",
+      "file": "src/sfx/priest-guardian.ogg",
+      "name": "priest-guardian",
+      "seconds": 0.75,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "33eac22f3ae6ba94431902b67aee2786708be2c4a569fec5d1640805bf538259"
+    },
+    {
+      "ko": "천상의 찬가",
+      "file": "src/sfx/hymn-priest.ogg",
+      "name": "hymn-priest",
+      "seconds": 1.2849886621315192,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "f0ef5081a3de2a0029ac6b317574975f634121b1a338379e58e167187eeee7ee"
+    },
+    {
+      "ko": "성언: 평온",
+      "file": "src/sfx/priest-serenity.ogg",
+      "name": "priest-serenity",
+      "seconds": 1.45,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "549a12cb2920aab3feaed438436071ae6f7f6e47e6e9d591f80bc8f84ec279c6"
+    },
+    {
+      "ko": "빛의 전이",
+      "file": "src/sfx/priest-relay.ogg",
+      "name": "priest-relay",
+      "seconds": 0.82,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "5262c06fa042de30bec6ac1e5067b120db4b964871c17c46d567f4b2cb93e8a7"
+    },
+    {
+      "ko": "기적의 순간",
+      "file": "src/sfx/priest-miracle.ogg",
+      "name": "priest-miracle",
+      "seconds": 1.1,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "b3165259fc42d27be59bc0a992f29bf5b624a1c7a6817cb7174365f8997cb02e"
+    },
+    {
+      "ko": "쉼터",
+      "file": "src/sfx/priest-shelter.ogg",
+      "name": "priest-shelter",
+      "seconds": 0.5249886621315193,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "51246b6c66a66eeccf90d9c869f2096554b062b14b94ade3c32f37f8eed579c1"
+    },
+    {
+      "ko": "기도의 정점",
+      "file": "src/sfx/priest-zenith.ogg",
+      "name": "priest-zenith",
+      "seconds": 1.45,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "06e948921544e9aea8018d9f5297818525bf1e59218da4b396aaba7c3a47c882"
+    },
+    {
+      "ko": "흩날리는 빛",
+      "file": "src/sfx/priest-scatter.ogg",
+      "name": "priest-scatter",
+      "seconds": 1.1,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "99a4055146cce4e89a4ed943a7579a556eed94925a4876aff47f2c9b3e0b9e94"
+    },
+    {
+      "ko": "평온 준비",
+      "file": "src/sfx/priest-ready.ogg",
+      "name": "priest-ready",
+      "seconds": 0.97,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "e2a4b32d92288c704bebf87df589393cd04ac05e0b731093a011295a8c656934"
+    },
+    {
+      "ko": "치명적 치유",
+      "file": "src/sfx/priest-crit.ogg",
+      "name": "priest-crit",
+      "seconds": 0.55,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "e8fd7583baea9952cd1b261bab53fa18f12bebbc3511364227fea587c2828089"
+    },
+    {
+      "ko": "수호 영혼 생명 구출",
+      "file": "src/sfx/priest-rescue.ogg",
+      "name": "priest-rescue",
+      "seconds": 1.45,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "0b2d46ea68b9039ff0fae755a5e966a0c0d3fb15ae7c471a4778ab6851553d3f"
+    },
+    {
+      "ko": "빛의 전이 이동·소멸",
+      "file": "src/sfx/priest-relay-hop.ogg",
+      "name": "priest-relay-hop",
+      "seconds": 0.65,
+      "channels": 2,
+      "sample_rate": 44100,
+      "sha256": "a4f70c07dcf8ea3ae51a5de4312bc1f2de916544fac24b2638bb9b3d4a76ccaf"
+    }
+  ]
+}

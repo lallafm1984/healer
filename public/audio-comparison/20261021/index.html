@@ -1,0 +1,19 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전투 효과음 비교 · 나혼자 힐러</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#151b1c;color:#e9ece5}*{box-sizing:border-box}
+body{max-width:1120px;margin:0 auto;padding:36px 22px}h1{font-size:28px;margin:12px 0}h2{font-size:20px;margin:0 0 18px;color:#e1c78f}
+p{line-height:1.7;color:#bac6c2}section{background:#202b2b;border:1px solid #3e514d;border-radius:14px;padding:24px;margin:22px 0}
+.takes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}h3{font-size:15px;font-weight:600}audio{width:100%;display:block;margin:14px 0}
+a{color:#b9d7c6;text-underline-offset:3px}.tag{font-size:13px;color:#e1c78f;letter-spacing:.06em}footer{font-size:13px;line-height:1.8;color:#9caeaa}
+@media(max-width:720px){.takes{grid-template-columns:1fr}body{padding:24px 16px}section{padding:20px}}
+</style><div class="tag">나혼자 힐러 · 효과음 청음</div><h1>타격, 치유, 보호막</h1>
+<p>현재 게임 음원과 새로 만든 두 후보를 차례로 들어보세요. 재생 버튼을 누르면 다른 소리는 멈춥니다.</p>
+<section><h2>근접 타격</h2><div class="takes"><div class="take"><h3>현재 게임 음원</h3><audio aria-label="근접 타격 현재 게임 음원" controls preload="none" src="attack-melee-current.ogg"></audio></div><div class="take"><h3>Small SFX · 새 후보</h3><audio aria-label="근접 타격 small-sfx" controls preload="none" src="attack-melee-small-sfx.wav"></audio><span>0.07초 · </span><a href="attack-melee-small-sfx.wav" download>WAV 저장</a></div><div class="take"><h3>Medium · 새 후보</h3><audio aria-label="근접 타격 medium" controls preload="none" src="attack-melee-medium.wav"></audio><span>0.24초 · </span><a href="attack-melee-medium.wav" download>WAV 저장</a></div></div></section>
+<section><h2>치유</h2><div class="takes"><div class="take"><h3>현재 게임 음원</h3><audio aria-label="치유 현재 게임 음원" controls preload="none" src="heal-priest-current.ogg"></audio></div><div class="take"><h3>Small SFX · 새 후보</h3><audio aria-label="치유 small-sfx" controls preload="none" src="heal-priest-small-sfx.wav"></audio><span>0.85초 · </span><a href="heal-priest-small-sfx.wav" download>WAV 저장</a></div><div class="take"><h3>Medium · 새 후보</h3><audio aria-label="치유 medium" controls preload="none" src="heal-priest-medium.wav"></audio><span>0.85초 · </span><a href="heal-priest-medium.wav" download>WAV 저장</a></div></div></section>
+<section><h2>보호막</h2><div class="takes"><div class="take"><h3>현재 게임 음원</h3><audio aria-label="보호막 현재 게임 음원" controls preload="none" src="shield-current.ogg"></audio></div><div class="take"><h3>Small SFX · 새 후보</h3><audio aria-label="보호막 small-sfx" controls preload="none" src="shield-small-sfx.wav"></audio><span>0.50초 · </span><a href="shield-small-sfx.wav" download>WAV 저장</a></div><div class="take"><h3>Medium · 새 후보</h3><audio aria-label="보호막 medium" controls preload="none" src="shield-medium.wav"></audio><span>0.23초 · </span><a href="shield-medium.wav" download>WAV 저장</a></div></div></section>
+<footer>새 후보는 무음·클리핑·잔향과 소리 설명 일치도 검사를 통과했습니다. 직접 청음 평가는 아직 하지 않았습니다.<br>
+첫 후보는 같은 프롬프트와 시드로 생성했고, 탈락 후보는 개별 수정했습니다. 이 페이지는 청음 비교용이며 모델 성능의 우열을 확정하지 않습니다.<br>
+<a href="review.json">생성·검수 기록</a> · <a href="/">게임으로 돌아가기</a></footer>
+<script>document.addEventListener('play',e=>{if(e.target.tagName==='AUDIO')document.querySelectorAll('audio').forEach(a=>{if(a!==e.target){a.pause();a.currentTime=0}})},true)</script>
+</html>

@@ -12,8 +12,10 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
-import { hasSfx, setSfxOn, sfx } from '../sfx';
 import type { ClassKey } from '../data/classes';
+import { hasSfx, preloadSfx, setSfxOn, sfx } from '../sfx';
+import { combatSounds } from './combat-sound';
+import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
 import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -372,7 +374,6 @@ function doUse(key: SkillKey, idx: number): boolean {
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
   if (B.armed && key === 'serenity') B.armed = null;
-  if (SKILLS[key].cast > 0 && !res.queued && !res.same) Snd.play('cast');
   coachUsed(key);
   return true;
 }
@@ -463,6 +464,9 @@ const ATK_SFX: Record<ClassKey, string> = { warrior: 'atk-warrior', paladin: 'at
 const atkGap = (n: number) => (n >= 20 ? 260 : n >= 10 ? 170 : 90);
 function handleEvents(now: number): void {
   const F = B.F!;
+  const priest = priestSounds(F);
+  if (S.sound) for (const cue of [...priest.cues, ...combatSounds(F, priest.combatEvents, { partyAttacks: false })]) sfx(cue.name, { vol: cue.vol });
+  // Class-specific party attacks remain below: one strongest hit per frame.
   let healSnd = false, critSnd = false, atk: { cls: ClassKey; w: number; crit: boolean } | null = null;
   // 부활 · 특성 버튼은 그 소리 파일이 있으면 엔진이 같이 낸 차임 대신 (107)
   const ownSnd = F.events.some(e => (e.type === 'revive' && hasSfx('revive')) || (e.type === 'talent' && hasSfx('talent-use')));
@@ -498,7 +502,7 @@ function handleEvents(now: number): void {
         break;
       }
       case 'talent': { // 특성 버튼 발동 (2026-10-19 Lim): 칸 특성 = 고른 칸, 봄비 = 살아 있는 모두, 고목 = 받는 사람, 나머지 = 내 칸
-        Snd.play('talent-use');
+        if (F.hero !== 'priest' || !PRIEST_TALENT_SOUNDS[ev.key]) Snd.play('talent-use');
         const fx = HERO_TALENT_FX[F.hero];
         if (!fx) break;
         if (ev.cell != null) fxPxfCell(ev.cell, fx, now);
@@ -510,6 +514,7 @@ function handleEvents(now: number): void {
       case 'shield': if (u) fxShield(u, ev.amt, now); break; // 흡수 보호막: 같은 자리 파란 숫자
       case 'bark': break; // 말풍선은 아래 talk.frame이 상황에 맞는 대사로 (41)
       case 'sound':
+        if (priest.suppress.has(ev.name)) break;
         if (ownSnd && ev.name === 'chime') break;
         Snd.play(ev.name);
         if (ev.name === 'death') vibe(90, true);
@@ -549,7 +554,7 @@ function handleEvents(now: number): void {
         break;
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
-      case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
+      case 'gauge': if (!priest.suppress.has('gauge')) Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정', true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
       case 'mobDown': {
         toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle(); Snd.play('mob-down');
@@ -584,8 +589,8 @@ function handleEvents(now: number): void {
   }
   for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind, b); // b.emote · b.cheer (43 4장)
   if (atk && S.sound && now - ui.lastAtkSnd > atkGap(F.party.length)) { ui.lastAtkSnd = now; sfx(ATK_SFX[atk.cls], { vol: atk.crit ? 1.4 : 1, rate: 0.94 + Math.random() * 0.12 }); }
-  if (critSnd) Snd.play('crit');
-  else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
+  if (critSnd && (!priest.handlesHealing || priest.allowCrit)) Snd.play('crit');
+  else if (!priest.handlesHealing && healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;
   // 심장 박동: 체력 30% 아래인 사람이 있으면 (가장 낮은 1명 기준, 하나만) (16 7-4)
   if (!F.over && !B.paused) {
@@ -889,6 +894,7 @@ function frame(now: number): void {
     applyLayout();
     resetRun();
     Snd.init();
+    void preloadSfx();
     startBattle(0);
   },
   settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {

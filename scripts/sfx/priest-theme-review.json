@@ -1,0 +1,2087 @@
+{
+  "paid_api_calls": 0,
+  "human_listening": "not performed",
+  "cues": [
+    {
+      "spec": {
+        "name": "heal-priest",
+        "ko": "치유",
+        "duration": 1.25,
+        "pitch": 0,
+        "trim": 0.48,
+        "strength": 0.18,
+        "rms": -24,
+        "description": "A warm soft healing breath opens into one rounded choir-like synthetic chord, then gently dissolves."
+      },
+      "generation": {
+        "request": {
+          "name": "heal-priest-03",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021-alt\\references\\heal-priest.wav",
+          "prompt": "One soft resonant magical air sweep with shimmering glass-like overtones. A short warm holy healing aura, clearly synthetic sound design, smooth midrange harmonics and a clean gentle release. No human voice, vocal syllables, speech, humming or singing. No melody, bells, percussion or background sound. A warm soft healing breath opens into one rounded choir-like synthetic chord, then gently dissolves. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.25 seconds.",
+          "strength": 0.25,
+          "seed": 2026102300,
+          "seconds": 1.45,
+          "steps": 6,
+          "reference_sha256": "3c7cc754f44f906f7205c326c06dc89d689058434b12b5ffaa1ce5b5c1603834",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 12.16,
+        "output": {
+          "seconds": 1.45,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "heal-priest",
+        "source": "heal-priest-03.wav",
+        "seconds": 1.25,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8847,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4384,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4424,
+          "A person speaking words.": 0.3319,
+          "A person singing lyrics.": 0.2429,
+          "Continuous music with drums and rhythm.": -0.0919,
+          "Harsh distorted electrical buzzing.": -0.1378
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -8.14,
+        "tail_before_fade_db": -70.26,
+        "expander_upper_dbfs": -52.66,
+        "gain_db": -0.21,
+        "sha256": "8223d80bc775b0dc268f8693e65e6782360fc4ccdb4c1b65f0e1d337b7612f31",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "heal-priest.ogg",
+      "sha256": "993ac0fcc39dbb37046037a714b23d087b11267440689629d1ccc99835cfcabf",
+      "decoded_peak": 0.3901332914829254
+    },
+    {
+      "spec": {
+        "name": "priest-flash",
+        "ko": "순간 치유",
+        "duration": 0.85,
+        "pitch": 2,
+        "trim": 0.63,
+        "strength": 0.18,
+        "rms": -24,
+        "description": "A quick light rush of holy air blooms immediately into a small bright harmonic pulse with a swift silky release."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-flash-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-flash.wav",
+          "prompt": "A quick light rush of holy air blooms immediately into a small bright harmonic pulse with a swift silky release. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 0.85 seconds.",
+          "strength": 0.18,
+          "seed": 2026102201,
+          "seconds": 1.2,
+          "steps": 4,
+          "reference_sha256": "fe09f3ef96649a0e1fab290cbd6389a17752512ac0ca85a2a4db758c98820b16",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 10.19,
+        "output": {
+          "seconds": 1.2,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-flash",
+        "source": "priest-flash-01.wav",
+        "seconds": 0.85,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8274,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3667,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.345,
+          "A person speaking words.": 0.2824,
+          "A person singing lyrics.": 0.1202,
+          "Continuous music with drums and rhythm.": -0.0897,
+          "Harsh distorted electrical buzzing.": -0.0232
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -8.13,
+        "tail_before_fade_db": -91.32,
+        "expander_upper_dbfs": -51.71,
+        "gain_db": 0.24,
+        "sha256": "ed7be8bf423bb659e3242b38d6e1d1b05a727cbaa82ce504a722c078e2ba0e8d",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-flash.ogg",
+      "sha256": "51743304af597b70c59c746a14eae1f91616f7a5b8067e30959d325d79b43e9a",
+      "decoded_peak": 0.3959398567676544
+    },
+    {
+      "spec": {
+        "name": "renew-priest",
+        "ko": "소생",
+        "duration": 1.45,
+        "pitch": -1,
+        "trim": 0.42,
+        "strength": 0.2,
+        "rms": -26,
+        "description": "A tender breath of warm healing light gently wraps around someone, soft rounded harmonics with a delicate lingering tail."
+      },
+      "generation": {
+        "request": {
+          "name": "renew-priest-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\renew-priest.wav",
+          "prompt": "A tender breath of warm healing light gently wraps around someone, soft rounded harmonics with a delicate lingering tail. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.45 seconds.",
+          "strength": 0.2,
+          "seed": 2026102202,
+          "seconds": 1.65,
+          "steps": 4,
+          "reference_sha256": "e556da681c9852b18297470ef9034a3c59f578d5e3e29571f3dc8dc735adc58f",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.19,
+        "output": {
+          "seconds": 1.65,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "renew-priest",
+        "source": "renew-priest-01.wav",
+        "seconds": 1.45,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.748,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4689,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.456,
+          "A person speaking words.": 0.303,
+          "A person singing lyrics.": 0.1573,
+          "Continuous music with drums and rhythm.": -0.152,
+          "Harsh distorted electrical buzzing.": -0.0396
+        },
+        "rms_dbfs": -26.0,
+        "peak_dbfs": -9.41,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -51.24,
+        "gain_db": -2.36,
+        "sha256": "e645def1d859433a2dccbef274b8ba68e4b6c6d531fbb4701982fbb98a46a250",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "renew-priest.ogg",
+      "sha256": "6e58529ba66691aff44d110aac27682f2a469164c2644291ffa7d7aaf9f4f9e0",
+      "decoded_peak": 0.34031370282173157
+    },
+    {
+      "spec": {
+        "name": "priest-prayer",
+        "ko": "치유의 기원",
+        "duration": 1.85,
+        "pitch": -2,
+        "trim": 0.48,
+        "strength": 0.22,
+        "rms": -24,
+        "description": "One wide wave of warm sacred air unfolds outward, layered angelic synthetic harmonics spread through a spacious stereo field."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-prayer-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-prayer.wav",
+          "prompt": "One wide wave of warm sacred air unfolds outward, layered angelic synthetic harmonics spread through a spacious stereo field. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.85 seconds.",
+          "strength": 0.22,
+          "seed": 2026102203,
+          "seconds": 2.0500000000000003,
+          "steps": 4,
+          "reference_sha256": "5c419a55cd75e5a420cd7c7312b4ebfea3bd555ef5b7c81259421fe08782af37",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.25,
+        "output": {
+          "seconds": 2.05,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-prayer",
+        "source": "priest-prayer-01.wav",
+        "seconds": 1.85,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.9096,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4795,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.395,
+          "A person speaking words.": 0.2401,
+          "A person singing lyrics.": 0.2528,
+          "Continuous music with drums and rhythm.": -0.1317,
+          "Harsh distorted electrical buzzing.": -0.0844
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -7.8,
+        "tail_before_fade_db": -78.66,
+        "expander_upper_dbfs": -50,
+        "gain_db": -0.69,
+        "sha256": "1a8a98aa1003192df6320f16f7db7c5ce76d05b30e3680a66097e2d01f5c8fd9",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-prayer.ogg",
+      "sha256": "578a1e268f8633a34e2cb408d56a1c276465a00343a232559fd88b3655f0a85a",
+      "decoded_peak": 0.4086293578147888
+    },
+    {
+      "spec": {
+        "name": "priest-purify",
+        "ko": "정화",
+        "duration": 0.95,
+        "pitch": 3,
+        "trim": 0.62,
+        "strength": 0.2,
+        "rms": -24,
+        "description": "A clean ascending breath sweeps away darkness, a smooth luminous glassy harmonic shimmer clears quickly into silence."
+      },
+      "generation": {
+        "generator": "Sound-design variation of a reviewed Agent Audio / Stable Audio 3 generated take; no additional model call",
+        "parent_generation": {
+          "request": {
+            "name": "priest-ready-01",
+            "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-ready.wav",
+            "prompt": "A small clear rising harmonic shimmer signals a holy blessing becoming ready, gentle and bright with a rounded airy attack. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.05 seconds.",
+            "strength": 0.18,
+            "seed": 2026102214,
+            "seconds": 1.25,
+            "steps": 4,
+            "reference_sha256": "f0dc1886c847cbf6a4ac93fe32a2a369a48936876cd3231517cf99be5619ff26",
+            "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+            "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+          },
+          "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+          "duration_wall_seconds": 10.22,
+          "output": {
+            "seconds": 1.25,
+            "sample_rate": 44100,
+            "channels": 2,
+            "sample_width": 2
+          }
+        },
+        "processing": {
+          "source": ".sfx-raw\\priest-theme-20261021\\review\\priest-ready-01.wav",
+          "source_sha256": "0a2ad6a6c484aa97a0a58c093d7613ea2bd49e37bf6483a84ba8eb92fd478b4e",
+          "playback_ratio": 1.1,
+          "cast_lowpass_hz": null,
+          "cast_attack_ms": null
+        }
+      },
+      "screening": {
+        "name": "priest-purify",
+        "source": "priest-purify-05.wav",
+        "seconds": 0.95,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8515,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3771,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2481,
+          "A person speaking words.": 0.2631,
+          "A person singing lyrics.": 0.1571,
+          "Continuous music with drums and rhythm.": -0.1061,
+          "Harsh distorted electrical buzzing.": 0.0179
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -8.87,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -54.03,
+        "gain_db": 0.98,
+        "sha256": "5eec69c1177451824d845bf96e5110bb3a93c398c0f9476411e2c9dac83ca3db",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-purify.ogg",
+      "sha256": "0c7d19309c754ea0b4f23ba48059e7a2f401fff4c04ad029fc50196d5335ba72",
+      "decoded_peak": 0.3528834283351898
+    },
+    {
+      "spec": {
+        "name": "priest-guardian",
+        "ko": "수호 영혼",
+        "duration": 1.7,
+        "pitch": -4,
+        "trim": 0.47,
+        "strength": 0.22,
+        "rms": -24,
+        "description": "A warm protective spirit envelops someone, a deep rounded airy chord blooms with reassuring resonant low-mid harmonics."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-guardian-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-guardian.wav",
+          "prompt": "A warm protective spirit envelops someone, a deep rounded airy chord blooms with reassuring resonant low-mid harmonics. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.7 seconds.",
+          "strength": 0.22,
+          "seed": 2026102205,
+          "seconds": 1.9,
+          "steps": 4,
+          "reference_sha256": "bd6772eb21e0a34f76aef9bd572a4dd94d50d1cfb778328f418a2ffbf9592635",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.25,
+        "output": {
+          "seconds": 1.9,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-guardian",
+        "source": "priest-guardian-01.wav",
+        "seconds": 1.7,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.9309,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4753,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4266,
+          "A person speaking words.": 0.312,
+          "A person singing lyrics.": 0.2527,
+          "Continuous music with drums and rhythm.": -0.1356,
+          "Harsh distorted electrical buzzing.": -0.0589
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -7.64,
+        "tail_before_fade_db": -82.89,
+        "expander_upper_dbfs": -51.14,
+        "gain_db": -0.38,
+        "sha256": "7cbd4ffe0007327a96b81c9074f3ef64046760d4b012cd763d860803ae63e0cc",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-guardian.ogg",
+      "sha256": "ec5d9adeb890a27ed14cfc3c1bdb5b299fe54dc32615b3bde2933a4ebe3a687c",
+      "decoded_peak": 0.4176880121231079
+    },
+    {
+      "spec": {
+        "name": "hymn-priest",
+        "ko": "천상의 찬가",
+        "duration": 2.8,
+        "pitch": 0,
+        "trim": 0.3,
+        "strength": 0.2,
+        "rms": -26,
+        "description": "One expansive sacred healing aura blossoms, rich layered choir-like synthesizer harmonics and a long soft spacious release, instrumental and wordless."
+      },
+      "generation": {
+        "request": {
+          "name": "hymn-priest-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\hymn-priest.wav",
+          "prompt": "One expansive sacred healing aura blossoms, rich layered choir-like synthesizer harmonics and a long soft spacious release, instrumental and wordless. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 2.8 seconds.",
+          "strength": 0.2,
+          "seed": 2026102206,
+          "seconds": 3.0,
+          "steps": 4,
+          "reference_sha256": "908275dd6b114e45035360a123fdc1b00d1cf9d3b3b0e97b3da47c97b8846ab1",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 14.14,
+        "output": {
+          "seconds": 3.0,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "hymn-priest",
+        "source": "hymn-priest-01.wav",
+        "seconds": 2.8,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8455,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5072,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4695,
+          "A person speaking words.": 0.3252,
+          "A person singing lyrics.": 0.2388,
+          "Continuous music with drums and rhythm.": -0.1186,
+          "Harsh distorted electrical buzzing.": -0.0462
+        },
+        "rms_dbfs": -26.0,
+        "peak_dbfs": -8.64,
+        "tail_before_fade_db": -72.54,
+        "expander_upper_dbfs": -51.1,
+        "gain_db": -2.45,
+        "sha256": "0a7f953d7b0925cd91ce06be0dde4205ae8a5805d95a14677e51d8668e062fe8",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "hymn-priest.ogg",
+      "sha256": "4aec165adaff46e21b741a29050ff1fcfb6581ee434d1f1783d84b319de6d8bd",
+      "decoded_peak": 0.3697793483734131
+    },
+    {
+      "spec": {
+        "name": "priest-serenity",
+        "ko": "성언: 평온",
+        "duration": 2.05,
+        "pitch": -1,
+        "trim": 0.55,
+        "strength": 0.23,
+        "rms": -23,
+        "description": "A powerful comforting holy blessing blooms immediately into a full warm radiant chord, smooth midrange weight and a shining soft tail."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-serenity-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-serenity.wav",
+          "prompt": "A powerful comforting holy blessing blooms immediately into a full warm radiant chord, smooth midrange weight and a shining soft tail. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 2.05 seconds.",
+          "strength": 0.23,
+          "seed": 2026102207,
+          "seconds": 2.25,
+          "steps": 4,
+          "reference_sha256": "062a570586c1f5aa5a436acc63a4f561e971ada98f8f867ef5505941adc1296f",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 12.42,
+        "output": {
+          "seconds": 2.25,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-serenity",
+        "source": "priest-serenity-01.wav",
+        "seconds": 2.05,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8552,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4961,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3783,
+          "A person speaking words.": 0.2904,
+          "A person singing lyrics.": 0.3209,
+          "Continuous music with drums and rhythm.": -0.1115,
+          "Harsh distorted electrical buzzing.": -0.0027
+        },
+        "rms_dbfs": -23.0,
+        "peak_dbfs": -5.91,
+        "tail_before_fade_db": -81.37,
+        "expander_upper_dbfs": -51.17,
+        "gain_db": 0.23,
+        "sha256": "99630ab01df4445c9ea1b4ad7c94bff5856d48df5f5d3cbdf9f089041e8cee80",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-serenity.ogg",
+      "sha256": "057e5b01248ed8ac6a696c2c78779748e4772b16f99ed37c7ef27084f1439b5a",
+      "decoded_peak": 0.508304238319397
+    },
+    {
+      "spec": {
+        "name": "priest-relay",
+        "ko": "빛의 전이",
+        "duration": 1.2,
+        "pitch": 1,
+        "trim": 0.55,
+        "strength": 0.18,
+        "rms": -25,
+        "description": "A small orb of healing light unfurls and drifts, an airy traveling harmonic whoosh with a delicate rounded shimmer."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-relay-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-relay.wav",
+          "prompt": "A small orb of healing light unfurls and drifts, an airy traveling harmonic whoosh with a delicate rounded shimmer. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.2 seconds.",
+          "strength": 0.18,
+          "seed": 2026102208,
+          "seconds": 1.4,
+          "steps": 4,
+          "reference_sha256": "b4639dcd22cd057829fef357b21f6a8cc502bd8f88a60d851c918cb4e2e3173d",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 10.2,
+        "output": {
+          "seconds": 1.4,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-relay",
+        "source": "priest-relay-01.wav",
+        "seconds": 1.2,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8199,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3843,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3946,
+          "A person speaking words.": 0.3023,
+          "A person singing lyrics.": 0.1556,
+          "Continuous music with drums and rhythm.": -0.1123,
+          "Harsh distorted electrical buzzing.": -0.0064
+        },
+        "rms_dbfs": -25.0,
+        "peak_dbfs": -8.6,
+        "tail_before_fade_db": -91.34,
+        "expander_upper_dbfs": -51.07,
+        "gain_db": -1.82,
+        "sha256": "b65faa168884e253b67532897f0b1544ad08ed75c4deaa8a78d15b8e16701674",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-relay.ogg",
+      "sha256": "837bf9b3ca64b00c4a9618909d2a3693269d35d8e735a6bf00880560add37884",
+      "decoded_peak": 0.3783940076828003
+    },
+    {
+      "spec": {
+        "name": "priest-miracle",
+        "ko": "기적의 순간",
+        "duration": 1.65,
+        "pitch": 2,
+        "trim": 0.47,
+        "strength": 0.2,
+        "rms": -24,
+        "description": "A sudden luminous blessing rises into a warm hopeful harmonic bloom, one clear soft crest and an ethereal falling tail."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-miracle-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-miracle.wav",
+          "prompt": "A sudden luminous blessing rises into a warm hopeful harmonic bloom, one clear soft crest and an ethereal falling tail. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.65 seconds.",
+          "strength": 0.2,
+          "seed": 2026102209,
+          "seconds": 1.8499999999999999,
+          "steps": 4,
+          "reference_sha256": "8ddc51b8a197ddf31841b48011b5939c4a56a3e95ac1c61224f1d1c7efc11a5b",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.61,
+        "output": {
+          "seconds": 1.85,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-miracle",
+        "source": "priest-miracle-01.wav",
+        "seconds": 1.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8431,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5066,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4308,
+          "A person speaking words.": 0.2749,
+          "A person singing lyrics.": 0.141,
+          "Continuous music with drums and rhythm.": -0.1664,
+          "Harsh distorted electrical buzzing.": -0.0016
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -8.29,
+        "tail_before_fade_db": -72.98,
+        "expander_upper_dbfs": -51.88,
+        "gain_db": -0.13,
+        "sha256": "c75030ddf2efae6912f034a8ac5b9db399689a78f31c351c889124a9c9cb1436",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-miracle.ogg",
+      "sha256": "ba45837508a7985b3525cf8c0f683c87d1f0bbe2ada907411a3d021a8466d6a2",
+      "decoded_peak": 0.3855266571044922
+    },
+    {
+      "spec": {
+        "name": "priest-shelter",
+        "ko": "쉼터",
+        "duration": 1.95,
+        "pitch": -5,
+        "trim": 0.35,
+        "strength": 0.18,
+        "rms": -26,
+        "description": "A tranquil protective sanctuary settles gently into place, a low warm blanket of airy synthetic harmonics with a soft spacious fade."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-shelter-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-shelter.wav",
+          "prompt": "A tranquil protective sanctuary settles gently into place, a low warm blanket of airy synthetic harmonics with a soft spacious fade. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.95 seconds.",
+          "strength": 0.18,
+          "seed": 2026102210,
+          "seconds": 2.15,
+          "steps": 4,
+          "reference_sha256": "197915d462ec42cce54a5c465b48c6d4bd5c5b705d64c3a75478b11fa37a90f2",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.97,
+        "output": {
+          "seconds": 2.15,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-shelter",
+        "source": "priest-shelter-01.wav",
+        "seconds": 1.95,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8814,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5197,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4631,
+          "A person speaking words.": 0.2027,
+          "A person singing lyrics.": 0.1774,
+          "Continuous music with drums and rhythm.": -0.1834,
+          "Harsh distorted electrical buzzing.": -0.1479
+        },
+        "rms_dbfs": -26.0,
+        "peak_dbfs": -10.05,
+        "tail_before_fade_db": -104.7,
+        "expander_upper_dbfs": -50.09,
+        "gain_db": -2.36,
+        "sha256": "5bdb2624cd314a06c8d15b3f264eaf89d424dabbe9e4ac194da56639a66319b0",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-shelter.ogg",
+      "sha256": "45c962ca267f30f97df338add899f7eec4056bbf65f5f275f7c3ecf4b81f72fd",
+      "decoded_peak": 0.3168588876724243
+    },
+    {
+      "spec": {
+        "name": "priest-zenith",
+        "ko": "기도의 정점",
+        "duration": 2.35,
+        "pitch": 1,
+        "trim": 0.4,
+        "strength": 0.24,
+        "rms": -24,
+        "description": "A grand rising wave of sacred energy blossoms into a radiant layered synthetic choir chord, broad and uplifting with a graceful release."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-zenith-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-zenith.wav",
+          "prompt": "A grand rising wave of sacred energy blossoms into a radiant layered synthetic choir chord, broad and uplifting with a graceful release. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 2.35 seconds.",
+          "strength": 0.24,
+          "seed": 2026102211,
+          "seconds": 2.5500000000000003,
+          "steps": 4,
+          "reference_sha256": "f3a6c2dece4537511f1b981050f291b8ff4be48f61f7b91720b2792d56b9aa44",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.84,
+        "output": {
+          "seconds": 2.55,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-zenith",
+        "source": "priest-zenith-01.wav",
+        "seconds": 2.35,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8376,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4671,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.542,
+          "A person speaking words.": 0.3139,
+          "A person singing lyrics.": 0.2282,
+          "Continuous music with drums and rhythm.": -0.1379,
+          "Harsh distorted electrical buzzing.": -0.118
+        },
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -7.58,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -51.12,
+        "gain_db": -0.54,
+        "sha256": "c211def9d5ba10f54f12fac0e9863f84ac011bc29b1b4c77e95e3c3148448a72",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-zenith.ogg",
+      "sha256": "3579595b6fe99e0233ab50672c82dcc252966954d298eb99eecea2c3c9752e74",
+      "decoded_peak": 0.4202534556388855
+    },
+    {
+      "spec": {
+        "name": "priest-scatter",
+        "ko": "흩날리는 빛",
+        "duration": 1.75,
+        "pitch": 4,
+        "trim": 0.5,
+        "strength": 0.22,
+        "rms": -25,
+        "description": "A soft holy aura fans outward into delicate overlapping silky harmonic wisps, floating points of healing light fading together."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-scatter-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-scatter.wav",
+          "prompt": "A soft holy aura fans outward into delicate overlapping silky harmonic wisps, floating points of healing light fading together. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.75 seconds.",
+          "strength": 0.22,
+          "seed": 2026102212,
+          "seconds": 1.95,
+          "steps": 4,
+          "reference_sha256": "1a07d14bb4c52705a937b3294646d0c8edce4087c3903806130ccca490f3bb31",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.42,
+        "output": {
+          "seconds": 1.95,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-scatter",
+        "source": "priest-scatter-01.wav",
+        "seconds": 1.75,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.7779,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4242,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3395,
+          "A person speaking words.": 0.194,
+          "A person singing lyrics.": 0.0759,
+          "Continuous music with drums and rhythm.": -0.1129,
+          "Harsh distorted electrical buzzing.": -0.0376
+        },
+        "rms_dbfs": -25.0,
+        "peak_dbfs": -9.57,
+        "tail_before_fade_db": -71.43,
+        "expander_upper_dbfs": -53.24,
+        "gain_db": -1.03,
+        "sha256": "50adaa5368e5f97051e4670b8e0b6162747bd4ce7ccbd687413e59d786c89e4e",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-scatter.ogg",
+      "sha256": "9d438cacd92663f6747a289dc10477367ba7d8570ca390719fbad83c5ec6a28c",
+      "decoded_peak": 0.3326873779296875
+    },
+    {
+      "spec": {
+        "name": "priest-cast",
+        "ko": "시전 시작",
+        "duration": 1.2,
+        "pitch": 1,
+        "trim": 0.5,
+        "strength": 0.15,
+        "rms": -29,
+        "description": "A very quiet short inward breath of holy air gathers, warm faint synthetic resonance and a smooth immediate release."
+      },
+      "generation": {
+        "generator": "Shared rising holy-air motif from an accepted Agent Audio / Stable Audio 3 generated take, with a quiet cast mix; no additional model call",
+        "parent_generation": {
+          "request": {
+            "name": "priest-relay-01",
+            "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-relay.wav",
+            "prompt": "A small orb of healing light unfurls and drifts, an airy traveling harmonic whoosh with a delicate rounded shimmer. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.2 seconds.",
+            "strength": 0.18,
+            "seed": 2026102208,
+            "seconds": 1.4,
+            "steps": 4,
+            "reference_sha256": "b4639dcd22cd057829fef357b21f6a8cc502bd8f88a60d851c918cb4e2e3173d",
+            "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+            "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+          },
+          "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+          "duration_wall_seconds": 10.2,
+          "output": {
+            "seconds": 1.4,
+            "sample_rate": 44100,
+            "channels": 2,
+            "sample_width": 2
+          }
+        },
+        "processing": {
+          "source": "priest-relay-01.wav",
+          "duration": 1.2,
+          "target_rms_dbfs": -29,
+          "pitch_change": 0,
+          "role": "시전 시작"
+        }
+      },
+      "screening": {
+        "name": "priest-cast",
+        "source": "priest-cast-07.wav",
+        "seconds": 1.2,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8003,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3798,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.396,
+          "A person speaking words.": 0.3093,
+          "A person singing lyrics.": 0.1611,
+          "Continuous music with drums and rhythm.": -0.1105,
+          "Harsh distorted electrical buzzing.": -0.0143
+        },
+        "rms_dbfs": -29.0,
+        "peak_dbfs": -12.6,
+        "tail_before_fade_db": -91.34,
+        "expander_upper_dbfs": -51.07,
+        "gain_db": -5.82,
+        "sha256": "652cc59f15e562610581a1081e070e4e520ac5b85de3338ac0c5161a6b3cee70",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-cast.ogg",
+      "sha256": "9e3ca5f5046eb707dc0b9d63bbc192d84fc284ac3743aa250ffc529e9926a806",
+      "decoded_peak": 0.23533017933368683
+    },
+    {
+      "spec": {
+        "name": "priest-ready",
+        "ko": "평온 준비",
+        "duration": 1.05,
+        "pitch": 5,
+        "trim": 0.6,
+        "strength": 0.18,
+        "rms": -25,
+        "description": "A small clear rising harmonic shimmer signals a holy blessing becoming ready, gentle and bright with a rounded airy attack."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-ready-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-ready.wav",
+          "prompt": "A small clear rising harmonic shimmer signals a holy blessing becoming ready, gentle and bright with a rounded airy attack. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.05 seconds.",
+          "strength": 0.18,
+          "seed": 2026102214,
+          "seconds": 1.25,
+          "steps": 4,
+          "reference_sha256": "f0dc1886c847cbf6a4ac93fe32a2a369a48936876cd3231517cf99be5619ff26",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 10.22,
+        "output": {
+          "seconds": 1.25,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-ready",
+        "source": "priest-ready-01.wav",
+        "seconds": 1.05,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8929,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3709,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2777,
+          "A person speaking words.": 0.1739,
+          "A person singing lyrics.": 0.0765,
+          "Continuous music with drums and rhythm.": -0.1391,
+          "Harsh distorted electrical buzzing.": 0.0062
+        },
+        "rms_dbfs": -25.0,
+        "peak_dbfs": -9.84,
+        "tail_before_fade_db": -84.97,
+        "expander_upper_dbfs": -52.8,
+        "gain_db": -1.2,
+        "sha256": "0a2ad6a6c484aa97a0a58c093d7613ea2bd49e37bf6483a84ba8eb92fd478b4e",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-ready.ogg",
+      "sha256": "4082d99f83835a6966bf0275ad7f5a50a03f30006e4860438719cdaaaf878e16",
+      "decoded_peak": 0.3228822946548462
+    },
+    {
+      "spec": {
+        "name": "priest-crit",
+        "ko": "치명적 치유",
+        "duration": 1.05,
+        "pitch": 5,
+        "trim": 0.65,
+        "strength": 0.16,
+        "rms": -28,
+        "description": "A tiny soft radiant accent, a brief airy crystalline harmonic blossom, light and restrained with a fast clean tail."
+      },
+      "generation": {
+        "generator": "Shared motif from an accepted Agent Audio / Stable Audio 3 generated take, with a separate quiet mix; no additional model call",
+        "parent_generation": {
+          "request": {
+            "name": "priest-ready-01",
+            "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-ready.wav",
+            "prompt": "A small clear rising harmonic shimmer signals a holy blessing becoming ready, gentle and bright with a rounded airy attack. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.05 seconds.",
+            "strength": 0.18,
+            "seed": 2026102214,
+            "seconds": 1.25,
+            "steps": 4,
+            "reference_sha256": "f0dc1886c847cbf6a4ac93fe32a2a369a48936876cd3231517cf99be5619ff26",
+            "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+            "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+          },
+          "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+          "duration_wall_seconds": 10.22,
+          "output": {
+            "seconds": 1.25,
+            "sample_rate": 44100,
+            "channels": 2,
+            "sample_width": 2
+          }
+        },
+        "processing": {
+          "source": "priest-ready-01.wav",
+          "duration": 1.05,
+          "target_rms_dbfs": -28,
+          "pitch_change": 0,
+          "role": "치명적 치유"
+        }
+      },
+      "screening": {
+        "name": "priest-crit",
+        "source": "priest-crit-06.wav",
+        "seconds": 1.05,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8246,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3722,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2894,
+          "A person speaking words.": 0.1831,
+          "A person singing lyrics.": 0.0797,
+          "Continuous music with drums and rhythm.": -0.1382,
+          "Harsh distorted electrical buzzing.": -0.0057
+        },
+        "rms_dbfs": -28.0,
+        "peak_dbfs": -12.84,
+        "tail_before_fade_db": -84.97,
+        "expander_upper_dbfs": -52.8,
+        "gain_db": -4.2,
+        "sha256": "51c7d7c3bab8514878b265482933d4f66a91aea8e7f27a86e58a9e6619a7e57c",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-crit.ogg",
+      "sha256": "898b37f4fceca76c7430fb32473b51b5af450f0522945dce1ea4605526e89b25",
+      "decoded_peak": 0.23051579296588898
+    },
+    {
+      "spec": {
+        "name": "priest-rescue",
+        "ko": "수호 영혼 생명 구출",
+        "duration": 1.65,
+        "pitch": -3,
+        "trim": 0.6,
+        "strength": 0.22,
+        "rms": -23,
+        "description": "A protective holy spirit surges once to save a life, a reassuring full-bodied warm harmonic breath with a luminous resolving tail."
+      },
+      "generation": {
+        "request": {
+          "name": "priest-rescue-01",
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-rescue.wav",
+          "prompt": "A protective holy spirit surges once to save a life, a reassuring full-bodied warm harmonic breath with a luminous resolving tail. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.65 seconds.",
+          "strength": 0.22,
+          "seed": 2026102216,
+          "seconds": 1.8499999999999999,
+          "steps": 4,
+          "reference_sha256": "45a94d14ac99d2aefc08cc941180f256acfa0f01d7658f8774c6715ef9812aa0",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 11.72,
+        "output": {
+          "seconds": 1.85,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "screening": {
+        "name": "priest-rescue",
+        "source": "priest-rescue-01.wav",
+        "seconds": 1.65,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.9226,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4419,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4199,
+          "A person speaking words.": 0.2956,
+          "A person singing lyrics.": 0.2314,
+          "Continuous music with drums and rhythm.": -0.0924,
+          "Harsh distorted electrical buzzing.": -0.0787
+        },
+        "rms_dbfs": -23.0,
+        "peak_dbfs": -6.54,
+        "tail_before_fade_db": -240.0,
+        "expander_upper_dbfs": -51.61,
+        "gain_db": 0.77,
+        "sha256": "56576861c9b44a0c942a7063dca6c0f33906e83844b8f8df93d9f1efb3f1a088",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-rescue.ogg",
+      "sha256": "a367a02c8ced801c324acd595f2c0ad1abcd50a521c87fa4165291f5fe397da4",
+      "decoded_peak": 0.4681829810142517
+    },
+    {
+      "spec": {
+        "name": "priest-relay-hop",
+        "ko": "빛의 전이 이동·소멸",
+        "duration": 1.2,
+        "pitch": 1,
+        "trim": 0.62,
+        "strength": 0.16,
+        "rms": -28,
+        "description": "A tiny orb of sacred light glides between allies, a brief airy harmonic swoop with a smooth delicate fade."
+      },
+      "generation": {
+        "generator": "Shared motif from an accepted Agent Audio / Stable Audio 3 generated take, with a separate quiet mix; no additional model call",
+        "parent_generation": {
+          "request": {
+            "name": "priest-relay-01",
+            "reference": "E:\\claude\\healer\\.sfx-raw\\priest-theme-20261021\\references\\priest-relay.wav",
+            "prompt": "A small orb of healing light unfurls and drifts, an airy traveling harmonic whoosh with a delicate rounded shimmer. Fantasy priest healing sound effect. Warm midrange choir-like synthetic harmonics, breathy airy shimmer, rounded onset, soft natural decay, spacious stereo. One isolated event. No intelligible voice, lyrics, music, drums, bell strikes, harp plucks, harsh buzz or background ambience. The complete sound fades to silence within 1.2 seconds.",
+            "strength": 0.18,
+            "seed": 2026102208,
+            "seconds": 1.4,
+            "steps": 4,
+            "reference_sha256": "b4639dcd22cd057829fef357b21f6a8cc502bd8f88a60d851c918cb4e2e3173d",
+            "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+            "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+          },
+          "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+          "duration_wall_seconds": 10.2,
+          "output": {
+            "seconds": 1.4,
+            "sample_rate": 44100,
+            "channels": 2,
+            "sample_width": 2
+          }
+        },
+        "processing": {
+          "source": "priest-relay-01.wav",
+          "duration": 1.2,
+          "target_rms_dbfs": -28,
+          "pitch_change": 0,
+          "role": "빛의 전이 이동·소멸"
+        }
+      },
+      "screening": {
+        "name": "priest-relay-hop",
+        "source": "priest-relay-hop-06.wav",
+        "seconds": 1.2,
+        "sample_rate": 44100,
+        "channels": 2,
+        "reference_similarity": 0.8725,
+        "descriptors": {
+          "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3852,
+          "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3966,
+          "A person speaking words.": 0.3026,
+          "A person singing lyrics.": 0.1591,
+          "Continuous music with drums and rhythm.": -0.1133,
+          "Harsh distorted electrical buzzing.": -0.0118
+        },
+        "rms_dbfs": -28.0,
+        "peak_dbfs": -11.6,
+        "tail_before_fade_db": -91.34,
+        "expander_upper_dbfs": -51.07,
+        "gain_db": -4.82,
+        "sha256": "83ce020da75844c2b323ac77b3b7a9044f1554541df1cc07e314d7bfeabe51d3",
+        "reasons": [],
+        "screening": "pass"
+      },
+      "file": "priest-relay-hop.ogg",
+      "sha256": "d2fea6a27f1fa1c1a9b3db50d3475ef76e36cd496ee2850b781d825866f3a81d",
+      "decoded_peak": 0.26363837718963623
+    }
+  ],
+  "method": "Local CLAP at common -24dBFS RMS (headroom limited) + signal screening; no human listening. Listening files keep their intended mix levels.",
+  "criteria": {
+    "reference_similarity_min": 0.65,
+    "theme_match_min": 0.35,
+    "unwanted_margin": 0.08,
+    "tail_before_fade_max_db": -28
+  },
+  "candidate_screening": [
+    {
+      "name": "heal-priest",
+      "source": "heal-priest-01.wav",
+      "seconds": 1.25,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8626,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2505,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2774,
+        "A person speaking words.": 0.3403,
+        "A person singing lyrics.": 0.2348,
+        "Continuous music with drums and rhythm.": -0.1508,
+        "Harsh distorted electrical buzzing.": 0.0541
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -7.24,
+      "tail_before_fade_db": -67.16,
+      "expander_upper_dbfs": -52.75,
+      "gain_db": -0.12,
+      "sha256": "ff572964daad0160604b4bd1a3fda39d4b5a3331ae0266f0c2023fdf639f05ed",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "heal-priest",
+      "source": "heal-priest-02.wav",
+      "seconds": 1.25,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.6517,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3894,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3152,
+        "A person speaking words.": 0.2321,
+        "A person singing lyrics.": 0.1046,
+        "Continuous music with drums and rhythm.": -0.1232,
+        "Harsh distorted electrical buzzing.": 0.1165
+      },
+      "rms_dbfs": -24.8,
+      "peak_dbfs": -4.0,
+      "tail_before_fade_db": -106.43,
+      "expander_upper_dbfs": -50.55,
+      "gain_db": 0.2,
+      "sha256": "87b57ecf61e5e05a510b3743bf45009f8c424204352cb21d35466ebd7329ff3e",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "heal-priest",
+      "source": "heal-priest-03.wav",
+      "seconds": 1.25,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8847,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4384,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4424,
+        "A person speaking words.": 0.3319,
+        "A person singing lyrics.": 0.2429,
+        "Continuous music with drums and rhythm.": -0.0919,
+        "Harsh distorted electrical buzzing.": -0.1378
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -8.14,
+      "tail_before_fade_db": -70.26,
+      "expander_upper_dbfs": -52.66,
+      "gain_db": -0.21,
+      "sha256": "8223d80bc775b0dc268f8693e65e6782360fc4ccdb4c1b65f0e1d337b7612f31",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-flash",
+      "source": "priest-flash-01.wav",
+      "seconds": 0.85,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8274,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3667,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.345,
+        "A person speaking words.": 0.2824,
+        "A person singing lyrics.": 0.1202,
+        "Continuous music with drums and rhythm.": -0.0897,
+        "Harsh distorted electrical buzzing.": -0.0232
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -8.13,
+      "tail_before_fade_db": -91.32,
+      "expander_upper_dbfs": -51.71,
+      "gain_db": 0.24,
+      "sha256": "ed7be8bf423bb659e3242b38d6e1d1b05a727cbaa82ce504a722c078e2ba0e8d",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "renew-priest",
+      "source": "renew-priest-01.wav",
+      "seconds": 1.45,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.748,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4689,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.456,
+        "A person speaking words.": 0.303,
+        "A person singing lyrics.": 0.1573,
+        "Continuous music with drums and rhythm.": -0.152,
+        "Harsh distorted electrical buzzing.": -0.0396
+      },
+      "rms_dbfs": -26.0,
+      "peak_dbfs": -9.41,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.24,
+      "gain_db": -2.36,
+      "sha256": "e645def1d859433a2dccbef274b8ba68e4b6c6d531fbb4701982fbb98a46a250",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-prayer",
+      "source": "priest-prayer-01.wav",
+      "seconds": 1.85,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.9096,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4795,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.395,
+        "A person speaking words.": 0.2401,
+        "A person singing lyrics.": 0.2528,
+        "Continuous music with drums and rhythm.": -0.1317,
+        "Harsh distorted electrical buzzing.": -0.0844
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -7.8,
+      "tail_before_fade_db": -78.66,
+      "expander_upper_dbfs": -50,
+      "gain_db": -0.69,
+      "sha256": "1a8a98aa1003192df6320f16f7db7c5ce76d05b30e3680a66097e2d01f5c8fd9",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-purify",
+      "source": "priest-purify-01.wav",
+      "seconds": 0.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8341,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3172,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2631,
+        "A person speaking words.": 0.2777,
+        "A person singing lyrics.": 0.1441,
+        "Continuous music with drums and rhythm.": -0.1608,
+        "Harsh distorted electrical buzzing.": 0.1017
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -8.46,
+      "tail_before_fade_db": -94.7,
+      "expander_upper_dbfs": -51.96,
+      "gain_db": -0.03,
+      "sha256": "d442e40d45c0a9f61f6c4b77adf912c5017d820fa4e7e1ea20d487147f41c8ca",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-purify",
+      "source": "priest-purify-02.wav",
+      "seconds": 0.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7167,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.319,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2725,
+        "A person speaking words.": 0.2951,
+        "A person singing lyrics.": 0.098,
+        "Continuous music with drums and rhythm.": -0.0298,
+        "Harsh distorted electrical buzzing.": -0.0052
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -5.81,
+      "tail_before_fade_db": -51.12,
+      "expander_upper_dbfs": -51.64,
+      "gain_db": 1.3,
+      "sha256": "ddaa785f0e06b6dd8b7d88a7479ca0e9bde1d8dff649f9fc5f8312b0c7aaa728",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-purify",
+      "source": "priest-purify-03.wav",
+      "seconds": 0.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8125,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3021,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2476,
+        "A person speaking words.": 0.1931,
+        "A person singing lyrics.": 0.1146,
+        "Continuous music with drums and rhythm.": -0.0988,
+        "Harsh distorted electrical buzzing.": -0.0967
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -5.49,
+      "tail_before_fade_db": -87.2,
+      "expander_upper_dbfs": -51.21,
+      "gain_db": 0.87,
+      "sha256": "1f65c0ddc5593b84e07874f4f12e1feea2f474a18ea862f65c58496743e26300",
+      "reasons": [
+        "insufficient airy harmonic texture"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-purify",
+      "source": "priest-purify-04.wav",
+      "seconds": 0.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7155,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2241,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.391,
+        "A person speaking words.": 0.348,
+        "A person singing lyrics.": 0.1082,
+        "Continuous music with drums and rhythm.": -0.0832,
+        "Harsh distorted electrical buzzing.": -0.016
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -7.59,
+      "tail_before_fade_db": -57.51,
+      "expander_upper_dbfs": -50.73,
+      "gain_db": -1.48,
+      "sha256": "1e2a1381cad86a804e268121738006c0d7847d45b42661edfb92b2affe389b55",
+      "reasons": [
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-purify",
+      "source": "priest-purify-05.wav",
+      "seconds": 0.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8515,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3771,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2481,
+        "A person speaking words.": 0.2631,
+        "A person singing lyrics.": 0.1571,
+        "Continuous music with drums and rhythm.": -0.1061,
+        "Harsh distorted electrical buzzing.": 0.0179
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -8.87,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -54.03,
+      "gain_db": 0.98,
+      "sha256": "5eec69c1177451824d845bf96e5110bb3a93c398c0f9476411e2c9dac83ca3db",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-guardian",
+      "source": "priest-guardian-01.wav",
+      "seconds": 1.7,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.9309,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4753,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4266,
+        "A person speaking words.": 0.312,
+        "A person singing lyrics.": 0.2527,
+        "Continuous music with drums and rhythm.": -0.1356,
+        "Harsh distorted electrical buzzing.": -0.0589
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -7.64,
+      "tail_before_fade_db": -82.89,
+      "expander_upper_dbfs": -51.14,
+      "gain_db": -0.38,
+      "sha256": "7cbd4ffe0007327a96b81c9074f3ef64046760d4b012cd763d860803ae63e0cc",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "hymn-priest",
+      "source": "hymn-priest-01.wav",
+      "seconds": 2.8,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8455,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5072,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4695,
+        "A person speaking words.": 0.3252,
+        "A person singing lyrics.": 0.2388,
+        "Continuous music with drums and rhythm.": -0.1186,
+        "Harsh distorted electrical buzzing.": -0.0462
+      },
+      "rms_dbfs": -26.0,
+      "peak_dbfs": -8.64,
+      "tail_before_fade_db": -72.54,
+      "expander_upper_dbfs": -51.1,
+      "gain_db": -2.45,
+      "sha256": "0a7f953d7b0925cd91ce06be0dde4205ae8a5805d95a14677e51d8668e062fe8",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-serenity",
+      "source": "priest-serenity-01.wav",
+      "seconds": 2.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8552,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4961,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3783,
+        "A person speaking words.": 0.2904,
+        "A person singing lyrics.": 0.3209,
+        "Continuous music with drums and rhythm.": -0.1115,
+        "Harsh distorted electrical buzzing.": -0.0027
+      },
+      "rms_dbfs": -23.0,
+      "peak_dbfs": -5.91,
+      "tail_before_fade_db": -81.37,
+      "expander_upper_dbfs": -51.17,
+      "gain_db": 0.23,
+      "sha256": "99630ab01df4445c9ea1b4ad7c94bff5856d48df5f5d3cbdf9f089041e8cee80",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-relay",
+      "source": "priest-relay-01.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8199,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3843,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3946,
+        "A person speaking words.": 0.3023,
+        "A person singing lyrics.": 0.1556,
+        "Continuous music with drums and rhythm.": -0.1123,
+        "Harsh distorted electrical buzzing.": -0.0064
+      },
+      "rms_dbfs": -25.0,
+      "peak_dbfs": -8.6,
+      "tail_before_fade_db": -91.34,
+      "expander_upper_dbfs": -51.07,
+      "gain_db": -1.82,
+      "sha256": "b65faa168884e253b67532897f0b1544ad08ed75c4deaa8a78d15b8e16701674",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-miracle",
+      "source": "priest-miracle-01.wav",
+      "seconds": 1.65,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8431,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5066,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4308,
+        "A person speaking words.": 0.2749,
+        "A person singing lyrics.": 0.141,
+        "Continuous music with drums and rhythm.": -0.1664,
+        "Harsh distorted electrical buzzing.": -0.0016
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -8.29,
+      "tail_before_fade_db": -72.98,
+      "expander_upper_dbfs": -51.88,
+      "gain_db": -0.13,
+      "sha256": "c75030ddf2efae6912f034a8ac5b9db399689a78f31c351c889124a9c9cb1436",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-shelter",
+      "source": "priest-shelter-01.wav",
+      "seconds": 1.95,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8814,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.5197,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4631,
+        "A person speaking words.": 0.2027,
+        "A person singing lyrics.": 0.1774,
+        "Continuous music with drums and rhythm.": -0.1834,
+        "Harsh distorted electrical buzzing.": -0.1479
+      },
+      "rms_dbfs": -26.0,
+      "peak_dbfs": -10.05,
+      "tail_before_fade_db": -104.7,
+      "expander_upper_dbfs": -50.09,
+      "gain_db": -2.36,
+      "sha256": "5bdb2624cd314a06c8d15b3f264eaf89d424dabbe9e4ac194da56639a66319b0",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-zenith",
+      "source": "priest-zenith-01.wav",
+      "seconds": 2.35,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8376,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4671,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.542,
+        "A person speaking words.": 0.3139,
+        "A person singing lyrics.": 0.2282,
+        "Continuous music with drums and rhythm.": -0.1379,
+        "Harsh distorted electrical buzzing.": -0.118
+      },
+      "rms_dbfs": -24.0,
+      "peak_dbfs": -7.58,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.12,
+      "gain_db": -0.54,
+      "sha256": "c211def9d5ba10f54f12fac0e9863f84ac011bc29b1b4c77e95e3c3148448a72",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-scatter",
+      "source": "priest-scatter-01.wav",
+      "seconds": 1.75,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7779,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4242,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3395,
+        "A person speaking words.": 0.194,
+        "A person singing lyrics.": 0.0759,
+        "Continuous music with drums and rhythm.": -0.1129,
+        "Harsh distorted electrical buzzing.": -0.0376
+      },
+      "rms_dbfs": -25.0,
+      "peak_dbfs": -9.57,
+      "tail_before_fade_db": -71.43,
+      "expander_upper_dbfs": -53.24,
+      "gain_db": -1.03,
+      "sha256": "50adaa5368e5f97051e4670b8e0b6162747bd4ce7ccbd687413e59d786c89e4e",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-01.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8109,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2412,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2284,
+        "A person speaking words.": 0.3545,
+        "A person singing lyrics.": 0.1029,
+        "Continuous music with drums and rhythm.": -0.0769,
+        "Harsh distorted electrical buzzing.": 0.1997
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -9.04,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.47,
+      "gain_db": -1.6,
+      "sha256": "35573fe7b05b09d566a45ebbb8155ded544b963698c5e4da667f676c9323ac50",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-02.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.4953,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.287,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3873,
+        "A person speaking words.": 0.3403,
+        "A person singing lyrics.": 0.018,
+        "Continuous music with drums and rhythm.": -0.0517,
+        "Harsh distorted electrical buzzing.": -0.0086
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -6.32,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -50,
+      "gain_db": -1.82,
+      "sha256": "b512ca8b1e2e0beb8ee6e4e0b27b36331ca5dd3eaa093b33b06d70c149bd18d7",
+      "reasons": [
+        "reference family similarity below .65",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-03.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7473,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.279,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3493,
+        "A person speaking words.": 0.3261,
+        "A person singing lyrics.": 0.0871,
+        "Continuous music with drums and rhythm.": -0.0268,
+        "Harsh distorted electrical buzzing.": -0.0497
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -10.55,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -53.96,
+      "gain_db": -0.79,
+      "sha256": "c5058f41a2f8b448396d491285da7cc26ad865a934dc7b2de497e49980fea9bb",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-04.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.6504,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.1977,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3726,
+        "A person speaking words.": 0.4483,
+        "A person singing lyrics.": 0.027,
+        "Continuous music with drums and rhythm.": -0.064,
+        "Harsh distorted electrical buzzing.": -0.0102
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -10.18,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -52.1,
+      "gain_db": -2.53,
+      "sha256": "7945f9c9a6343580e41157560d05328f70da2c9026147a1034546669b9acaf8e",
+      "reasons": [
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-05.wav",
+      "seconds": 1.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7995,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3327,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3535,
+        "A person speaking words.": 0.3092,
+        "A person singing lyrics.": 0.1243,
+        "Continuous music with drums and rhythm.": -0.0486,
+        "Harsh distorted electrical buzzing.": -0.0575
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -11.89,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.49,
+      "gain_db": -3.78,
+      "sha256": "fc5c448681cd38b61c440417f575a449d23872b1f09edad3ad10ffd611eba35d",
+      "reasons": [
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-06.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7911,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.356,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3399,
+        "A person speaking words.": 0.2801,
+        "A person singing lyrics.": 0.1242,
+        "Continuous music with drums and rhythm.": -0.0929,
+        "Harsh distorted electrical buzzing.": -0.0267
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -11.63,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.71,
+      "gain_db": -3.26,
+      "sha256": "cf97feb617ea1fe55032201840587566744a569e44d0bcaf18f6bf10ad142e0e",
+      "reasons": [
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-cast",
+      "source": "priest-cast-07.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8003,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3798,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.396,
+        "A person speaking words.": 0.3093,
+        "A person singing lyrics.": 0.1611,
+        "Continuous music with drums and rhythm.": -0.1105,
+        "Harsh distorted electrical buzzing.": -0.0143
+      },
+      "rms_dbfs": -29.0,
+      "peak_dbfs": -12.6,
+      "tail_before_fade_db": -91.34,
+      "expander_upper_dbfs": -51.07,
+      "gain_db": -5.82,
+      "sha256": "652cc59f15e562610581a1081e070e4e520ac5b85de3338ac0c5161a6b3cee70",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-ready",
+      "source": "priest-ready-01.wav",
+      "seconds": 1.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8929,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3709,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2777,
+        "A person speaking words.": 0.1739,
+        "A person singing lyrics.": 0.0765,
+        "Continuous music with drums and rhythm.": -0.1391,
+        "Harsh distorted electrical buzzing.": 0.0062
+      },
+      "rms_dbfs": -25.0,
+      "peak_dbfs": -9.84,
+      "tail_before_fade_db": -84.97,
+      "expander_upper_dbfs": -52.8,
+      "gain_db": -1.2,
+      "sha256": "0a2ad6a6c484aa97a0a58c093d7613ea2bd49e37bf6483a84ba8eb92fd478b4e",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-crit",
+      "source": "priest-crit-01.wav",
+      "seconds": 1.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8658,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.192,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.1826,
+        "A person speaking words.": 0.2186,
+        "A person singing lyrics.": 0.106,
+        "Continuous music with drums and rhythm.": -0.171,
+        "Harsh distorted electrical buzzing.": 0.0025
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -8.8,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -52.07,
+      "gain_db": -2.73,
+      "sha256": "044819ba55bdca9031f06cdc1885585c40330e583d452c80612d1584e3413041",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-crit",
+      "source": "priest-crit-02.wav",
+      "seconds": 1.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7134,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2678,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3686,
+        "A person speaking words.": 0.2456,
+        "A person singing lyrics.": 0.0338,
+        "Continuous music with drums and rhythm.": -0.0968,
+        "Harsh distorted electrical buzzing.": -0.1197
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -7.86,
+      "tail_before_fade_db": -96.94,
+      "expander_upper_dbfs": -51.48,
+      "gain_db": -1.28,
+      "sha256": "243660d868d8b2f98299325099429e3392f550ffccce801d2476720c23da42b9",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-crit",
+      "source": "priest-crit-06.wav",
+      "seconds": 1.05,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8246,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3722,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2894,
+        "A person speaking words.": 0.1831,
+        "A person singing lyrics.": 0.0797,
+        "Continuous music with drums and rhythm.": -0.1382,
+        "Harsh distorted electrical buzzing.": -0.0057
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -12.84,
+      "tail_before_fade_db": -84.97,
+      "expander_upper_dbfs": -52.8,
+      "gain_db": -4.2,
+      "sha256": "51c7d7c3bab8514878b265482933d4f66a91aea8e7f27a86e58a9e6619a7e57c",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-rescue",
+      "source": "priest-rescue-01.wav",
+      "seconds": 1.65,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.9226,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.4419,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.4199,
+        "A person speaking words.": 0.2956,
+        "A person singing lyrics.": 0.2314,
+        "Continuous music with drums and rhythm.": -0.0924,
+        "Harsh distorted electrical buzzing.": -0.0787
+      },
+      "rms_dbfs": -23.0,
+      "peak_dbfs": -6.54,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -51.61,
+      "gain_db": 0.77,
+      "sha256": "56576861c9b44a0c942a7063dca6c0f33906e83844b8f8df93d9f1efb3f1a088",
+      "reasons": [],
+      "screening": "pass"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-01.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7831,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.2157,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2296,
+        "A person speaking words.": 0.2581,
+        "A person singing lyrics.": 0.0088,
+        "Continuous music with drums and rhythm.": -0.1394,
+        "Harsh distorted electrical buzzing.": 0.0616
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -10.13,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -50.81,
+      "gain_db": -2.31,
+      "sha256": "a8aa6a6add23e0497411e193a19ae86063923395b1b2cd6469b8f99f5faf113c",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-02.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.7036,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.302,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2856,
+        "A person speaking words.": 0.2881,
+        "A person singing lyrics.": 0.1067,
+        "Continuous music with drums and rhythm.": -0.0718,
+        "Harsh distorted electrical buzzing.": -0.0445
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -9.49,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -50.14,
+      "gain_db": -1.81,
+      "sha256": "f410934f3adadf3a2c936d76940a43aef6ffff7b2085ea539ff9f948970579a2",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-03.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.862,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.223,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2291,
+        "A person speaking words.": 0.2567,
+        "A person singing lyrics.": 0.1141,
+        "Continuous music with drums and rhythm.": -0.0515,
+        "Harsh distorted electrical buzzing.": -0.0549
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -8.64,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -52.75,
+      "gain_db": -2.24,
+      "sha256": "916501e2bb18ffcf85e481a24231a78104361e97e337e60f5d16869b88d4303a",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-04.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.6783,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.1353,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.2856,
+        "A person speaking words.": 0.4636,
+        "A person singing lyrics.": 0.0601,
+        "Continuous music with drums and rhythm.": -0.0768,
+        "Harsh distorted electrical buzzing.": 0.0675
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -6.01,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -50,
+      "gain_db": -1.53,
+      "sha256": "8fa56129b4146ca2c34db1e0280c9ddcbdc412af5e36d1cc19652729298d6867",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-05.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8263,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3357,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3003,
+        "A person speaking words.": 0.2917,
+        "A person singing lyrics.": 0.1397,
+        "Continuous music with drums and rhythm.": -0.0865,
+        "Harsh distorted electrical buzzing.": 0.0158
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -10.82,
+      "tail_before_fade_db": -240.0,
+      "expander_upper_dbfs": -52.93,
+      "gain_db": -2.21,
+      "sha256": "89f2f9b10c99b31a59fb081723c6c8ae27ae5fb2a263333a5e7efa4a78805829",
+      "reasons": [
+        "insufficient airy harmonic texture",
+        "unwanted sound class too strong"
+      ],
+      "screening": "reject"
+    },
+    {
+      "name": "priest-relay-hop",
+      "source": "priest-relay-hop-06.wav",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "reference_similarity": 0.8725,
+      "descriptors": {
+        "A warm airy magical healing spell with shimmering choir-like synthetic harmonics.": 0.3852,
+        "A soft rising magical whoosh with a smooth resonant shimmering decay.": 0.3966,
+        "A person speaking words.": 0.3026,
+        "A person singing lyrics.": 0.1591,
+        "Continuous music with drums and rhythm.": -0.1133,
+        "Harsh distorted electrical buzzing.": -0.0118
+      },
+      "rms_dbfs": -28.0,
+      "peak_dbfs": -11.6,
+      "tail_before_fade_db": -91.34,
+      "expander_upper_dbfs": -51.07,
+      "gain_db": -4.82,
+      "sha256": "83ce020da75844c2b323ac77b3b7a9044f1554541df1cc07e314d7bfeabe51d3",
+      "reasons": [],
+      "screening": "pass"
+    }
+  ]
+}

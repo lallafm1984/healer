@@ -1,0 +1,629 @@
+{
+  "date": "2026-10-21",
+  "method": "Agent Audio installed Stable Audio 3 Medium audio-to-audio + local mastering",
+  "paid_api_calls": 0,
+  "reference_uploaded": false,
+  "original": {
+    "name": "coghezzi-holy-healing-spell-533279.mp3",
+    "sha256": "c917467401e7f734803bafc46e41cfbf55838e119a5e1f27f2db5fd87b1497e8"
+  },
+  "reference_analysis": {
+    "method": "Signal analysis and local CLAP label comparison; not direct listening",
+    "duration_seconds": 2.5338775510204083,
+    "sample_rate": 44100,
+    "channels": 2,
+    "peak_dbfs": -9.407235145568848,
+    "rms_dbfs": -31.57404327392578,
+    "peak_time_seconds": 0.84,
+    "energy_times_seconds": {
+      "0.05": 0.6179365079365079,
+      "0.25": 0.8193877551020409,
+      "0.5": 0.9443537414965987,
+      "0.75": 1.1231292517006803,
+      "0.95": 1.3389795918367347,
+      "0.99": 1.5424943310657597
+    },
+    "centroid_hz": 774.3155749787534,
+    "spectral_peak_hz": [
+      925.9,
+      366.1,
+      1184.3,
+      516.8,
+      689.1,
+      775.2,
+      236.9,
+      1055.1,
+      1399.7,
+      1528.9,
+      1851.9,
+      2777.8
+    ],
+    "band_energy": {
+      "0-250": 0.0037,
+      "250-1000": 0.7978,
+      "1000-3000": 0.1982,
+      "3000-7000": 0.0003,
+      "7000-22050": 0.0
+    },
+    "stereo_correlation": 0.01917643372686848,
+    "rms_by_100ms": [
+      3e-05,
+      0.0012,
+      0.00484,
+      0.01158,
+      0.01435,
+      0.02052,
+      0.03991,
+      0.03807,
+      0.06369,
+      0.05139,
+      0.04823,
+      0.04637,
+      0.03308,
+      0.03088,
+      0.0185,
+      0.01257,
+      0.00637,
+      0.00539,
+      0.00331,
+      0.00191,
+      0.00098,
+      0.00032,
+      5e-05,
+      1e-05,
+      1e-05,
+      1e-05
+    ],
+    "descriptors": [
+      {
+        "text": "A rising airy magical whoosh followed by a bright crystalline shimmer.",
+        "similarity": 0.6295
+      },
+      {
+        "text": "A shimmering magical spell with a breathy whisper-like synthetic texture and bright high tones.",
+        "similarity": 0.6119
+      },
+      {
+        "text": "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.",
+        "similarity": 0.6068
+      },
+      {
+        "text": "A shimmering synthesizer chord pulsing and swelling, then fading away.",
+        "similarity": 0.5664
+      },
+      {
+        "text": "A bright magical healing spell with sparkling bell chimes and shimmering reverb.",
+        "similarity": 0.5597
+      },
+      {
+        "text": "A resonant electronic notification chime with a brief upward pitch sweep.",
+        "similarity": 0.5049
+      },
+      {
+        "text": "A holy healing spell, a soft rounded chime attack with a smooth airy harmonic tail.",
+        "similarity": 0.5014
+      },
+      {
+        "text": "A short orchestral musical flourish with bells and strings.",
+        "similarity": 0.4384
+      },
+      {
+        "text": "A soft wind sound with a rising pitch and a reverberant release.",
+        "similarity": 0.4144
+      },
+      {
+        "text": "A soft swelling reversed cymbal followed by a metallic shimmering impact.",
+        "similarity": 0.4027
+      },
+      {
+        "text": "A bright ascending arpeggio of several high sparkling synthesizer notes.",
+        "similarity": 0.3987
+      },
+      {
+        "text": "A soft piano chord with a long reverberant decay.",
+        "similarity": 0.3465
+      },
+      {
+        "text": "A short descending cascade of watery electronic chimes.",
+        "similarity": 0.3413
+      },
+      {
+        "text": "A sustained flute or organ chord with soft vibrato.",
+        "similarity": 0.3198
+      },
+      {
+        "text": "A person speaking words.",
+        "similarity": 0.2715
+      },
+      {
+        "text": "A person singing lyrics.",
+        "similarity": 0.2134
+      },
+      {
+        "text": "A harp glissando moving rapidly upwards, light sparkling strings.",
+        "similarity": 0.1691
+      },
+      {
+        "text": "A single bright small bell or crystal glass chime ringing and fading.",
+        "similarity": 0.1657
+      },
+      {
+        "text": "A dark low ominous drone with rumbling bass and eerie resonance.",
+        "similarity": 0.1343
+      },
+      {
+        "text": "A futuristic electrical energy charge with zaps and buzzing crackles.",
+        "similarity": 0.0931
+      },
+      {
+        "text": "A single soft glassy harp pluck with a liquid droplet and short decay.",
+        "similarity": 0.0926
+      },
+      {
+        "text": "A sharp digital laser gun shot with a sliding electronic pitch.",
+        "similarity": 0.0604
+      },
+      {
+        "text": "Background room noise and static hiss.",
+        "similarity": 0.028
+      },
+      {
+        "text": "A metallic singing bowl struck softly and ringing out.",
+        "similarity": 0.0153
+      },
+      {
+        "text": "Several gentle water bubbles popping with a rounded watery gurgle.",
+        "similarity": -0.0094
+      },
+      {
+        "text": "A short resonant metallic clank, a sword hitting a shield.",
+        "similarity": -0.0159
+      },
+      {
+        "text": "Continuous music with melody, drums and rhythm.",
+        "similarity": -0.0301
+      },
+      {
+        "text": "A crackling fire burning.",
+        "similarity": -0.1241
+      }
+    ]
+  },
+  "raw_screening": {
+    "method": "Local CLAP reference similarity + signal comparison; not human listening or proof of artistic equivalence",
+    "reference": ".sfx-raw\\priest-reference-20261021\\reference.wav",
+    "reference_metrics": {
+      "seconds": 2.5338775510204083,
+      "channels": 2,
+      "sample_rate": 44100,
+      "peak_dbfs": -9.407235468338024,
+      "rms_dbfs": -28.64408185072067,
+      "peak_time_seconds": 0.87,
+      "centroid_hz": 774.3155749787534,
+      "high_frequency_energy": 1.4887795259710401e-05,
+      "clipped_fraction": 0.0,
+      "tail_db_relative": -78.59435169895389,
+      "energy_95_seconds": 1.3207709750566894
+    },
+    "candidates": [
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-a.wav",
+        "reference_similarity": 0.5235,
+        "envelope_correlation": 0.8883,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -10.416497623822265,
+          "rms_dbfs": -29.74595311183121,
+          "peak_time_seconds": 1.1300000000000001,
+          "centroid_hz": 732.0755065393473,
+          "high_frequency_energy": 2.0655623302445747e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -57.391838923352054,
+          "energy_95_seconds": 1.3178684807256236
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4599,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.3629,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.4149,
+          "A person speaking intelligible words.": 0.1407,
+          "A person singing lyrics.": 0.1989,
+          "Continuous music with melody, drums and rhythm.": -0.0125,
+          "A harsh electrical buzz or noisy distorted sound.": -0.0267
+        },
+        "reasons": [
+          "reference timbre similarity below target"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-b.wav",
+        "reference_similarity": 0.3671,
+        "envelope_correlation": 0.7796,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -20.298780488667617,
+          "rms_dbfs": -34.69096388888856,
+          "peak_time_seconds": 0.68,
+          "centroid_hz": 395.64398978799164,
+          "high_frequency_energy": 2.339066850254312e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -51.049412886878336,
+          "energy_95_seconds": 1.4571655328798185
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4377,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.2125,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3803,
+          "A person speaking intelligible words.": 0.0587,
+          "A person singing lyrics.": 0.0732,
+          "Continuous music with melody, drums and rhythm.": -0.0299,
+          "A harsh electrical buzz or noisy distorted sound.": -0.0556
+        },
+        "reasons": [
+          "reference timbre similarity below target",
+          "insufficient airy healing texture"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-c.wav",
+        "reference_similarity": 0.551,
+        "envelope_correlation": 0.9515,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -9.574026115750314,
+          "rms_dbfs": -28.25980442654017,
+          "peak_time_seconds": 0.9,
+          "centroid_hz": 643.2262006182909,
+          "high_frequency_energy": 1.8417742467136122e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -56.428291668091475,
+          "energy_95_seconds": 1.3222675736961451
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4542,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4424,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3669,
+          "A person speaking intelligible words.": 0.0332,
+          "A person singing lyrics.": 0.2223,
+          "Continuous music with melody, drums and rhythm.": -0.1641,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0202
+        },
+        "reasons": [
+          "reference timbre similarity below target"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-d.wav",
+        "reference_similarity": 0.4733,
+        "envelope_correlation": 0.9427,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -8.586074885476334,
+          "rms_dbfs": -27.581784201410848,
+          "peak_time_seconds": 0.92,
+          "centroid_hz": 756.3749226449249,
+          "high_frequency_energy": 3.6858938983641565e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -51.59433770586873,
+          "energy_95_seconds": 1.2002947845804988
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4721,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.2909,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3655,
+          "A person speaking intelligible words.": 0.0465,
+          "A person singing lyrics.": 0.012,
+          "Continuous music with melody, drums and rhythm.": -0.0957,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0984
+        },
+        "reasons": [
+          "reference timbre similarity below target"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-e.wav",
+        "reference_similarity": 0.5382,
+        "envelope_correlation": 0.9772,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -10.352537084279849,
+          "rms_dbfs": -27.378306791732424,
+          "peak_time_seconds": 0.9,
+          "centroid_hz": 783.2677251426811,
+          "high_frequency_energy": 3.414683305891231e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -53.83959900029322,
+          "energy_95_seconds": 1.3823809523809525
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.3853,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4179,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.2993,
+          "A person speaking intelligible words.": 0.117,
+          "A person singing lyrics.": 0.339,
+          "Continuous music with melody, drums and rhythm.": -0.0834,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0249
+        },
+        "reasons": [
+          "reference timbre similarity below target",
+          "insufficient airy healing texture",
+          "unwanted sound class too strong"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-f.wav",
+        "reference_similarity": 0.5838,
+        "envelope_correlation": 0.9647,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -10.456161301626405,
+          "rms_dbfs": -27.82116757327909,
+          "peak_time_seconds": 0.92,
+          "centroid_hz": 797.340043922347,
+          "high_frequency_energy": 2.443244738969952e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -54.5225758494754,
+          "energy_95_seconds": 1.3381859410430839
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4183,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4469,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3502,
+          "A person speaking intelligible words.": 0.0912,
+          "A person singing lyrics.": 0.2489,
+          "Continuous music with melody, drums and rhythm.": -0.1252,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0237
+        },
+        "reasons": [
+          "reference timbre similarity below target",
+          "insufficient airy healing texture"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-g.wav",
+        "reference_similarity": 0.5668,
+        "envelope_correlation": 0.9784,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -9.985888460165269,
+          "rms_dbfs": -28.656675776138453,
+          "peak_time_seconds": 0.87,
+          "centroid_hz": 783.4429322900021,
+          "high_frequency_energy": 5.092118590255268e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -51.60770475850179,
+          "energy_95_seconds": 1.3211111111111111
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.478,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4253,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3977,
+          "A person speaking intelligible words.": 0.0704,
+          "A person singing lyrics.": 0.2246,
+          "Continuous music with melody, drums and rhythm.": -0.0811,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0371
+        },
+        "reasons": [
+          "reference timbre similarity below target"
+        ],
+        "screening": "reject"
+      },
+      {
+        "file": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\priest-h.wav",
+        "reference_similarity": 0.5435,
+        "envelope_correlation": 0.9828,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -9.822569856363058,
+          "rms_dbfs": -28.462359856090455,
+          "peak_time_seconds": 0.88,
+          "centroid_hz": 778.686742312816,
+          "high_frequency_energy": 3.156058301101439e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -52.797934895505236,
+          "energy_95_seconds": 1.3259410430839003
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4654,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.3932,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3752,
+          "A person speaking intelligible words.": 0.0646,
+          "A person singing lyrics.": 0.2249,
+          "Continuous music with melody, drums and rhythm.": -0.0705,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0087
+        },
+        "reasons": [
+          "reference timbre similarity below target"
+        ],
+        "screening": "reject"
+      }
+    ],
+    "selected": null,
+    "human_listening": "not performed"
+  },
+  "finished_screening": {
+    "method": "Local CLAP reference similarity + signal comparison; not human listening or proof of artistic equivalence",
+    "reference": ".sfx-raw\\priest-reference-20261021\\reference-preview.wav",
+    "reference_metrics": {
+      "seconds": 2.5338775510204083,
+      "channels": 2,
+      "sample_rate": 44100,
+      "peak_dbfs": -4.763233800773832,
+      "rms_dbfs": -24.000002010051627,
+      "peak_time_seconds": 0.87,
+      "centroid_hz": 774.3162830003594,
+      "high_frequency_energy": 1.4898272638674825e-05,
+      "clipped_fraction": 0.0,
+      "tail_db_relative": -77.21782845206222,
+      "energy_95_seconds": 1.3207709750566894
+    },
+    "candidates": [
+      {
+        "file": ".sfx-raw\\priest-reference-20261021\\finished\\heal-priest-holy.wav",
+        "reference_similarity": 0.7319,
+        "envelope_correlation": 0.9648,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -6.635062526500746,
+          "rms_dbfs": -24.00000106488182,
+          "peak_time_seconds": 0.92,
+          "centroid_hz": 797.3120864108429,
+          "high_frequency_energy": 2.2635347704635933e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -100.39097512619801,
+          "energy_95_seconds": 1.338140589569161
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.4516,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4523,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.3965,
+          "A person speaking intelligible words.": 0.056,
+          "A person singing lyrics.": 0.2254,
+          "Continuous music with melody, drums and rhythm.": -0.1311,
+          "A harsh electrical buzz or noisy distorted sound.": 0.0582
+        },
+        "reasons": [],
+        "screening": "pass"
+      },
+      {
+        "file": ".sfx-raw\\priest-reference-20261021\\finished\\heal-priest-close.wav",
+        "reference_similarity": 0.7453,
+        "envelope_correlation": 0.9785,
+        "metrics": {
+          "seconds": 2.6,
+          "channels": 2,
+          "sample_rate": 44100,
+          "peak_dbfs": -5.328947200999133,
+          "rms_dbfs": -24.000001125888378,
+          "peak_time_seconds": 0.87,
+          "centroid_hz": 783.3857631911246,
+          "high_frequency_energy": 4.802092371392064e-05,
+          "clipped_fraction": 0.0,
+          "tail_db_relative": -72.66083711133783,
+          "energy_95_seconds": 1.3211111111111111
+        },
+        "descriptors": {
+          "A rising airy magical whoosh followed by a bright crystalline shimmer.": 0.5322,
+          "A warm sustained angelic choir-like synthesizer chord, ethereal and reverberant.": 0.4686,
+          "A shimmering magical spell with a breathy synthetic texture and warm harmonics.": 0.5011,
+          "A person speaking intelligible words.": 0.0109,
+          "A person singing lyrics.": 0.1789,
+          "Continuous music with melody, drums and rhythm.": -0.1346,
+          "A harsh electrical buzz or noisy distorted sound.": 0.045
+        },
+        "reasons": [],
+        "screening": "pass"
+      }
+    ],
+    "selected": ".sfx-raw\\priest-reference-20261021\\finished\\heal-priest-close.wav",
+    "human_listening": "not performed"
+  },
+  "takes": [
+    {
+      "name": "heal-priest-close",
+      "generation": {
+        "request": {
+          "seed": 2026102107,
+          "steps": 1,
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\reference.wav",
+          "strength": 0.03,
+          "name": "priest-g",
+          "prompt": "A soft ethereal magic healing spell, an airy resonant whoosh swelling into a warm angelic synthetic choir chord and dissolving into a smooth reverberant tail. Spacious stereo. Rich overlapping midrange harmonics, breathy and shimmering, no sharp attack. Single one-shot sound effect. No words, no melody, no drums, no bell strikes, no plucked strings.",
+          "seconds": 2.6,
+          "reference_sha256": "115a949b53333af52fc429f88a56f89f39c41b19961a5d98d33860aa8a87571f",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 10.89,
+        "output": {
+          "seconds": 2.6,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "processing": {
+        "source": ".sfx-raw\\priest-reference-20261021\\priest-g.wav",
+        "source_sha256": "e93e2340855419c6c76aa70ca52dfa065374d031379f09839109c69be5b9b11a",
+        "output_sha256": "e2f90597db40841a397999b8657082c57acd3a414c3775aeeed0c6e37e950758",
+        "processing": "Stereo-linked 20ms RMS expander, -72 to -58 dBFS smoothstep, 5ms smoothing, final 80ms fade; no reference audio mixed in",
+        "gain_db": 4.656808684018316,
+        "target_rms_dbfs": -24,
+        "peak_limit_dbfs": -3,
+        "seconds": 2.6,
+        "channels": 2,
+        "sample_rate": 44100,
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -5.329079776146946
+      },
+      "ogg_sha256": "7431a75e71e274ac47dd38dc3833167d90fde20aeab9a572c34c9b1fcb5cab6a",
+      "ogg_decoded_peak": 0.5474991798400879
+    },
+    {
+      "name": "heal-priest-holy",
+      "generation": {
+        "request": {
+          "reference": "E:\\claude\\healer\\.sfx-raw\\priest-reference-20261021\\reference.wav",
+          "seconds": 2.6,
+          "seed": 2026102106,
+          "name": "priest-f",
+          "prompt": "A soft ethereal magic healing spell, an airy resonant whoosh swelling into a warm angelic synthetic choir chord and dissolving into a smooth reverberant tail. Spacious stereo. Rich overlapping midrange harmonics, breathy and shimmering, no sharp attack. Single one-shot sound effect. No words, no melody, no drums, no bell strikes, no plucked strings.",
+          "strength": 0.25,
+          "reference_sha256": "115a949b53333af52fc429f88a56f89f39c41b19961a5d98d33860aa8a87571f",
+          "runtime_revision": "779434a908193105335fd8d833418603625b2859",
+          "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b"
+        },
+        "generator": "Agent Audio pinned Stable Audio 3 Medium TFLite CPU audio-to-audio",
+        "duration_wall_seconds": 16.25,
+        "output": {
+          "seconds": 2.6,
+          "sample_rate": 44100,
+          "channels": 2,
+          "sample_width": 2
+        }
+      },
+      "processing": {
+        "source": ".sfx-raw\\priest-reference-20261021\\priest-f.wav",
+        "source_sha256": "eae74edc674c1c6a1ead992aed9c4a28ded6aebe593b4571fde07028e8e090eb",
+        "output_sha256": "0b5fdc1947e358a6df2cabafd9dd19307df1de59a0f5a641b22b8099d7650be2",
+        "processing": "Stereo-linked 20ms RMS expander, -72 to -58 dBFS smoothstep, 5ms smoothing, final 80ms fade; no reference audio mixed in",
+        "gain_db": 3.8212640731140284,
+        "target_rms_dbfs": -24,
+        "peak_limit_dbfs": -3,
+        "seconds": 2.6,
+        "channels": 2,
+        "sample_rate": 44100,
+        "rms_dbfs": -24.0,
+        "peak_dbfs": -6.634897228512369
+      },
+      "ogg_sha256": "fbe24141d782cb3bbbfe1bb4e1f973e9c2bfef709c85e43bdfcc03b91511aecb",
+      "ogg_decoded_peak": 0.4677058458328247
+    }
+  ],
+  "human_listening": "not performed",
+  "game_integration": "Listening candidates; current game audio unchanged"
+}

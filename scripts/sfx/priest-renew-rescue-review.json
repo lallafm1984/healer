@@ -1,0 +1,275 @@
+{
+  "paid_api_calls": 0,
+  "human_listening": "not performed",
+  "screening": {
+    "method": "Local CLAP acoustic-description match and separation from retained healing audio, plus signal checks; no human listening.",
+    "criteria": {
+      "acoustic_match_min": 0.22,
+      "unwanted_overrun_max": 0.025,
+      "heal_similarity_max_except_renew": 0.8,
+      "tail_before_fade_max_db": -18,
+      "phone_band_min_db": -16,
+      "source_clipped_fraction_max": 0.002
+    },
+    "candidates": [
+      {
+        "name": "renew-priest",
+        "source": "renew-priest-01.wav",
+        "reasons": [
+          "unfinished loud tail"
+        ],
+        "metrics": {
+          "seconds": 0.65,
+          "onset_seconds": 1.105,
+          "tail_db": -16.64,
+          "phone_band_db": -3.76,
+          "clipped_fraction": 0.0,
+          "peak_db": -14.370577192590982,
+          "rms_db": -28.641618854260564,
+          "channels": 2,
+          "expander_upper_dbfs": -61.29252222910923
+        },
+        "match": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.",
+        "descriptors": {
+          "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.": 0.3979,
+          "A short fantasy video game sound effect.": 0.4034,
+          "A person speaking words.": 0.2735,
+          "A person singing lyrics.": 0.039,
+          "Continuous background music with drums and a beat.": -0.0579,
+          "Background room noise and static hiss.": 0.3466,
+          "Traffic and engine noise.": 0.1539
+        },
+        "heal_similarity": 0.4343,
+        "rank_score": 0.051285386085510254,
+        "prepared": ".sfx-raw\\priest-renew-20261021-v3\\review\\renew-priest-01.wav",
+        "sha256": "aef6840a6a43a5bd361b4af7867b489742d1bab53de90f4c2fd2376f26b8c1ae",
+        "screening": "reject"
+      },
+      {
+        "name": "renew-priest",
+        "source": "renew-priest-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.63,
+          "onset_seconds": 0.0,
+          "tail_db": -35.78,
+          "phone_band_db": -7.6,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.271308955843516,
+          "rms_db": -28.001238727167177,
+          "channels": 2,
+          "expander_upper_dbfs": -66.49859948347864
+        },
+        "match": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.",
+        "descriptors": {
+          "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.": 0.4732,
+          "A short fantasy video game sound effect.": 0.3404,
+          "A person speaking words.": 0.1817,
+          "A person singing lyrics.": 0.0206,
+          "Continuous background music with drums and a beat.": -0.0735,
+          "Background room noise and static hiss.": 0.1455,
+          "Traffic and engine noise.": 0.0819
+        },
+        "heal_similarity": 0.4611,
+        "rank_score": 0.29143157601356506,
+        "prepared": ".sfx-raw\\priest-renew-20261021-v3\\review\\renew-priest-02.wav",
+        "sha256": "4e69d34acd6af024a55569adbedb46b750085fe379dc11f0f8e49b67fb97524c",
+        "screening": "pass"
+      },
+      {
+        "name": "priest-rescue",
+        "source": "priest-rescue-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 2.0,
+          "onset_seconds": 0.005,
+          "tail_db": -26.16,
+          "phone_band_db": -0.01,
+          "clipped_fraction": 0.0,
+          "peak_db": -10.125081628803933,
+          "rms_db": -25.00072980008424,
+          "channels": 2,
+          "expander_upper_dbfs": -59.812909612834304
+        },
+        "match": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.",
+        "descriptors": {
+          "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.": 0.3012,
+          "A short fantasy video game sound effect.": 0.22,
+          "A person speaking words.": 0.1155,
+          "A person singing lyrics.": 0.1533,
+          "Continuous background music with drums and a beat.": -0.0147,
+          "Background room noise and static hiss.": -0.1107,
+          "Traffic and engine noise.": -0.1397
+        },
+        "heal_similarity": 0.4512,
+        "rank_score": 0.14791297912597656,
+        "prepared": ".sfx-raw\\priest-renew-20261021-v3\\review\\priest-rescue-01.wav",
+        "sha256": "18faadc715650971611ff99c1d5c0fabe76d16b6160cec92dbb91e27ec3c81c2",
+        "screening": "pass"
+      }
+    ],
+    "selected": {
+      "renew-priest": "renew-priest-02.wav",
+      "priest-rescue": "priest-rescue-01.wav"
+    },
+    "retry": []
+  },
+  "sounds": [
+    {
+      "name": "renew-priest",
+      "spec": {
+        "name": "renew-priest",
+        "ko": "소생",
+        "where": "사제 소생",
+        "gen": 3,
+        "keep": 0.65,
+        "rms": -28,
+        "match": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.",
+        "texture": "살짝 스치고 사라지는 부드러운 생기",
+        "prompt": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound. A single quiet rounded breath of magic, immediate soft onset, fully released within 0.5 seconds followed by silence. Close stereo, comfortable midrange, no sharp transient. No popping, knocking, clicks, bell strikes, percussion, voice, choir, melody, music or background ambience."
+      },
+      "source": "renew-priest-02.wav",
+      "generation": {
+        "generator": "Pitch-preserving timing edit of a newly generated Agent Audio take; no additional model call",
+        "parent_generation": {
+          "name": "renew-priest",
+          "round": 1,
+          "prompt": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound. A single quiet rounded breath of magic, immediate soft onset, fully released within 0.5 seconds followed by silence. Close stereo, comfortable midrange, no sharp transient. No popping, knocking, clicks, bell strikes, percussion, voice, choir, melody, music or background ambience.",
+          "seed": 20262020,
+          "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+          "profile": "medium",
+          "source_seconds": 3.0,
+          "sample_rate": 44100,
+          "channels": 2
+        },
+        "processing": {
+          "source": "renew-priest-01.wav",
+          "sha256": "03069c5383f126b93634735e192fd6b818ca097a4e74e814c5bad6419a796a07",
+          "source_onset_seconds": 1.105,
+          "source_duration_seconds": 0.955,
+          "phrase_seconds": 0.6,
+          "method": "phase vocoder n_fft=1024 hop=256; 200ms silence padding"
+        }
+      },
+      "seconds": 0.63,
+      "channels": 2,
+      "sample_rate": 44100,
+      "file": "renew-priest.ogg",
+      "sha256": "9f857fd4ea7e5ec8dd1cc2dc2b182c31bf0ce60d7fc0570059e15585a9713f93",
+      "previous_sha256": "92a53a7f196aefc1ba7e0490ddda4d11279f861139259200b8b46f957668978e",
+      "encoded_peak_dbfs": -8.06927424952568,
+      "screening": {
+        "name": "renew-priest",
+        "source": "renew-priest-02.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 0.63,
+          "onset_seconds": 0.0,
+          "tail_db": -35.78,
+          "phone_band_db": -7.6,
+          "clipped_fraction": 0.0,
+          "peak_db": -8.271308955843516,
+          "rms_db": -28.001238727167177,
+          "channels": 2,
+          "expander_upper_dbfs": -66.49859948347864
+        },
+        "match": "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.",
+        "descriptors": {
+          "A very brief soft silky swish of air rises with a faint smooth glass harmonic and gently fades. A light delicate magical renewal sound.": 0.4732,
+          "A short fantasy video game sound effect.": 0.3404,
+          "A person speaking words.": 0.1817,
+          "A person singing lyrics.": 0.0206,
+          "Continuous background music with drums and a beat.": -0.0735,
+          "Background room noise and static hiss.": 0.1455,
+          "Traffic and engine noise.": 0.0819
+        },
+        "heal_similarity": 0.4611,
+        "rank_score": 0.29143157601356506,
+        "prepared": ".sfx-raw\\priest-renew-20261021-v3\\review\\renew-priest-02.wav",
+        "sha256": "4e69d34acd6af024a55569adbedb46b750085fe379dc11f0f8e49b67fb97524c",
+        "screening": "pass"
+      }
+    },
+    {
+      "name": "priest-rescue",
+      "spec": {
+        "name": "priest-rescue",
+        "ko": "수호 영혼 생명 구출",
+        "where": "사제 수호 영혼 생명 구출",
+        "gen": 3,
+        "keep": 2,
+        "rms": -25,
+        "match": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.",
+        "texture": "작은 빛에서 새 생명이 피어나는 울림",
+        "prompt": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release. A new life awakening, tender, hopeful and luminous. One gentle expanding magical event starting immediately, brightening softly and completely decaying within 1.7 seconds, followed by silence. Rounded quiet attack, clear warm midrange, subtle spacious stereo. No hard impact, metal strike, wing flap, bass boom, drum, human baby cry, speech, singing, choir, rhythmic music or background ambience."
+      },
+      "source": "priest-rescue-01.wav",
+      "generation": {
+        "name": "priest-rescue",
+        "round": 1,
+        "prompt": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release. A new life awakening, tender, hopeful and luminous. One gentle expanding magical event starting immediately, brightening softly and completely decaying within 1.7 seconds, followed by silence. Rounded quiet attack, clear warm midrange, subtle spacious stereo. No hard impact, metal strike, wing flap, bass boom, drum, human baby cry, speech, singing, choir, rhythmic music or background ambience.",
+        "seed": 20262021,
+        "generator": "agent-audio / pinned Stable Audio 3 medium TFLite runtime (staged batch)",
+        "profile": "medium",
+        "source_seconds": 3.0,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "seconds": 2.0,
+      "channels": 2,
+      "sample_rate": 44100,
+      "file": "priest-rescue.ogg",
+      "sha256": "45375598d37dbc1e3fa4d4f94c7e6f81e70d16a306b3edb4e51f91a4a8daa617",
+      "previous_sha256": "268edf03c0ce5df05731fc59c192d88bc9a6a604e85d50a9bdde1f23cd7baff4",
+      "encoded_peak_dbfs": -10.110399892327301,
+      "screening": {
+        "name": "priest-rescue",
+        "source": "priest-rescue-01.wav",
+        "reasons": [],
+        "metrics": {
+          "seconds": 2.0,
+          "onset_seconds": 0.005,
+          "tail_db": -26.16,
+          "phone_band_db": -0.01,
+          "clipped_fraction": 0.0,
+          "peak_db": -10.125081628803933,
+          "rms_db": -25.00072980008424,
+          "channels": 2,
+          "expander_upper_dbfs": -59.812909612834304
+        },
+        "match": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.",
+        "descriptors": {
+          "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.": 0.3012,
+          "A short fantasy video game sound effect.": 0.22,
+          "A person speaking words.": 0.1155,
+          "A person singing lyrics.": 0.1533,
+          "Continuous background music with drums and a beat.": -0.0147,
+          "Background room noise and static hiss.": -0.1107,
+          "Traffic and engine noise.": -0.1397
+        },
+        "heal_similarity": 0.4512,
+        "rank_score": 0.14791297912597656,
+        "prepared": ".sfx-raw\\priest-renew-20261021-v3\\review\\priest-rescue-01.wav",
+        "sha256": "18faadc715650971611ff99c1d5c0fabe76d16b6160cec92dbb91e27ec3c81c2",
+        "screening": "pass"
+      }
+    }
+  ],
+  "preserved": {
+    "heal-priest": "993ac0fcc39dbb37046037a714b23d087b11267440689629d1ccc99835cfcabf",
+    "priest-flash": "51743304af597b70c59c746a14eae1f91616f7a5b8067e30959d325d79b43e9a",
+    "priest-prayer": "bb3f9cb431bd4b1b99a16745c8f0cab914b2c0c961cd2bd3b31a02eafea05c02",
+    "priest-purify": "0c7d19309c754ea0b4f23ba48059e7a2f401fff4c04ad029fc50196d5335ba72",
+    "priest-guardian": "79fbfcdc35b4287ffd3eb28690c10586c87459b6700d0d3cbf558396f727e615",
+    "hymn-priest": "2e906b2b969e52887f695e49e5227d685c71db78b3d55113e389cccb9e496560",
+    "priest-serenity": "057e5b01248ed8ac6a696c2c78779748e4772b16f99ed37c7ef27084f1439b5a",
+    "priest-relay": "5262c06fa042de30bec6ac1e5067b120db4b964871c17c46d567f4b2cb93e8a7",
+    "priest-miracle": "965d6f6b11a81b55b32bb0fd6672414b595b2c031bceb8be996d8017f9549b20",
+    "priest-shelter": "0e11b35e9f6a13fe4b25af5f6d321dee063c2380cf35fcba9c811ee09b99db6c",
+    "priest-zenith": "75e2211cb7a2dfe4b5ba4ced7ec2fba74607dac727ffc39a60376c3f99824e1b",
+    "priest-scatter": "4dce0bfca600e730c8f2ef17e1272ef7a4949028b55a7839bb4c819d3a21d78b",
+    "priest-ready": "e2a4b32d92288c704bebf87df589393cd04ac05e0b731093a011295a8c656934",
+    "priest-crit": "a04b8d27ffc8f560d8d8b1451bb6f42ba6eae5f03eb4be87f8d44d7d1a2663cc",
+    "priest-relay-hop": "a4f70c07dcf8ea3ae51a5de4312bc1f2de916544fac24b2638bb9b3d4a76ccaf"
+  }
+}

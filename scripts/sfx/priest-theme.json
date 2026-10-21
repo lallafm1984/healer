@@ -1,0 +1,180 @@
+[
+  {
+    "name": "heal-priest",
+    "ko": "치유",
+    "duration": 1.25,
+    "pitch": 0,
+    "trim": 0.48,
+    "strength": 0.18,
+    "rms": -24,
+    "description": "A warm soft healing breath opens into one rounded choir-like synthetic chord, then gently dissolves.",
+    "retained": true
+  },
+  {
+    "name": "priest-flash",
+    "ko": "순간 치유",
+    "duration": 0.5,
+    "rms": -22.95,
+    "description": "The original warm rounded healing chord condensed into one immediate, short, clear pulse with a swift smooth release.",
+    "retained": false,
+    "prompt": "Use the existing heal-priest audio as the source. Preserve its pitch and warm rounded harmonic timbre; compress the complete healing event to 0.5 seconds, with an immediate clear onset and short natural release. No new layers, bells, percussion, words or music.",
+    "texture": "치유 원음을 짧고 명쾌하게",
+    "derivedFrom": "heal-priest"
+  },
+  {
+    "name": "renew-priest",
+    "ko": "소생",
+    "duration": 0.55,
+    "rms": -23.96,
+    "description": "One bright clear crystalline magical pulse, a quick rounded attack with a luminous glass harmonic and a short clean ringing release.",
+    "retained": false,
+    "prompt": "One bright clear crystalline magical pulse, a quick rounded attack with a luminous glass harmonic and a short clean ringing release. An immediate compact holy renewal spell similar to a flash heal. Clearly pitched and confident, clear upper midrange, complete decay in half a second. No whisper, hiss, rustling, airy wash, sharp click, speech, singing, music or background noise.",
+    "texture": "순간 치유처럼 짧고 명쾌한 빛의 울림"
+  },
+  {
+    "name": "priest-prayer",
+    "ko": "치유의 기원",
+    "duration": 1.0449886621315192,
+    "rms": -24,
+    "description": "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence.",
+    "retained": false,
+    "prompt": "Three softly plucked harp strings rise together as one short arpeggio, warm wooden resonance and delicate string overtones, then damped silence. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.4 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "세 음으로 퍼지는 하프 기원"
+  },
+  {
+    "name": "priest-purify",
+    "ko": "정화",
+    "duration": 0.95,
+    "pitch": 3,
+    "trim": 0.62,
+    "strength": 0.2,
+    "rms": -24,
+    "description": "A clean ascending breath sweeps away darkness, a smooth luminous glassy harmonic shimmer clears quickly into silence.",
+    "retained": true
+  },
+  {
+    "name": "priest-guardian",
+    "ko": "수호 영혼",
+    "duration": 0.75,
+    "rms": -23.89,
+    "description": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays.",
+    "retained": false,
+    "prompt": "One broad soft feathered wing flap sweeps outward, ending in a low resonant bronze shield hum that quickly decays. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.75 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "짧게 감싸는 보호 공명",
+    "shortened": true
+  },
+  {
+    "name": "hymn-priest",
+    "ko": "천상의 찬가",
+    "duration": 1.2849886621315192,
+    "rms": -23.97,
+    "description": "One luminous resonant chord of crystal singing bowls and glass harp, clear overlapping pure tones blooming together with a smooth short decay.",
+    "retained": false,
+    "prompt": "One luminous resonant chord of crystal singing bowls and glass harp, clear overlapping pure tones blooming together with a smooth short decay. A heavenly blessing, one bright harmonious glass chord, immediate rounded onset, complete natural release in one second followed by silence. Clear midrange, open stereo, no bass drone, organ, human voice, choir, percussion, melody, backing music, hiss or ambience.",
+    "texture": "맑은 유리 화음으로 피어나는 천상의 울림"
+  },
+  {
+    "name": "priest-serenity",
+    "ko": "성언: 평온",
+    "duration": 1.45,
+    "pitch": -1,
+    "trim": 0.55,
+    "strength": 0.23,
+    "rms": -22.91,
+    "description": "A powerful comforting holy blessing blooms immediately into a full warm radiant chord, smooth midrange weight and a shining soft tail.",
+    "retained": true,
+    "shortened": true
+  },
+  {
+    "name": "priest-relay",
+    "ko": "빛의 전이",
+    "duration": 0.82,
+    "rms": -25,
+    "description": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound.",
+    "retained": false,
+    "prompt": "Two liquid glass bubbles pop in a rising pair with a quick watery pitch glide, a rounded magical bouncing sound. One isolated fantasy spell, a short stereo leap with a quick complete decay. No speech, singing, choir, music or ambience.",
+    "texture": "서로 다른 높이로 도약하는 두 빛방울"
+  },
+  {
+    "name": "priest-miracle",
+    "ko": "기적의 순간",
+    "duration": 1.1,
+    "rms": -23.44,
+    "description": "One bright celesta chord struck gently but clearly, a sparkling crystalline reveal with a rounded attack and a short clean harmonic decay.",
+    "retained": false,
+    "prompt": "One bright celesta chord struck gently but clearly, a sparkling crystalline reveal with a rounded attack and a short clean harmonic decay. A sudden uplifting magical revelation in one compact sound. Immediate onset, full decay within 0.8 seconds then silence. Strong clear midrange, close stereo. No cymbal, whoosh, rustle, hiss, voice, choir, rhythmic music or background ambience.",
+    "texture": "한 번에 또렷하게 열리는 맑은 셀레스타 화음"
+  },
+  {
+    "name": "priest-shelter",
+    "ko": "쉼터",
+    "duration": 0.5249886621315193,
+    "rms": -27.47,
+    "description": "A soft rounded glass resonance opens gently into a warm transparent harmonic tone, with a smooth short release and restrained upper partials.",
+    "retained": false,
+    "prompt": "A soft rounded glass resonance opens gently into a warm transparent harmonic tone, with a smooth short release and restrained upper partials. A peaceful luminous shelter, gradually opening over 80 milliseconds. Fully released within 0.53 seconds. No hard strike, sharp ringing attack, piercing treble, voice, choir, melody, backing music or ambience.",
+    "texture": "첫 울림을 부드럽게 다듬은 포근한 유리 공명"
+  },
+  {
+    "name": "priest-zenith",
+    "ko": "기도의 정점",
+    "duration": 1.45,
+    "rms": -24.03,
+    "description": "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped.",
+    "retained": false,
+    "prompt": "A quick ascending crystal harp glissando reaches one rounded brass bell resonance at the top, rising energy and a clear final peak, rapidly damped. One isolated fantasy game spell sound, beginning immediately and fully decaying within 1.4 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "상승하다 정점에 닿는 기도",
+    "shortened": true
+  },
+  {
+    "name": "priest-scatter",
+    "ko": "흩날리는 빛",
+    "duration": 1.1,
+    "rms": -24.07,
+    "description": "A quick descending cascade of three clear delicate crystal chimes, distinct rounded sparkling notes scattering lightly with a short clean decay.",
+    "retained": false,
+    "prompt": "A quick descending cascade of three clear delicate crystal chimes, distinct rounded sparkling notes scattering lightly with a short clean decay. One small shower of luminous glass droplets. Bright pure upper midrange notes, not scratchy noise, gentle clear attacks. Complete gesture ends within 0.8 seconds followed by silence. No hiss, wind, metallic rattle, voice, choir, backing music, rhythm or ambience.",
+    "texture": "맑은 결정 세 음이 가볍게 흩어지는 소리"
+  },
+  {
+    "name": "priest-ready",
+    "ko": "평온 준비",
+    "duration": 0.97,
+    "rms": -26,
+    "description": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails.",
+    "retained": false,
+    "prompt": "Two clear softly struck glockenspiel notes, an ascending pair with short rounded attacks and gently damped high metallic tails. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.8 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "준비를 알리는 맑은 두 음"
+  },
+  {
+    "name": "priest-crit",
+    "ko": "치명적 치유",
+    "duration": 0.55,
+    "rms": -25.05,
+    "description": "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay.",
+    "retained": false,
+    "prompt": "One tiny muted crystal bell plink, a crisp rounded sparkling accent with a very short natural decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.55 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "음량을 높인 선명한 결정 반짝임"
+  },
+  {
+    "name": "priest-rescue",
+    "ko": "수호 영혼 생명 구출",
+    "duration": 1.45,
+    "rms": -24.88,
+    "description": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release.",
+    "retained": false,
+    "prompt": "A tiny liquid sparkle blossoms into ascending glass harmonics and one tender warm celesta chord, a delicate bright bloom with a soft airy release. A new life awakening, tender, hopeful and luminous. One gentle expanding magical event starting immediately, brightening softly and completely decaying within 1.4 seconds, followed by silence. Rounded quiet attack, clear warm midrange, subtle spacious stereo. No hard impact, metal strike, wing flap, bass boom, drum, human baby cry, speech, singing, choir, rhythmic music or background ambience.",
+    "texture": "작은 빛에서 새 생명이 피어나는 울림",
+    "shortened": true
+  },
+  {
+    "name": "priest-relay-hop",
+    "ko": "빛의 전이 이동·소멸",
+    "duration": 0.65,
+    "rms": -29,
+    "description": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay.",
+    "retained": false,
+    "prompt": "One tiny liquid glass droplet glides upward in pitch and pops softly, a quick watery crystalline bloop with a short smooth decay. One isolated fantasy game spell sound, beginning immediately and fully decaying within 0.65 seconds, followed by silence. Rounded comfortable transients, clear midrange, close stereo. No human voice, words, choir or vocal-like synthesizer, no backing music, drums, beat, background ambience or long reverberation.",
+    "texture": "가볍게 도약하는 빛방울"
+  }
+]
