@@ -45,6 +45,18 @@ let onTabs: ((t: TabKey | undefined) => void) | null = null;
 export let current = '';
 /** 바로 전 화면 (설정에서 돌아갈 곳) */
 export let previous = '';
+/** 이번 이동 바로 앞 화면 (같은 화면 안에서 다시 그리면 그 화면 자신) */
+let fromId = '';
+/** 이번 이동이 머리의 「←」 (.tb-back: 설정 · 상점 · 편성 · 주간 도전 · 임무 · 행상인)인지 */
+let backNav = false;
+/**
+ * 하위 탭이 있는 메뉴 (전투 · 캐릭터 · 길드)에 새로 들어옴: 다른 화면에서 왔고 「←」로 돌아온 것이 아님 → 첫 탭.
+ * 2026-10-21 Lim 「각 메뉴에 들어갔을때 그전의 탭화면을 유지 하지 말고 항상 첫번째 탭이 되도록. (강제로 그화면 이동은 제외)」:
+ * 「←」로 돌아오면 보던 탭, 같은 화면 안에서 탭을 바꾸면 그 탭, 특정 탭으로 보내는 이동 (로비 출전 · 레이드 · 주간 도전 · 대장간 · 초상 빨간 점 · 설정 「스킬」 · 길드 부탁)은 arg로 그 탭
+ */
+export const freshEntry = (): boolean => fromId !== current && !backNav;
+/** 이번 이동이 「←」로 돌아오는 것인지 */
+export const goingBack = (): boolean => backNav;
 
 /** <section class="screen"> 하나를 #app에 붙이고 등록 */
 export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}): Screen {
@@ -59,6 +71,7 @@ export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}):
 export function go(id: string, arg?: unknown): void {
   const s = screens.get(id);
   if (!s) throw new Error(`화면 없음: ${id}`);
+  fromId = current;
   if (id !== current) screens.get(current)?.leave?.();
   releaseSheetDialogs();
   if (id !== current) previous = current;
@@ -116,7 +129,9 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
 /** [data-go] 버튼 = 그 화면으로 */
 document.addEventListener('click', e => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
-  if (b && b.closest('#app')) go(b.dataset.go!, b.dataset.arg);
+  if (!b || !b.closest('#app')) return;
+  backNav = b.classList.contains('tb-back');
+  try { go(b.dataset.go!, b.dataset.arg); } finally { backNav = false; }
 });
 
 // ---------- 전투 화면 입구 (battle/index.ts가 window.__battle로 엶) ----------

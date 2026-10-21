@@ -29,7 +29,7 @@ import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
 import { classEmblem, currencyAmount, fxArt, gameIcon, gearArt, gearIcon, LOCK, trinketArt, uiIcon } from './art';
-import { battle, current, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
+import { battle, current, freshEntry, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
 import { TAP_SLOP } from './tap-slop';
@@ -63,7 +63,11 @@ const s = screen('s-char', '캐릭터', {
   enter(arg) {
     if (itemOverlay) sub = itemOverlay.previousSub;
     itemOverlay = null; s.el.classList.remove('c7-item-overlay');
+    // 새로 들어오면 첫 탭 (장비) · 인벤토리 「전체」, 「←」로 돌아오거나 화면 안에서 탭을 바꾸면 그대로, 특정 탭으로 보내면 그 탭 (2026-10-21 Lim, kit freshEntry)
+    const fresh = freshEntry();
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
+    else if (fresh) sub = SUBS[0].key;
+    if (fresh) bagFilter = 'all';
     sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null;
     render(false);
   },
@@ -948,8 +952,9 @@ function onClick(t: HTMLElement): boolean {
     render();
     return true;
   }
-  if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; msg = ''; render(); return true; }
-  if (t.closest('[data-dex]')) { sheet = { k: 'dex' }; msg = ''; render(); return true; }
+  // 도감도 열 때마다 첫 묶음 (특수능력 도감에서 장비 도감으로 돌아갈 땐 보던 묶음, 2026-10-21 Lim 첫 탭)
+  if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; codexG = SPEC_GROUP_KEYS[0]; msg = ''; render(); return true; }
+  if (t.closest('[data-dex]')) { if (sheet?.k !== 'codex') dexT = DEX_TABS[0].key; sheet = { k: 'dex' }; msg = ''; render(); return true; }
   const dt = t.closest<HTMLElement>('[data-dext]');
   if (dt) { dexT = dt.dataset.dext as DexTab; render(); return true; }
   if (t.closest('[data-dexclaim]')) {
