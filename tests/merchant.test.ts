@@ -2,10 +2,11 @@
  * 떠돌이 상인 · 미확인 장비 (106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 값 · 등급 확률 · 사기 (부위 · 종류 · 레벨 · 골드 · 잠금)
  */
 import { describe, expect, it } from 'vitest';
-import { MERCHANT, merchantGold } from '../src/data/economy';
+import { MERCHANT } from '../src/data/economy';
+import { runGold } from '../src/game/economy';
 import { HERO_FROM, ITEM_GRADES, kindsOf, SLOTS } from '../src/data/equipment';
 import { rngFrom } from '../src/engine/rng';
-import { buyUnknown, merchantOdds, merchantOffer } from '../src/game/merchant';
+import { buyUnknown, merchantGold, merchantOdds, merchantOffer } from '../src/game/merchant';
 import { TUT } from '../src/game/tutorial';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -16,10 +17,16 @@ const at = (lv: number, gold = 1e6): SaveData => {
 };
 const grade = (o: number[], g: string) => o[ITEM_GRADES.indexOf(g as never)];
 
-describe('값: 100 × 내 Lv (Lim 「100레벨 기준 만골드」)', () => {
-  it('Lv 10 1,000 · 45 4,500 · 70 7,000 · 100 10,000', () => {
-    expect([10, 45, 70, 100].map(merchantGold)).toEqual([1000, 4500, 7000, 10000]);
+describe('값: 그 레벨 가장 큰 콘텐츠 한 판 골드에 비례, Lv 100에 2만 (Lim 「레이드 획득 골드의 20배 정도」)', () => {
+  it('Lv 10 1,300 · 30 3,030 · 45 6,490 · 60 8,450 · 70 14,290 · 100 20,000', () => {
+    expect([10, 30, 45, 60, 70, 100].map(merchantGold)).toEqual([1300, 3030, 6490, 8450, 14290, 20000]);
     expect(MERCHANT.lv).toBe(10);
+  });
+  it('어느 레벨이든 한 판 골드의 같은 배수 (10골드 반올림 안), 레벨이 오르면 줄지 않음', () => {
+    for (let lv = 1; lv <= 100; lv++) {
+      expect(Math.abs(merchantGold(lv) - (runGold(lv) * MERCHANT.top) / runGold(100))).toBeLessThanOrEqual(5);
+      if (lv > 1) expect(merchantGold(lv)).toBeGreaterThanOrEqual(merchantGold(lv - 1));
+    }
   });
 });
 
