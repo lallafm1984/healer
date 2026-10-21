@@ -37,9 +37,9 @@ export function impactSound(script: string, tl: Pick<Telegraph, 'kind' | 'skill'
   for (const name of [BOSS_SKILL_OWN[id], BOSS_SKILL_SOUND[id]]) if (name && hasSfx(name)) return name;
   return tl.kind && IMPACT[tl.kind];
 }
-/** 이 보스의 기술 착탄 소리 (전투를 시작할 때 이것만 미리 풂, sfx preloadSfx) */
+/** 이 보스의 기술 착탄 소리 (기술마다 impactSound가 고를 것, 전투를 시작할 때 이것만 미리 풂, sfx preloadSfx) */
 export const bossSoundsFor = (script: string): string[] => [...new Set(
-  [BOSS_SKILL_OWN, BOSS_SKILL_SOUND].flatMap(m => Object.entries(m).filter(([id]) => id.startsWith(`${script}:`)).map(([, n]) => n)))];
+  Object.keys(BOSS_SKILL_SOUND).filter(id => id.startsWith(`${script}:`)).map(id => BOSS_SKILL_OWN[id] ?? BOSS_SKILL_SOUND[id]))];
 
 /** Collapse an entire simulation frame to one cue per sound, including 20-person AoEs. */
 /** impact = 이번에 떨어진 예고의 소리 (같은 종류 impact 사건 순서대로, battle/index.ts). 없으면 공통 착탄 */

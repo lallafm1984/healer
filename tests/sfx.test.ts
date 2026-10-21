@@ -8,7 +8,7 @@ import { HERO_KEYS } from '../src/data/heroes';
 import { SOUNDS } from '../scripts/sfx/sounds.mjs';
 // @ts-expect-error 생성 스크립트의 목록
 import { COMBAT_SOUNDS, EXTRA_SOUNDS } from '../scripts/sfx/combat.mjs';
-import { FX_SOUND } from '../src/battle/combat-sound';
+import { FX_SOUND, impactSound, bossSoundsFor } from '../src/battle/combat-sound';
 import { BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from '../src/battle/boss-themes';
 import { BOSSES } from '../src/data/bosses';
 import { PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS } from '../src/battle/priest-sound';
@@ -93,6 +93,18 @@ describe('효과음 목록 (107)', () => {
     for (const [script, def] of Object.entries(BOSSES)) for (const s of def.skills) if (s.kind && TAG[s.kind]) kinds.set(`${script}:${s.key}`, s.kind);
     expect([...kinds.keys()].filter(id => !BOSS_SKILL_SOUND[id])).toEqual([]);
     for (const [id, name] of Object.entries(BOSS_SKILL_SOUND)) expect(name, id).toMatch(new RegExp(`^boss-[a-z]+-${TAG[kinds.get(id) ?? ''] ?? '?'}$`));
+  });
+
+  it('보스 기술이 떨어질 때: 주요 보스는 그 기술 전용 소리, 그 밖은 특성 소리, 표에 없으면 공통 착탄', () => {
+    const tel = (id: string, kind: 'buster' | 'aoe' | 'zone') => ({ kind, skill: { key: id.split(':')[1] } as never });
+    const own = Object.keys(BOSS_SKILL_OWN)[0];
+    expect(impactSound(own.split(':')[0], tel(own, 'buster'))).toBe(BOSS_SKILL_OWN[own]);
+    const theme = Object.keys(BOSS_SKILL_SOUND).find(id => !BOSS_SKILL_OWN[id])!;
+    expect(impactSound(theme.split(':')[0], tel(theme, 'aoe'))).toBe(BOSS_SKILL_SOUND[theme]);
+    expect(impactSound('nobody', { kind: 'zone', skill: { key: 'x' } as never })).toBe('boss-zone');
+    // 전투를 시작할 때 미리 푸는 소리는 그 보스 것만
+    expect(bossSoundsFor(own.split(':')[0])).toContain(BOSS_SKILL_OWN[own]);
+    expect(bossSoundsFor(own.split(':')[0]).every(n => Object.entries({ ...BOSS_SKILL_SOUND, ...BOSS_SKILL_OWN }).some(([id, v]) => v === n && id.startsWith(`${own.split(':')[0]}:`)))).toBe(true);
   });
 
   it('코드가 부르는 소리는 모두 목록에 있고, 목록의 소리는 모두 어딘가에서 울림', () => {
