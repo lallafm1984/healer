@@ -15,17 +15,15 @@ const view = () => staminaView(G.save, Date.now());
 const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
 
 /**
- * 위 줄 (topBar) 휴식 칸: 누르면 휴식 창. 숫자 · 고리 · 시간은 1초마다 고침 (refreshCells).
- * 2026-10-16 Lim 「8분에 1씩 차는것도 UI로」: 달 그림 둘레 고리가 다음 +1까지 차고 (90: 15분), 숫자 아래 초록 「+1」 배지 + 남은 시간 (가득이면 「가득」).
- * 「+1 4:59」가 「14:59」로 읽혀서 (Lim) +1은 글자가 아니라 배지로 떼어 둠
+ * 위 줄 (topBar) 휴식 칸: 누르면 휴식 창. 숫자는 1초마다 고침 (refreshCells).
+ * 2026-10-16 「+1」 배지 · 남은 시간은 2026-10-20에, 다음 +1까지 차던 달 둘레 고리는 2026-10-22 Lim 「휴식 아이콘 사이즈를 골드와 동일하게해서 두줄 로 나란히」로 뺌.
+ * 그림 + 지금/최대 한 줄, 그 아래 줄에 골드 (kit.ts goldCell). 남은 시간은 휴식 창에
  */
 export function staminaCell(): string {
   const v = view(), label = staminaLabel();
-  // 2026-10-20 Lim 「헤더에 휴식게이지에 배경이미지와 시간표시제거, 가득찾을때 최대 같은 텍스트 제거」: 고리 그림 + 지금/최대만 (남은 시간 · 가득 · 무제한 글은 팝업 · 읽어 주는 글에만)
-  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('rest')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span></button>`;
+  // 2026-10-20 Lim 「헤더에 휴식게이지에 배경이미지와 시간표시제거, 가득찾을때 최대 같은 텍스트 제거」: 그림 + 지금/최대만 (남은 시간 · 가득 · 무제한 글은 팝업 · 읽어 주는 글에만)
+  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic">${currencyIcon('rest')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span></button>`;
 }
-/** 고리 채움 (0~1): 다음 +1까지 지난 몫. 가득 · 무제한이면 1 */
-const ringOf = (v: ReturnType<typeof view>) => (v.unlimited || !v.next ? 1 : Math.min(1, Math.max(0, 1 - v.next / STAMINA.regenMs)));
 function staminaLabel(): string {
   const v = view();
   return `휴식 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
@@ -136,7 +134,6 @@ export function refreshCells(): void {
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
   document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
   document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
-  document.querySelectorAll<HTMLElement>('[data-stam-ring]').forEach(el => { el.style.setProperty('--p', ringOf(v).toFixed(3)); });
   document.querySelectorAll<HTMLElement>('[data-stamina-open]').forEach(el => { const l = staminaLabel(); el.setAttribute('aria-label', l); el.title = l; });
 }
 
