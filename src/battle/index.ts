@@ -13,7 +13,7 @@ import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
 import type { ClassKey } from '../data/classes';
-import { hasSfx, preloadSfx, setSfxOn, sfx } from '../sfx';
+import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import { combatSounds } from './combat-sound';
 import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
 import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats } from '../engine';
@@ -835,6 +835,15 @@ function updatePull(dt: number): void {
   }
   if (ui.pullLeft <= 0) { $('pull').hidden = true; acc = 0; Snd.play('battle-start'); banner('전투 시작!'); }
 }
+/**
+ * 시전음 (2026-10-21 Lim): 시전 시간이 있는 주문을 시전하는 동안 반복 (즉시 발동엔 F.cast가 없어 안 남).
+ * 직업 파일 (cast-loop-<직업>)이 있으면 그것, 없으면 공통 파일. 끝 · 취소 · 일시정지 · 판 끝 · 화면을 떠나면 멈추고, 이어지는 다음 시전은 끊지 않음
+ */
+let castLoop: { stop(fade?: number): void } | null = null;
+function syncCastLoop(casting: boolean): void {
+  if (casting && !castLoop) { const name = castLoopFor(S.hero); castLoop = name ? sfxLoop(name) : null; }
+  else if (!casting && castLoop) { castLoop.stop(); castLoop = null; }
+}
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const F = B.F;
@@ -851,10 +860,12 @@ function frame(now: number): void {
       }
     }
     handleEvents(now);
+    syncCastLoop(!!F.cast && !B.paused && !F.over && ui.pullLeft <= 0 && !(ui.coach && ui.coach.freeze) && S.sound);
     updateStage(now); updateWheel(); updateAux(); updateCastbar(); updatePreview(now);
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }
+  else syncCastLoop(false);
   if (!$('rest').hidden && B.F) updateRest(now);
   requestAnimationFrame(frame);
 }
