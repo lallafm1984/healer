@@ -4,7 +4,7 @@
  * 한 장비 = 옵션 (능력치 줄) 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4줄 (Lim 2026-10-11): 주 옵션 (무기 · 머리 · 손 지능, 몸통 체력) → 종류 옵션 → 무작위 옵션.
  * 디아2식 (91, 2026-10-16 Lim 「디아2식으로 하고, 보석 · 홈 · 천장 · 공훈 지정 모두 빼자」): 강화 없음. 주 · 종류 · 무작위 옵션 모두 50~160% 굴림 (rollOpt),
  * 예전 강화 몫은 아이템 레벨 배율 (ilvBonus)로. 특수능력은 옵션과 따로: 영웅 1줄, 전설은 고유 능력 (1.3~1.7배 굴림, 또는 이름 있는 장신구 효과) + 1줄 (88).
- * 판매 (골드, 예전 분해 자리) · 재설정 (골드). 옵션 굴림 평균이 높은 희귀 이상은 「정교한」 · 「완벽한」 (qualityOf, 성능은 굴림 그대로).
+ * 판매 (골드, 예전 분해 자리). 재설정은 없다 (2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」). 옵션 굴림 평균이 높은 희귀 이상은 「정교한」 · 「완벽한」 (qualityOf, 성능은 굴림 그대로).
  * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」 · 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」):
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
@@ -351,8 +351,6 @@ export interface GearItem {
   look?: FactionKey;
   /** 잠금 (27 4-3): 판매에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
   lock?: boolean;
-  /** 이 장비에서 재설정한 횟수 (34 6-8, 할수록 비쌈). 옛 저장엔 없음 = 0 */
-  rr?: number;
   /** 아이템 레벨 = 떨어진 곳의 적 레벨 (탐험 · 던전 = 장소 Lv + 난이도, 레이드 = 그 판 적 레벨, 상자 · 상점 = 받을 때 내 레벨). 옛 저장은 migrate가 그 직업 레벨로 */
   lv?: number;
 }
@@ -680,41 +678,6 @@ export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B'
   return makeItem(r, slot, g, id, k?.key, o);
 }
 
-// ---------- 재설정 (34 6-8 · 42 1-6) ----------
-/** 재설정이 열리는 레벨 (계정 최고 직업 레벨, 91: Lv 50 → 20, 강화 대신 장비를 다듬는 길), 후보 2개 중 고르기 */
-export const REROLL_LEVEL = 20;
-export const REROLL_PICK_LEVEL = 60;
-/** 특수능력 재설정은 골드 3배 (42 1-6) */
-export const SPEC_REROLL_MULT = 3;
-/** 옵션 한 줄 재설정 골드의 등급 값 (#172 전 값, 91에서 되살림) */
-export const REROLL_GOLD: Record<ItemGrade, number> = { '일반': 75, '고급': 125, '희귀': 250, '영웅': 500, '전설': 1000 };
-/** 재설정 한 번 골드 = 등급 값 × (1 + 아이템 레벨 ÷ 10) × (1 + 이 장비에서 한 횟수 rr) (특수능력 3배) */
-export function rerollCost(it: GearItem, spec: boolean): { gold: number } {
-  return { gold: Math.round(REROLL_GOLD[it.grade] * (1 + (it.lv ?? 1) / 10) * (1 + (it.rr ?? 0)) * (spec ? SPEC_REROLL_MULT : 1)) };
-}
-/** 무작위 옵션 i번 줄 다시 굴림: 종류 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 값은 같은 옵션 굴림 (rollOpt) */
-export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
-  const fx = takenStats(kindOf(it)), others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
-  const pool = STAT_KEYS.filter(k => !fx.includes(k) && !others.includes(k));
-  return { stat: pool[Math.floor(r() * pool.length)], roll: rollOpt(r) };
-}
-/** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜). 고유 능력은 고유 능력 그대로 (배율 uniqueMult 그대로) */
-export function rerollSpec(r: () => number, it: GearItem, i: number, hero?: HeroKey): SpecLine {
-  if (it.specs![i].legend) {
-    const k = rerollSpec(r, { ...it, specs: it.specs!.map((l, j) => (j === i ? { key: l.key, roll: l.roll } : l)) }, i, hero).key;
-    return { key: k, roll: 1, legend: true };
-  }
-  const cur = SPECS[it.specs![i].key], gi = ITEM_GRADES.indexOf(it.grade), others = it.specs!.filter((_, j) => j !== i).map(l => l.key);
-  const pool = SPEC_KEYS.filter(k => {
-    const d = SPECS[k];
-    return d.group === cur.group && d.hero === cur.hero && d.slots.includes(it.slot) && ITEM_GRADES.indexOf(d.min) <= gi && !others.includes(k);
-  });
-  const useful = pool.filter(k => specUseful(k, hero)); // 지금 직업에 효과 없는 공통 특수능력은 빼고 (NO_EFFECT, 남는 게 없으면 그대로)
-  const from = useful.length ? useful : pool;
-  const d = SPECS[from[Math.floor(r() * from.length)]];
-  return { key: d.key, roll: d.fixed ? 1 : Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
-}
-
 /** 능력치 6가지 (비율) */
 export type StatSet = Record<StatKey, number>;
 export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
@@ -747,8 +710,6 @@ export function optionsOf(it: GearItem, level: number): OptionRow[] {
 }
 /** 주 옵션 · 종류 옵션 값 (optionsOf의 앞줄) */
 export const fixedOf = (it: GearItem, level: number) => optionsOf(it, level).filter(o => o.line == null);
-/** 무작위 옵션 한 줄의 값 (아이템 레벨 배율 포함, 재설정 후보 글자) */
-export const lineValue = (it: GearItem, l: GearLine, level: number) => RANDOM_BASE * lineMax(l.stat, it.slot, it.grade) * l.roll * statMult(l.stat, it.lv, level) * (l.stat === 'hp' ? 1 : ilvBonus(it.lv));
 /** 굴림 막대 채움 (0~1): 특수능력 굴림 (최소 굴림 = 0, 최대 = 1). 옵션 줄은 optFill */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
 

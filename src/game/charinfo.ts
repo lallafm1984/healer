@@ -24,8 +24,8 @@ export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? unde
 /** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
 export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
 
-/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 */
-export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string; /** it.specs 안 번호 (고유 효과는 null, 재설정 안 됨) */ i: number | null }
+/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 (굴림 막대 · 줄 번호는 재설정과 함께 2026-10-21 없앰) */
+export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; off: string }
 /** 같은 특수능력을 여러 장비에 껴도 하나만 켜지는 것 (재사용 대기 · 고정 값 · 고유 효과, 42 1-3) */
 const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].fixed;
 
@@ -43,14 +43,14 @@ export function specRows(it: GearItem): SpecRow[] {
   const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? '겹치지 않음' : '');
   const out: SpecRow[] = [];
   const nm = namedOf(it.named);
-  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key), i: null });
+  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), off: dup(nm.key) });
   const un = uniqueOf(it.unique), ud = un && SPECS[un.spec];
-  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), roll: null, off: dup(ud.key), i: null });
-  for (const [i, l] of (it.specs ?? []).entries()) {
+  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), off: dup(ud.key) });
+  for (const l of it.specs ?? []) {
     const d = SPECS[l.key];
     if (!d) continue;
     const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
-    out.push({ key: d.key, name: l.legend ? `${d.name} (고유)` : d.name, group: d.group, badge: l.legend ? '고유' : SPEC_GROUPS[d.group].name, text: specText(d, specLineValue(it, l)), roll: d.fixed || l.legend ? null : l.roll, off, i });
+    out.push({ key: d.key, name: l.legend ? `${d.name} (고유)` : d.name, group: d.group, badge: l.legend ? '고유' : SPEC_GROUPS[d.group].name, text: specText(d, specLineValue(it, l)), off });
   }
   return out;
 }

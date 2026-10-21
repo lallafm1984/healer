@@ -3,7 +3,7 @@
  * 무작위 옵션 굴림은 새 기준 (최대값 × 0.8 대비)으로 바꿔 값 그대로. 가방 · 착용 · 보관 직업 장비 모두, 몇 번 불러도 같음.
  */
 import { describe, expect, it } from 'vitest';
-import { itemStats, lineValue, pctLvMult, RANDOM_BASE, type GearItem } from '../src/data/equipment';
+import { itemStats, optionsOf, pctLvMult, RANDOM_BASE, type GearItem } from '../src/data/equipment';
 import { migrate, newSave, SAVE_VERSION } from '../src/platform/storage';
 
 /** v16 장비 (굴림 = 최대값 대비 0.6~1, 강화 단계 plus) */
@@ -36,6 +36,6 @@ describe('옛 각성 · 강화 기록 정리', () => {
     expect(migrate(out)).toEqual(out); // 두 번 불러도 굴림을 또 나누지 않음
     expect(gear.top).toBe(9); // 원본 입력은 건드리지 않는다.
     expect(gear.lines[0].up).toBe(0.02);
-    expect(lineValue(out.gear.equipped.head!, out.gear.equipped.head!.lines[0], 30)).toBeCloseTo(RANDOM_BASE * 0.04 * 1.3 * 1.25 * 1 * (1 + 0.08 * 3.65) * pctLvMult(30)); // 옛 각성 up은 값에 안 들어감
+    expect(optionsOf(out.gear.equipped.head!, 30).find(o => o.line === 0)!.v).toBeCloseTo(RANDOM_BASE * 0.04 * 1.3 * 1.25 * 1 * (1 + 0.08 * 3.65) * pctLvMult(30)); // 옛 각성 up은 값에 안 들어감
   });
 });

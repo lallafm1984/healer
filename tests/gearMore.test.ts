@@ -1,7 +1,7 @@
 /** 장비 가짓수 늘리기 (34 6-10): 종류 30 · 겹 고정 옵션 · 세력 생김새 · 고유 무기 · 방어구 */
 import { describe, expect, it } from 'vitest';
 import {
-  fixedOf, hasLookArt, itemName, itemSpecs, itemStats, KINDS, kindsOf, LINE_MULT, LOOK_WORD, lookOf, LOOKS, makeItem, makeLegend, PLACE_KINDS, rerollLine, rollItem, SLOTS,
+  fixedOf, hasLookArt, itemName, itemSpecs, itemStats, KINDS, kindsOf, LINE_MULT, LOOK_WORD, lookOf, LOOKS, makeItem, makeLegend, PLACE_KINDS, rollItem, SLOTS,
   specKeysOf, STATS, takenStats, type GearItem,
 } from '../src/data/equipment';
 import { UNIQUE_MULT, UNIQUES, uniqueOf, uniquesFor, uniqueValue } from '../src/data/uniques';
@@ -41,14 +41,12 @@ describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
     const st = itemStats({ ...base, grade: '희귀', fixedRolls: undefined }, 30);
     expect(st.haste).toBeCloseTo(STATS.haste.max * 1.3 * LINE_MULT['희귀']);
   });
-  it('무작위 옵션 · 재설정은 주 옵션 · 종류 옵션과 겹치지 않음', () => {
+  it('무작위 옵션은 주 옵션 · 종류 옵션과 겹치지 않음', () => {
     const r = rngFrom(11);
     for (let i = 0; i < 2000; i++) {
       const k = KINDS[i % KINDS.length], it = makeItem(r, k.slot, '전설', i, k.key);
       expect(it.kind).toBe(k.key);
       for (const l of it.lines) expect(takenStats(k)).not.toContain(l.stat);
-      const nl = rerollLine(r, it, 0);
-      expect(takenStats(k)).not.toContain(nl.stat);
     }
   });
   it('새 종류 14개가 모두 어느 장소에서 잘 나옴', () => {

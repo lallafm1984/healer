@@ -8,7 +8,7 @@
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { resourceBalance } from '../game/resources';
-import { GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, optFill, optionsOf, qualityOf, rerollCost, rollFill, sellGold, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, optionsOf, qualityOf, sellGold, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
@@ -20,10 +20,10 @@ import { runGold } from '../game/economy';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
 import { codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
-import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
+import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup, type SpecGroup } from '../data/specials';
 import {
-  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
-  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type RerollKind,
+  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickTalent, sell,
+  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock,
 } from '../game/state';
 import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
@@ -44,9 +44,6 @@ type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' }
 let codexG: CodexGroup = 'heal';
 /** 장비 도감에서 펼친 묶음 */
 let dexT: DexTab = 'kind';
-/** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
-let rrOn = false;
-let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
 let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
@@ -67,7 +64,7 @@ const s = screen('s-char', '캐릭터', {
     if (itemOverlay) sub = itemOverlay.previousSub;
     itemOverlay = null; s.el.classList.remove('c7-item-overlay');
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; rrOn = false; rrAlt = null;
+    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null;
     render(false);
   },
 });
@@ -79,7 +76,6 @@ export function openItemDetail(id: number, onClose: () => void): boolean {
   if (!findItem(id) || current === s.el.id || itemOverlay) return false;
   itemOverlay = { origin: current, previousSub: sub, onClose };
   sub = 'gear'; sheet = { k: 'item', id }; pending = null; msg = ''; sheetKey = '';
-  rrOn = false; rrAlt = null;
   s.el.classList.add('c7-item-overlay'); s.el.hidden = false;
   render(false);
   return true;
@@ -398,31 +394,11 @@ function dexSheet(): string {
 }
 
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 그 장비 범위 · 잠금 · 판매 · 장착 */
-/** 재설정 ↻ 버튼 (재설정 모드일 때만) */
-const rrBtn = (kind: RerollKind, i: number, name: string) => (rrOn ? `<button type="button" class="c7-rr" data-rr="${kind}:${i}" aria-label="${esc(name)} 다시 굴림">↻</button>` : '');
-/** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배) 중 그 장비에 있는 줄만, 가진 골드 (91). 희귀까지는 특수능력이 없어 옵션만 */
-function rrCostHtml(it: GearItem): string {
-  const have = resourceBalance(G.save, 'gold');
-  const parts: [string, number][] = [];
-  if (it.lines.length) parts.push(['옵션', rerollCost(it, false).gold]);
-  if (it.specs?.length) parts.push(['특수능력', rerollCost(it, true).gold]);
-  const last = parts.length - 1;
-  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · ${parts.map(([name, gold], i) => `${name} ${currencyAmount('gold', gold, i === last && isFinite(have) ? { have } : {})}`).join(' · ')}</p>`;
-}
 /** 가진 골드 (인벤토리 머리). 개발 빌드 골드 무제한이면 ∞ */
 function goldHave(): string {
   const have = resourceBalance(G.save, 'gold');
   return currencyAmount('gold', isFinite(have) ? have : '∞');
 }
-/** Lv 60 재설정 둘째 후보: 「이걸로」 누르면 바꿈 */
-function rrAltHtml(it: GearItem, kind: RerollKind): string {
-  if (!rrAlt || rrAlt.id !== it.id || rrAlt.kind !== kind) return '';
-  let txt: string;
-  if (kind === 'line') { const l = rrAlt.alt as GearLine, lv = G.save.player.level; txt = `${STATS[l.stat].name} +${optTxt(l.stat, lineValue(it, l, lv), lv)}`; }
-  else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
-  return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
-}
-
 function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
@@ -438,27 +414,26 @@ function itemSheet(id: number): string {
     return Math.abs(x) >= 10 ? Math.round(x) : Math.round(x * 10) / 10;
   };
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;
-  // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정 모드면 무작위 옵션 오른쪽에 굴림 막대 + ↻.
-  // 값 아래 작은 글자 = 이 장비에서 그 줄이 나올 수 있는 범위 (91 디아2식: 굴림 50% ~ 160%), 굴림 막대 = (굴림 − 50%) ÷ 110%
+  // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정은 없음 (2026-10-21 Lim).
+  // 값 아래 작은 글자 = 이 장비에서 그 줄이 나올 수 있는 범위 (91 디아2식: 굴림 50% ~ 160%)
   const opts = optionsOf(it, lv), has = new Set(opts.map(o => o.stat));
   const own = opts.map(o => {
-    const l = o.line != null ? it.lines[o.line] : null;
-    const right = rrOn && l ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(optFill(l.roll) * 100)}%"></i></span>${rrBtn('line', o.line!, STATS[o.stat].name)}` : worn || rrOn ? '' : d1(o.stat) === 0 ? '<span class="c7-same" aria-label="같음">—</span>' : updn(d1(o.stat));
+    const right = worn ? '' : d1(o.stat) === 0 ? '<span class="c7-same" aria-label="같음">—</span>' : updn(d1(o.stat));
     const range = `${optTxt(o.stat, o.lo, lv)}~${optTxt(o.stat, o.hi, lv)}`;
     return row(STATS[o.stat].name, `+${optTxt(o.stat, o.v, lv)}<small class="c7-rng" aria-label="범위 ${range}">${range}</small>`, right);
   }).join('');
   // 지금 장비에만 있는 능력치: 빠지는 만큼 ▼ 한 줄로
-  const lost = worn || rrOn ? [] : STAT_KEYS.filter(k => !has.has(k) && b[k] > 0);
+  const lost = worn ? [] : STAT_KEYS.filter(k => !has.has(k) && b[k] > 0);
   const lostHtml = lost.length ? `<p class="c7-lost"><span class="cap">빠지는 옵션</span>${lost.map(k => `<span>${STATS[k].name} ${updn(d1(k))}</span>`).join('')}</p>` : '';
   const cmpCap = worn ? '' : cur ? '착용 장비 대비' : '빈 장비칸 대비';
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유. 전설은 「고유 능력」 (Lim 2026-10-11 「전설에만 고유 능력」)
   const sp = specRows(it), legend = it.grade === LEGEND;
-  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? (sp.length > 1 ? '고유 능력 · 특수능력' : '고유 능력') : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
+  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? (sp.length > 1 ? '고유 능력 · 특수능력' : '고유 능력') : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : ''}</div>`).join('')}</div>` : '';
   return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" style="${gvars(it)}">
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
       <div class="c7-ghead"><span class="c7-gic">${itemIc(it)}</span>
         <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span></span></div>
-      <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${rrOn ? '재설정할 줄의 ↻' : cmpCap}</span>${!readOnly && rerollOpen() && (it.lines.length || it.specs?.length) ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${lostHtml}${rrAltHtml(it, 'line')}</div>
+      <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${own}${lostHtml}</div>
       ${spec}
       ${readOnly ? '' : `${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
@@ -494,7 +469,7 @@ function confirmAction(): void {
   const r = sell([action.id]);
   sfx(r.n ? 'gear-sell' : 'deny');
   msg = r.n ? `판매: 골드 +${fmt(r.gold)}` : '';
-  if (r.n) { sheet = null; rrOn = false; rrAlt = null; }
+  if (r.n) sheet = null;
   render();
   if (r.n) {
     const target = s.el.querySelector<HTMLElement>(`.c7-inventory [data-gitem="${next}"]`) || s.el.querySelector<HTMLElement>('#gearInventoryTitle');
@@ -916,7 +891,6 @@ function closeSheet(): void {
   const talentReturn = sheet?.k === 'talent' ? `${sheet.i}:${sheet.j}` : null;
   const closingItem = sheet?.k === 'item' ? sheet : null;
   const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
-  rrOn = false; rrAlt = null;
   sheet = sheet?.k === 'codex' ? { k: 'dex' } : null;
   msg = ''; render();
   if (talentReturn) focusTalentControl(`[data-tcell="${talentReturn}"]`);
@@ -952,7 +926,7 @@ function onClick(t: HTMLElement): boolean {
   if (gi) {
     const inventoryIndex = Array.from(s.el.querySelectorAll('.c7-inventory [data-gitem]')).indexOf(gi);
     sheet = { k: 'item', id: Number(gi.dataset.gitem), ...(inventoryIndex >= 0 ? { inventoryIndex } : {}) };
-    msg = ''; rrOn = false; rrAlt = null;
+    msg = '';
     render(); return true;
   }
   const gs = t.closest<HTMLButtonElement>('[data-gslot]');
@@ -974,16 +948,6 @@ function onClick(t: HTMLElement): boolean {
     render();
     return true;
   }
-  if (t.closest('[data-rrmode]')) { rrOn = !rrOn; rrAlt = null; msg = ''; render(); return true; }
-  const rb = t.closest<HTMLElement>('[data-rr]');
-  if (rb && sheet?.k === 'item') {
-    const [kind, n] = rb.dataset.rr!.split(':') as [RerollKind, string], i = Number(n);
-    const res = reroll(sheet.id, kind, i);
-    sfx(res.err ? 'deny' : 'gear-reroll');
-    msg = res.err; rrAlt = res.alt ? { id: sheet.id, kind, i, alt: res.alt } : null;
-    render(); return true;
-  }
-  if (t.closest('[data-rrpick]') && rrAlt) { sfx(pickReroll(rrAlt.id, rrAlt.kind, rrAlt.i, rrAlt.alt) ? 'ui-confirm' : 'deny'); rrAlt = null; msg = ''; render(); return true; }
   if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; msg = ''; render(); return true; }
   if (t.closest('[data-dex]')) { sheet = { k: 'dex' }; msg = ''; render(); return true; }
   const dt = t.closest<HTMLElement>('[data-dext]');

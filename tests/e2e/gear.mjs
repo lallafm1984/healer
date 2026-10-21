@@ -333,7 +333,7 @@ export default async function gear(url, shots) {
   });
   ok(tall.cells === 20 && tall.coversWindow && tall.max < 60, `Z 플립 펼침: 3줄보다 긴 창은 빈칸이 창 끝까지 (${JSON.stringify(tall)})`);
 
-  // 개발 옵션 「골드 무제한」 (91, 예전 강화석 무제한): 실제 설정 입력 → 새로 고침 → 잔액 0 재설정 → 옵션 해제.
+  // 개발 옵션 「골드 무제한」 (91, 예전 강화석 무제한): 실제 설정 입력 → 새로 고침 → 인벤토리 ∞ → 옵션 해제. 장비 재설정은 없음 (2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」)
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.player.gold = 0;
@@ -352,22 +352,18 @@ export default async function gear(url, shots) {
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞') && (await page.locator('#s-char .topbar .currency-icon[data-currency="gold"]').count()) === 0, '새로 켜도 무한 설정 유지: 인벤토리 골드 ∞ (위 정보창에는 골드 없음, 2026-10-17)');
+  await page.setViewportSize({ width: 360, height: 780 }); await page.clock.runFor(100); // S25
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
   ok(!/각성|강화/.test(await text('#s-char .c7-gsheet')) && !(await save()).gear.equipped.head.lines.some(l => 'up' in l), '이전 각성 추가값과 각성 · 강화 표시 제거');
-  await page.click('#s-char [data-rrmode]'); await page.clock.runFor(50);
-  await page.click('#s-char [data-rr="line:0"]'); await page.clock.runFor(50);
-  let unlimitedSave = await save();
-  ok(unlimitedSave.gear.equipped.head.rr === 1 && unlimitedSave.player.gold === 0, '실제 잔액 0이어도 재설정 (Lv 20부터), 실제 골드는 그대로');
+  ok((await page.locator('#s-char .c7-gsheet [data-rrmode], #s-char .c7-gsheet [data-rr], #s-char .c7-gsheet .c7-roll').count()) === 0 && !/재설정|다시 굴림/.test(await text('#s-char .c7-gsheet')), '장비 상세에 재설정 버튼 · 굴림 막대 · 비용 없음');
+  ok((await save()).player.gold === 0, '골드 무제한이어도 실제 골드는 그대로');
+  await page.clock.runFor(800); await page.screenshot({ path: `${shots}/gear_detail_noreroll_s25.png` }); // 시트가 다 올라온 뒤
   await page.click('#s-char .c7-gsheet button[data-sheetx]'); await page.clock.runFor(50);
   await page.click('#s-char [data-go="s-settings"]'); await page.clock.runFor(100);
   await page.locator('[data-tog="devGold"]').uncheck();
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '0'), '설정 해제 후 실제 골드 0 표시');
-  await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
-  await page.click('#s-char [data-rrmode]'); await page.clock.runFor(50);
-  await page.click('#s-char [data-rr="line:0"]'); await page.clock.runFor(50);
-  ok(/골드 부족/.test(await text('#s-char .c7-gsheet')) && (await save()).gear.equipped.head.rr === 1, '설정 해제 시 골드 부족으로 재설정 차단');
 
   await ctx.close();
   await browser.close();

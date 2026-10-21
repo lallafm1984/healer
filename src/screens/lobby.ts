@@ -1,7 +1,7 @@
 /**
  * S02 로비 = 살아 있는 마을 + A2 목재·리넨 UI (2026-10-11 채택 시안). 캐릭터 그림 없음.
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
- *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 재설정):
+ *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 판매):
  *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
  *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 대장간 · 잡화점 · 행상인 (106, 미확인 장비). 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
  *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며.
@@ -22,7 +22,7 @@ import { chestState, claimChalChest, claimChest, claimMission, missionReady } fr
 import { guide } from '../game/guide';
 import { merchantOffer } from '../game/merchant';
 import { chalGate } from '../game/runmode';
-import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay, rerollOpen } from '../game/state';
+import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
@@ -197,13 +197,12 @@ function raidPlate(): string {
 }
 
 /**
- * 대장간 (2026-10-16 새로): 필요 없는 장비 정리 (분해 → 장비 개편 뒤 판매 · 골드) · 옵션 재설정. 빨간 숫자 = 가방의 새 장비.
- * 지금은 캐릭터 › 장비로 감. 장비 개편 작업이 판매 · 재설정 화면을 따로 열면 그 화면으로 바꾼다
+ * 대장간 (2026-10-16 새로): 필요 없는 장비 정리 (분해 → 장비 개편 뒤 판매 · 골드). 빨간 숫자 = 가방의 새 장비.
+ * 지금은 캐릭터 › 장비로 감. 옵션 재설정은 2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」로 없앰 (예전 Lv 20부터 둘째 줄 「옵션 재설정」)
  */
 function forgePlate(): string {
   const n = newGearCount();
-  // 재설정은 Lv 20 (REROLL_LEVEL)부터라 그 전엔 「장비 판매」 (105 QA: Lv 1부터 「옵션 재설정」이라 눌러 보면 잠겨 있었음, 「Lv 20 재설정」은 좁은 화면 판에서 잘림)
-  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', rerollOpen() ? '옵션 재설정' : '장비 판매'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
+  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', '장비 판매'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
 }
 
 /**

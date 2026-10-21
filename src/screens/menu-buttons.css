@@ -17,7 +17,7 @@
 #app :is(.ns, .admodal, #rest, #pauseGuide),
 #app #s-char[data-sub] :is(.c7-gsheet, .c7-job-sheet, .c7-confirm, .c7-tsheet) {
   :is(
-    .btn, .btn2, .g-seal, .g-sign, .c7-cta, .c7-hcta, .c7-sb, .c7-rr,
+    .btn, .btn2, .g-seal, .g-sign, .c7-cta, .c7-hcta, .c7-sb,
     .c7-dialog-close, .c7-tp-btn, .c7-recb, .f-shut, .f-gbtn, .f-go,
     .r-level-confirm, .g-action-buttons > button, .c7-confirm-actions > button,
     .f-item-actions > button, .chip, .g-chip, .c7-fc, .c7-pre,

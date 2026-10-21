@@ -72,7 +72,7 @@
 }
 
 /* Character-specific switches and utility controls. Existing hit boxes stay intact. */
-#s-char :is(.c7-sb, .c7-fc, .c7-mode, .c7-taps > button, .c7-pre, .c7-rr) {
+#s-char :is(.c7-sb, .c7-fc, .c7-mode, .c7-taps > button, .c7-pre) {
   background-color: #684522;
   background-image: var(--a2-wood);
   background-size: cover;

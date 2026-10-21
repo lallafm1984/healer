@@ -1,6 +1,6 @@
 /** QA 후속 (2026-10-16 Lim): 직업에 효과 없는 공통 특수능력은 그 직업 드롭 · 재설정에서 빠짐 · % 옵션 아이템 레벨 배율 (91: 강화 대신 아이템 레벨 배율이 모든 옵션에) */
 import { describe, expect, it } from 'vitest';
-import { ilvBonus, makeItem, optionsOf, pctLvMult, rerollSpec, rollSpecs, type GearItem } from '../src/data/equipment';
+import { ilvBonus, makeItem, optionsOf, pctLvMult, rollSpecs, type GearItem } from '../src/data/equipment';
 import { HERO_KEYS } from '../src/data/heroes';
 import { NO_EFFECT, SPECS, specUseful } from '../src/data/specials';
 import { rngFrom } from '../src/engine/rng';
@@ -14,7 +14,7 @@ describe('직업에 효과 없는 공통 특수능력 (NO_EFFECT)', () => {
       expect(specUseful(k)).toBe(true);
     }
   });
-  it('그 직업으로 돌 때 드롭 · 재설정에 안 나옴, 다른 직업은 그대로 나옴', () => {
+  it('그 직업으로 돌 때 드롭에 안 나옴, 다른 직업은 그대로 나옴 (재설정은 2026-10-21 없앰)', () => {
     const r = rngFrom(11);
     const seen: Record<string, Set<string>> = { warder: new Set(), priest: new Set() };
     for (const hero of ['warder', 'priest'] as const) for (let i = 0; i < 4000; i++) {
@@ -24,8 +24,6 @@ describe('직업에 효과 없는 공통 특수능력 (NO_EFFECT)', () => {
       expect(seen.warder.has(k), k).toBe(false);
       expect(seen.priest.has(k), k).toBe(true);
     }
-    const it: GearItem = { id: 1, slot: 'chest', kind: 'robe', grade: '희귀', name: '', lines: [], specs: [{ key: 'sturdyBack', roll: 1 }] };
-    for (let i = 0; i < 300; i++) expect(NO_EFFECT[rerollSpec(r, it, 0, 'warder').key]?.includes('warder') ?? false).toBe(false);
   });
 });
 
