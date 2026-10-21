@@ -173,7 +173,11 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   // 다음 장소 이름 · 레벨은 CONTENT를 따라감 (2026-10-18 해금 레벨 검토: Lv 3 탐험이 잿빛 공동묘지 → 고철 더미 언덕으로 바뀐 뒤에도 옛 이름이 남아 있었음)
   if (x.tutEnd && x.tutReplay) return '<p class="coachtip">튜토리얼 다시 보기는 여기까지. 로비 <b>「출전」</b>은 지금 레벨에 맞는 곳으로 갑니다.</p>'; // 105 QA
   if (x.tutEnd) { const ex = contentOf('scrapheap'), dg = contentOf('rustfort'); return `<p class="coachtip">튜토리얼은 여기까지! Lv ${ex.unlockLv}에 탐험 <b>${ex.name}</b>, Lv ${dg.unlockLv}에 첫 던전 <b>${dg.name}</b></p>`; }
-  if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
+  // 「다음은 …」은 아래 「다음」 버튼 (nextRun, 길잡이의 길)과 같은 곳으로 (예전엔 녹슨 요새 보통으로 못 박아 버튼과 다른 곳을 가리켰음)
+  if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) {
+    const n = nextRun(r.content, r.diff), nc = n ? contentOf(n.content) : null;
+    return `<p class="coachtip">첫 던전 클리어!${nc ? ` 다음은 ${esc(nc.name)} <b>${n!.diff}</b>` : ''}</p>`;
+  }
   return '';
 }
 
