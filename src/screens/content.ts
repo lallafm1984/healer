@@ -263,7 +263,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const scene = pa.url ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">` : '';
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
     ${scene}<div class="b-gate-shade"></div>
-    <div class="b-gt"><span class="b-gn"><small>${esc(adventureRegionOf(c).name)}</small><b>${esc(c.name)}</b></span></div>
+    <div class="b-gt"><span class="b-gn">${adventureRegionOf(c).name === c.name ? '' : `<small>${esc(adventureRegionOf(c).name)}</small>`}<b>${esc(c.name)}</b></span></div>
     <div class="b-level" aria-label="권장 레벨 ${recLevel(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${recLevel(c, d)}</strong></div>
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${lk.locked && !other ? LOCK : ''}${status}</span>` : ''}
