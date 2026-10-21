@@ -389,8 +389,6 @@
   #s-char .c7-taps > button { font-size: 13px; }
 }
 /* 추가 옵션 굴림 막대 (34 6-3): 최소 굴림 = 빈 막대, 최대 = 꽉 찬 막대 */
-#s-char .c7-roll { display: inline-block; width: 44px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; justify-self: end; align-self: center; }
-#s-char .c7-roll i { display: block; height: 100%; border-radius: 3px; background: var(--gi, #8BEA9C); }
 /* 특수능력 줄 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대. 회색 = 겹치지 않음 · 다른 직업 전용 */
 #s-char .c7-spec { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--panel-2); }
 #s-char .c7-spg { flex: none; min-width: 34px; padding: 2px 6px; border: 1px solid var(--spc, #FFD27A); border-radius: 9px; font-size: 11px; font-weight: 700; text-align: center; color: var(--spc, #FFD27A); }
@@ -435,14 +433,6 @@
 #s-char .c7-dexc .c7-spg { display: grid; place-items: center; width: 34px; height: 34px; min-width: 34px; padding: 0; border-color: var(--look, #D9B26A); border-width: 2px; border-radius: 8px; color: var(--look, #D9B26A); }
 #s-char .c7-dexc .c7-spg svg, #s-char .c7-dexc .c7-spg .g-ic { width: 24px; height: 24px; }
 #s-char .c7-dexc.unk .c7-spg { filter: grayscale(1); }
-/* 재설정 (34 6-8): 옵션 머리의 「재설정」 → 줄마다 ↻, 비용 줄, Lv 60 둘째 후보 */
-#s-char .c7-rrb { margin-left: 8px; min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; }
-#s-char .c7-rrb[aria-pressed="true"] { border-color: #D9B26A; color: var(--gold-hi); }
-#s-char .c7-rr { flex: none; width: 32px; height: 32px; margin-left: 6px; border-radius: 50%; border: 1px solid #D9B26A; background: #201A14; color: var(--gold-hi); font: 700 15px/1 var(--font-body); cursor: pointer; }
-#s-char .c7-rrcost { margin: 0 0 4px; }
-#s-char .c7-rralt { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border: 1px dashed #D9B26A; border-radius: 6px; }
-#s-char .c7-rralt b { flex: 1; min-width: 0; font-size: 13px; }
-#s-char .c7-rralt .btn2 { min-height: 32px; height: 32px; }
 /* 특수능력 점 (34 10장): 장비 칸 · 가방 칸 아래 가운데, 한 줄 = 점 하나, 다른 직업 전용 = 회색 */
 #s-char .c7-dots { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
 #s-char .c7-dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 0 1px #0D0B09, 0 0 4px color-mix(in srgb, var(--gold-hi) 60%, transparent); }

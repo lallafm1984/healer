@@ -33,14 +33,14 @@ describe('공통 성장과 직업별 착용 조합', () => {
   beforeEach(fresh);
   it('무료 전환은 현재 캐릭터·레벨·경험치·재화·진행을 그대로 유지', () => {
     const d = G.save, snapshot = JSON.stringify([d.player, d.daily, d.weekly, d.clears, d.guild]);
-    const w = makeItem(() => .5, 'weapon', '희귀', 1); w.rr = 5; w.specs = [{ key: 'deepWord', roll: 1 }];
+    const w = makeItem(() => .5, 'weapon', '희귀', 1); w.lock = true; w.specs = [{ key: 'deepWord', roll: 1 }];
     d.gear.equipped.weapon = w;
     for (const h of ['druid', 'paladin', 'priest'] as const) {
       expect(switchHero(h, now)).toBe(true);
       expect(G.save).toBe(d); expect(d.roster.cur).toBe(1); expect(d.roster.chars).toHaveLength(1);
       expect(JSON.stringify([d.player, d.daily, d.weekly, d.clears, d.guild])).toBe(snapshot);
       expect(d.gear.equipped.weapon).toBe(w);
-      expect(d.gear.equipped.weapon!.rr).toBe(5);
+      expect(d.gear.equipped.weapon!.lock).toBe(true);
       expect(!!specsOf(d.gear.equipped, h).deepWord).toBe(h === 'priest');
     }
   });
@@ -78,12 +78,12 @@ describe('공통 성장과 직업별 착용 조합', () => {
     expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
     expect(pickChar(1, now)).toBe(true); expect(G.save.player.level).toBe(30);
   });
-  it('아이템 ID로 세팅을 복원하며 재설정한 같은 실물을 사용, 판매한 아이템은 재생성하지 않음', () => {
+  it('아이템 ID로 세팅을 복원하며 잠근 같은 실물을 사용, 판매한 아이템은 재생성하지 않음', () => {
     const one = makeItem(() => .5, 'weapon', '희귀', 1), two = makeItem(() => .5, 'weapon', '희귀', 2);
     G.save.gear.equipped.weapon = one; G.save.gear.bag = [two];
-    switchHero('druid'); equip(2); two.rr = 3;
+    switchHero('druid'); equip(2); two.lock = true;
     switchHero('priest'); expect(G.save.gear.equipped.weapon?.id).toBe(1);
-    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.rr).toBe(3);
+    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.lock).toBe(true);
     expect(owned()).toEqual([1,2]);
     sell([1]); switchHero('priest');
     expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon).toBeUndefined();

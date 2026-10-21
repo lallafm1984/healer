@@ -48,7 +48,7 @@
 #s-char[data-sub="gear"] .c7-slot.empty .c7-sq { background-color: var(--c7-palette-deep); }
 
 /* Exclude the action row, salvage controls and all disabled controls from utility tinting. */
-#s-char[data-sub] :is(.c7-fc, .c7-rr, .c7-sb:not(.c7-salvb)):not(:disabled):not([aria-pressed="true"]),
+#s-char[data-sub] :is(.c7-fc, .c7-sb:not(.c7-salvb)):not(:disabled):not([aria-pressed="true"]),
 #s-char[data-sub="skill"] .c7-mode,
 #s-char[data-sub="skill"] .c7-taps > button:not(:disabled):not([aria-pressed="true"]) {
   background-color: var(--c7-palette-surface);

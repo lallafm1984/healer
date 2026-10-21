@@ -1,5 +1,4 @@
 import { CONTENT, contentOf } from './content';
-import { REROLL_LEVEL, REROLL_PICK_LEVEL } from './equipment';
 import { FEATURES } from './features';
 import { HEROES, type HeroKey } from './heroes';
 import { MAX_LEVEL } from './progression';
@@ -30,10 +29,7 @@ const BASE: Record<number, Milestone[]> = {
  */
 export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
 const addFirst = (lv: number, m: Milestone) => { MILESTONES[lv] = [m, ...(MILESTONES[lv] ?? [])]; };
-const addLast = (lv: number, m: Milestone) => { MILESTONES[lv] = [...(MILESTONES[lv] ?? []), m]; };
-// 장비 재설정 (#192)은 equipment 레벨을 따라감 (2026-10-18 해금 레벨 검토: 예전엔 Lv 50에 떴음)
-addLast(REROLL_LEVEL, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true });
-addLast(REROLL_PICK_LEVEL, { text: '장비 재설정 후보 2개 중 고르기', live: true });
+// 장비 재설정 (예전 Lv 20 · 후보 고르기 Lv 60)은 2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」로 없앰
 const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
 addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: true });
 // 88: 영웅은 10인 레이드가 열리는 Lv 45부터 드물게 (레벨이 오를수록 늘어남), 전설 (노란색)은 Lv 100부터 20인 레이드에서 (equipment HERO_FROM · LEGEND_LEVEL)

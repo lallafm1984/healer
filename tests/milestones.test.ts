@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { levelUpMilestones, nextMilestone } from '../src/data/milestones';
-import { REROLL_LEVEL, REROLL_PICK_LEVEL } from '../src/data/equipment';
 import type { HeroKey } from '../src/data/heroes';
 
 describe('현재 직업의 레벨업 안내', () => {
@@ -40,11 +39,9 @@ describe('현재 직업의 레벨업 안내', () => {
     expect(items.map(m => m.text)).not.toContain('공개모집 직업 +6종');
   });
 
-  it('장비 재설정은 실제로 열리는 레벨 (REROLL_LEVEL · REROLL_PICK_LEVEL), 해제는 Lv 7 (2026-10-18 해금 레벨 검토)', () => {
+  it('장비 재설정 안내는 없음 (2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」), 해제는 Lv 7 (2026-10-18 해금 레벨 검토)', () => {
     const at = (lv: number) => levelUpMilestones([lv], 'priest').map(m => m.text);
-    expect(at(REROLL_LEVEL)).toContain('장비 재설정 (옵션 · 특수능력 한 줄)');
-    expect(at(REROLL_PICK_LEVEL)).toContain('장비 재설정 후보 2개 중 고르기');
-    expect(at(50).some(t => t.startsWith('장비 재설정'))).toBe(false);
+    for (const lv of [20, 50, 60]) expect(at(lv).some(t => /재설정/.test(t))).toBe(false);
     expect(at(7)).toContain('스킬 「정화」');
     expect(at(3)).not.toContain('스킬 「정화」');
   });
