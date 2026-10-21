@@ -137,6 +137,45 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   return true;
 }
 
+/** 직업 공통 시전음 파일 이름 (2026-10-21 Lim 「시전음은 따로 만들어서 알려줄 테니 직업 공동으로 적용할 수 있도록」): src/sfx/cast-loop.ogg */
+export const CAST_LOOP = 'cast-loop';
+
+/**
+ * 이음새 없이 도는 소리 (시전하는 동안의 시전음). 파일이 없거나 소리가 꺼져 있으면 null.
+ * 한 번 울리는 효과음의 1.5초 상한 (timing.ts)과 겹침 수 (voices)는 이 소리에 적용하지 않음: 시전이 끝나면 stop()으로 짧게 줄이며 멈춤
+ */
+export function sfxLoop(name: string, o: { vol?: number; fade?: number } = {}): { stop(fade?: number): void } | null {
+  if (!(name in urlOf)) return null;
+  const c = audioCtx();
+  if (!c || !out) return null;
+  const g = c.createGain(), target = (VOL[name] ?? 0.45) * (o.vol ?? 1), fade = o.fade ?? 0.08;
+  g.gain.value = 0;
+  g.connect(out);
+  let src: AudioBufferSourceNode | null = null, stopped = false;
+  const begin = (buf: AudioBuffer) => {
+    if (stopped || !on) return;
+    src = c.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    src.connect(g);
+    const t = c.currentTime;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(target, t + fade);
+    src.start(t);
+  };
+  const buf = bufs.get(name);
+  if (buf) begin(buf);
+  else void load(name).then(b => { if (b) begin(b); });
+  return {
+    stop(f = 0.12) {
+      if (stopped) return;
+      stopped = true;
+      const t = c.currentTime;
+      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + f);
+      const s = src;
+      if (s) { s.onended = () => { s.disconnect(); g.disconnect(); }; s.stop(t + f + 0.02); } else setTimeout(() => g.disconnect(), (f + 0.05) * 1000);
+    },
+  };
+}
+
 /** 방금 (ms 안에) 소리를 냈음: 메뉴 누름 소리가 다른 소리와 겹치지 않게 */
 export const sfxRecent = (ms = 40): boolean => performance.now() - lastAny < ms;
 
