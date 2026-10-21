@@ -2,6 +2,8 @@
 
 사용자가 사제 효과음 수정을 마친 뒤 현재 음원들을 머지하고 Claude에게도 확정 사실을 알리도록 요청했다. 현재 `src/sfx/`의 사제 효과음 17종이 확정본이다.
 
+추가 요청(2026-10-21): “흩날리는 빛이 경쾌하게 잘들리게 수정”에 따라 `priest-scatter`만 0.80초로 편집하고 중음역·음량을 보강했다. 게임 재생 배율은 0.75다. 이 수정본의 직접 청음 평가는 아직 하지 않았으며, 다른 16종은 기존 확정본을 유지한다. 최신 해시와 수정 상태는 아래 목록에 기록되어 있다.
+
 - 확정 목록·길이·파일 SHA-256: [scripts/sfx/priest-approved.json](scripts/sfx/priest-approved.json)
 - 결정 내용·수정 이력: [scripts/sfx/PRIEST-SKILL-AUDIO.md](scripts/sfx/PRIEST-SKILL-AUDIO.md)
 - 재생 연결: `src/battle/priest-sound.ts`, 설명 목록: `scripts/sfx/priest-theme.json`

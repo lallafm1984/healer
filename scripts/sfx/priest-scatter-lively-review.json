@@ -1,0 +1,90 @@
+{
+  "paid_api_calls": 0,
+  "new_model_calls": 0,
+  "human_listening": "not performed",
+  "recipe": {
+    "source": "src/sfx/priest-scatter.ogg",
+    "method": "Edit existing Agent Audio crystal cascade",
+    "pitch_semitones": -3.011538882398625,
+    "pitch_resample_ratio": "119/100",
+    "seconds": 0.8,
+    "retime": "retime-sfx.py: original 40ms attack, 8ms join, phase vocoder 1024/256",
+    "presence": {
+      "hz": 2800,
+      "gain_db": 3,
+      "q": 0.7
+    },
+    "high_shelf": {
+      "hz": 5000,
+      "gain_db": -3
+    },
+    "final_attack_seconds": 0.003,
+    "final_fade_seconds": 0.035,
+    "target_rms_dbfs": -20.5,
+    "peak_ceiling_dbfs": -3,
+    "game_volume_before": 0.65,
+    "game_volume_after": 0.75,
+    "signal_screening": {
+      "seconds": 0.8,
+      "onset_seconds": 0.0,
+      "tail_db": -32.22,
+      "phone_band_db": -1.04,
+      "clipped_fraction": 0.0,
+      "peak_db": -3.86,
+      "rms_db": -20.0
+    },
+    "signal_rejections": [],
+    "new_model_calls": 0,
+    "paid_api_calls": 0,
+    "human_listening": "not performed"
+  },
+  "before": {
+    "seconds": 1.1,
+    "channels": 2,
+    "sample_rate": 44100,
+    "rms_dbfs": -24.066358271140558,
+    "peak_dbfs": -6.462850553799474,
+    "presence_1k_5k_fraction": 0.4311475781569715,
+    "clipped_fraction": 0.0,
+    "sha256": "99a4055146cce4e89a4ed943a7579a556eed94925a4876aff47f2c9b3e0b9e94"
+  },
+  "after": {
+    "seconds": 0.8,
+    "channels": 2,
+    "sample_rate": 44100,
+    "rms_dbfs": -20.614532952459406,
+    "peak_dbfs": -3.1066384840834833,
+    "presence_1k_5k_fraction": 0.5706442218054256,
+    "clipped_fraction": 0.0,
+    "sha256": "3ba70114c18ebbcd0a33fd95156e9e23045104363a6f3c64b07e48ac2d391c0f"
+  },
+  "gain_before_compressor_db": 4.69478345365804,
+  "preserved_count": 112,
+  "changed_files": [
+    "src/sfx/priest-scatter.ogg"
+  ],
+  "original_hash_manifest_sha256": "34369f1cd4aa0ebbdc4b91aa2753637d4e7f38c7ecb99a0b981997a05593c0d8",
+  "max_effect_seconds": 1.5,
+  "validation": {
+    "unit_tests": {
+      "passed": 25,
+      "files": [
+        "tests/sfx.test.ts",
+        "tests/sfx-timing.test.ts",
+        "tests/priest-sound.test.ts"
+      ]
+    },
+    "typecheck": "passed",
+    "build": "passed; existing chunk size warning",
+    "browser": {
+      "decoded_sfx": 113,
+      "all_within_1_5_seconds": true,
+      "priest_stereo_files": 17,
+      "played_cues": [
+        "priest-scatter"
+      ],
+      "console_warnings": 0,
+      "console_errors": 0
+    }
+  }
+}

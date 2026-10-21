@@ -14,7 +14,7 @@ export const hasSfx = (name: string): boolean => name in urlOf;
 
 // 파일은 만들 때 같은 세기로 맞춤 (scripts/sfx/make.mjs). 여기서는 자주 · 겹쳐 울리는 것만 줄임
 const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, proc: 0.45, heart: 0.85, gauge: 0.8, 'ally-hurt': 0.45, shield: 0.55, parry: 0.55, 'status-stagger': 0.4 };
-Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85 });
+Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85, 'priest-scatter': .75 });
 const volOf = (n: string) => VOL[n] ?? (n.startsWith('atk-') ? 0.32 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
 /** 같은 소리를 다시 울리기까지 (ms). 20인 판에서 쌓이지 않게 (16 7-2) */
 const GAP: Record<string, number> = { proc: 1200, heart: 900, chime: 250, 'mob-down': 150, 'ally-hurt': 300, shield: 350, parry: 250, 'status-stagger': 900, 'boss-impact': 200, 'boss-wave': 300, 'stone-break': 300 };
