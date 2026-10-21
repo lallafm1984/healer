@@ -15,7 +15,10 @@ import { jobProductId } from '../data/economy';
 
 export const G: { save: SaveData } = { save: load() };
 
-export function commit(): void { save(G.save); }
+let afterCommit: (() => void) | null = null;
+/** 저장할 때마다 부를 화면 쪽 함수 (위 줄 골드 숫자, kit.ts). 게임 규칙은 화면을 모르게 */
+export function setCommitHook(fn: () => void): void { afterCommit = fn; }
+export function commit(): void { save(G.save); afterCommit?.(); }
 
 /**
  * 새것 (빨간 점): seen보다 나중에 얻었고 아직 상세를 열어 보지 않은 장비 (2026-10-17 Lim 「장비 상세보기 후 없어지게」).

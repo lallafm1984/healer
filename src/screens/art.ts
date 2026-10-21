@@ -182,6 +182,11 @@ export function currencyIcon(key: CurrencyIconKey): string {
   return `<span class="currency-icon" data-currency="${key}" aria-hidden="true">${gameIcon(key, CURRENCY_ART[key])}</span>`;
 }
 
+const compactAmount = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3, roundingMode: 'trunc' });
+/** 좁은 자리 (위 정보창 골드)의 보유량 글: 1만부터 줄여 씀 (1.23만 · 12.3만 · 1.23억). 버림이라 가진 것보다 크게 보이지 않음 (19,999는 1.99만). 무제한이면 ∞ */
+export const shortAmount = (n: number): string =>
+  (!isFinite(n) ? '∞' : n >= 10000 ? compactAmount.format(Math.floor(n)) : Math.floor(n).toLocaleString('ko-KR'));
+
 /** 가격·보상·보유량: 공통 아이콘 + 숫자, 재화 이름은 접근성 설명으로 제공한다. */
 export function currencyAmount(key: CurrencyIconKey, value: number | string, opts: { have?: number; prefix?: string } = {}): string {
   const safe = (s: string) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);

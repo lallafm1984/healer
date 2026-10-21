@@ -5,10 +5,11 @@ import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
 import { TUT, type CoachKey } from '../game/tutorial';
-import { G, heroNow, newGearCount } from '../game/state';
+import { G, heroNow, newGearCount, setCommitHook } from '../game/state';
 import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
-import { classEmblem } from './art';
+import { classEmblem, currencyIcon, shortAmount } from './art';
+import { resourceBalance } from '../game/resources';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 import { staminaCell } from './stamina';
 
@@ -90,16 +91,17 @@ export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTa
 /** 화면은 그대로 두고 하단 탭 (빨간 점)만 다시 그림 */
 export function refreshTabs(): void { if (current) onTabs?.(screens.get(current)?.tab); }
 
-// ---------- 상단 바 (09 5장: 레벨 고정, 전투 화면 제외. 골드 칸은 2026-10-17 Lim 「헤드에서 골드 재화는 빼자」로 없앰, 보유 골드는 쓰는 화면 안에) ----------
+// ---------- 상단 바 (09 5장: 레벨 · 휴식 · 골드 고정, 전투 화면 제외. 골드는 2026-10-17 #218에 뺐다가 2026-10-22 Lim 「헤드 메뉴에 골드 표시를 넣어보자」로 휴식 숫자 아래 줄에) ----------
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
  * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 전투 Sunforged 기준 코덱스 로비 시안):
  * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 짧은 경험치 막대 (% 글자는 막대 안) ·
- * 휴식 (15분에 1씩 차는 고리 + 다음 +1까지 시간, 누르면 휴식 창, 90) · 설정 (초상과 같은 둥근 황동 테).
+ * 휴식 (15분에 1씩 차는 고리 + 지금/최대, 누르면 휴식 창, 90) · 그 숫자 아래 줄에 골드 · 설정 (초상과 같은 둥근 황동 테).
  * 2026-10-16 Lim: 골드 칸 없앰 · 경험치 줄 짧게 · 충전을 보이게 · 설정 버튼을 정보창과 같은 결로 (모양 · 색은 a2-topbar.css).
- * 91에서 골드가 돌아오며 막대 옆 · 「← 제목」 줄 오른쪽에 골드를 다시 넣었다가, 2026-10-17 Lim 「헤드에서 골드 재화는 빼자」로 다시 뺌.
- * 보유 골드는 캐릭터 › 장비 (판매) 화면 안에 보인다. 위 정보창에 다시 넣지 않는다.
+ * 91에서 골드가 돌아오며 막대 옆 · 「← 제목」 줄 오른쪽에 골드를 다시 넣었다가, 2026-10-17 Lim 「헤드에서 골드 재화는 빼자」로 다시 뺌
+ * (막대 아래로 내려간 골드 줄이 이름을 판 위 테두리로 밀었음). 2026-10-22 Lim 「헤드 메뉴에 골드 표시를 넣어보자」: 이름 칸은 그대로 두고
+ * 휴식 고리 옆 둘째 줄에 (`goldCell`). 「← 제목」 줄에는 넣지 않는다.
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
@@ -122,9 +124,27 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
       <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="경험치 ${Math.floor(pct)}%" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
-    ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}</span>` : ''}
+    ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}${goldCell()}</span>` : ''}
     ${set}</header>`;
 }
+
+const goldLabel = (n: number) => (isFinite(n) ? `골드 ${fmt(n)}` : '골드 무제한');
+/** 위 줄 골드 (2026-10-22): 휴식 숫자 아래 줄. 누르는 칸이 아님 (터치는 아래 휴식 칸으로 지나감). 툴팁 · 접근성 이름에는 전체 값 */
+function goldCell(): string {
+  const n = resourceBalance(G.save, 'gold'), label = goldLabel(n);
+  return `<span class="tb-cur tb-gold" data-gold role="img" aria-label="${label}" title="${label}">${currencyIcon('gold')}<b aria-hidden="true">${shortAmount(n)}</b></span>`;
+}
+/** 보이는 위 줄 골드를 지금 값으로 (저장할 때마다 · 화면을 다시 그리지 않는 곳에서 골드가 바뀌어도 바로) */
+function refreshGold(): void {
+  if (typeof document === 'undefined') return;
+  const n = resourceBalance(G.save, 'gold'), shown = shortAmount(n), label = goldLabel(n);
+  document.querySelectorAll<HTMLElement>('[data-gold]').forEach(el => {
+    const b = el.querySelector('b');
+    if (b && b.textContent !== shown) b.textContent = shown;
+    if (el.title !== label) { el.title = label; el.setAttribute('aria-label', label); }
+  });
+}
+setCommitHook(refreshGold);
 
 /** [data-go] 버튼 = 그 화면으로 */
 document.addEventListener('click', e => {
