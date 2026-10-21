@@ -1,4 +1,4 @@
-// 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 2026-10-19 사슬 7번): 시설 제거 · 부탁 쪽지 · 주간 원정 · 스토리 동료 합류 카드 · 합류 대기
+// 길드 업데이트 묶음 (93 6-3 · 8장, 2026-10-19 사슬 7번): 시설 제거 · 부탁 쪽지 · 주간 원정 (스토리 동료 합류는 2026-10-21 없앰)
 // → S25 · 울트라 · 플립에서 현황 · 영입 가로 넘침 없음. 길드 핵심 흐름은 guild.mjs.
 import { chromium } from 'playwright';
 import { pastTitle } from './nav.mjs';
@@ -30,7 +30,14 @@ export default async function guildExt(url, shots) {
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
   await page.click('#found'); await page.clock.runFor(50);
   await page.click('#storyOk'); await page.clock.runFor(50);
-  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.guild.fame = 480; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  // 결성은 길드원 없이 (2026-10-21): 공고로 들어온 셈 치고 길드원 셋 (능력치는 불러올 때 그 사람 바탕으로)
+  await patch(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.guild.fame = 480;
+    for (const [nick, cls, pers, ab] of [['든든방패', 'warrior', '고집불통', 'warrior.intervene'], ['뒤통수전문', 'rogue', '신중파', 'rogue.kick'], ['불꽃남자', 'mage', '신중파', 'mage.blink']])
+      s.guild.members.push({ id: s.guild.nextId++, nick, cls, pers, ab, lv: 50, xp: 0, stats: {}, lastStatGains: [], learn: 10, steady: 10, sxp: 0, votes: [], boost: 0, runs: 0, joined: 0 });
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
 
   // ---- 부탁 쪽지 · 주간 원정 (93 8장) ----
@@ -58,11 +65,10 @@ export default async function guildExt(url, shots) {
     && await page.getAttribute('#s-content', 'data-selected-diff') === '보통', '원정 입장 = 해당 장소·보통 선택, 전투 자동 시작 없음');
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
 
-  // ---- 스토리 동료 (93 4-4): 합류 카드 · 정원 가득이면 합류 대기 ----
+  // ---- 끝낸 원정 칸 ----
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.guild.exped.list[0].done = true;
-    s.guild.storyCard = 'isle'; s.guild.storyWait = ['isle'];
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
@@ -70,14 +76,8 @@ export default async function guildExt(url, shots) {
     && (await page.locator('#guild-exped-places .g-exrow.done button, #guild-exped-places .g-exrow.done [data-goto]').count()) === 0
     && (await page.locator('#guild-exped-places button.g-place').count()) === (await save()).guild.exped.list.filter(x => !x.done).length,
     '완료 장소는 완료 표시만 · 미완료 장소만 입장 가능');
-  ok(/이슬/.test(await text('#s-guild .g-arrive')) && /응급 처치/.test(await text('#s-guild .g-arrive')) && /합류 대기/.test(await text('#s-guild .g-arrive')), '합류 카드: 이슬 · 고유 스킬 응급 처치 · 정원이 차면 기다림');
-  await page.click('#arriveOk'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-arrive').count()) === 0 && (await save()).guild.storyCard === null, '확인 = 카드 닫힘');
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild [data-istory="isle"]').count()) === 1 && /합류 대기/.test(await text('#s-guild .g-recruit')), '영입 화면 맨 위에 이슬 「합류 대기」');
-  await page.click('#s-guild [data-istory="isle"]'); await page.clock.runFor(50);
-  sv = await save();
-  ok(sv.guild.members.some(m => m.story === 'isle' && m.ab === 'archer.mend') && sv.guild.storyWait.length === 0, '초대 = 이슬 합류 (응급 처치)');
+  ok((await page.locator('#s-guild [data-istory], #s-guild .g-story-wait, #s-guild .g-arrive').count()) === 0 && !/합류 대기/.test(await text('#s-guild .g-recruit')), '스토리 동료 합류 카드 · 합류 대기 없음');
 
   // ---- 통합 공고 견적/인원 · 후보 교체 확인 ----
   await patch(() => {

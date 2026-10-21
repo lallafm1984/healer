@@ -56,7 +56,6 @@ export const SPONSOR = { per: 20, runs: 5, max: 20 };
 export const sponsorGold = (lv: number) => SPONSOR.per * lv;
 
 // ---------- 길드원 (97 크는 길) ----------
-export type StoryKey = 'tank' | 'isle' | 'blade';
 export interface GuildMember {
   id: number;
   nick: string;
@@ -86,8 +85,6 @@ export interface GuildMember {
   /** 출전 수 · 들어온 때 (ms) */
   runs: number;
   joined: number;
-  /** 스토리 동료 (93 4-4) */
-  story?: StoryKey;
 }
 
 /** 길드원 레벨 경험치: 그 칸 경험치를 자기 레벨 기준으로. 자기 ±5 칸은 가득, 더 높은 칸도 +5 칸만큼, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지) */
@@ -173,15 +170,6 @@ export const EXPED = { n: 3, fame: 10, chestGold: 5 };
 
 /** 버릇 = 침착 · 판단 (97 · 93 13-1): 두 칸 평균 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3 (길드원만, 공개모집은 그대로) */
 export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.2, 1, 1 / 3);
-
-// ---------- 스토리 동료 (93 4-4, 이번엔 말없는탱만 · 이슬 · 칼날은 업데이트 묶음) ----------
-export const STORY: Record<StoryKey, { nick: string; cls: ClassKey; pers: PersName; ab: string; boost: Partial<Stats> }> = {
-  // 고유 스킬 (93 4-4, data/abilities STORY_ROWS): 끝까지 곁에 · 응급 처치 · 일섬 연격. 자질 ●5 → 그 칸 높게
-  // boost = Lv 1 바탕 (1~10 칸, 104 · 예전 평균 10 칸 16 · 15 · 13 · 12 → 10 · 10 · 9 · 8)
-  tank: { nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.holdFast', boost: { tough: 10, armor: 10, position: 9, judgment: 8 } },
-  isle: { nick: '이슬', cls: 'archer', pers: '신중파', ab: 'archer.mend', boost: { react: 10, evade: 9 } },
-  blade: { nick: '칼날', cls: 'swordsman', pers: '딜 욕심쟁이', ab: 'swordsman.flurry', boost: { atk: 10, agility: 9 } },
-};
 
 /** 길드 이름 (93 결성 이야기) */
 export const GUILD_NAME = '해바라기 원정대';

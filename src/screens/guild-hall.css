@@ -60,11 +60,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild.ns .pcard.f-mem .f-ab b { font-weight: 700; }
 #s-guild.ns .pcard.f-mem .f-ri { border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: inset 0 0 0 1px #0000002e, 0 1px 2px #0008; }
 #s-guild.ns .pcard.f-mem .f-ps { border-color: #00000040; }
-/* 오른쪽: 영입 · 초대 버튼 */
-#s-guild .g-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; min-width: 40px; text-align: right; }
 #s-guild.ns .pcard.f-mem .f-l1 > .cap { font-size: 11px; }
-#s-guild .g-side > .btn { min-height: 34px; margin-top: 3px; }
-#s-guild .g-list:has(.g-side > .btn) .pcard.f-mem { min-height: 64px; }
 
 /* ---------- 공통 부품 (2026-10-19 Lim 「길드컨텐츠 ui 디자인이 형편없다 … 일관을 유지하면서 필요한 정보만」) ----------
  * 판 = .g-card 하나: 머리 .g-hd (그림 · 제목 · 숫자 · ⓘ) + 몸 (.g-rows 줄 · .pcards 파티원 줄 · .g-tiles 숫자 칸).
@@ -312,7 +308,7 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 /* 영입 경로는 짧은 탭. 공고 설명과 비용은 한 줄 묶음에 둔다. */
 #s-guild .g-recruit { --g-recruit-action-width: 96px; gap: 0; }
 #s-guild .g-recruit > .g-card { margin-top: 8px; }
-#s-guild .g-recruit > .warnbox, #s-guild .g-recruit > .g-story-wait { margin-block: 10px; }
+#s-guild .g-recruit > .warnbox { margin-block: 10px; }
 #s-guild .g-post-offer { display: flex; align-items: center; gap: 8px; min-height: 80px; padding: 8px 4px; box-sizing: border-box; }
 #s-guild .g-post-copy { flex: 1; min-width: 0; }
 #s-guild .g-offer-title { display: flex; align-items: center; gap: 2px; min-height: 36px; }
@@ -322,7 +318,7 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-offer-title .g-info .ui-icon { width: 18px; height: 18px; }
 #s-guild .g-post-summary { display: block; margin: 0; font: 500 12px/1.5 var(--font-body); color: var(--gk-ink2); word-break: keep-all; }
 #s-guild .g-post-action { flex: 0 0 var(--g-recruit-action-width); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-#s-guild .g-post-action > .btn, #s-guild .g-candidates .g-side > .btn { width: var(--g-recruit-action-width); min-width: var(--g-recruit-action-width); min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }
+#s-guild .g-post-action > .btn { width: var(--g-recruit-action-width); min-width: var(--g-recruit-action-width); min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }
 #s-guild .g-post-action > small { font: 600 12px/1.3 var(--font-body); color: var(--gk-ink2); }
 #s-guild .g-flat .g-empty0 { padding: 18px 8px; border-top: 1px solid var(--gk-line); line-height: 1.6; }
 #s-guild .g-flat .g-empty0 small { display: block; }
@@ -342,7 +338,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild.ns .g-candidates .f-ab .skill-level { flex: none; }
 #s-guild.ns .g-candidates .f-l2 > .f-fm { grid-area: 3 / 2; align-self: center; margin: 0; font-size: 11px; white-space: nowrap; }
 #s-guild.ns .g-candidates .f-l2 > .f-tag { grid-area: 4 / 1 / 5 / 3; justify-self: start; }
-#s-guild .g-candidates .g-side { min-width: var(--g-recruit-action-width); }
 
 @media (max-width: 374px) {
   #s-guild.ns .g-candidates .pcard.f-mem { gap: 6px; }

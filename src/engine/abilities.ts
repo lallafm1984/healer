@@ -180,14 +180,6 @@ export function abTick(f: Fight): void {
   }
   if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
   for (const u of f.party) if (u.ab?.pend) pendTick(f, u); // 늦게 쓰는 예고 반응 (99, Codex 검토 B)
-  for (const u of f.party) { // 일섬 연격이 끝남: 옆 아군 딜 (93 4-4)
-    const af = u.ab?.after;
-    if (!af || f.t < af.at) continue;
-    u.ab!.after = undefined;
-    if (!u.alive) continue;
-    const c = cellOf(f, u);
-    for (const v of living(f)) if (v !== u && !v.me && hexDist(cellOf(f, v), c) <= af.r) addMod(v, { k: 'dps', v: af.v, until: f.t + af.sec, src: DEF(u).name });
-  }
   if (f.k % 4 !== 0) return;
   const sec = f.k % 20 === 0;
   for (const u of f.party) {
@@ -405,7 +397,7 @@ function telMatch(f: Fight, u: Unit, a: AbilityDef, tr: Trig, tel: Telegraph): U
     case 'allyTargeted': {
       if (!point) return null;
       const c = cellOf(f, u);
-      const list = tel.units.map(id => f.party.find(x => x.id === id)).filter((v): v is Unit => !!v && v !== u && v.alive && hexDist(cellOf(f, v), c) <= tr.r && (tr.hp == null || pct(v) < tr.hp) && (!tr.healer || v.me));
+      const list = tel.units.map(id => f.party.find(x => x.id === id)).filter((v): v is Unit => !!v && v !== u && v.alive && hexDist(cellOf(f, v), c) <= tr.r && (tr.hp == null || pct(v) < tr.hp));
       return list[0] || null;
     }
     default: return null;
@@ -758,12 +750,6 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       break;
     }
     case 'guardAlly': if (ctx.target) addMod(ctx.target, { k: 'cut', v: Math.min(0.9, fx.v * e), until: f.t + fx.sec, src }); break;
-    case 'healAlly': if (ctx.target) allyHeal(f, ctx.target, ctx.target.max * Math.min(fx.v * e, fx.v * 1.25), u); break; // 응급 처치 (93 4-4)
-    case 'flurry': { // 일섬 연격 (93 4-4): 딜 +v, 끝나면 옆 아군 딜 +ally (abTick)
-      addMod(u, { k: 'dps', v: fx.v * e, until: f.t + fx.sec, src });
-      u.ab!.after = { at: f.t + fx.sec, v: fx.ally * e, sec: fx.asec, r: fx.r };
-      break;
-    }
     case 'healTaken': addMod(u, { k: 'heal', v: fx.v * e, until: f.t + fx.sec, src }); break;
     case 'maxHp':
       for (const v of near(R(fx.r), true)) { const b = v.max * fx.v * e; v.max += b; addMod(v, { k: 'hp', v: b, until: f.t + fx.sec, src: a.name }); }
