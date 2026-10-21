@@ -2,6 +2,7 @@
  * 결과 화면 (09 S08 정산 + S09 보상을 한 화면으로, 2026-10-08) · P04 레벨업 팝업.
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
+import { setResultWin } from '../bgm';
 import { STAT_NAMES } from '../data/fm';
 import { ABILITIES } from '../data/abilities';
 import { EXPED, guildLvOf, REQ, STORY } from '../data/guild';
@@ -35,7 +36,7 @@ import { lootSound } from './ui-sound';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
-const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; render(); } });
+const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; setResultWin(!!Flow.result?.win && !Flow.result?.quit); render(); } });
 const resultModal = sheetDialog(st.el, () => closeResultPopup(st.el));
 
 /** 머리 뒤에 장소 그림 (28 4장) */

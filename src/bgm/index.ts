@@ -18,21 +18,27 @@ for (const [path, url] of Object.entries(files).sort(([a], [b]) => a.localeCompa
   if (m) (lists[m[1]] ??= []).push(url);
 }
 
-export type BgmKey = 'title' | 'lobby' | AdventureRegionKey;
+export type BgmKey = 'title' | 'lobby' | 'victory' | 'defeat' | AdventureRegionKey;
 
 let battleRegion: AdventureRegionKey = 'rust';
 /** 전투 시작 때 (battle start): 이번 전투 장소의 지역 */
 export function setBattleRegion(k: AdventureRegionKey): void { battleRegion = k; }
+let resultWin = true;
+/** 결과 화면에 들어갈 때 (result enter): 이긴 판인가 (2026-10-21 Lim 「전투 종료후 결과 화면의 사운드」) */
+export function setResultWin(v: boolean): void { resultWin = v; }
+/** 곡이 아직 없는 구간은 이 구간 곡으로 (결과 화면 곡이 없으면 마을 곡) */
+const FALLBACK: Partial<Record<BgmKey, BgmKey>> = { victory: 'lobby', defeat: 'lobby' };
 
-/** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 장소의 지역, 그 밖 = lobby (마을) */
+/** 화면 → 구간. 첫 장 (타이틀 · 이야기 · 튜토리얼 카드) = title, 전투 · 구간 사이 휴식 = 그 장소의 지역, 결과 = victory · defeat, 그 밖 = lobby (마을) */
 export function bgmFor(screen: string): BgmKey {
   if (screen === 'battle' || screen === 'rest') return battleRegion;
+  if (screen === 's-settle') return resultWin ? 'victory' : 'defeat';
   if (screen === 's-title' || screen === 's-story' || screen === 's-tut') return 'title';
   return 'lobby';
 }
 
 /** 구간마다 크기 (효과음보다 아래, 전투 = 지역 곡은 효과음이 많아 더 작게 BATTLE_VOL). 곡은 넣을 때 같은 세기로 맞춤 */
-const VOL: Record<string, number> = { title: 0.55, lobby: 0.45 };
+const VOL: Record<string, number> = { title: 0.55, lobby: 0.45, victory: 0.5, defeat: 0.45 };
 const BATTLE_VOL = 0.33;
 const volOf = (k: string) => VOL[k] ?? BATTLE_VOL;
 const FADE_IN = 1.6, FADE_OUT = 1.0;
@@ -111,7 +117,8 @@ function begin(key: BgmKey, idx: number, at: number, delay: number, my: number):
 
 function apply(delay = 0): void {
   const my = ++token;
-  const key = on && want && bgmCount(want) ? want : null;
+  const fb = want ? FALLBACK[want] : undefined;
+  const key = !on || !want ? null : bgmCount(want) ? want : fb && bgmCount(fb) ? fb : null;
   if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
   stop();
   if (!key) return;
