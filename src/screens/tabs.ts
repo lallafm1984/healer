@@ -51,7 +51,7 @@ export function lobbyReady(): number {
   return s.daily.missions.filter(missionReady).length + s.weekly.missions.filter(missionReady).length + (ch.today || ch.banked ? 1 : 0) + (s.chalChest ? 1 : 0);
 }
 /** 길드에서 확인할 것: 아직 영입하지 않은 모집 공고 지원자 */
-const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save) || !!G.save.guild.storyCard); // 지원자 · 부탁 쪽지 · 원정 상자 · 합류 카드 (93 8장, 빨간 점은 길드 탭 하나만)
+const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save)); // 지원자 · 부탁 쪽지 · 원정 상자 (93 8장, 빨간 점은 길드 탭 하나만)
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;
   if (k === 'lobby') return lobbyReady() > 0;

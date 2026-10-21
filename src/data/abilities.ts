@@ -31,7 +31,7 @@ export type Trig =
   | { t: 'buster' | 'targeted' | 'aoe' | 'zone' | 'zoneAny' | 'zone3' | 'zoneNear' | 'start' | 'boss30' | 'ready' | 'addsHit' | 'cast' | 'castAny' | 'lethal' | 'always' | 'fear' | 'moved'; hpBelow?: number }
   | { t: 'adds'; n: number }
   | { t: 'allyLow'; hp: number; r: number; nonTank?: boolean }
-  | { t: 'allyTargeted'; r: number; hp?: number; healer?: boolean }
+  | { t: 'allyTargeted'; r: number; hp?: number }
   | { t: 'allyDebuff'; r: number };
 
 /**
@@ -85,15 +85,10 @@ export type Fx =
   | { e: 'mark'; v: number; party: number }
   | { e: 'wish'; v: number; vuln: number }
   | { e: 'pet'; v: number; cut: number }
-  | { e: 'unzone' }
-  /** 스토리 동료 (93 4-4): 아군 1명 회복 · 딜 올렸다가 끝나면 옆 아군 딜 */
-  | { e: 'healAlly'; v: number }
-  | { e: 'flurry'; v: number; sec: number; ally: number; asec: number; r: number };
+  | { e: 'unzone' };
 
 export interface AbilityDef {
   key: string;
-  /** 스토리 동료 고유 스킬 (93 4-4): 뽑기 · 다시 뽑기 목록에 없음 */
-  story?: boolean;
   cls: ClassKey;
   name: string;
   kind: AbKind;
@@ -226,19 +221,8 @@ for (const [cls, rows] of Object.entries(TABLE) as [ClassKey, Row[]][]) {
   });
 }
 
-/** 스토리 동료 고유 스킬 (93 4-4, 17 4장 상한 안): 말없는탱 · 이슬 · 칼날 */
-const STORY_ROWS: [ClassKey, Row][] = [
-  ['warrior', ['holdFast', '끝까지 곁에', 'def', 45, [{ t: 'allyTargeted', r: 99, healer: true }], { e: 'intercept' }, '힐러가 받을 지정 피해를 대신 맞습니다. 힐러를 절대 버리지 않습니다.', '힐러가 지정 피해 대상']],
-  ['archer', ['mend', '응급 처치', 'heal', ONCE, [{ t: 'allyLow', hp: 0.25, r: 99, nonTank: true }], { e: 'healAlly', v: 0.15 }, '탱커가 아닌 아군 1명이 체력 25% 아래면 최대 체력 15%를 회복시킵니다. 원래 힐러였습니다.', '탱커 아닌 아군 체력 25% 아래']],
-  ['swordsman', ['flurry', '일섬 연격', 'atk', ALWAYS, [T('start'), T('boss30')], { e: 'flurry', v: 0.4, sec: 8, ally: 0.1, asec: 5, r: 1 }, '8초 동안 딜이 40% 늘고, 끝나면 옆 아군의 딜이 5초 동안 10% 늘어납니다. 전투 시작과 보스 30%에 한 번씩 씁니다.', '전투 시작 · 보스 30%', true]],
-];
-for (const [cls, [k, name, kind, cd, trig, fx, desc, when, each]] of STORY_ROWS) {
-  const key = `${cls}.${k}`;
-  ABILITIES[key] = { key, cls, name, kind, grade: 'epic', cd, trig, fx, desc, when, each, story: true };
-}
-
-/** 그 직업의 능력 후보 10개 (일반 6 · 고급 3 · 희귀 1 순서). 스토리 동료 고유 스킬은 빼고 */
-export const abilitiesOf = (cls: ClassKey): AbilityDef[] => Object.values(ABILITIES).filter(a => a.cls === cls && !a.story);
+/** 그 직업의 능력 후보 10개 (일반 6 · 고급 3 · 희귀 1 순서) */
+export const abilitiesOf = (cls: ClassKey): AbilityDef[] => Object.values(ABILITIES).filter(a => a.cls === cls);
 
 /** 능력 하나가 나올 확률 (17 3장): 등급 합계 일반 66% · 고급 27% · 희귀 7%. 명문 공고 42 · 45 · 13 */
 export const AB_ODDS: Record<'normal' | 'better' | 'best', Record<AbGrade, number>> = {

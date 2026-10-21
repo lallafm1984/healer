@@ -10,9 +10,8 @@ import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT, TUT_CONTENT, tutReplay } from './tutorial';
-import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
+import { foundGuild, guildAfter, isGuildParty, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
-import type { StoryKey } from '../data/guild';
 import { lootKey, onRun, raidLootOpen, rollover } from './economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
@@ -90,10 +89,8 @@ export interface Settlement {
   guild: GuildAfter | null;
   /** 이 판에 길드파티로 얻은 명성 (승리 · 첫 처치 · 주간 원정, 103 「명성 = 길드 경험치」): before = 판 전 쌓인 명성. 결과창 길드 막대 */
   guildFame: { before: number; gain: number } | null;
-  /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (창단 멤버 닉네임) */
-  founded: string[] | null;
-  /** 스토리 동료 합류 (93 4-4): 들어옴 · 정원이 차서 기다림 */
-  story: { key: StoryKey; how: 'joined' | 'wait' } | null;
+  /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (길드원 없이, 영입은 모집 공고로) */
+  founded: boolean;
   /** 부탁 쪽지 · 주간 원정 (93 8장) */
   jobs: JobsDone | null;
   /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
@@ -202,10 +199,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   if (r.win) heroWin(save, hero);
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
-  const founded = FEATURES.guild && play ? foundGuild(save) : null;
-  // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
-  const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
-  const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
+  const founded = FEATURES.guild && play ? foundGuild(save) : false;
+  // 업데이트 묶음 (93 6-3 · 8장): 부탁 쪽지 · 주간 원정
   const fame0 = save.guild.fame;
   const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }, now) : null;
   const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs, myLv: levelBefore, chal: !!r.chal }) : null;
@@ -243,6 +238,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, jobs,
   };
 }

@@ -7,7 +7,6 @@
  * (끊기 욕심은 끊기 능력 파티원). 95 2차에서 75명을 기존 묶음 새 성격 25종으로 바꿈 (25종 3명씩, 옛 30종은 3명씩 · 희귀 4종은 2명씩 남김,
  * 마법사 「얼음땡」은 같은 이름 성격이 생겨 「얼음장」으로). 한 직업 안에서 성격은 겹치지 않음.
  * 스킬 등급은 공개모집 확률 (일반 66 · 고급 27 · 희귀 7%)에 맞춤: 탱커 16 · 7 · 2, 근접 13 · 6 · 1, 원거리 20 · 8 · 2
- * 스토리 동료 이름(10 문서 2장)은 STORY_NICKS로 따로 두고 무작위로 뽑지 않는다.
  */
 import { CLASSES, type ClassKey } from './classes';
 import { LV_BAND, memberLevel, profileOf, type FmProfile } from './fm';
@@ -91,9 +90,6 @@ export const PARTY_POOL = Object.fromEntries(
 
 /** 직업별 닉네임만 */
 export const CLASS_NICKS = Object.fromEntries(Object.entries(PARTY_POOL).map(([cls, list]) => [cls, list.map(m => m.nick)])) as unknown as Record<ClassKey, readonly string[]>;
-
-/** 스토리 동료 (10 문서 2장, 고정 영입 예정): 무작위 파티원 · 길드 지원자 이름으로 쓰지 않음 */
-export const STORY_NICKS: readonly string[] = ['말없는탱', '이슬', '칼날'];
 
 /** 희귀 성격 (04 6-F) 파티원이 뽑힐 가중치 */
 export const RARE_WEIGHT = 0.4;

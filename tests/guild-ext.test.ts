@@ -1,12 +1,11 @@
-/** 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 사슬 7번): 부탁 쪽지 · 주간 원정 · 스토리 동료 이슬 · 칼날 · 고유 스킬 */
+/** 길드 업데이트 묶음 (93 6-3 · 8장, 사슬 7번): 부탁 쪽지 · 주간 원정 (스토리 동료 · 고유 스킬은 2026-10-21 없앰, v30) */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
-import { EXPED, GUILD_STEPS, REQ, STORY, type GuildMember } from '../src/data/guild';
+import { EXPED, GUILD_STEPS, REQ, type GuildMember } from '../src/data/guild';
 import { PARTY_POOL } from '../src/data/nicknames';
-import * as E from '../src/engine';
 import { claimExped } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
 import { expedReady, jobsAfter, jobsDot, refreshExped, refreshReqs } from '../src/game/guildjobs';
@@ -55,49 +54,47 @@ describe('시설 제거와 저장 보존 (v22)', () => {
   });
 });
 
-describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
-  it('첫 10인 레이드 = 이슬, 정원이 차면 친구 초대에서 기다림 · 한 번만 · 합류 카드', () => {
-    const s = save(50);
-    expect(Gd.storyArrive(s, 'isle')).toBe('joined');
-    const isle = s.guild.members.find(m => m.story === 'isle')!;
-    expect(isle).toMatchObject({ nick: '이슬', cls: 'archer', ab: STORY.isle.ab, lv: 50 });
-    expect(s.guild.storyCard).toBe('isle');
-    expect(Gd.storyArrive(s, 'isle')).toBeNull();
-    for (let i = 0; i < 5; i++) add(s, 'mage', i);
-    expect(Gd.storyArrive(s, 'blade')).toBe('wait');
-    expect(s.guild.storyWait).toEqual(['blade']);
-    expect(Gd.inviteStory(s, 'blade')).toMatch(/정원/);
-    s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7
-    expect(Gd.inviteStory(s, 'blade')).toBe('');
-    expect(s.guild.members.some(m => m.nick === '칼날' && m.ab === 'swordsman.flurry')).toBe(true);
+describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에서 스토리 동료 제거, 자동 영입 제거」, v30)', () => {
+  it('결성 = 길드원 0명, 스토리 동료 합류 길 · 고유 스킬 없음', () => {
+    const s = save(20); s.guild.founded = false; s.guild.storySeen = false;
+    expect(Gd.foundGuild(s)).toBe(true);
+    expect(s.guild).toMatchObject({ founded: true, members: [] });
+    expect(Gd.foundGuild(s)).toBe(false);
+    expect(['storyArrive', 'inviteStory'].filter(k => k in Gd)).toEqual([]);
+    expect(['warrior.holdFast', 'archer.mend', 'swordsman.flurry'].filter(k => k in ABILITIES)).toEqual([]);
+    expect(['storyWait', 'storyCard'].filter(k => k in s.guild)).toEqual([]);
   });
-  it('고유 스킬은 뽑기 목록에 없음, 옛 말없는탱은 「끝까지 곁에」로', () => {
-    for (let i = 0; i < 300; i++) expect(['warrior.holdFast', 'archer.mend', 'swordsman.flurry']).not.toContain(Gd.makeCandidates(save(), rng)[0].ab);
-    const s = save(20);
-    Gd.foundGuild({ ...s, guild: { ...s.guild, founded: false } } as SaveData);
-    const old = { ...newSave(1), v: 20, guild: { ...newSave(1).guild, founded: true, members: [{ id: 1, nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.intervene', lv: 20, story: 'tank' }], nextId: 2 } };
-    expect(migrate(old).guild.members[0].ab).toBe('warrior.holdFast');
+  it('v29 저장: story 표시 길드원 (말없는탱 · 이슬)과 storyWait · storyCard는 버리고, 결성 때 들어온 도적 · 지난 편성 · 부탁은 남은 사람만', () => {
+    const s = save(40), rogue = Gd.newMember(s, Gd.personOf(PARTY_POOL.rogue[0].nick)!, 40), mage = Gd.newMember(s, Gd.personOf(PARTY_POOL.mage[0].nick)!, 40);
+    const tank = { ...Gd.newMember(s, Gd.personOf(PARTY_POOL.warrior[0].nick)!, 40), nick: '말없는탱', pers: '고집불통', ab: 'warrior.holdFast', story: 'tank' };
+    const isle = { ...Gd.newMember(s, Gd.personOf(PARTY_POOL.archer[0].nick)!, 40), nick: '이슬', pers: '신중파', ab: 'archer.mend', story: 'isle' };
+    const old = JSON.parse(JSON.stringify({ ...s, v: 29, guild: { ...s.guild,
+      members: [{ ...tank, id: 1 }, { ...rogue, id: 2 }, { ...isle, id: 3 }, { ...mage, id: 4 }], nextId: 5,
+      picks: { '5': [1, 2, 4], '10': [3, 4, 2], '3': [1] }, storyWait: ['blade'], storyCard: 'isle',
+      reqs: { day: '2026-10-21', list: [{ nick: '말없는탱', content: 'rustfort', diff: '보통', done: false }, { nick: rogue.nick, content: 'plateau', diff: '쉬움', done: true }] } } }));
+    const d = migrate(old);
+    expect(d.v).toBe(30);
+    expect(d.guild.members.map(m => [m.id, m.nick])).toEqual([[2, rogue.nick], [4, mage.nick]]);
+    expect(d.guild.members.every(m => !('story' in m))).toBe(true);
+    expect(['storyWait', 'storyCard'].filter(k => k in d.guild)).toEqual([]);
+    expect(d.guild.picks).toEqual({ '5': [2, 4], '10': [4, 2], '3': [] });
+    expect(d.guild.reqs.list.map(q => q.nick)).toEqual([rogue.nick]);
+    expect(d.guild.nextId).toBe(5);
+    expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
-  it('엔진: 끝까지 곁에 = 힐러 지정 피해를 대신, 응급 처치 = 탱커 아닌 아군 25% 아래 15%, 일섬 연격 = 딜 +40% 뒤 옆 아군 딜 +10%', () => {
-    const party = E.recruitParty('warden', 3, { abilities: true });
-    party[0] = { ...party[0], cls: 'warrior', ab: 'warrior.holdFast' };
-    party[1] = { ...party[1], cls: 'archer', ab: 'archer.mend', role: 'ranged' };
-    party[2] = { ...party[2], cls: 'swordsman', ab: 'swordsman.flurry', role: 'melee' };
-    // 99 다: 판단 · 기술 숙련이 15보다 낮으면 스킬을 늦게 쓰거나 헛씀. 여기서는 효과만 보게 15로
-    for (const i of [0, 1, 2]) if (party[i].fm) party[i] = { ...party[i], fm: { ...party[i].fm!, stats: { ...party[i].fm!.stats, judgment: 15, skill: 15 }, off: 0 } };
-    const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
-    expect(f.party.filter(u => u.ab).map(u => u.ab!.key)).toEqual(expect.arrayContaining(['archer.mend', 'swordsman.flurry', 'warrior.holdFast']));
-    expect(ABILITIES['archer.mend'].fx).toEqual({ e: 'healAlly', v: 0.15 });
-    // 일섬 연격: 전투 시작에 딜 +40%
-    for (let i = 0; i < 40; i++) E.step(f);
-    const sw = f.party.find(u => u.ab?.key === 'swordsman.flurry')!;
-    expect(sw.mods.some(m => m.k === 'dps' && Math.abs(m.v - 0.4) < 1e-9)).toBe(true);
-    // 응급 처치: 탱커 아닌 아군이 25% 아래
-    const v = f.party.find(u => u.role !== 'tank' && !u.me && u.ab?.key !== 'archer.mend')!;
-    v.hp = v.max * 0.2;
-    const before = v.hp;
-    for (let i = 0; i < 20; i++) E.step(f);
-    expect(v.hp - before).toBeGreaterThan(v.max * 0.1);
+  it('길드원 0 · 1명: 부탁은 그날을 쓰지 않고 첫 영입 뒤 바로, 주간 원정은 던전 칸 (2명부터 길드파티), 판 뒤 정산도 그대로', () => {
+    const T = new Date(2026, 9, 7, 12).getTime(), stages = [{ content: 'rustfort', diff: '보통' as const }];
+    const s = save(30);
+    refreshReqs(s, stages, rng, T);
+    expect(s.guild.reqs).toEqual({ day: '', list: [] });
+    expect(jobsDot(s)).toBe(false);
+    refreshExped(s, () => true, T);
+    expect(s.guild.exped.list.length).toBeGreaterThan(0);
+    expect(s.guild.exped.list.every(x => CONTENT.find(c => c.key === x.content)?.kind === 'dungeon')).toBe(true);
+    expect(jobsAfter(s, { win: true, quit: false, content: s.guild.exped.list[0].content, diff: '보통', roster: [] }, T)).toEqual({ reqs: [], exped: [], expedAll: false, fame: 0 });
+    add(s, 'mage', 0);
+    refreshReqs(s, stages, rng, T + 3600e3);
+    expect(s.guild.reqs.list.map(q => q.nick)).toEqual([s.guild.members[0].nick]);
   });
 });
 

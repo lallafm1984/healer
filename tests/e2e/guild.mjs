@@ -38,12 +38,25 @@ export default async function guild(url, shots) {
   ok(await page.isVisible('#found') && (await page.locator('#s-guild .subtabs').count()) === 0, 'Lv 30 · 결성 전 = 결성 이야기 카드 (하위 탭 없음)');
   await page.click('#found'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.guild.founded && JSON.stringify(sv.guild.members.map(m => m.nick)) === JSON.stringify(['말없는탱', '뒤통수전문']), `결성: 말없는탱 + 근접 1명 (정원 2, 103) ${sv.guild.members.map(m => m.nick)}`);
-  ok(/정원 2\/2/.test(await text('#s-guild .guild-hero')) && /명성 0 \/ 55/.test(await text('#s-guild .guild-hero')), '결성 직후 머리: 정원 2/2 · 명성 0 / 55');
-  // 아래 장면 (예전 결성 4명 · 정원 6)을 그대로 보려고 길드원 둘과 길드 Lv 5 (명성 225 · 정원 6)를 넣음
+  // 2026-10-21 Lim 「길드에서 스토리 동료 제거, 자동 영입 제거」: 결성 = 길드원 0명, 첫 동료는 모집 공고로
+  ok(sv.guild.founded && sv.guild.members.length === 0, `결성: 길드원 없이 (자동 영입 없음) ${sv.guild.members.map(m => m.nick)}`);
+  ok(/정원 0\/2/.test(await text('#s-guild .guild-hero')) && /명성 0 \/ 55/.test(await text('#s-guild .guild-hero')), '결성 직후 머리: 정원 0/2 · 명성 0 / 55');
+  const story0 = await text('#s-guild .g-story');
+  ok(/원정대 깃발/.test(story0) && /공고를 내면 동료가 찾아온다/.test(story0) && !/말없는탱|이 힐러 놓치면/.test(story0) && (await text('#storyOk')).trim() === '모집 공고 보기', '결성 카드: 공고 영입 안내 · 「모집 공고 보기」');
+  ok(/길드원 영입 뒤 부탁 도착/.test(await text('#s-guild .g-home')) && (await text('#guildRecruit')).trim() === '모집 공고로 영입' && (await page.locator('#guildGo').count()) === 0, '길드원 0명: 부탁 자리 안내 · 아래 버튼 「모집 공고로 영입」');
+  ok((await page.locator('#s-guild .g-exped').count()) === 0 || /길드원 2명부터 도전/.test(await text('#s-guild .g-exped')), '길드원 0명: 주간 원정 「길드원 2명부터 도전」');
+  await page.screenshot({ path: `${shots}/guild_founded.png` });
+  await page.click('#storyOk'); await page.clock.runFor(50);
+  ok((await page.getAttribute('#s-guild .subtabs [data-sub="recruit"]', 'aria-selected')) === 'true' && (await save()).guild.storySeen, '「모집 공고 보기」 = 결성 카드 닫힘 · 영입 탭');
+  await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-guild .g-story').count()) === 0, '결성 카드는 한 번만');
+  await page.click('#guildRecruit'); await page.clock.runFor(50);
+  ok((await page.getAttribute('#s-guild .subtabs [data-sub="recruit"]', 'aria-selected')) === 'true', '「모집 공고로 영입」 = 영입 탭');
+  // 아래 장면 (예전 결성 4명 · 정원 6)을 그대로 보려고 길드원 넷과 길드 Lv 5 (명성 225 · 정원 6)를 넣음 (능력치는 불러올 때 그 사람 바탕으로)
   await patch(() => {
-    const s = JSON.parse(localStorage.getItem('healer.save')), base = s.guild.members[1];
-    for (const [nick, cls, ab] of [['불꽃남자', 'mage', 'mage.blink'], ['딜미터1등', 'archer', 'archer.snipe']]) s.guild.members.push({ ...base, id: s.guild.nextId++, nick, cls, ab });
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    for (const [nick, cls, pers, ab] of [['든든방패', 'warrior', '고집불통', 'warrior.intervene'], ['뒤통수전문', 'rogue', '신중파', 'rogue.kick'], ['불꽃남자', 'mage', '신중파', 'mage.blink'], ['딜미터1등', 'archer', '신중파', 'archer.snipe']])
+      s.guild.members.push({ id: s.guild.nextId++, nick, cls, pers, ab, lv: 30, xp: 0, stats: {}, lastStatGains: [], learn: 10, steady: 10, sxp: 0, votes: [], boost: 0, runs: 0, joined: 0 });
     s.guild.fame = 225;
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
@@ -53,10 +66,6 @@ export default async function guild(url, shots) {
   ok(/해바라기 원정대/.test(hero) && /길드 Lv 5/.test(hero) && /정원 4\/6/.test(hero) && /명성 0 \/ 60/.test(hero), '머리: 이름 · 길드 Lv 5 · 정원 4/6 · 명성 막대 0 / 60 (103)');
   const tabs = await page.locator('#s-guild .subtabs [role="tab"]').evaluateAll(els => els.map(e => [e.dataset.sub, e.getAttribute('aria-selected')]));
   ok(JSON.stringify(tabs) === JSON.stringify([['home', 'true'], ['members', 'false'], ['recruit', 'false']]), `하위 탭 셋 (현황 고름) ${JSON.stringify(tabs)}`);
-  ok(/말없는탱/.test(await text('#s-guild .g-story')), '현황 맨 위 결성 이야기 (창단 멤버 이름)');
-  await page.screenshot({ path: `${shots}/guild_founded.png` });
-  await page.click('#storyOk'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-story').count()) === 0 && (await save()).guild.storySeen, '「확인」 = 이야기 카드 닫힘 (한 번만)');
   // 현황은 메뉴 칸 없이 오늘의 부탁과 주간 할 일을 바로 표시.
   ok((await page.locator('#s-guild .g-hub, #s-guild [data-fac]').count()) === 0 && /오늘의 부탁/.test(await text('#s-guild .g-home')) && /이번 주/.test(await text('#s-guild .g-home')) && /0 \/ 10/.test(await text('#s-guild .g-goal')), '현황: 시설 · 중복 메뉴 없이 할 일만 바로 표시');
   ok((await page.locator('#s-guild [data-csel="rec"], .g-firsts').count()) === 0, '현황 기록 메뉴 제거');
@@ -98,10 +107,10 @@ export default async function guild(url, shots) {
   // ---- 길드원 시트: 능력치 숫자 · 후원 · 보내기 ----
   await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   ok(/정원 6\/6/.test(await text('#s-guild .guild-hero')) && (await page.locator('#s-guild [data-mem]').count()) === 6, '길드원 탭 줄 6 · 머리 정원 6/6');
-  const tank = sv.guild.members.find(m => m.story === 'tank');
+  const tank = sv.guild.members.find(m => m.nick === '든든방패');
   await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid:not(.fog) li').count()) === 12, '길드원 시트: 능력치 12칸 숫자');
-  ok((await page.locator('#s-guild [data-reroll]').count()) === 0 && await page.isDisabled('#s-guild [data-release]'), '스킬 뽑기 제거 · 스토리 동료 보내기 금지 유지');
+  ok((await page.locator('#s-guild [data-reroll]').count()) === 0 && !await page.isDisabled('#s-guild [data-release]'), '스킬 뽑기 제거 · 누구든 보내기 가능 (스토리 동료 없음)');
   ok((await page.locator('#s-guild .g-msheet .g-meter').count()) === 1 && !/직업 스킬 LV/.test(await text('#s-guild .g-msheet')), '레벨 경험치 막대 하나, 규칙 글은 ⓘ 전엔 안 보임');
   await page.click('#s-guild .g-msheet [data-tip="msheet"]'); await page.clock.runFor(50);
   ok(/직업 스킬 LV 2 \/ 5/.test(await text('#s-guild .g-msheet .g-tip')), 'ⓘ: 직업 스킬 LV 2 / 5 (길드원 Lv 30)');
@@ -167,7 +176,7 @@ export default async function guild(url, shots) {
   // 완료한 부탁의 경험치 보상을 실제 결과 화면까지 확인한다.
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
-    s.guild.reqs.list = [{ nick: '말없는탱', content: 'rustfort', diff: '쉬움', done: false }];
+    s.guild.reqs.list = [{ nick: '든든방패', content: 'rustfort', diff: '쉬움', done: false }];
     s.player.level = 15; // 녹슨 요새 (적 Lv 5 ~ 11)가 「낮은 장소」 (내 Lv − 10 밑, 103)가 아니게
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
@@ -210,7 +219,7 @@ export default async function guild(url, shots) {
   const rw = await text('#s-settle .r-notes');
   ok(/길드원 경험치 \+\d/.test(rw) && /길드 첫 처치/.test(rw) && /명성 \+8/.test(await text('#s-settle .r-gxpw')), '결과: 길드원 경험치 · 길드 첫 처치 · 길드 막대 명성 +8 (던전 2 + 첫 처치 6, 103)');
   ok(!/인연|새 친구/.test(rw) && !(await save()).users, '결과와 저장에 인연 보상 없음');
-  ok(/부탁 완료 · 말없는탱 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
+  ok(/부탁 완료 · 든든방패 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
   sv = await save();
   ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === (inFight.some(m => m.nick === '불꽃남자') ? 5 : 4), '출전 여부에 따른 후원 횟수 차감');
   ok(sv.guild.fame === 225 + 8 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 225 + 8 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);

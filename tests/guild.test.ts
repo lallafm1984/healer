@@ -9,11 +9,11 @@ import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
+  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, type GuildMember,
 } from '../src/data/guild';
-import { birthV25, growthOf, growWeights, lvAdds, lvPoints, STAT_KEYS, type Stats } from '../src/data/fm';
+import { birthV25, growWeights, lvAdds, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
-import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
+import { PARTY_POOL } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
 import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
@@ -61,7 +61,7 @@ describe('길드를 빼 두면', () => {
     expect(Gd.guildOpen(s).ok).toBe(false);
     const m = add(s, 'warrior', 0, { lv: 25 });
     const x = settle(s, result({ party: [{ nick: m.nick, pers: m.pers, role: 'tank', alive: true, got: 10, gid: m.id }] }), rng, [entry(s, m)]);
-    expect([x.guild, x.founded]).toEqual([null, null]);
+    expect([x.guild, x.founded]).toEqual([null, false]);
     expect([m.xp, m.runs, s.guild.fame]).toEqual([0, 0, 0]);
   });
   it('일일 임무에 「길드파티로 클리어」가 안 뽑히고, 이미 뽑힌 것은 교체 횟수 없이 다른 임무로', () => {
@@ -124,26 +124,16 @@ describe('레벨에 따른 스킬 성장', () => {
 });
 
 describe('결성 (93 4-1)', () => {
-  it('Lv 15: 말없는탱 (고정 능력치) + 근접 1명 (정원 2, 103)', () => {
+  it('Lv 15: 길드원 없이 결성, 영입은 모집 공고로만 (2026-10-21 Lim 「자동 영입 제거」, 예전엔 말없는탱 + 근접 1명)', () => {
     const s = save(15);
-    const got = Gd.foundGuild(s)!;
-    const fast = PARTY_POOL.rogue.find(p => p.fm.speed >= 0.95)!; // 딜러는 나와 함께 크는 사람 (103 다른 문제점 4)
-    expect(got).toEqual([STORY.tank.nick, fast.nick]);
-    expect(s.guild.members[1].lv).toBeGreaterThanOrEqual(14);
-    const tank = s.guild.members[0];
-    expect(tank).toMatchObject({ nick: '말없는탱', cls: 'warrior', story: 'tank', ab: STORY.tank.ab, lv: 15 });
-    const sum = (st: Stats) => STAT_KEYS.reduce((a, k) => a + st[k], 0);
-    expect([Gd.birthStats(tank).tough, Gd.birthStats(tank).armor]).toEqual([10, 10]); // 고정 능력치 = Lv 1 바탕 (104)
-    expect(tank.stats.tough).toBeGreaterThanOrEqual(10);
-    expect(sum(tank.stats)).toBe(sum(Gd.birthStats(tank)) + lvPoints(growthOf(tank.nick, 'tank').type, 15)); // + Lv 15까지 레벨업 점수
-    expect(s.guild.founded).toBe(true);
-    expect(Gd.foundGuild(s)).toBeNull();
-    expect(Gd.foundGuild(save(14))).toBeNull();
-  });
-  it('만남 기록 없이 두 명 결성, 스토리 동료는 공고에 안 나옴', () => {
-    const s = save(20);
-    expect(Gd.foundGuild(s)).toHaveLength(2);
-    for (let i = 0; i < 30; i++) expect(STORY_NICKS).not.toContain(Gd.makeCandidates(s, rng)[0].nick);
+    expect(Gd.foundGuild(s)).toBe(true);
+    expect([s.guild.founded, s.guild.members, Gd.capOf(s).cap]).toEqual([true, [], 2]);
+    expect(Gd.foundGuild(s)).toBe(false);
+    expect(Gd.foundGuild(save(14))).toBe(false);
+    expect(Gd.postRecruit(s, rng)).toBe('');
+    expect(s.guild.post!.cands.length).toBe(POST.cands);
+    expect(Gd.hire(s, 0)).toBe('');
+    expect(s.guild.members.length).toBe(1);
   });
 });
 
@@ -235,7 +225,7 @@ describe('관리 (93 4-3 · 5-5)', () => {
     expect([s.guild.members.length, s.guild.picks]).toEqual([0, { '5': [], '10': [99] }]);
     const t = save(15);
     Gd.foundGuild(t);
-    Gd.release(t, t.guild.members[0].id);
+    Gd.release(t, add(t, 'rogue', 0).id);
     expect(t.guild).not.toHaveProperty('away');
   });
 });
@@ -454,16 +444,17 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
     expect([s.guild.fame, memberSkillLevel(a)]).toEqual([GUILD_GOAL.fame, 2]);
     expect(claimGuildGoal(s)).toBe('아직 못 채움');
   });
-  it('settle: Lv 15 이상 판 뒤 결성 (창단 멤버 두 명), 길드파티면 정산 · 주간 목표 1, 포기는 정산 없음', () => {
+  it('settle: Lv 15 이상 판 뒤 결성 (길드원 없이), 길드파티면 정산 · 주간 목표 1, 포기는 정산 없음', () => {
     const s = save(20);
     const x = settle(s, result(), rng, []);
-    expect(x.founded).toHaveLength(2);
-    expect(x.guild).toBeNull();
+    expect(x.founded).toBe(true);
+    expect([x.guild, s.guild.members.length]).toEqual([null, 0]);
+    add(s, 'warrior', 0); add(s, 'rogue', 0);
     const ms = s.guild.members;
     const roster = warden(s, ms);
     const party = roster.map(e => ({ nick: e.nick, pers: e.pers, role: e.role, alive: true, got: 10, gid: e.gid }));
     const y = settle(s, result({ party }), rng, roster);
-    expect(y.founded).toBeNull();
+    expect(y.founded).toBe(false);
     expect(y.guild!.members.length).toBe(2);
     expect(y.guild!.members[0].xp).toBeGreaterThan(0);
     expect(s.weekly.guild.n).toBe(1);
@@ -584,7 +575,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(29);
+    expect(SAVE_VERSION).toBe(30);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;
@@ -657,14 +648,13 @@ describe('저장 v26 (104 「Lv 1 바탕 1~10 · 레벨업마다 1점」)', () =
     expect(m).toMatchObject({ lv: 40, sxp: want.sxp, votes: [['atk']], learn: 13 });
     expect(migrate(JSON.parse(JSON.stringify(migrate(old)))).guild.members[0].stats).toEqual(m.stats); // 다시 불러도 그대로
   });
-  it('스토리 동료: 예전 고정 능력치 (16 · 15 …)를 빼고 새 고정 바탕 (10 · 10 …)으로', () => {
-    const s = save(30);
-    Gd.foundGuild(s);
-    const old = JSON.parse(JSON.stringify(s)), o = old.guild.members.find((x: GuildMember) => x.story === 'tank');
-    o.stats = { ...birthV25(o.nick, o.pers), tough: 16, armor: 15, position: 13, judgment: 12 }; old.v = 25;
-    const m = migrate(old).guild.members.find(x => x.story === 'tank')!, born = Gd.birthStats(m), add = lvAdds(m.nick, m.pers, 'tank', m.lv, born);
-    expect(statsV26(o)).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, born[k] + add[k]])));
-    expect(m.stats).toEqual(dbl({ ...o, stats: statsV26(o) }).stats); // v27 두 배 몫 (Lv 15 뒤)
+  it('v25 스토리 동료 (story 표시)는 v30이 버림, 같이 있던 길드원은 v26 바탕으로', () => {
+    const s = save(30), r = add(s, 'rogue', 0, { lv: 30 });
+    const old = JSON.parse(JSON.stringify(s)); old.v = 25;
+    old.guild.members.unshift({ ...JSON.parse(JSON.stringify(r)), id: 99, nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.holdFast', story: 'tank' });
+    const d = migrate(old);
+    expect(d.guild.members.map(m => m.nick)).toEqual([r.nick]);
+    expect(d.guild.members[0].stats).toEqual(dbl({ ...r, stats: statsV26(r) }).stats);
   });
 });
 
@@ -720,6 +710,7 @@ describe('결과창 길드 막대 (103 「명성 = 길드 경험치」)', () => 
   it('settle.guildFame: 길드파티로 얻은 명성 (승리 · 첫 처치) = 판 전 쌓인 명성 + 얻은 양, 공개모집 판은 null', () => {
     const s = save(15); // 녹슨 요새 보통 적 Lv 7 ≥ 내 Lv 15 − 10
     settle(s, result(), rng, []);
+    add(s, 'warrior', 0); add(s, 'rogue', 0); // 결성은 길드원 없이 (2026-10-21)
     const roster = Gd.guildRoster(s, s.guild.members.map(m => m.id), E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
     s.guild.fame = GUILD_STEPS[1] - 3;
     const y = settle(s, result({ party: [] }), rng, roster);

@@ -27,8 +27,7 @@ describe('데이터 (17 5장)', () => {
       expect(list.length).toBe(10);
       expect(['common', 'rare', 'epic'].map(g => list.filter(a => a.grade === g).length)).toEqual([6, 3, 1]);
     }
-    expect(Object.values(ABILITIES).filter(a => !a.story).length).toBe(80);
-    expect(Object.values(ABILITIES).filter(a => a.story).map(a => a.key)).toEqual(['warrior.holdFast', 'archer.mend', 'swordsman.flurry']); // 스토리 동료 고유 (93 4-4)
+    expect(Object.values(ABILITIES).length).toBe(80); // 스토리 동료 고유 스킬 3개는 2026-10-21 없앰
   });
   it('회복 능력은 전부 전투당 1회, 자기 20% 이하 (17 4장)', () => {
     for (const a of Object.values(ABILITIES).filter(x => x.kind === 'heal')) {

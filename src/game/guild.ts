@@ -10,7 +10,7 @@ import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE,
-  memberSkillLevel, LV_DOUBLE, spendPoints, STORY, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
+  memberSkillLevel, LV_DOUBLE, spendPoints, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
@@ -44,14 +44,14 @@ export const personOf = (nick: string): Person | null => BY_NICK.get(nick) ?? nu
 const isIn = (save: SaveData, nick: string) => save.guild.members.some(m => m.nick === nick);
 
 /**
- * 길드원 하나 (1000명 가운데 사람, 그 사람 지금 레벨 = 세상 레벨). 스토리 동료는 고정 능력치를 덧씀.
+ * 길드원 하나 (1000명 가운데 사람, 그 사람 지금 레벨 = 세상 레벨).
  * 능력치 = 타고난 값 + 그 레벨까지 레벨업 점수 (공개모집과 같은 굴림, 104)를 저장, 그 뒤로는 레벨업할 때 (growStats)
  */
-export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
+export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number): GuildMember {
   const role = CLASSES[p.cls].role as 'tank' | 'melee' | 'ranged', prof = profileOf(p.nick, p.pers, role), at = Math.max(1, Math.min(topLevel(save), lv));
-  const birth = { ...prof.stats, ...(story ? STORY[story].boost : {}) }, add = lvAdds(p.nick, p.pers, role, at, birth);
+  const birth = prof.stats, add = lvAdds(p.nick, p.pers, role, at, birth);
   const stats = Object.fromEntries(STAT_KEYS.map(k => [k, birth[k] + add[k]])) as Stats;
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now() };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -68,44 +68,16 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   return nm;
 }
 
-// ---------- 스토리 동료 이슬 · 칼날 (93 4-4) ----------
-const hasStory = (save: SaveData, k: StoryKey) => save.guild.members.some(m => m.story === k) || save.guild.storyWait.includes(k);
-/** 첫 10인 레이드 클리어 = 이슬, 첫 20인 = 칼날. 정원이 차 있으면 영입 화면에서 「합류 대기」. 들어오면 합류 카드 한 번 */
-export function storyArrive(save: SaveData, k: StoryKey): 'joined' | 'wait' | null {
-  const g = save.guild;
-  if (!g.founded || hasStory(save, k)) return null;
-  g.storyCard = k;
-  if (full(save)) { g.storyWait.push(k); return 'wait'; }
-  const st = STORY[k];
-  join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), k));
-  return 'joined';
-}
-/** 기다리는 스토리 동료 초대 (무료) */
-export function inviteStory(save: SaveData, k: StoryKey): string {
-  const g = save.guild;
-  if (!g.storyWait.includes(k)) return '기다리는 동료 아님';
-  if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
-  g.storyWait = g.storyWait.filter(x => x !== k);
-  const st = STORY[k];
-  join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), k));
-  return '';
-}
-
 // ---------- 결성 (93 4-1) ----------
-/** 말없는탱과 근접 1명으로 결성한다 (정원 2, 103). */
-export function foundGuild(save: SaveData): string[] | null {
+/**
+ * 길드원 없이 결성한다 (Lim 10-21 「길드에서 스토리 동료 제거, 자동 영입 제거」): 영입은 모집 공고로만.
+ * 예전엔 말없는탱 (스토리 동료) + 도적 1명이 저절로 들어왔음 (정원 2, 103).
+ */
+export function foundGuild(save: SaveData): boolean {
   const g = save.guild;
-  if (g.founded || !guildOpen(save).ok) return null;
+  if (g.founded || !guildOpen(save).ok) return false;
   g.founded = true;
-  const out: string[] = [];
-  const st = STORY.tank;
-  join(save, newMember(save, { nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab }, topLevel(save), 'tank'));
-  out.push(st.nick);
-  // 정원 = 길드 Lv + 1 (103): 결성은 이야기 탱커 + 딜러 1명 (예전 3명). 딜러는 나와 함께 크는 사람 (빠르기 0.95 이상 = 내 레벨 근처, 103 다른 문제점 4:
-  // 첫 도적 감자도적은 빠르기 0.225라 내 Lv 15에 Lv 3, 정원 2/2라 공고도 못 내는데 길드파티엔 꼭 넣어야 했음)
-  const p = PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick) && x.fm.speed >= 0.95) ?? PEOPLE.find(x => x.cls === 'rogue' && !isIn(save, x.nick))!;
-  join(save, newMember(save, p, worldLevel(save, p))); out.push(p.nick);
-  return out;
+  return true;
 }
 
 // ---------- 모집 공고: 전 직업 무작위 ----------
@@ -306,8 +278,8 @@ export function memberXp(m: Pick<GuildMember, 'lv'>, o: { stage: number; diff: D
   return Math.round(base * (gap > 0 ? lowStageXp(gap) : 1));
 }
 
-/** 타고난 능력치 = Lv 1 바탕 (1000명 줄의 그 사람, 스토리 동료는 고정 능력치를 덧씀) */
-export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'story' | 'cls'>): Stats => ({ ...profileOf(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged').stats, ...(m.story ? STORY[m.story].boost : {}) });
+/** 타고난 능력치 = Lv 1 바탕 (1000명 줄의 그 사람) */
+export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'cls'>): Stats => ({ ...profileOf(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged').stats });
 
 /**
  * 능력치는 레벨업할 때 (Lim 10-18 · 104): 오른 레벨마다 학습력만큼 점수 (0.9~1.1), 레벨 하나가 20% 확률로 두 배 (LV_DOUBLE, Lim 10-20 · 103),

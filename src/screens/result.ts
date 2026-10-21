@@ -4,8 +4,7 @@
  */
 import { setResultWin } from '../bgm';
 import { STAT_NAMES } from '../data/fm';
-import { ABILITIES } from '../data/abilities';
-import { EXPED, guildLvOf, REQ, STORY } from '../data/guild';
+import { EXPED, guildLvOf, REQ } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
@@ -96,7 +95,7 @@ function resultSounds(x: Settlement, rest: boolean, fame: boolean): void {
   const best = x.items.reduce<Settlement['items'][number] | null>((a, b) => (!a || rank(b) > rank(a) ? b : a), null);
   if (best) sfx(lootSound(best), { delay: 0.8 });
   const gf = x.guildFame;
-  if (x.founded?.length || (!fame && gf && guildLvOf(gf.before + gf.gain).lv > guildLvOf(gf.before).lv)) sfx('guild-levelup', { delay: 1.3 });
+  if (x.founded || (!fame && gf && guildLvOf(gf.before + gf.gain).lv > guildLvOf(gf.before).lv)) sfx('guild-levelup', { delay: 1.3 });
 }
 
 /**
@@ -320,11 +319,10 @@ function notesHtml(x: Settlement): string {
   const out: string[] = [];
   const gd = x.guild;
   // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜)
-  // 업데이트 묶음 (93 4-4 · 8장): 스토리 동료 합류 · 부탁 쪽지 · 주간 원정
-  if (x.story) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span><b>${esc(STORY[x.story.key].nick)} ${x.story.how === 'joined' ? '합류' : '찾아옴'}</b>${x.story.how === 'wait' ? ' · 정원이 차서 영입에서 합류 대기' : ` · 고유 스킬 ${esc(ABILITIES[STORY[x.story.key].ab]?.name ?? '')}`}</span></button>`);
+  // 업데이트 묶음 (93 8장): 부탁 쪽지 · 주간 원정
   if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></button>`);
   if (x.jobs?.exped.length) out.push(`<button class="r-note${x.jobs.expedAll ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></button>`);
-  if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
+  if (x.founded) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b> · 모집 공고로 영입</span></button>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);

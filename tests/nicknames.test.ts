@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
-import { CLASS_NICKS, PARTY_POOL, pickNick, STORY_NICKS } from '../src/data/nicknames';
+import { CLASS_NICKS, PARTY_POOL, pickNick } from '../src/data/nicknames';
 import { PERS, PERS_NAMES } from '../src/data/personalities';
 import * as E from '../src/engine';
 import { makeCandidates } from '../src/game/guild';
@@ -35,8 +35,8 @@ describe('닉네임 데이터', () => {
     expect(new Set(ALL).size).toBe(ALL.length);
   });
 
-  it('스토리 동료 · 성격 · 직업 · 보스 · 능력 이름과 겹치지 않음', () => {
-    const taken = new Set<string>([...STORY_NICKS, ...PERS_NAMES, ...Object.values(CLASSES).map(c => c.name)]);
+  it('성격 · 직업 · 보스 · 능력 이름과 겹치지 않음', () => {
+    const taken = new Set<string>([...PERS_NAMES, ...Object.values(CLASSES).map(c => c.name)]);
     for (const e of Object.values(ENCOUNTERS)) for (const w of e.name.split(/\s+/)) taken.add(w);
     for (const a of Object.values(ABILITIES)) taken.add(a.name.replace(/\s+/g, ''));
     expect(ALL.filter(n => taken.has(n))).toEqual([]);

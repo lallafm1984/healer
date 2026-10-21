@@ -16,6 +16,7 @@ import type { RosterEntry } from '../engine/types';
 export function refreshReqs(save: SaveData, stagesAll: readonly { content: string; diff: DiffName }[], r: () => number, now = Date.now()): void {
   const g = save.guild, day = dayKey(now);
   if (!g.founded || g.reqs.day >= day) return; // 더 늦은 날만 (103)
+  if (!g.members.length) { g.reqs = { day: '', list: [] }; return; } // 길드원이 없으면 그날을 쓰지 않음: 첫 영입 뒤 바로 부탁 (Lim 10-21 자동 영입 없앰)
   g.reqs = { day, list: [] };
   const stages = stagesAll.slice(0, 8);
   const pool = g.members.slice();

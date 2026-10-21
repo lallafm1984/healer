@@ -332,8 +332,6 @@ export interface AbState {
   lastCounter: number;
   /** 이 능력으로 회복한 양 */
   healed?: number;
-  /** 일섬 연격 (93 4-4): 이 시각에 옆 아군 딜 */
-  after?: { at: number; v: number; sec: number; r: number };
 }
 
 export interface RosterEntry {
