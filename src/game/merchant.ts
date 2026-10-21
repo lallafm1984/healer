@@ -2,11 +2,16 @@
  * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「로비에 디아블로2 갬블 요소 처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처 용도」): 미확인 장비.
  * 부위를 골라 골드를 내면 그때 종류 (그 부위 다섯 가지 중 고르게) · 등급 · 옵션 · 특수능력을 굴림 (2026-10-20 Lim 「부위만 고르게」). 저장할 것 없음 (하루 횟수 · 진열 목록 · 천장 없음). 수치는 data/economy MERCHANT
  */
-import { merchantGold, MERCHANT } from '../data/economy';
+import { MERCHANT } from '../data/economy';
+import { MAX_LEVEL } from '../data/progression';
 import { descending, dropTable, heroRamp, ITEM_GRADES, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
 import { noteSpecs, type SaveData } from '../platform/storage';
+import { runGold } from './economy';
 import { resourceBalance, spendResource } from './resources';
 import { TUT } from './tutorial';
+
+/** 미확인 장비 한 개 값: 그 레벨 가장 큰 콘텐츠 한 판 골드 (runGold)에 비례, Lv 100에 MERCHANT.top, 10골드 단위 (2026-10-21 Lim 「레이드 획득 골드의 20배 정도」) */
+export const merchantGold = (lv: number): number => Math.round((MERCHANT.top * runGold(lv)) / runGold(MAX_LEVEL) / 10) * 10;
 
 /** 등급 확률 (ITEM_GRADES 순): 그 레벨 MERCHANT.diff 바탕 표에서 영웅 몫만큼 덜고 영웅 (Lv 45부터), 전설 0 */
 export function merchantOdds(lv: number): number[] {
