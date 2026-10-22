@@ -79,6 +79,15 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
     if (cut) amt *= Math.max(0, 1 - cut * (1 - sv(f, 'holdingHand'))); // 받치는 손 (42 기믹 08)
     if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, f.zones.length && submerged(f, u) ? amt * 2 : amt); return 0; } // 뒤집힌 축복 (P-INVERT). 어둠물에 잠기면 2배 (59 3-1 발렌)
+    const sh = u.debuffs.find(d => (d.shellLeft ?? 0) > 1e-6);
+    if (sh) { // 단단한 껍질 (P-SHELL, 111 4-4): 최대 체력 × shellMin 이상인 직접 힐만 막을 깎고, 작은 힐 · 지속 틱은 튕김 (아무것도 안 함)
+      if (!direct || amt < u.max * (sh.shellMin ?? 0.25)) { if (direct) emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: 0, crit }); return 0; }
+      const take = Math.min(amt, sh.shellLeft!);
+      sh.shellLeft! -= take; amt -= take;
+      emit(f, { type: 'heal', id: u.id, amt: Math.round(take), eff: 0, crit });
+      if (sh.shellLeft! <= 1e-6) { u.debuffs = u.debuffs.filter(x => x !== sh); emit(f, { type: 'cure', id: u.id, name: sh.name }); }
+      if (amt <= 1e-9) return 0;
+    }
     const ab = u.debuffs.find(d => d.absorbLeft);
     if (ab) { // 치유 흡수 (P-ABSORB): 막을 먼저 깎고, 다 깎으면 막이 사라짐
       const take = Math.min(amt, ab.absorbLeft!);
@@ -109,6 +118,8 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   if (direct) {
     emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit });
     u.lastHeal = f.t;
+    const ch = u.debuffs.find(d => d.charge); // 충전 (P-CHARGE, 111 4-4): 직접 힐마다 1중첩, max면 방전
+    if (ch) { ch.stack = (ch.stack ?? 0) + 1; if (ch.stack >= ch.charge!.max) discharge(f, u, ch); }
     if (f.envy) persHealed(f, u); // 샘쟁이 (95)
     if (u.sulking) u.sulking = false;
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u, null, false, 'thanks'); }
@@ -255,6 +266,16 @@ function overload(f: Fight, u: Unit, over: number): void {
 }
 
 /** 뒤집힌 축복 (P-INVERT, 35 4-3): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손(물리 취급)은 통함 */
+/** 충전 (P-CHARGE, 111 4-4): max 중첩이면 방전. 본인 self · 이웃 칸 아군 near (마법, 파티 기준), 중첩은 0부터 다시 */
+function discharge(f: Fight, u: Unit, d: Debuff): void {
+  const c = cellOf(f, u), ch = d.charge!;
+  d.stack = 0;
+  emit(f, { type: 'sound', name: 'burst' });
+  emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 방전` });
+  damage(f, u, ch.self, true);
+  for (const v of living(f)) if (v !== u && !v.lift && hexDist(cellOf(f, v), c) === 1) damage(f, v, ch.near, true);
+}
+
 function invertHeal(f: Fight, u: Unit, amt: number): void {
   amt *= 1 - sv(f, 'clearEye'); // 맑은 눈 (42 기믹 01)
   if (amt <= 0) return;
@@ -575,6 +596,14 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       u.hp = u.max * r;
       emit(f, { type: 'fx', name: 'coin-flip', on: u.id });
       emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 체력 ${Math.round(r * 100)}%로 뒤집힘` });
+      return;
+    }
+    case 'crack': {
+      // 단단한 껍질 (P-SHELL, 111 4-4): 두면 남은 막만큼 피해, 지우면 그냥 사라짐
+      const left = d.shellLeft ?? 0;
+      if (dispelled || left <= 1e-6) return;
+      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝, 남은 막만큼 피해` });
+      damage(f, u, left / f.dmgMult, true);
       return;
     }
     case 'pass': {

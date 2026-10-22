@@ -133,6 +133,7 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
  */
 const off = (f: Fight, u: Unit) => (nov && !nov.o.tactics ? u.debuffs.length > 0 && u.debuffs.some(d => d.invert) : offTactic(f, u)); // 공략을 모르는 초보도 뒤집힌 축복은 화면이 막아 줌 (첫 탭 경고)
 const offTactic = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * healUnit(f))
+  || (!!d.charge && (d.stack ?? 0) >= d.charge.max - 1 && u.hp > u.max * 0.4) // 충전 (P-CHARGE, 111): 다음 직접 힐에 방전 → 위급하지 않으면 힐하지 않음
   || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert))))
   || (f.zones.length > 0 && ringWait(f, u));
 /**
@@ -148,6 +149,10 @@ const RING_LOW = 0.35;
 const flipWait = (u: Unit, _d: Debuff) => { const r = u.hp / u.max; return r > 0.5 || (r < 0.4 && r > 0.25); };
 /** 지금 채울 수 있는 끝 (치유 상한 P-CAP이면 상한) 기준 체력 비율 */
 const pctOf = (u: Unit) => u.hp / healTop(u);
+/** 단단한 껍질 (P-SHELL, 111 4-4): 큰 직접 힐만 통하니 지속 힐을 걸지 않음 */
+const shelled = (u: Unit) => u.debuffs.some(d => (d.shellLeft ?? 0) > 1e-6);
+/** 충전 (P-CHARGE, 111 4-4): 다음 직접 힐에 방전되는 사람 → 위급하지 않으면 직접 힐 대신 지속 힐 · 다른 사람 */
+const charged = (u: Unit) => u.debuffs.some(d => !!d.charge && (d.stack ?? 0) >= d.charge.max - 1);
 /** 어둠물에 잠긴 사람을 이만큼 높게 봄 (가장 낮은 사람 고르기) */
 const TIDE_BIAS = 0.06;
 /** 과부하 표식에 힐을 넣어도 되는 모자란 양 (힐 한 번 크기쯤, 레벨 배율 전) */
@@ -474,7 +479,7 @@ export function autoHealer(f: Fight): void {
   if (g.pre && f.mana > 6 && can('flash')) { use(f, 'flash', cellIdx(g.pre)); return; }
   // 띄워 올리기: 예고 동안 해제 → 소생 (떠 있는 동안은 미리 건 지속 힐만 닿음)
   { const d = g.liftClean[0]; if (d && purifyOk) { use(f, 'purify', cellIdx(d)); return; } }
-  { const v = g.lift.find(u => u.hot <= 0); if (v && can('renew') && f.mana >= SKILLS.renew.cost) { use(f, 'renew', cellIdx(v)); return; } }
+  { const v = g.lift.find(u => u.hot <= 0 && !shelled(u)); if (v && can('renew') && f.mana >= SKILLS.renew.cost) { use(f, 'renew', cellIdx(v)); return; } }
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 (피뢰침)
   if (g.chain && f.mana > 4) { const k = big(g.chain.soon < castOf(f, 'heal') + 0.3); if (k) { use(f, k, cellIdx(g.chain.u)); return; } }
   if (g.mate && f.mana > 4) { const k = big(false); if (k) { use(f, k, cellIdx(g.mate)); return; } }
@@ -483,13 +488,13 @@ export function autoHealer(f: Fight): void {
   if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6) { const k = big(g.debt.due && g.debt.u.debuffs.some(d => (d.debtLeft ?? 0) > 0 && d.left < castOf(f, 'heal') + 0.5)); if (k) { use(f, k, cellIdx(g.debt.u)); return; } }
   // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (소생, 없으면 순간 치유)
   if (g.order && pct(low) > 0.3) {
-    const k = can('renew') && f.mana >= SKILLS.renew.cost ? 'renew' : can('flash') && f.mana >= SKILLS.flash.cost ? 'flash' : null;
+    const k = can('renew') && f.mana >= SKILLS.renew.cost && !shelled(g.order) ? 'renew' : can('flash') && f.mana >= SKILLS.flash.cost ? 'flash' : null;
     if (k) { use(f, k, cellIdx(g.order)); return; }
   }
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && f.mana > 6) { const k = big(pct(g.link.u) < 0.5); if (k) { use(f, k, cellIdx(g.link.u)); return; } }
   // 신기루가 안 걷힌 예고에 찍힌 사람: 지속 힐만 미리 (진짜인지 모름)
-  if (g.veil.length && f.mana > 15 && can('renew')) { const v = g.veil.find(u => u.hot <= 0); if (v) { use(f, 'renew', cellIdx(v)); return; } }
+  if (g.veil.length && f.mana > 15 && can('renew')) { const v = g.veil.find(u => u.hot <= 0 && !shelled(u)); if (v) { use(f, 'renew', cellIdx(v)); return; } }
   const thrifty = f.mana < 25 || g.save; // 마나가 바닥나거나 아껴야 하면 무료 성언을 아끼지 않는다
   if (f.g.p >= 100 && knows(f, 'serenity') && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
   // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 · 치유 배율, 07 4장 · 34 1-6). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
@@ -511,9 +516,9 @@ export function autoHealer(f: Fight): void {
   }
   if (g.link && pct(low) > 0.4 && f.mana > 3) { const k = big(false); if (k) { use(f, k, cellIdx(g.link.u)); return; } }
   // 역류 중에는 지속 힐도 중첩이 되니 탱커가 꽤 다쳤을 때만
-  const tanks = live.filter(u => u.role === 'tank' && u.hot <= 1 && (!g.few || pct(u) < 0.7)).concat(g.hit.filter(u => u.hot <= 1));
+  const tanks = live.filter(u => u.role === 'tank' && u.hot <= 1 && !shelled(u) && (!g.few || pct(u) < 0.7)).concat(g.hit.filter(u => u.hot <= 1 && !shelled(u)));
   if (tanks.length && f.mana > 5 && can('renew')) { use(f, 'renew', cellIdx(tanks[0])); return; }
-  if (aoeSoon && !g.few && f.mana > 20 && can('renew')) { const n = live.find(u => u.hot <= 0); if (n) { use(f, 'renew', cellIdx(n)); return; } }
+  if (aoeSoon && !g.few && f.mana > 20 && can('renew')) { const n = live.find(u => u.hot <= 0 && !shelled(u)); if (n) { use(f, 'renew', cellIdx(n)); return; } }
   // 빛의 전이 (8번째 칸): 채울 사람이 없을 때 재사용마다, 보스가 때리는 사람이 다치기 시작하면 그 사람에게 (남은 회복이 절반 넘게 남은 빛은 안 덮어씀, 마나를 아낄 때는 안 씀).
   // 채우기 힐보다 먼저 쓰면 보통 클리어율이 떨어짐 (사제 모든 장소 × 20판: 빛의 전이 없음 95.3%, 먼저 쓰면 93.6%, 채울 사람이 없을 때만 95.0%).
   // 너프 (3번 · 바로 옆 칸, 2026-10-11) 뒤 168곳 × 20판: 너프 전 보통 95.9 · 어려움 73.8% → 95.9 · 72.9% (빛의 전이 없음 95.8 · 72.8).
@@ -524,7 +529,7 @@ export function autoHealer(f: Fight): void {
   }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) {
     if (can('heal')) use(f, 'heal', cellIdx(low));
-    else if (low.hot <= 0 && can('renew')) use(f, 'renew', cellIdx(low)); // 진동 직전: 시전 대신 즉시 지속 힐
+    else if (low.hot <= 0 && !shelled(low) && can('renew')) use(f, 'renew', cellIdx(low)); // 진동 직전: 시전 대신 즉시 지속 힐
   }
 }
 
@@ -684,6 +689,10 @@ function ctx(f: Fight, amt: number, r = 1, top = Infinity): Ctx | null {
 const tryUse = (f: Fight, k: SkillKey, u: Unit | null, idx: (u: Unit) => number): boolean => {
   const cell = u ? idx(u) : 0;
   if (!canTarget(f, k, cell).ok) return false;
+  if (u && (!nov || nov.o.tactics)) { // 111 새 부품 (공략을 아는 사람만): 껍질엔 지속 힐을 안 걸고, 충전 3중첩에는 직접 힐을 안 넣음
+    if (SKILLS[k].slot === 'hot' && shelled(u)) return false;
+    if (SKILLS[k].amt != null && SKILLS[k].slot !== 'hot' && charged(u) && pctOf(u) > 0.4) return false;
+  }
   if (busy(f, k) > 0 && (!nov || nov.o.tactics) && busy(f, k) >= calmOf(f)) return false; // 진동 전에 시전이 안 끝남 → 다음 후보 (즉시 스킬). 공략을 모르는 초보는 그냥 시전
   return use(f, k, cell).ok;
 };

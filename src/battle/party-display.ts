@@ -147,6 +147,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
   if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
+  // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
+  if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail: `${debuff.name} · ${seconds}초 · 직접 힐이 들어올 때마다 1중첩, ${debuff.charge.max}중첩이면 방전 (본인 · 이웃 칸 피해) · 지속 힐 · 광역 힐은 안 셈 · ${debuff.lock ? '해제 불가' : state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능'}`, state, seconds };
   if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
@@ -159,7 +161,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
     : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
     : debuff.drain ? ` · 마나 초당 -${debuff.drain}`
-    : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해` : '';
+    : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해`
+    : (debuff.shellLeft ?? 0) > 0 ? ` · 단단한 껍질 ${Math.round(debuff.shellLeft ?? 0)}, 최대 체력 ${Math.round((debuff.shellMin ?? 0.25) * 100)}% 넘는 직접 힐만 깎임 (작은 힐 · 지속 틱은 튕김), 두면 끝날 때 남은 막만큼 피해` : '';
   return {
     text: `${kind}${short ? '' : ' '}${seconds}`,
     detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
