@@ -16,7 +16,7 @@ export const hasSfx = (name: string): boolean => name in urlOf;
 const VOL: Record<string, number> = { 'ui-tap': 0.45, 'ui-toggle': 0.45, 'ui-tab': 0.55, 'ui-open': 0.5, 'ui-close': 0.45, tick: 0.55, proc: 0.45, heart: 0.85, gauge: 0.8, 'ally-hurt': 0.45, shield: 0.55, parry: 0.55, 'status-stagger': 0.4 };
 Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75, 'priest-crit': .85, 'priest-scatter': .75 });
 // 보스 기술 착탄 · 주의 표시 경고는 배경음 위로 크게 (2026-10-21 Lim), 쉬는 화면 반복은 바탕으로
-Object.assign(VOL, { 'boss-impact': 1, 'boss-wave': 1, 'boss-zone': 1, 'warn-alert': 0.9, 'rest-loop': 0.6 });
+Object.assign(VOL, { 'boss-impact': 1, 'boss-wave': 1, 'boss-zone': 1, 'warn-alert': 0.6, 'rest-loop': 0.6 }); // 경고 딩 (2026-10-22)은 맑고 높아 0.6이면 충분
 // 높고 가는 공격 소리 (도적 단검 · 궁수 화살)는 몸통이 작아 다른 직업 공격과 들리는 크기를 맞춤
 // 도적 · 사냥꾼 · 마법사는 2026-10-22 Lim 「소리가 너무 작다」로 다시 만들며 조금 더 크게
 // 전사 3안 「너무 작다」, 검사 (아까 저음) 「조금만 더 크게」도 함께
