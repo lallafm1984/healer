@@ -22,17 +22,17 @@ const put = (f: F, u: Unit) => {
   let n = 0; while ((f.cast || f.gcd > 0) && n++ < 200) { E.step(f); f.events.length = 0; }
 };
 /** 빛이 깃든 뒤 (옮겨 오는 1초가 지남) */
-const landed = (f: F) => { f.relay!.flyUntil = f.t; };
+const landed = (f: F) => { f.relays[0].flyUntil = f.t; };
 
 describe('빛의 전이', () => {
-  it('8번째 칸 · Lv 15에 배움 · 마나 3 · 재사용 12초', () => {
-    expect(SKILLS.relay).toMatchObject({ slot: 'unique', lv: 15, cost: 3, cd: 12, cast: 0 });
-    expect(RELAY).toMatchObject({ hops: 3, range: 1 }); // Lim 2026-10-11 너프 「1칸 인접, 3회 회복」
+  it('8번째 칸 · Lv 15에 배움 · 마나 3 · 재사용 15초 = 지속 15초 (2026-10-22)', () => {
+    expect(SKILLS.relay).toMatchObject({ slot: 'unique', lv: 15, cost: 3, cd: 15, cast: 0 });
+    expect(RELAY).toMatchObject({ hops: 3, range: 1, sec: 15 }); // Lim 2026-10-11 너프 「1칸 인접, 3회 회복」 · 2026-10-22 지속 20 → 15초
     const low = fight(14), t = tank(low);
     expect(E.use(low, 'relay', t.cell).ok).toBe(false);
     const f = fight(), m0 = f.mana;
     put(f, tank(f));
-    expect(f.relay).toMatchObject({ id: tank(f).id, left: RELAY.hops });
+    expect(f.relays[0]).toMatchObject({ id: tank(f).id, left: RELAY.hops });
     expect(f.mana).toBeLessThan(m0);
     expect(f.cd.relay).toBeGreaterThan(SKILLS.relay.cd! - 2); // GCD만큼 지남
   });
@@ -43,7 +43,7 @@ describe('빛의 전이', () => {
     const b = [...f.party].sort((x, y) => adj(y).length - adj(x).length || x.id - y.id)[0]; // 옆 칸 사람이 가장 많은 사람
     const gb = g.party.find(u => u.id === b.id)!;
     put(f, b); put(g, gb);
-    g.relay = null; // 비교용: 같은 판, 빛의 전이 없음
+    g.relays = []; // 비교용: 같은 판, 빛의 전이 없음
     const near = adj(b), far = others(f, b).find(v => hexDist(cellOf(f, v), cellOf(f, b)) > RELAY.range)!;
     expect(near.length).toBeGreaterThan(1);
     expect(far).toBeDefined();
@@ -55,8 +55,8 @@ describe('빛의 전이', () => {
     landed(f);
     damage(f, b, 300); damage(g, gb, 300);
     expect(b.hp - gb.hp).toBeCloseTo(SKILLS.relay.amt! * f.gear.heal * f.power, 3);
-    expect(f.relay).toMatchObject({ id: target.id, left: RELAY.hops - 1 });
-    expect(f.relay!.flyUntil).toBeCloseTo(f.t + RELAY.fly);
+    expect(f.relays[0]).toMatchObject({ id: target.id, left: RELAY.hops - 1 });
+    expect(f.relays[0].flyUntil).toBeCloseTo(f.t + RELAY.fly);
   });
 
   it('바로 옆 칸에 갈 사람이 없으면 그 자리에 남아 다음에 맞을 때 또 회복', () => {
@@ -66,9 +66,9 @@ describe('빛의 전이', () => {
     for (const v of others(f, t)) if (hexDist(cellOf(f, v), cellOf(f, t)) <= RELAY.range) v.debuffs.push({ id: 998, name: '뒤집힌 축복', type: '마법', left: 10, invert: true } as unknown as Unit['debuffs'][number]);
     t.hp = t.max * 0.5;
     damage(f, t, 100);
-    expect(f.relay).toMatchObject({ id: t.id, left: RELAY.hops - 1 });
+    expect(f.relays[0]).toMatchObject({ id: t.id, left: RELAY.hops - 1 });
     damage(f, t, 100);
-    expect(f.relay).toMatchObject({ id: t.id, left: RELAY.hops - 2 });
+    expect(f.relays[0]).toMatchObject({ id: t.id, left: RELAY.hops - 2 });
   });
 
   it('옮겨 오는 동안 맞으면 아무 일 없음, 정해진 횟수 (3번)를 다 회복하면 사라짐', () => {
@@ -76,16 +76,16 @@ describe('빛의 전이', () => {
     put(f, t);
     landed(f);
     damage(f, t, 100);
-    const u = f.party.find(v => v.id === f.relay!.id)!, hp = u.hp;
+    const u = f.party.find(v => v.id === f.relays[0].id)!, hp = u.hp;
     damage(f, u, 50); // 아직 옮겨 오는 중
     expect(u.hp).toBeLessThan(hp);
-    expect(f.relay).toMatchObject({ id: u.id, left: RELAY.hops - 1 });
+    expect(f.relays[0]).toMatchObject({ id: u.id, left: RELAY.hops - 1 });
     for (let k = 1; k < RELAY.hops; k++) {
-      const v = f.party.find(x => x.id === f.relay!.id)!;
+      const v = f.party.find(x => x.id === f.relays[0].id)!;
       landed(f);
       damage(f, v, 100);
     }
-    expect(f.relay).toBeNull();
+    expect(f.relays).toEqual([]);
   });
 
   it('20초가 지나면 사라지고, 빛이 깃든 사람이 쓰러지면 다른 사람에게 (횟수는 그대로)', () => {
@@ -96,12 +96,12 @@ describe('빛의 전이', () => {
     damage(f, d, 1e6); // 쓰러짐: 회복 없이
     expect(d.alive).toBe(false);
     E.step(f);
-    expect(f.relay).not.toBeNull();
-    expect(f.relay!.id).not.toBe(d.id);
-    expect(f.relay!.left).toBe(RELAY.hops);
-    f.relay!.until = f.t;
+    expect(f.relays).toHaveLength(1);
+    expect(f.relays[0].id).not.toBe(d.id);
+    expect(f.relays[0].left).toBe(RELAY.hops);
+    f.relays[0].until = f.t;
     E.step(f);
-    expect(f.relay).toBeNull();
+    expect(f.relays).toEqual([]);
   });
 
   it('뒤집힌 축복 (힐이 피해)이 걸리면 회복하지 않고 옮겨 감', () => {
@@ -113,8 +113,8 @@ describe('빛의 전이', () => {
     const hp = t.hp;
     damage(f, t, 200);
     expect(t.hp).toBeLessThan(hp);
-    expect(f.relay!.id).not.toBe(t.id);
-    expect(f.relay!.left).toBe(RELAY.hops);
+    expect(f.relays[0].id).not.toBe(t.id);
+    expect(f.relays[0].left).toBe(RELAY.hops);
   });
 
   it('회복할 때마다 평온 게이지가 참 (82: 예전엔 신성화 게이지)', () => {
@@ -140,5 +140,19 @@ describe('빛의 전이', () => {
     expect(run(30)).toBeGreaterThan(3);
     expect(run(14)).toBe(0);
     expect(run(30, true)).toBe(0);
+  });
+  it('다시 걸어도 앞의 빛은 그대로 남고 하나 더 깃듦 (재사용이 장비로 짧아질 때, 2026-10-22 Lim 「장비로 인한 차이가 발생하면 동시에 걸리게」)', () => {
+    const f = fight(), t = tank(f), o = others(f, t)[0];
+    put(f, t);
+    f.cd.relay = 0; // 장비로 재사용이 지속보다 짧아졌다고 침
+    put(f, o);
+    expect(f.relays.map(d => d.id)).toEqual([t.id, o.id]);
+    for (const d of f.relays) d.flyUntil = f.t;
+    const ht = t.hp; damage(f, t, 10, false, 'fixed');
+    expect(f.relays.map(d => d.left)).toEqual([RELAY.hops - 1, RELAY.hops]); // 맞은 사람의 빛만 회복하고 옮겨 감
+    expect(t.hp).toBeGreaterThan(ht - 10);
+    for (const d of f.relays) d.until = f.t;
+    E.step(f);
+    expect(f.relays).toEqual([]); // 빛마다 제 시간에 사라짐
   });
 });

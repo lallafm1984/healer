@@ -97,8 +97,8 @@ describe('사제 17~24', () => {
   it('빛의 발자국: 빛의 전이 옮겨 가는 횟수 +1', () => {
     const [a, b] = pair('relayStep', 1);
     both([a, b], f => cast(f, 'relay', tank(f)));
-    expect(a.relay!.left).toBe(RELAY.hops + 1);
-    expect(b.relay!.left).toBe(RELAY.hops);
+    expect(a.relays[0].left).toBe(RELAY.hops + 1);
+    expect(b.relays[0].left).toBe(RELAY.hops);
   });
   it('영혼의 등불: 수호 영혼이 걸린 아군에게 하는 힐 +', () => {
     const [a, b] = pair('guardianLight', 0.15); both([a, b], f => { hurt(f); cast(f, 'guardian', tank(f)); });

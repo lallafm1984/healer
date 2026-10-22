@@ -4,7 +4,7 @@
  * cost = 최대 마나 대비 %, gp = 사제 평온 게이지 충전량 (82: 성언 게이지는 평온 하나), power = 성기사 신성한 힘 소모
  */
 import { INT_BASE } from './rules';
-import { ASTRO, judgeText, SHAMAN } from './heroConst';
+import { ASTRO, judgeText, RELAY, SHAMAN } from './heroConst';
 
 export type SkillKey =
   // 사제
@@ -60,7 +60,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   hymn: { name: '천상의 찬가', short: '찬가', slot: 'raid', lv: 12, cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
   serenity: { name: '성언: 평온', short: '평온', slot: 'basic', lv: 6, cast: 0, cost: 0, amt: 700, target: 'ally' }, // 82: 600 → 700 (신성화를 없앤 몫, 밸런스)
   // 8번째 칸 (Lim 2026-10-11 「슬롯 한자리가 빈다」): amt = 빛의 전이 회복 한 번. 횟수·지속·거리는 data/heroConst RELAY
-  relay: { name: '빛의 전이', short: '전이', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 120, target: 'ally' },
+  relay: { name: '빛의 전이', short: '전이', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 15, amt: 120, target: 'ally' }, // 재사용 12 → 15초 (2026-10-22 Lim 「전이는 지속 15초 재사용 15초로 하고 장비로 인한 차이가 발생하면 동시에 걸리게 하자」)
 
   // ---------- ② 드루이드 (25 3장) ----------
   sprout: { name: '새싹', short: '새싹', slot: 'basic', lv: 1, cast: 0, cost: 2, amt: 280, target: 'ally' },
@@ -156,7 +156,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   guardian: { kind: '외부 생존기', desc: '10초 동안 대상이 죽을 피해를 받으면 대신 최대 체력의 40%를 회복합니다. 한 번만 발동합니다.' },
   hymn: { kind: '공대 쿨기', desc: '4초 동안 1초마다 파티 전원의 체력을 {120}씩 회복합니다. 그동안 다른 스킬을 쓰면 찬가가 끊깁니다.' },
   serenity: { kind: '성언', desc: '대상의 체력을 즉시 {700} 회복합니다. 평온 게이지 100%에서 쓰고, 마나를 쓰지 않습니다.' },
-  relay: { kind: '옮겨 다니는 힐', desc: '대상에게 빛을 깃들게 합니다. 빛이 깃든 아군이 피해를 받으면 체력을 {120} 회복하고, 빛은 바로 옆 칸에서 체력이 가장 낮은 다른 아군에게 옮겨 갑니다 (옆 칸에 아무도 없으면 그 자리에 남습니다). 3번 회복하거나 20초가 지나면 사라지고, 회복할 때마다 평온 게이지를 4% 채웁니다.' },
+  relay: { kind: '옮겨 다니는 힐', desc: `대상에게 빛을 깃들게 합니다. 빛이 깃든 아군이 피해를 받으면 체력을 {120} 회복하고, 빛은 바로 옆 칸에서 체력이 가장 낮은 다른 아군에게 옮겨 갑니다 (옆 칸에 아무도 없으면 그 자리에 남습니다). 3번 회복하거나 ${RELAY.sec}초가 지나면 사라지고, 회복할 때마다 평온 게이지를 4% 채웁니다. 다시 걸면 앞의 빛은 그대로 두고 새 빛이 하나 더 깃듭니다 (장비로 재사용이 지속보다 짧아지면 여럿이 함께 남습니다).` },
 
   sprout: { kind: '심기', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다.' },
   growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {250} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },

@@ -259,7 +259,7 @@ describe('엔진: 스킬이 들어간 순간 (Fight.used)', () => {
     for (let n = 0; f.gcd > 0 && n < 200; n++) E.step(f);
     f.used!.length = 0; f.events.length = 0;
     t.hp = t.max * 0.8;
-    f.relay!.flyUntil = f.t;
+    f.relays[0].flyUntil = f.t;
     damage(f, t, 300);
     expect(f.used).toEqual([{ key: 'relay', uid: t.id }]);
     expect(f.events.some(e => e.type === 'heal' && e.id === t.id)).toBe(true);

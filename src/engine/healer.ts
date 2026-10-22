@@ -282,7 +282,7 @@ export function healerTick(f: Fight): void {
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
     if (f.channel <= 1e-9 && has(f, 'hymnTail')) { f.channel = 0; for (const u of living(f)) putHot(u, 'hymn', { sec: 6, every: 2, total: 120 }); }
   }
-  if (f.relay) relayTick(f);
+  if (f.relays.length) relayTick(f);
   if (f.hero !== 'priest') heroTick(f, dt);
   if (f.totems.length) totemsTick(f); // 판 위 물건 (79 6-1): 시간 · 깨짐 (그 틱의 토템 회복이 먼저)
   if (f.tx.any) talentTick(f, dt);

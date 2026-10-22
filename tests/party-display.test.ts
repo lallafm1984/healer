@@ -102,10 +102,11 @@ describe('전투 칸 글자 크기', () => {
   });
   it('사제 빛의 전이는 빛이 깃든 칸 왼쪽 열 원 + 전이 전체 남은 초, 옮겨 가는 중에도 새 칸 (2026-10-20 Lim 「사제 전이도 이미지빼고 왼쪽에 지속시간으로」)', () => {
     const relay = { id: 3, left: 2, until: 30, flyUntil: 21 };
-    expect(relayTimerOf(relay, { id: 3 }, 20)).toBe(10);
-    expect(relayTimerOf(relay, { id: 4 }, 20)).toBeNull();
-    expect(relayTimerOf(relay, { id: 3 }, 30)).toBeNull();
-    expect(relayTimerOf(null, { id: 3 }, 20)).toBeNull();
+    expect(relayTimerOf([relay], { id: 3 }, 20)).toBe(10);
+    expect(relayTimerOf([relay], { id: 4 }, 20)).toBeNull();
+    expect(relayTimerOf([relay], { id: 3 }, 30)).toBeNull();
+    expect(relayTimerOf([], { id: 3 }, 20)).toBeNull();
+    expect(relayTimerOf([relay, { id: 3, left: 3, until: 34, flyUntil: 20 }], { id: 3 }, 20)).toBe(14); // 빛 여럿이 한 칸에 깃들면 가장 오래 남는 것 (2026-10-22)
   });
   it('특성 버튼 지속 효과: 켜진 자기 강화 특성만 내 칸 원, 칸 특성은 그 칸 물건 남은 시간 (2026-10-19 Lim 「지속시간 표시도 필요」)', () => {
     expect(talentBuffTimers({ zenith: { left: 12.4 }, scatter: { left: 0 }, shelter: { left: 9 }, miracle: { left: 0 } } as never)).toEqual([{ key: 'zenith', left: 12.4 }]);
