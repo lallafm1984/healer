@@ -530,6 +530,8 @@ export type FightEvent =
   | { type: 'spec'; id: number; name: string }
   /** 탱커 앞줄 이탈 (위치 규칙): 적이 노리는 사람이 바뀜. null = 탱커가 1열로 돌아옴 (사람이 아니라 'id' in ev 로 찾지 않게 on) */
   | { type: 'loose'; on: number | null }
+  /** 예고 없이 바로 쓰는 보스 기술 (소리용, 2026-10-22 Lim 「전투를 풍요롭게」). 프로토타입 비교 판 (cfg.proto)에서는 안 냄 */
+  | { type: 'bossCast'; key: string }
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */

@@ -1,8 +1,9 @@
 /** Extra audible combat feedback. The engine stays deterministic; mixing belongs to the view. */
 import { ABILITIES } from '../data/abilities';
+import { SPECS } from '../data/specials';
 import type { Fight, FightEvent, FxName, Telegraph, TelKind } from '../engine/types';
 import { hasSfx } from '../sfx';
-import { BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from './boss-themes';
+import { ABILITY_SOUND_OF, BOSS_CAST_OWN, BOSS_CAST_SOUND, BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from './boss-themes';
 
 export const FX_SOUND: Record<FxName, string> = {
   spawn: 'magic-grow', explode: 'burst', slam: 'boss-impact', warn: 'zone', shockwave: 'boss-wave',
@@ -25,6 +26,20 @@ export const FX_SOUND: Record<FxName, string> = {
 };
 const ABILITY_SOUND = { def: 'shield', heal: 'ally-heal', sup: 'ally-support', ctl: 'ally-control', atk: 'attack-heavy' };
 export interface CombatCue { name: string; vol: number }
+
+/** 예고 없이 바로 쓰는 보스 기술 (bossCast): 주요 보스는 그 기술 전용 (bc-…), 그 밖은 특성 시전 소리 (boss-<특성>-cast), 없으면 공통 */
+export function castSound(script: string, key: string): string {
+  const id = `${script}:${key}`;
+  for (const name of [BOSS_CAST_OWN[id], BOSS_CAST_SOUND[id]]) if (name && hasSfx(name)) return name;
+  return 'boss-cast';
+}
+/** 장비 특수능력 (spec 사건은 이름만): 묶음마다 소리, 직업 전용 묶음은 그 직업 소리 */
+const SPEC_BY_NAME = new Map(Object.values(SPECS).map(s => [s.name, s]));
+export function specSound(name: string, hero: string): string {
+  const s = SPEC_BY_NAME.get(name);
+  const n = !s ? '' : s.group === 'hero' ? `spec-${s.hero ?? hero}` : `spec-${s.group}`;
+  return n && hasSfx(n) ? n : 'proc';
+}
 
 /** 공통 착탄 소리 (특성 소리가 없을 때) */
 const IMPACT: Partial<Record<TelKind, string>> = { buster: 'boss-impact', aoe: 'boss-wave', zone: 'boss-zone' };
@@ -75,12 +90,20 @@ export function combatSounds(f: Fight, events: readonly FightEvent[], options: {
       case 'ability': {
         if (e.fumble) { add('status-stagger', 0.4); break; }
         const u = f.party.find(u => u.id === e.id);
+        const own = u?.ab && ABILITY_SOUND_OF[u.ab.key]; // 파티원 능력마다 소리 (2026-10-22), 없으면 종류 소리
         const kind = u?.ab && ABILITIES[u.ab.key]?.kind;
-        if (kind) add(ABILITY_SOUND[kind], 0.7);
+        if (own && hasSfx(own)) add(own, 0.8);
+        else if (kind) add(ABILITY_SOUND[kind], 0.7);
         break;
       }
       case 'daze': case 'offGuard': case 'stagger': add('status-stagger', 0.4); break;
       case 'regroup': add('ally-support', 0.4); break;
+      case 'clump': add('ally-clump', 0.5); break; // 붙어 섬 (99 위치 잡기)
+      case 'alone': add('ally-alone', 0.5); break; // 혼자 놂 (99 협동)
+      case 'aggro': add('boss-aggro', 0.8); break; // 보스가 노리는 사람이 바뀜 (96)
+      case 'shake': add('deny', 0.6); break; // 뒤집힌 축복 칸 첫 탭 거절
+      case 'bossCast': add(castSound(f.enc.script, e.key)); break;
+      case 'spec': add(specSound(e.name, f.hero), 0.8); break;
       case 'fx':
         if (e.name !== 'warn' || !['buster', 'aoe', 'zone'].some(n => existing.has(n))) add(FX_SOUND[e.name], 0.7);
         break;

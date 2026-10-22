@@ -175,7 +175,11 @@ export function bossTick(f: Fight): void {
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;
       if (s.decoy ? abDecoy(f, s, fakeGap, false) : abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); if (f.sp) specCut(f); continue; } // 반격 틈 (P-COUNTER) · 끊기 박자 (42 지원 05)
     }
-    if (s.cast <= 0) { s.fire!(f); continue; }
+    if (s.cast <= 0) {
+      if (!s.hidden && !f.cfg.proto) emit(f, { type: 'bossCast', key: s.key }); // 바로 쓰는 기술의 소리 (battle/combat-sound.ts)
+      s.fire!(f);
+      continue;
+    }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
     if (s.flowEvery && tel.cells.size) tel.flow = { col: f.cells[[...tel.cells][0]].col, dir: s.st.dir === -1 ? -1 : 1, every: s.flowEvery };
     if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
