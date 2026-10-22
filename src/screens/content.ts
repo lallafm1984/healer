@@ -24,7 +24,7 @@ import { raidLootOpen } from '../game/economy';
 import { restBase } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
-import { chalGate, runMode, weekAffixes } from '../game/runmode';
+import { chalContent, chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT, tutLockedContent } from '../game/tutorial';
 import { esc, fmt, freshEntry, go, goingBack, previous, screen, topBar } from './kit';
@@ -198,7 +198,7 @@ function chalCell(): string {
   if (G.save.tut < TUT.done) return '';
   const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, left = `${weekRemaining()} 남음`;
   const tag = g.ok ? left.replace(' 남음', '') : `${LOCK}Lv ${g.lv}`;
-  const sr = ` 「${esc(CHAL.name)}」 · ${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
+  const sr = ` 「${esc(CHAL.name)}」 · ${g.ok ? `${esc(contentOf(chalContent(G.save)).name)} · ` : ''}${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
     <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>주간 도전</small><span class="b-weekly-arrow" aria-hidden="true">${NEXT}</span><span class="sr">${sr}</span>
   </button>`;
@@ -502,7 +502,7 @@ s.el.addEventListener('click', e => {
   const ch = el.closest<HTMLElement>('[data-chal]');
   if (ch) {
     if (ch.getAttribute('aria-disabled') === 'true') return;
-    Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.chal = G.save.chalOpen;
+    Flow.content = chalContent(G.save); Flow.diff = CHAL.diff; Flow.chal = G.save.chalOpen;
     go('s-entry'); return;
   }
   const st = el.closest<HTMLElement>('[data-step]');

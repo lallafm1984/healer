@@ -19,6 +19,8 @@ import { clearGold, MAX_LEVEL } from '../data/progression';
 import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
+import { CHAL } from '../data/challenge';
+import { pickChalContent } from './runmode';
 
 // ---------- 리셋 ----------
 /**
@@ -82,7 +84,10 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
       if (save.weekly.chalBest >= save.chalChest) save.chalChestHero = save.weekly.chalHero;
       save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
     }
+    const last = save.weekly.chal;
     save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(save, weeklyPool(save, lv, day, week), WEEKLY_N, lv, r) : [] };
+    // 이번 주 주간 도전 던전 (110 2차): 내 레벨 이하 던전 가운데 무작위, 지난주 것은 빼고
+    save.weekly.chal = pickChalContent(lv, r, last);
     out.week = true;
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
@@ -205,12 +210,14 @@ export function claimGuildGoal(save: SaveData): string {
  * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2.
  * 1~4단계는 골드만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 영웅은 받는 캐릭터가 Lv 45부터 (그 전엔 희귀, 88). 전설은 Lv 100 20인 레이드만
  * 골드 = 받는 캐릭터 레벨 클리어 골드 × goldRuns (1 + 단계 ÷ 5 판: 1~4단계 1 · 5~9단계 2 … 20단계 5. v16 강화석이던 것을 91에서 #172 전 골드로)
+ * × CHAL.rewardCut (110 2차 Lim 「경험치 및 골드 지급은 반으로」) = gold
  */
-export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGrade[]; goldRuns: number } {
+export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGrade[]; goldRuns: number; gold: number } {
   // 88: 영웅은 Lv 45 (HERO_FROM)부터. 그 전엔 희귀로 (초반은 희귀까지)
   const hero: ItemGrade = level >= HERO_FROM ? '영웅' : '희귀';
   const grades: ItemGrade[] = stage >= 20 ? [hero, hero] : stage >= 15 ? [hero] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
-  return { grades, goldRuns: 1 + Math.floor(stage / 5) };
+  const goldRuns = 1 + Math.floor(stage / 5);
+  return { grades, goldRuns, gold: Math.round(goldRuns * runGold(level) * CHAL.rewardCut) };
 }
 export function claimChalChest(save: SaveData, r: () => number): Gain | string {
   const stage = save.chalChest;
@@ -222,7 +229,7 @@ export function claimChalChest(save: SaveData, r: () => number): Gain | string {
   // 장비 (아이템 레벨)는 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」)
   const lv = save.player.level, c = chalChestOf(stage, lv);
   const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: h, classLoot: true, lv }));
-  return give(save, { gold: c.goldRuns * runGold(lv), items });
+  return give(save, { gold: c.gold, items });
 }
 
 // ---------- 상점 ----------

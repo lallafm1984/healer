@@ -31,7 +31,7 @@ import { capOf, full, guildPartyFits, guildRoster, hire, recruitExclude, refresh
 import { recommendPick } from '../game/recommend';
 import { refreshExped, refreshReqs } from '../game/guildjobs';
 import { buyUnknown, merchantGold } from '../game/merchant';
-import { runMode } from '../game/runmode';
+import { chalContent, runMode } from '../game/runmode';
 import { settle, type BattleResult } from '../game/settle';
 import { adCharge, syncStamina } from '../game/stamina';
 import { equip, G, sell, switchHero } from '../game/state';
@@ -370,7 +370,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
         if (t.chal && save.player.level >= CHAL.lv && chalDoneWeek !== week && !save.weekly.chalBest) {
           chalDoneWeek = week; open('주간 도전', day);
           for (let st = save.chalOpen || 1; st <= CHAL.max && now < end; st++) {
-            const ok = play(contentOf(CHAL.content), CHAL.diff, 'chal', st);
+            const ok = play(contentOf(chalContent(save, now)), CHAL.diff, 'chal', st);
             if (!ok || !(save.weekly.chalBest >= st)) break;
           }
         }

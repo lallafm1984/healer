@@ -56,7 +56,7 @@ function render(): void {
         <p class="note">명성 +${GUILD_GOAL.fame} (길드파티 = 자리 절반 이상이 길드원)</p>
         <button class="btn" type="button" id="guildGoal"${g.got || g.n < GUILD_GOAL.need ? ' disabled' : ''}>${g.got ? '받음' : '받기'}</button></section>` : ''}
       ${G.save.chalChest ? `<section class="panel"><h4>주간 도전 상자 <small>지난주 최고 ${G.save.chalChest}단계</small></h4>
-        <p class="note">${chal!.grades.length ? `${chal!.grades.join(' · ')} 보장 · ` : ''}${currencyAmount('gold', chal!.goldRuns * runGold(G.save.player.level))}${chal!.grades.length ? '' : ' (장비는 5단계부터)'}</p>
+        <p class="note">${chal!.grades.length ? `${chal!.grades.join(' · ')} 보장 · ` : ''}${currencyAmount('gold', chal!.gold)}${chal!.grades.length ? '' : ' (장비는 5단계부터)'}</p>
         <button class="btn primary" type="button" id="chalChest">열기</button></section>` : ''}
     </div>`;
   st.msg = '';

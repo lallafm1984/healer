@@ -7,7 +7,7 @@ import { clearGold, clearXp, restRun } from '../data/progression';
 import { Flow } from '../game/flow';
 import { chalChestOf } from '../game/economy';
 import { AFFIXES } from '../data/affixes';
-import { CHAL, chalDropDiff, chalReward } from '../data/challenge';
+import { CHAL, chalDropDiff, chalReward, chalShown } from '../data/challenge';
 import { ITEM_GRADES } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { nextWeekAffixes, runMode } from '../game/runmode';
@@ -29,15 +29,15 @@ function render(): void {
   const c = contentOf(Flow.content), d = Flow.diff, open = G.save.chalOpen, st = Math.max(1, Math.min(open, CHAL.max, Flow.chal));
   Flow.chal = st;
   const m = runMode(G.save, c, d, { chal: st });
-  const segs = c.fights(d), best = G.save.weekly.chalBest, bm = m.bossMult!, lv = G.save.player.level;
-  const festival = m.affixes.includes('festival'), bounty = m.affixes.includes('bounty'), bonus = chalReward(st);
-  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값. 휴식 보너스는 결과 화면에서만. 단계 보너스 · 축제 · 풍요는 넣음 (110)
-  const gold = restBase(restRun(clearGold(m.stage, d, 'A') * bonus * (bounty ? CHAL.bountyGold : 1)));
-  const xp = restBase(restRun(clearXp(lv, d, 'A', { win: true }) * bonus * (festival ? CHAL.festivalXp : 1)));
+  const segs = c.fights(d), best = G.save.weekly.chalBest, lv = G.save.player.level;
+  const festival = m.affixes.includes('festival'), bounty = m.affixes.includes('bounty'), bonus = chalReward(st), shown = chalShown(st);
+  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값. 휴식 보너스는 결과 화면에서만. 보통 던전의 반 (110 2차) · 단계 보너스 · 축제 · 풍요는 넣음 (110)
+  const gold = restBase(restRun(clearGold(m.stage, d, 'A') * CHAL.rewardCut * bonus * (bounty ? CHAL.bountyGold : 1)));
+  const xp = restBase(restRun(clearXp(lv, d, 'A', { win: true }) * CHAL.rewardCut * bonus * (festival ? CHAL.festivalXp : 1)));
   const box = best ? chalChestOf(best, lv) : null;
   // 장비 최고 등급 = 실제 확률 (영웅 · 전설 확률까지, 출전 확률 창과 같은 dropOdds)에서 나오는 가장 높은 등급 (103)
   const chalOdds = gearGradeOdds(chalDropDiff(st), 0, lv), chalTop = [...ITEM_GRADES].reverse().find(g => chalOdds[g] > 0) ?? ITEM_GRADES[0]; // 상자 등급은 내 레벨로 (Lv 45 전 영웅 없음, 103)
-  const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `골드 ${box.goldRuns}판`].join(' · ') : '';
+  const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `골드 ${fmt(box.gold)}`].join(' · ') : '';
   const next = nextWeekAffixes();
   s.el.innerHTML = `${flowHead(back, CHAL.name, `${esc(c.name)} · ${c.size(d)}인 · ${weekRemaining()} 남음`)}
     <div class="ns-body f-ebody">
@@ -45,7 +45,7 @@ function render(): void {
         <div class="wc-stage"><span class="wc-emblem" aria-hidden="true">${gameIcon('challenge', '')}</span><div class="wc-stage-controls"><span class="cap">도전 단계</span>
           <div class="chalstep"><button class="btn2" type="button" data-cstep="-1" aria-label="한 단계 아래"${st <= 1 ? ' disabled' : ''}>−</button><b aria-live="polite">${st}단계</b><button class="btn2" type="button" data-cstep="1" aria-label="한 단계 위"${st >= open ? ' disabled' : ''}>+</button></div>
         </div></div>
-        <dl class="f-cinfo"><div><dt>제한시간</dt><dd>${mmss(m.limit!)}</dd></div><div><dt>적 체력</dt><dd>+${Math.round((bm.hp - 1) * 100)}%</dd></div><div><dt>적 피해</dt><dd>+${Math.round((bm.dmg - 1) * 100)}%</dd></div><div class="wc-bonus"><dt>보상</dt><dd>+${Math.round((bonus - 1) * 100)}%</dd></div></dl>
+        <dl class="f-cinfo"><div><dt>제한시간</dt><dd>${mmss(m.limit!)}</dd></div><div><dt>적 체력</dt><dd>+${Math.round(shown.hp * 100)}%</dd></div><div><dt>적 피해</dt><dd>+${Math.round(shown.dmg * 100)}%</dd></div><div class="wc-bonus"><dt>보상</dt><dd>+${Math.round((bonus - 1) * 100)}%</dd></div></dl>
         ${track(st, open, best, lv)}
         <p class="wc-record"><span>열린 단계 <b>${open}/${CHAL.max}</b></span><span>이번 주 최고 <b>${best ? `${best}단계` : '없음'}</b></span></p>
       </section>
