@@ -40,10 +40,10 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
   const ADV = RECOMMENDED['어려움']!.score, RARE = RECOMMENDED['악몽']!.score, EPIC = presetScore('영웅', 1.4, 1);
   const four = (x: ContentDef, lv: number, g: number) => ALL_DIFFS.map(d => fitOf(x, d, lv, g));
 
-  it('난이도 몫: 클리어율 목표 (쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%)대로 −2 · −1 · 0 · +2, 순차 구간 Lv 10~20 장소 악몽은 길이라 0', () => {
-    expect(ALL_DIFFS.map(d => diffStep(c, d))).toEqual([-2, -1, 0, 2]);
+  it('난이도 몫: 순차 구간 장소는 −2 · −1 · 0 · +2 (Lv 10~20 장소 악몽은 길이라 0), Lv 21~100 장소는 어려움도 +2 (#382 중간 등급 장비로 빠듯한 칸, 2026-10-22)', () => {
+    expect(ALL_DIFFS.map(d => diffStep(c, d))).toEqual([-2, -1, 2, 2]);
+    expect(ALL_DIFFS.map(d => diffStep(contentOf('rustfort'), d))).toEqual([-2, -1, 0, 2]); // 장소 Lv 1~9 악몽은 길이 아님
     expect(diffStep(contentOf('greenhouse'), '악몽')).toBe(0);
-    expect(diffStep(contentOf('rustfort'), '악몽')).toBe(2); // 장소 Lv 1~9 악몽은 길이 아님
   });
   it('레벨 몫: 모자라면 2레벨마다 +1, 앞서면 레벨 힘이 12% 늘 때마다 −1 (Lv 20 넘으면 1~3레벨 앞서도 클리어율이 거의 같음)', () => {
     expect([30, 31, 32, 34, 36].map(r => lvStep(r, 30))).toEqual([0, 0, 1, 2, 3]);
@@ -51,27 +51,33 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
     expect(lvStep(30, 35)).toBe(-1); // 힘 +14%
     expect(lvStep(2, 4)).toBe(-2); // 낮은 레벨은 한 레벨 차이도 큼 (+28%)
   });
-  it('어려움 · 권장 장비면 내 레벨 칸이 적정, 악몽은 권장 장비여도 도전 (예전엔 적정이라 75% 칸을 추천)', () => {
-    expect(four(c, 34, ADV)).toEqual(['여유', '여유', '적정', '위험']); // 악몽은 장비 미달 (+2)
+  it('Lv 21~100 장소 (#382): 중간 등급 장비면 보통이 적정 · 어려움은 도전, 한 단계 위 (영웅)면 보통 여유, 어려움은 장비로 안 내려가고 레벨이 앞서야 적정, 악몽은 전설 + 2줄부터 적정', () => {
+    const EPIC1 = presetScore('영웅', 1), LEGEND = presetScore('전설', 1, 2);
+    expect(four(c, 34, ADV)).toEqual(['여유', '적정', '도전', '위험']); // ADV = 중간 등급 희귀 (권장), 악몽은 장비 미달 (+2)
+    expect(four(c, 34, EPIC1)).toEqual(['여유', '여유', '도전', '도전']); // 한 단계 위 장비 (영웅 ×1은 악몽 권장 희귀 ×1.4를 넘어 도전)
+    expect(four(c, 34, EPIC)).toEqual(['여유', '여유', '도전', '도전']); // 가상 사용자 QA: Lv 90대 어려움은 길 장비 (영웅 위)로도 38 ~ 63%
+    expect(four(c, 34, LEGEND)).toEqual(['여유', '여유', '도전', '도전']); // 악몽 (적 Lv 36)은 내 Lv 34라 레벨 몫 +1
+    expect(fitOf(c, '악몽', 36, LEGEND)).toBe('적정');
+    expect(fitOf(c, '어려움', 39, ADV)).toBe('적정'); // 5레벨 앞서면 (힘 +14%) 적정 (권장 장비는 있어야)
     expect(fitOf(c, '악몽', 36, RARE)).toBe('도전');
-    expect(fitOf(c, '악몽', 36, EPIC)).toBe('적정'); // 한 단계 위 장비 (시뮬 영웅 92%)
+    expect(fitOf(c, '악몽', 36, EPIC)).toBe('도전'); // 예전 적정 (#382 전 시뮬 영웅 92%)
     expect(fitOf(c, '악몽', 41, RARE)).toBe('적정'); // 힘 +12% 앞섬
-    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('도전'); // 권장 장비 미달은 적어도 도전
+    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('위험'); // 권장 장비 미달은 +2 더 (중간 등급 아래로 어려움은 위험)
     expect(fitOf(c, '악몽', 39, 0)).toBe('위험');
     expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // 레벨이 한참 앞서도 장비가 모자라면 도전 (88)
     expect(four(c, 28, 0)).toEqual(['적정', '적정', '위험', '위험']);
   });
   it('레이드도 던전처럼 레벨 몫 (2026-10-21 Lim: 적이 장소 레벨에 고정, 예전엔 내 레벨이라 장비 몫만)', () => {
     const r = contentOf('cathedral1'); // 쉬움 ~ 어려움 Lv 70 · 악몽 80
-    // 그 레이드 레벨에서는 예전 (적 = 내 레벨)과 같음
-    expect(four(r, 70, 0).slice(0, 3)).toEqual(['여유', '적정', '도전']);
-    expect(four(r, 70, ADV).slice(0, 3)).toEqual(['여유', '여유', '적정']);
-    expect([fitOf(r, '악몽', 80, RARE), fitOf(r, '악몽', 80, EPIC)]).toEqual(['도전', '적정']);
+    // 그 레이드 레벨에서: 장비 없으면 어려움 위험, 중간 등급 장비면 도전 (#382)
+    expect(four(r, 70, 0).slice(0, 3)).toEqual(['여유', '적정', '위험']);
+    expect(four(r, 70, ADV).slice(0, 3)).toEqual(['여유', '적정', '도전']);
+    expect([fitOf(r, '악몽', 80, RARE), fitOf(r, '악몽', 80, EPIC), fitOf(r, '악몽', 80, presetScore('전설', 1, 2))]).toEqual(['도전', '도전', '적정']);
     // 내가 높으면 쉬워짐 (힐러만 셈), 낮으면 (개발 잠금 해제) 어려워짐. 장비 미달은 그대로 적어도 도전
     expect(four(contentOf('abyss1'), 100, RARE)).toEqual(['여유', '여유', '여유', '여유']);
     expect(fitOf(r, '보통', 85, ADV)).toBe('여유');
     expect(fitOf(r, '어려움', 100, 0)).toBe('도전');
-    expect(four(r, 60, ADV)).toEqual(['도전', '도전', '위험', '위험']);
+    expect(four(r, 60, ADV)).toEqual(['도전', '위험', '위험', '위험']);
   });
   it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 몫 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
@@ -139,7 +145,7 @@ describe('모험 길잡이 (guide)', () => {
     G.save.settings.devUnlock = true; // 개발 빌드로 들어갈 수 있어도 실제 레벨로는 못 들어감
     expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual([null, null, null, null]);
     G.save.player.level = 45;
-    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual(['여유', '적정', '도전', null]); // 장비 없음, 악몽은 Lv 60
+    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual(['여유', '적정', '위험', null]); // 장비 없음 (어려움은 중간 등급 미달 → 위험), 악몽은 Lv 60
     G.save.player.level = 60;
     expect(fitShown(raid, '악몽')).toBe('위험');
     // 탐험 · 던전: 앞 난이도를 못 깬 칸 · 레벨이 모자란 장소도 없음
@@ -154,29 +160,45 @@ describe('모험 길잡이 (guide)', () => {
     expect(guide()).toEqual({ content: 'rustfort', diff: '쉬움' });
   });
 
-  it('악몽은 장비와 상관없이 추천 안 함, 순차 구간 뒤는 안 깬 칸을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (적 Lv < 내 Lv − 10 · 위험은 건너뜀), 다 깨면 적정 어려움 가운데 적 레벨 높은 곳 (2026-10-20 Lim)', () => {
+  it('악몽은 장비와 상관없이 추천 안 함, 순차 구간 뒤는 안 깬 여유 · 적정 칸을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (적 Lv < 내 Lv − 10 · 위험은 건너뜀), 다 깨면 적정 어려움 가운데 적 레벨 높은 곳 (2026-10-20 Lim), 안 깬 도전 칸은 그 뒤 (2026-10-22 가상 사용자 QA)', () => {
     const open = (c: ContentDef, d: DiffName) => !lockOf(c).locked && !lockOf(c, d).locked;
     G.save.player.level = 40;
     for (const gear of [0, presetScore('고급', 1), presetScore('희귀', 1.4), presetScore('영웅', 1.4, 1)]) {
       const list = rankStages({ level: 40, gear, clears: {}, open });
       expect(list.some(x => x.diff === '악몽'), `장비 ${gear}`).toBe(false);
-      // 앞쪽 = 안 깬 칸 (적 Lv 30 이상 · 위험 아님)을 장소 레벨 순 · 쉬운 난이도부터 (같은 장소는 쉬움 → 보통 → 어려움)
-      const ok = (x: { content: string; diff: DiffName }) => { const c = contentOf(x.content as never); return stageOf(c, x.diff) >= 30 && fitOf(c, x.diff, 40, gear) !== '위험'; };
+      // 앞쪽 = 안 깬 칸 (적 Lv 30 이상 · 여유 · 적정)을 장소 레벨 순 · 쉬운 난이도부터 (같은 장소는 쉬움 → 보통 → 어려움)
+      const fit = (x: { content: string; diff: DiffName }) => fitOf(contentOf(x.content as never), x.diff, 40, gear);
+      const ok = (x: { content: string; diff: DiffName }) => stageOf(contentOf(x.content as never), x.diff) >= 30 && (fit(x) === '여유' || fit(x) === '적정');
       const cut = list.findIndex(x => !ok(x)), head = (cut < 0 ? list : list.slice(0, cut)).map(x => ({ lv: contentOf(x.content).stageLv, i: ALL_DIFFS.indexOf(x.diff) }));
       expect(head.length, `장비 ${gear}`).toBeGreaterThan(3);
       for (let i = 1; i < head.length; i++) expect(head[i].lv > head[i - 1].lv || (head[i].lv === head[i - 1].lv && head[i].i > head[i - 1].i), `${i}`).toBe(true);
       const want = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.ready).flatMap(c => (['쉬움', '보통', '어려움'] as DiffName[]).filter(d => open(c, d) && ok({ content: c.key, diff: d })).map(() => c.stageLv));
       expect(head[0].lv).toBe(Math.min(...want));
+      // 안 깬 도전 칸 (적 레벨이 4쯤 높은 어려움)은 여유 · 적정 칸을 다 지나고 나서야 (2레벨 오르면 적정이 되어 차례로)
+      const lastOk = list.map(ok).lastIndexOf(true), firstHard = list.findIndex(x => fit(x) === '도전');
+      expect(firstHard, `장비 ${gear}`).toBeGreaterThan(lastOk);
     }
     // 다 깬 뒤: 적정 어려움 (적 레벨 높은 곳)
     const gear = presetScore('희귀', 1.4), all: Record<string, Partial<Record<DiffName, unknown>>> = {};
     for (const c of CONTENT) if (isLeveling(c)) all[c.key] = rec('쉬움', '보통', '어려움', '악몽');
     G.save.player.level = 40; G.save.clears = all as never; // 난이도 사슬 잠금도 이 기록으로
-    const rep = rankStages({ level: 40, gear, clears: all, open });
-    expect(rep[0].diff).toBe('어려움');
-    expect(fitOf(contentOf(rep[0].content), '어려움', 40, gear)).toBe('적정');
-    const hard = rep.filter(x => x.diff === '어려움' && fitOf(contentOf(x.content), '어려움', 40, gear) === '적정').map(x => stageOf(contentOf(x.content), '어려움'));
-    expect(hard[0]).toBe(Math.max(...hard));
+    // 다 깬 뒤 반복은 보통 (여유 · 적정) 가운데 적 레벨 높은 곳 (2026-10-22 #382 기준: 어려움 반복은 장비가 좋아도 지는 판이 많음), 장비와 상관없이
+    for (const g of [gear, presetScore('영웅', 1.4, 1)]) {
+      const rep = rankStages({ level: 40, gear: g, clears: all, open });
+      expect(rep[0].diff).toBe('보통');
+      const norm = rep.filter(x => x.diff === '보통' && ['여유', '적정'].includes(fitOf(contentOf(x.content), '보통', 40, g))).map(x => stageOf(contentOf(x.content), '보통'));
+      expect(norm[0]).toBe(Math.max(...norm));
+      // 반복은 번갈아: 마지막으로 한 칸은 다른 보통 뒤로, 그 칸을 또 하면 원래 1순위로 돌아옴
+      const rep2 = rankStages({ level: 40, gear: g, clears: all, open, last: rep[0] });
+      expect(rep2[0]).not.toEqual(rep[0]);
+      expect(rep2[0].diff).toBe('보통');
+      expect(rankStages({ level: 40, gear: g, clears: all, open, last: rep2[0] })[0]).toEqual(rep[0]);
+    }
+    // 보통을 다 쓸 수 없을 때 (장소 하나뿐): 적정 어려움 (5레벨쯤 앞선 칸) 반복
+    const one: Record<string, Partial<Record<DiffName, unknown>>> = { snowlab: rec('쉬움', '보통', '어려움', '악몽') };
+    const rep1 = rankStages({ level: 40, gear, clears: one, open: (c, d) => c.key === 'snowlab' && open(c, d) });
+    expect(rep1[0]).toEqual({ content: 'snowlab', diff: '보통' });
+    expect(rep1.find(x => x.diff === '어려움')).toEqual({ content: 'snowlab', diff: '어려움' }); // 적 Lv 34, 내 Lv 40 → 적정
   });
 
   it('추천은 길 첫 클리어 (순차 구간, 들어가는 레벨이 내 레벨 ±1이면 쉬움 (여유)도) · 안 깬 칸 (위험 · 한참 아래 빼고) · 적정 칸, 악몽은 없음. 탐험 · 던전만', () => {
@@ -192,7 +214,7 @@ describe('모험 길잡이 (guide)', () => {
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 73판, 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 80판. 길 밖 어려움을 추천하던 때 73판 · 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
     G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
@@ -201,15 +223,17 @@ describe('모험 길잡이 (guide)', () => {
       const g = guide();
       expect(g, `Lv ${G.save.player.level} ${runs}판째 추천 없음`).not.toBeNull();
       expect(rampPlace(contentOf(g!.content)), `${g!.content} ${g!.diff}`).toBe(true);
+      expect(rampDiffs(contentOf(g!.content)).includes(g!.diff), `${g!.content} ${g!.diff}: 길 밖 칸`).toBe(true); // 2026-10-22: Lv 20까지는 길 칸만 (장소 Lv 1~9 어려움은 처음 하는 사람이 11~19%만 깸)
       if (G.save.clears[g!.content]?.[g!.diff]) repeats++;
       const xp = settle(G.save, { content: g!.content, diff: g!.diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 1,
         healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(runs)).xp;
       expect(xp).toBeGreaterThan(0);
       runs++;
     }
-    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 다시 하기 (19판) · 지나온 장소 어려움이 낌 (2026-10-20 악몽은 추천 안 함)
+    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 깬 길 칸 다시 하기 (33판)가 낌
+    // (2026-10-20 악몽은 추천 안 함, 2026-10-22 지나온 장소 어려움도 추천 안 함: 다시 하기 19 → 33판)
     expect(G.save.player.level).toBe(21);
-    expect(runs).toBe(73);
-    expect(repeats).toBe(19);
+    expect(runs).toBe(80);
+    expect(repeats).toBe(33);
   });
 });

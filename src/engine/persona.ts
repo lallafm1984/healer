@@ -372,7 +372,8 @@ export function persThink(f: Fight, u: Unit): boolean {
   // 영웅: 반경 r 아군이 위험하면 대신 맞아 줌
   if (p.cover && ready && pct >= 0.4) {
     const c = cellOf(f, u);
-    const v = living(f).filter(x => x !== u && !x.me && x.hp / x.max < p.cover!.hp && hexDist(cellOf(f, x), c) <= p.cover!.r && !(x.coverBy && f.t < x.coverBy.until))
+    // 나를 맡고 있는 영웅은 안 맡음 (서로 맡으면 피해를 끝없이 주고받음, 2026-10-22. core damage도 대신 맞는 피해는 다시 떠넘기지 않음)
+    const v = living(f).filter(x => x !== u && !x.me && x.hp / x.max < p.cover!.hp && hexDist(cellOf(f, x), c) <= p.cover!.r && !(x.coverBy && f.t < x.coverBy.until) && !(u.coverBy && u.coverBy.id === x.id && f.t < u.coverBy.until))
       .sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
     if (v) {
       v.coverBy = { id: u.id, until: f.t + p.cover.sec, share: p.cover.share };

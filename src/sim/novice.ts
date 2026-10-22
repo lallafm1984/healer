@@ -35,19 +35,23 @@ export const NOVICE_TARGET_EARLY: Partial<Record<DiffName, number>> = { '쉬움'
 export const EARLY_LV = 10;
 export const TUT_TARGET = 95;
 
-/** 검사하는 칸 하나 (tutorial = 첫 전투, tut = 튜토리얼 판으로 하는 녹슨 고원 쉬움) */
-export interface NoviceCell { c: ContentDef; d: DiffName; tut: boolean }
+/** 검사하는 칸 하나 (tutorial = 첫 전투, tut = 튜토리얼 판으로 하는 녹슨 고원 쉬움, off = 길 밖 칸: 장소 Lv 1 ~ 9 어려움) */
+export interface NoviceCell { c: ContentDef; d: DiffName; tut: boolean; off?: boolean }
 /**
  * 검사 칸: 첫 전투 → 장소를 레벨 순으로 길의 난이도 (rampDiffs: 장소 Lv 1 ~ 9 쉬움 · 보통, 10 ~ 20 쉬움 · 보통 · 어려움) 가운데 diffs만.
- * 녹슨 고원 쉬움은 튜토리얼 판 (처음 하는 사람은 튜토리얼에서 처음 깸)
+ * 녹슨 고원 쉬움은 튜토리얼 판 (처음 하는 사람은 튜토리얼에서 처음 깸).
+ * 장소 Lv 1 ~ 9 어려움 (길 밖, off)도 넣는다 (2026-10-22 가상 사용자 QA: 길잡이가 추천하지 않아도 열린 칸 가운데 높은 곳을 고르는 사람이 가는데
+ * 처음 하는 사람은 11 ~ 19%만 깼음): 들어가는 사람 = 그 장소 보통을 깬 뒤 (sim/ramp)
  */
 export function noviceCells(diffs: DiffName[] = ['쉬움', '보통']): NoviceCell[] {
   const out: NoviceCell[] = [{ c: contentOf('tutorial'), d: '쉬움', tut: true }];
-  for (const c of CONTENT.filter(x => rampPlace(x) && x.ready).sort((a, b) => a.stageLv - b.stageLv))
+  for (const c of CONTENT.filter(x => rampPlace(x) && x.ready).sort((a, b) => a.stageLv - b.stageLv)) {
     for (const d of rampDiffs(c)) if (diffs.includes(d)) out.push({ c, d, tut: c.key === 'plateau' && d === '쉬움' });
+    if (!rampDiffs(c).includes('어려움') && diffs.includes('어려움')) out.push({ c, d: '어려움', tut: false, off: true });
+  }
   return out;
 }
-export const cellLabel = (x: NoviceCell) => `${x.c.name}${x.tut ? ' (튜토리얼)' : ''} ${x.d}`;
+export const cellLabel = (x: NoviceCell) => `${x.c.name}${x.tut ? ' (튜토리얼)' : x.off ? ' (길 밖)' : ''} ${x.d}`;
 
 /** 구간 사이 휴식 (초, sim/balance와 같음) */
 const REST = 10;

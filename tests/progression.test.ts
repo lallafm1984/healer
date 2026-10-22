@@ -147,7 +147,7 @@ describe('장비 (02 10장)', () => {
     const none: Equipped = {};
     expect(gearStatsOf(none, 1)).toEqual(gearStats('none'));
     expect(avgScore(none, 30)).toBe(0);
-    expect(RECOMMENDED['어려움']!.score).toBeCloseTo(presetScore('고급', 1));
+    expect(RECOMMENDED['어려움']!.score).toBeCloseTo(presetScore('희귀', 1)); // 2026-10-22 #382 중간 등급 기준 (예전 고급)
     expect(RECOMMENDED['악몽']!.score).toBeCloseTo(presetScore('희귀', 1.4));
     // 프리셋 세기 장비 (첫 종류 · 5% 여유)는 그 레벨에서 권장 점수 이상, 1.4 대신 1이면 (예전 희귀 +0) 악몽 권장에 못 미침
     for (const lv of [25, 40, 70]) {

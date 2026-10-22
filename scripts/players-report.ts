@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { CONTENT } from '../src/data/content';
 import { RECOMMENDED } from '../src/data/equipment';
 import { merchantGold } from '../src/game/merchant';
-import { MAX_DAYS, PLAYER_TYPES, playerType, type PlayerLog } from '../src/sim/players';
+import { EXTRA_TYPES, MAX_DAYS, PLAYER_TYPES, playerType, type PlayerLog } from '../src/sim/players';
 import { findSignals, SIGNAL_NAME, THRESH, type Signal, type SignalKind } from '../src/sim/players-signals';
 
 const args = process.argv.slice(2);
@@ -17,15 +17,16 @@ const dir = opt('--in') || '.sim/players', outFile = opt('--out') || '.sim/playe
 /** 사람이 쓴 요약 (HTML 조각, 맨 위 「이번에 찾은 것」) */
 const notes = opt('--notes') ? readFileSync(opt('--notes')!, 'utf8') : '';
 const logs: PlayerLog[] = readdirSync(dir).filter(f => f.endsWith('.json')).map(f => JSON.parse(readFileSync(`${dir}/${f}`, 'utf8')));
-const order = (k: string) => PLAYER_TYPES.findIndex(t => t.key === k);
+const ALL_TYPES = [...PLAYER_TYPES, ...EXTRA_TYPES];
+const order = (k: string) => ALL_TYPES.findIndex(t => t.key === k);
 logs.sort((a, b) => order(a.type) - order(b.type) || a.seed - b.seed);
-const types = PLAYER_TYPES.filter(t => logs.some(l => l.type === t.key));
+const types = ALL_TYPES.filter(t => logs.some(l => l.type === t.key));
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const median = (xs: number[]) => { const s = xs.filter(x => Number.isFinite(x)).sort((a, b) => a - b); if (!s.length) return NaN; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const fmt = (n: number, d = 0) => (Number.isFinite(n) ? n.toLocaleString('ko-KR', { maximumFractionDigits: d, minimumFractionDigits: d }) : '–');
 const byType = (k: string) => logs.filter(l => l.type === k);
 const tname = (k: string) => playerType(k)?.name ?? k;
-const SLOT_VARS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6'];
+const SLOT_VARS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7'];
 const sv = (k: string) => `var(${SLOT_VARS[order(k) % SLOT_VARS.length]})`;
 
 // ---------- 신호 ----------
@@ -138,17 +139,17 @@ const html = `<title>가상 사용자 QA 보고서</title>
   --bg: #f3f1ec; --panel: #fbfaf7; --ink: #23272b; --muted: #646b70; --line: #d9d4c9; --grid: #e6e1d6;
   --brass: #9a6a1f; --brass-soft: #efe2c6; --heat: 235, 104, 52;
   --bad: #b23b32; --warn: #a8661a; --info: #2f5f8a; --good: #2f7a52;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6;
   --f-head: "Hahmlet", "Noto Serif KR", serif; --f-body: "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #1b1e21; --panel: #23272b; --ink: #e9e6df; --muted: #a1a7ab; --line: #3a3f44; --grid: #30353a; --brass: #e0b25e; --brass-soft: #3b3220; --heat: 217, 89, 38;
   --bad: #ef7d73; --warn: #e3a454; --info: #84b3e0; --good: #6cc495;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; color-scheme: dark; } }
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #1b1e21; --panel: #23272b; --ink: #e9e6df; --muted: #a1a7ab; --line: #3a3f44; --grid: #30353a; --brass: #e0b25e; --brass-soft: #3b3220; --heat: 217, 89, 38;
   --bad: #ef7d73; --warn: #e3a454; --info: #84b3e0; --good: #6cc495;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; color-scheme: dark; }
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; color-scheme: dark; }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
 main { max-width: 58rem; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }

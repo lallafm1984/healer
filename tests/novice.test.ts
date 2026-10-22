@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { contentOf, CONTENT, stageOf } from '../src/data/content';
 import { gearStatsOf, specsOf } from '../src/data/equipment';
-import { rampDiffs, rampPlace, rampRefLevel } from '../src/data/progression';
+import { rampDiffs, rampFour, rampPlace, rampRefLevel } from '../src/data/progression';
 import { TALENTS } from '../src/data/talents';
 import * as E from '../src/engine';
 import { bigButton, familiarity, FAMILIAR, MASTER, NOVICE, noviceAt } from '../src/engine/novice';
@@ -65,14 +65,17 @@ describe('초보 자동 힐러', () => {
 });
 
 describe('초보 검사 (초반 순차 레벨링 구간)', () => {
-  it('칸 = 첫 전투 → 장소 Lv 20까지 장소 레벨 순 · 길의 난이도', () => {
+  it('칸 = 첫 전투 → 장소 Lv 20까지 장소 레벨 순 · 길의 난이도 + 장소 Lv 1~9 어려움 (길 밖, 2026-10-22)', () => {
     const xs = noviceCells(['쉬움', '보통', '어려움']);
     expect(xs[0].c.key).toBe('tutorial');
     expect(xs[1]).toMatchObject({ d: '쉬움', tut: true });
     expect(xs[1].c.key).toBe('plateau');
     const places = CONTENT.filter(c => rampPlace(c) && c.ready);
-    expect(xs.length).toBe(1 + places.reduce((a, c) => a + rampDiffs(c).length, 0));
+    expect(xs.length).toBe(1 + places.reduce((a, c) => a + rampDiffs(c).length, 0) + places.filter(c => !rampFour(c)).length);
     expect(xs.filter(x => x.tut).length).toBe(2);
+    expect(xs.filter(x => x.off).every(x => x.d === '어려움' && !rampFour(x.c))).toBe(true);
+    expect(xs.filter(x => x.off).length).toBe(places.filter(c => !rampFour(c)).length);
+    expect(noviceCells(['쉬움', '보통']).some(x => x.off)).toBe(false);
   });
   it('그 칸에 처음 들어갈 때의 레벨 = 길잡이 권장 레벨 흐름 (rampRefLevel)', () => {
     for (const c of CONTENT.filter(x => rampPlace(x) && x.ready)) for (const d of ['쉬움', '보통'] as const) {

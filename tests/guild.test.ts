@@ -83,6 +83,32 @@ describe('길드를 빼 두면', () => {
   });
 });
 
+describe('길드원이 없으면 (2026-10-22 가상 사용자 QA: 결성 뒤 영입을 안 한 사람이 「길드파티로 클리어」를 한 번도 못 채움)', () => {
+  const T = new Date(2026, 9, 7, 12).getTime();
+  it('결성만 하고 길드원이 0명이면 「길드파티로 클리어」가 안 뽑히고, 뽑혀 있던 것은 다른 임무로', () => {
+    for (let i = 0; i < 40; i++) {
+      const s = save(30); s.guild.founded = true;
+      rollover(s, T + i * 864e5, rng);
+      expect(s.daily.missions.some(m => m.key === 'guild2')).toBe(false);
+    }
+    const s = save(30); s.guild.founded = true;
+    rollover(s, T, rng);
+    s.daily.missions[4] = { key: 'guild2', n: 1, got: false };
+    expect(rollover(s, T, rng).fixed).toBe(1);
+    expect(s.daily.missions.map(m => m.key)).not.toContain('guild2');
+    expect(s.daily.swapped).toBe(false);
+  });
+  it('길드원이 한 명이라도 있으면 뽑힘', () => {
+    let seen = false;
+    for (let i = 0; i < 60 && !seen; i++) {
+      const s = save(30); add(s);
+      rollover(s, T + i * 864e5, rng);
+      seen = s.daily.missions.some(m => m.key === 'guild2');
+    }
+    expect(seen).toBe(true);
+  });
+});
+
 describe('열림 · 길드 Lv · 정원 (93 6-2)', () => {
   it('Lv 15에 열림, 튜토리얼 전엔 닫힘, 개발 빌드 잠금 무시면 미리 열림', () => {
     expect(Gd.guildOpen(save(14)).ok).toBe(false);

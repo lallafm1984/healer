@@ -827,13 +827,14 @@ export function presetScore(grade: ItemGrade, mult: number, specLines = 0): numb
 }
 
 /**
- * 권장 장비 (02 2-2, 13): 어려움 = 고급, 악몽 = 희귀 (91: 예전 「희귀 +5」 = 희귀 평균 굴림 × 1.4, 시뮬 프리셋 data/gear GEARS rare5와 같은 세기).
+ * 권장 장비 (02 2-2, 13): 어려움 = 희귀 (중간 등급 · 굴림 100%, 2026-10-22 #382 레벨 디자인 기준 장비 (sim/familiar midGear)와 같음. 예전 고급),
+ * 악몽 = 희귀 × 1.4 (91: 예전 「희귀 +5」, 시뮬 프리셋 data/gear GEARS rare5와 같은 세기. 악몽은 중간 등급 장비로 30 ~ 44%라 그보다 위를 권장).
  * score = 그 프리셋 장비 점수 (presetScore, 같은 장비 상태면 예전과 같은 판정). 미달이면 경고만 (입장은 허용)
  */
 export const RECOMMENDED: Record<DiffName, { label: string; score: number } | null> = {
   '쉬움': null,
   '보통': null,
-  '어려움': { label: '고급', score: presetScore('고급', 1) },
+  '어려움': { label: '희귀', score: presetScore('희귀', 1) },
   '악몽': { label: '희귀', score: presetScore('희귀', 1.4) },
 };
 /**
