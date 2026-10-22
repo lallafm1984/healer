@@ -2,13 +2,10 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { gearStatsOf, itemScore, itemSpecs, KINDS, specLineValue, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type KindDef, type SlotKey } from '../data/equipment';
-import { dexKeys, type DexTab } from '../data/dex';
-import { FACTIONS, type FactionKey } from '../data/places';
+import { gearStatsOf, itemScore, itemSpecs, specLineValue, SLOTS, type GearItem } from '../data/equipment';
 import { uniqueOf, uniqueValue } from '../data/uniques';
 import { HEROES } from '../data/heroes';
-import { codexKeys, FEATURED, namedOf, SPEC_GROUPS, SPECS, specText, specValue, type CodexGroup, type SpecGroup } from '../data/specials';
-import { contentOf, type ContentKey } from '../data/content';
+import { namedOf, SPEC_GROUPS, SPECS, specText, type SpecGroup } from '../data/specials';
 import { lvPower } from '../data/progression';
 import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
@@ -21,7 +18,7 @@ export const HEALER_HP = 550;
 /** 장비 한 개 점수 (보여 주는 값, 지금 레벨 기준: 아이템 레벨이 낮으면 줄어듦) */
 export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined, G.save.player.level) * 10);
 
-/** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
+/** 특수능력 · 이름 있는 장신구 이름 (키 → 이름) */
 export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
 
 /** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 (굴림 막대 · 줄 번호는 재설정과 함께 2026-10-21 없앰) */
@@ -55,49 +52,6 @@ export function specRows(it: GearItem): SpecRow[] {
   return out;
 }
 
-/** 도감 한 칸 (42 1-6): 얻은 것은 이름 · 효과 (영웅 최대값), 못 얻은 것은 「?」 + 나오는 곳 힌트 */
-export interface CodexRow { key: string; got: boolean; name: string; text: string; hint: string }
-export function codexRows(g: CodexGroup): CodexRow[] {
-  const have = G.save.gear.codex;
-  return codexKeys(g).map(key => {
-    const got = have.includes(key), nm = namedOf(key);
-    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `Lv 100 · ${nm.placeName} 어려움 · 악몽에서 · ${slotName(nm.slot)} 전설` };
-    const d = SPECS[key];
-    const where = d.slots.length === SLOTS.length ? '모든 부위' : d.slots.map(slotName).join(' · ');
-    const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
-    const hint = [where, `${d.min} 이상`, d.hero ? `${HEROES[d.hero].name}로 돌 때` : '', feat.length ? `${feat.join(' · ')}에서 자주` : ''].filter(Boolean).join(' · ');
-    return { key, got, name: d.name, text: specText(d, d.fixed ? d.val : specValue(key, '영웅', 1)), hint };
-  });
-}
-
-/** 장비 도감 한 칸 (34 6-10 ④): 얻은 것은 이름 · 설명, 못 얻은 것은 「?」 + 나오는 곳 */
-/** 도감 한 칸. kind · named · unique는 칸 그림 (gearIcon)용 */
-export interface DexRow { key: string; got: boolean; name: string; text: string; hint: string; slot: SlotKey; kind?: string; look?: FactionKey; named?: string; unique?: string }
-/** 그 종류가 잘 나오는 장소 이름 (세력을 주면 그 세력 장소만) */
-function kindPlaces(kind: string, f?: FactionKey): string[] {
-  return Object.keys(PLACE_KINDS).filter(p => PLACE_KINDS[p].includes(kind) && (!f || lookOf(p) === f)).map(p => contentOf(p as ContentKey)?.name).filter(Boolean) as string[];
-}
-const fixedTxt = (k: KindDef) => k.fixed.map(x => STATS[x].name).join(' + ');
-export function dexRows(tab: DexTab): DexRow[] {
-  const have = G.save.gear.dex;
-  return dexKeys(tab).map(key => {
-    const got = have.includes(key), [, a, b] = key.split(':');
-    if (tab === 'kind') {
-      const k = KINDS.find(x => x.key === a)!, ps = kindPlaces(a);
-      return { key, got, slot: k.slot, kind: a, name: k.name, text: `${slotName(k.slot)} · 고정 ${fixedTxt(k)}`, hint: `${slotName(k.slot)} · ${ps.length ? `${ps.slice(0, 3).join(' · ')}에서 잘 나옴` : '어디서나'}` };
-    }
-    if (tab === 'look') {
-      const f = a as FactionKey, k = KINDS.find(x => x.key === b)!;
-      return { key, got, slot: k.slot, kind: b, look: f, name: `${LOOK_WORD[f]} ${k.name}`, text: `${FACTIONS[f].name} 생김새 · 고정 ${fixedTxt(k)}`, hint: `${FACTIONS[f].name} ${k.name} · ${kindPlaces(b, f).slice(0, 3).join(' · ')}에서` };
-    }
-    if (tab === 'named') {
-      const n = namedOf(a)!;
-      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `Lv 100 · ${n.placeName} 어려움 · 악몽에서 · ${slotName(n.slot)} 전설` };
-    }
-    const u = uniqueOf(a)!, d = SPECS[u.spec];
-    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '전설'))}`, hint: `Lv 100 · ${u.placeName} 어려움 · 악몽에서 · ${slotName(u.slot)} 전설` };
-  });
-}
 
 
 /** 열렸는데 아직 안 고른 특성 단 수 (지금 직업 트리, 튜토리얼 중엔 0) */

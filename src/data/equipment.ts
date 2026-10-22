@@ -537,7 +537,7 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
 };
 export const KIND_WEIGHT = 3;
 
-/** 세력 생김새 (34 6-10 ② · 도감): 세력 장소들에서 잘 나오는 종류. 이 종류만 세력 그림이 따로 있고, 나머지는 종류 그림 + 세력 색 테두리 */
+/** 세력 생김새 (34 6-10 ②): 세력 장소들에서 잘 나오는 종류. 이 종류만 세력 그림이 따로 있고, 나머지는 종류 그림 + 세력 색 테두리 */
 export const LOOKS: Record<FactionKey, string[]> = (() => {
   const out = Object.fromEntries(Object.keys(LOOK_WORD).map(f => [f, [] as string[]])) as Record<FactionKey, string[]>;
   for (const [place, ks] of Object.entries(PLACE_KINDS)) {
@@ -659,7 +659,7 @@ export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   return out;
 }
 
-/** 장비 한 개의 특수능력 · 이름 있는 장신구 키 (도감용, 고유 장비는 고정 특수능력) */
+/** 장비 한 개의 특수능력 · 이름 있는 장신구 키 (고유 장비는 고정 특수능력) */
 export const specKeysOf = (it: GearItem): string[] => [...(it.named ? [it.named] : []), ...(uniqueOf(it.unique) ? [uniqueOf(it.unique)!.spec] : []), ...(it.specs ?? []).map(l => l.key)];
 
 /** 착용 장비 → 전투에서 켜지는 특수능력 값 (42 1-3 · 1-5) */

@@ -21,7 +21,7 @@ export interface UniqueDef {
   spec: string;
 }
 
-/** 고유 능력 배율 평균 (91 전에는 고정값). 옛 장비 · 도감 표시는 이 값 */
+/** 고유 능력 배율 평균 (91 전에는 고정값). 옛 장비 표시는 이 값 */
 export const UNIQUE_MULT = 1.5;
 
 export const UNIQUES: UniqueDef[] = [

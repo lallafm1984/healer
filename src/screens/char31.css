@@ -42,11 +42,9 @@
 
 /* ---------- 틀 ---------- */
 #s-char .c7-body { padding: 12px 12px calc(var(--tabs-h) + 16px); gap: 10px; }
-#s-char .c7-fill { flex: 1; }
 #s-char .c7-msg { margin: 0; }
 #s-char .note { margin: 0; }
 #s-char .c7-sec { display: flex; flex-direction: column; gap: 6px; }
-#s-char .c7-row { display: flex; align-items: center; gap: 8px; }
 /* 제목 + 금빛 줄 (시안 .sh · .tapr h4) */
 #s-char .c7-h { display: flex; align-items: center; gap: 8px; margin: 0; font: 700 14px var(--font-display); color: var(--gold-hi); text-shadow: 0 1px 2px #000; }
 #s-char .c7-h small { order: 2; font: 400 11px var(--font-body); color: var(--mute); white-space: nowrap; }
@@ -194,7 +192,6 @@
 #s-char .c7-src > b { font: 900 16px var(--font-body); color: var(--ink); white-space: nowrap; }
 #s-char .c7-src > .cap { text-align: right; }
 /* 가방: 필터 · 정렬 · 5열 격자 · 분해 */
-#s-char .c7-bsheet .c7-row .h-rule { flex: none; }
 #s-char .c7-sort { min-height: 34px; height: 34px; font-size: 12px; }
 #s-char .c7-fcs { display: flex; flex-wrap: wrap; gap: 6px; }
 #s-char .c7-fc {
@@ -216,8 +213,6 @@
 #s-char .c7-bag .lk .ui-icon { width: 11px; height: 11px; stroke-width: 2.2; }
 /* 세력 생김새 (34 6-10 ②): 등급 테두리 안쪽에 세력 색 띠 */
 #s-char .c7-bag[style*="--lk"], #s-char .c7-slot[style*="--lk"] .c7-sq { box-shadow: 0 0 0 1px var(--line), inset 0 0 0 2px color-mix(in srgb, var(--lk) 70%, transparent), inset 0 0 12px color-mix(in srgb, var(--lk) 35%, transparent), 0 0 8px color-mix(in srgb, var(--g) 30%, transparent); }
-#s-char .c7-bagf { display: flex; align-items: center; gap: 8px; }
-#s-char .c7-bsheet .btn2 { min-height: 40px; }
 
 /* ---------- 스킬 ① 보기 방식 토글 · 마법진 위 휠 3×3 금테 메달 ---------- */
 #s-char .c7-skill { --m: min(84px, calc((100vw - 64px) / 3.25)); }
@@ -407,32 +402,6 @@
 #s-char .c7-spec[data-g="gimmick"] { --spc: #8FE3D9; }
 #s-char .c7-spec[data-g="hero"] { --spc: #F2C46B; }
 #s-char .c7-spec[data-g="named"] { --spc: #FF8A3D; }
-/* 특수능력 도감 (42 1-6): 묶음 칩 · 칸 목록 (못 얻은 칸 = 「?」 + 나오는 곳) */
-#s-char .c7-codex .c7-fc small { margin-left: 4px; font-weight: 400; color: var(--mute); }
-#s-char .c7-codex .c7-fc[aria-pressed="true"] small { color: inherit; }
-#s-char .c7-ctitle { margin: 0; }
-#s-char .c7-clist { display: flex; flex-direction: column; }
-#s-char .c7-spec.unk .c7-spg { border-style: dashed; opacity: 0.6; }
-#s-char .c7-spec.unk b { color: var(--mute); }
-/* 도감 아래 안내 글: 두 줄까지 (「능력치 보너스 없음」이 잘렸음, QA 2026-10-17) */
-#s-char .c7-codex .c7-bagf .cap { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; word-break: keep-all; line-height: 1.3; }
-/* 장비 도감 (34 6-10 ④): 칸 = 부위 그림 (세력 생김새는 세력 색 테두리) · 이름 · 설명, 10칸마다 보상 */
-#s-char .c7-dexb { position: relative; }
-#s-char .c7-dexb .g-badge { position: absolute; top: -6px; right: -6px; }
-#s-char .c7-dexr { position: relative; display: flex; align-items: center; gap: 6px; min-height: 36px; }
-#s-char .c7-dexr .btn2 { flex: 1; min-width: 0; }
-/* 도감 그림 (50 D): 「도감」 버튼 · 제목 · 보상 줄은 글자 앞 (글자 높이를 넘는 만큼은 음수 여백, 칸 높이 그대로) */
-#s-char .c7-dexb > .g-ic { flex: none; width: 22px; height: 22px; margin: -4px 0; }
-#s-char .c7-dex .h-rule > .g-ic { flex: none; width: 24px; height: 24px; margin: -4px -2px -4px 0; }
-#s-char .c7-dexr > .g-ic { flex: none; width: 30px; height: 30px; }
-/* 「보상 받기」 버튼이 있으면 그림은 버튼 왼쪽 끝 장식 위에 얹음 (버튼 너비 그대로, 긴 보상 글자도 한 줄) */
-#s-char .c7-dexr:has(> .btn2) > .g-ic { position: absolute; z-index: 1; left: -5px; top: 50%; width: 26px; height: 26px; margin-top: -13px; filter: drop-shadow(0 1px 1px #000a); }
-/* 묶음 칩은 360px에서 글자만으로 한 줄이 꽉 차서 그림은 칩 왼쪽 위 모서리에 붙임 (자리 차지 안 함, 칩 줄은 한 줄 그대로) */
-#s-char .c7-dex .c7-fc { position: relative; }
-#s-char .c7-dex .c7-fc > .g-ic { position: absolute; left: -7px; top: -9px; width: 22px; height: 22px; filter: drop-shadow(0 1px 1px #000a); }
-#s-char .c7-dexc .c7-spg { display: grid; place-items: center; width: 34px; height: 34px; min-width: 34px; padding: 0; border-color: var(--look, #D9B26A); border-width: 2px; border-radius: 8px; color: var(--look, #D9B26A); }
-#s-char .c7-dexc .c7-spg svg, #s-char .c7-dexc .c7-spg .g-ic { width: 24px; height: 24px; }
-#s-char .c7-dexc.unk .c7-spg { filter: grayscale(1); }
 /* 특수능력 점 (34 10장): 장비 칸 · 가방 칸 아래 가운데, 한 줄 = 점 하나, 다른 직업 전용 = 회색 */
 #s-char .c7-dots { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
 #s-char .c7-dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 0 1px #0D0B09, 0 0 4px color-mix(in srgb, var(--gold-hi) 60%, transparent); }
@@ -440,16 +409,7 @@
 #s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
 #s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }
 
-/* 도감: 지난 판에 처음 얻은 칸은 표식 위에서 한 번 터짐 · 고유 칸 = 장신구 그림 (못 얻은 칸은 실루엣) */
 #s-char .c7-spg { position: relative; }
-#s-char .c7-spnew { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxNew 1s 0.2s ease-out both; }
-#s-char .c7-spec.unk[data-g="named"] .c7-spg .g-ic { filter: brightness(0) drop-shadow(0 0 1px var(--spc)); }
-@keyframes efxNew { 0% { opacity: 0; transform: scale(0.2); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.4); } }
-/* 장비 도감 (50 E): 처음 채운 칸에 도장이 한 번 찍힘 (fx-dex-fill) · 「보상 받기」 뒤 보상 줄에서 동전 · 보석이 위로 (fx-dex-reward) */
-#s-char .c7-dexfill { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxSeal 1.2s 0.25s ease-out both; }
-#s-char .c7-dexpop { position: absolute; z-index: 3; left: 50%; bottom: 0; width: 104px; height: 104px; margin-left: -52px; object-fit: contain; pointer-events: none; opacity: 0; transform-origin: 50% 100%; animation: efxFount 1.3s ease-out both; }
-@keyframes efxSeal { 0% { opacity: 0; transform: scale(1.8); } 25% { opacity: 1; transform: scale(0.92); } 35% { transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.08); } }
-@keyframes efxFount { 0% { opacity: 0; transform: translateY(16px) scale(0.5); } 30% { opacity: 1; transform: translateY(-4px) scale(1); } 100% { opacity: 0; transform: translateY(-28px) scale(1.06); } }
 /*
  * 새 장비 반짝 (2026-10-17 Lim 「반짝하는 걸로 바꾸고 퀄리티를 올려줘」, 예전 fx-look-shimmer 대각선 쓸기 대신).
  * ① 장비 그림 모양 (mask = 그 장비 그림) 위로 크림빛 띠가 왼쪽 위 → 오른쪽 아래로 지나감 ② 칸 오른쪽 위가 잠깐 등급 빛으로 밝아짐
@@ -490,7 +450,7 @@
 #s-char .c7-twk.calm { z-index: auto; }
 #s-char .c7-twk.calm .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  #s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-twk-sheen,#s-char .c7-twk-glow,#s-char .c7-twk-b { display: none; }
+  #s-char .c7-twk-sheen,#s-char .c7-twk-glow,#s-char .c7-twk-b { display: none; }
   #s-char .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
 }
 

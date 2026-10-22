@@ -8,7 +8,7 @@ import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
-import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
+import { heroSaveOf, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT, TUT_CONTENT, tutReplay } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
@@ -75,10 +75,6 @@ export interface Settlement {
   levelUps: number[];
   /** 받은 장비 (34 6-7): 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim) */
   items: GearItem[];
-  /** 그 장비로 처음 얻은 특수능력 · 이름 있는 장신구 키 (결과 화면 「새 특수능력!」, 42 1-6) */
-  newSpecs: string[];
-  /** 그 장비로 처음 채운 장비 도감 칸 (34 6-10 ④, 결과 화면 「장비 도감 +n」) */
-  newDex: string[];
   /** 받은 골드 (12 3-1 클리어 골드, 91에서 되살림. 휴식이 있으면 휴식 보너스 포함, 없으면 기본 보상) */
   gold: number;
   /** 이 콘텐츠·난이도 첫 클리어 */
@@ -163,7 +159,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const levelUps = addXp(p, xp);
 
   const items: GearItem[] = [];
-  let newSpecs: string[] = [], newDex: string[] = [];
   // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
   const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
   // 탐험은 판마다 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 · 주간 도전은 언제나)
@@ -177,8 +172,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     const dropLv = r.chal ? stage : stageOf(c, r.diff);
     if (!noDrop) items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
     save.gear.bag.push(...items);
-    newDex = noteDex(save, items);
-    newSpecs = noteSpecs(save, items);
     if (raidLoot === 'first') save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
   }
 
@@ -238,6 +231,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, jobs,
+    xp, levelBefore, levelUps, items, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, jobs,
   };
 }

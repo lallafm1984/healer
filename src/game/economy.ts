@@ -16,7 +16,7 @@ import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, missionOpen, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { clearGold, MAX_LEVEL } from '../data/progression';
-import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
+import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
 
@@ -118,16 +118,15 @@ export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).ne
 // ---------- 보상 ----------
 /**
  * 이 레벨 「클리어 골드 1판」 = 그 레벨에 열린 가장 큰 콘텐츠 한 판 (보통 A, 12 3-1 · 2026-10-20 Lim 카드 「넷 다」, 103): Lv 45 전 던전 · 45~69 10인 · 70부터 20인.
- * 임무 · 상자 · 도감 골드의 기준 (예전 던전 한 판: Lv 100 일일 임무 하나가 판 49초어치였음)
+ * 임무 · 상자 골드의 기준 (예전 던전 한 판: Lv 100 일일 임무 하나가 판 49초어치였음)
  */
 export const runGold = (lv: number) => clearGold(lv, '보통', 'A', lv >= RAID20_LV ? 20 : lv >= RAID10_LV ? 10 : 0);
 
-export interface Gain { gold?: number; items?: GearItem[]; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
+export interface Gain { gold?: number; items?: GearItem[] }
 
 function give(save: SaveData, g: Gain): Gain {
   save.player.gold += g.gold || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
-  if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
   return g;
 }
 
