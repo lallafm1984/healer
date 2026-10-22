@@ -5,7 +5,7 @@
 
 한 소리에 생성본이 여럿이면 (<이름>.wav, <이름>~2.wav …, make.mjs --takes) 하나를 고름:
 폰 스피커 (약 350Hz 밑을 못 냄)로 들어도 덜 작아지고, keep 안에서 스스로 끝나며 (자른 곳이 크면 감점, 108: 길이 강제 절단 대신 다시 생성),
-잡음 같지 않은 것. <raw>/picks.json {"이름": "~2"} 이 있으면 그 생성본으로 (듣고 고른 것). 후보마다 다듬은 소리는 <raw>/takes/에 남김.
+잡음 같지 않은 것. <raw>/picks.json {"이름": "~2"} 이 있으면 그 생성본으로 (듣고 고른 것), {"이름": {"file": "경로"}} 면 그 완성 파일을 그대로. 후보마다 다듬은 소리는 <raw>/takes/에 남김.
 
 실행 (scripts/sfx/make.mjs가 부름):
   uv run --with numpy --with soundfile python scripts/sfx/process.py <raw 폴더> <출력 폴더> <params.json>
@@ -190,6 +190,14 @@ def main() -> None:
     report = []
     for p in json.loads(params.read_text(encoding="utf-8")):
         name, keep = p["name"], float(p["keep"])
+        pk = picks.get(name)
+        if isinstance(pk, dict) and pk.get("file"):
+            # 듣고 고른 것이 예전 판의 완성 파일일 때 ({"file": "루트 기준 경로"}): 생성본 대신 그 파일을 그대로 씀
+            src = raw.parent / pk["file"]
+            (out / f"{name}.ogg").write_bytes(src.read_bytes())
+            report.append({"name": name, "take": "file", "picked": "듣고 고름 (파일)", "file": pk["file"], "bytes": src.stat().st_size, "takes": []})
+            print(f"{name}: {pk['file']} (듣고 고름, 파일 그대로)")
+            continue
         srcs = [s for s in [raw / f"{name}.wav", *sorted(raw.glob(f"{name}~*.wav"))] if s.is_file()]
         if not srcs:
             report.append({"name": name, "error": "생성 파일 없음"})
