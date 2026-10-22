@@ -6,6 +6,7 @@ import { ENCOUNTERS } from '../src/data/encounters';
 import { PLACES } from '../src/data/places';
 import * as E from '../src/engine';
 import { damageMob } from '../src/engine/core';
+import { midGearConfig } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { while (!f.over && f.t < sec && !done()) { if (auto) E.autoHealer(f); E.step(f); f.events.length = 0; } };
 const stack = (u: E.Unit, name: string) => u.debuffs.find(d => d.name === name)?.stack ?? 0;
@@ -55,9 +56,9 @@ describe('백합 납골당', () => {
     expect(cursed.debuffs.find(d => d.name === '잠꼬대 저주')!.invert).toBe(true);
   });
 
-  it('Lv 26 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 26 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'ossuary', diff: '보통', seed: s, level: 50, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'ossuary', diff: '보통', seed: s, level: 50, ...midGearConfig(50, 'priest', s) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });

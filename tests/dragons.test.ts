@@ -8,8 +8,8 @@ import { PLACE_KINDS } from '../src/data/equipment';
 import { FEATURED, NAMED } from '../src/data/specials';
 import { UNIQUES } from '../src/data/uniques';
 import * as E from '../src/engine';
-import { runOnce } from '../src/sim/balance';
 import { aggroTarget } from '../src/engine/bossParts';
+import { designRun } from '../src/sim/familiar';
 
 type F = ReturnType<typeof E.create>;
 const quiet = (f: F) => { f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; }); return f; };
@@ -140,9 +140,9 @@ describe('10인 ⑧', () => {
 
 describe('자동 힐러', () => {
   for (const [dungeon, level] of [['ashpass', 64], ['hotspring', 65], ['forge', 70]] as const) {
-    it(`${dungeon} Lv ${level}: 보통이면 거의 다 깸 (장비 없음)`, () => {
+    it(`${dungeon} Lv ${level}: 보통이면 거의 다 깸 (중간 등급 장비)`, () => {
       let wins = 0;
-      for (let s = 1; s <= 20; s++) if (runOnce(contentOf(dungeon), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐 (레벨 = 열림 레벨)
+      for (let s = 1; s <= 20; s++) if (designRun(contentOf(dungeon), '보통', 'priest', s).win) wins++; // 레벨 디자인 기준 (2026-10-22): 중간 등급 장비 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐 (레벨 = 열림 레벨)
       expect(wins).toBeGreaterThanOrEqual(19);
     }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
   }

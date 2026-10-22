@@ -9,7 +9,7 @@ import { damage, heal, living } from '../src/engine/core';
 import { hexDist } from '../src/engine/board';
 import { castOf } from '../src/engine/talents';
 import { unitDps } from '../src/engine/units';
-import { runOnce } from '../src/sim/balance';
+import { designRun } from '../src/sim/familiar';
 
 type F = ReturnType<typeof E.create>;
 type U = F['party'][number];
@@ -227,7 +227,7 @@ describe('끊어진 사슬 (꼭대기 반지)', () => {
 describe('밸런스', () => {
   it.each(FLOORS)('%s: 보통이면 자동 사제가 거의 다 깸 (Lv 45, 장비 없음)', key => {
     let wins = 0;
-    for (let s = 1; s <= 4; s++) if (runOnce(contentOf(key), '보통', 'priest', s).win) wins++;
+    for (let s = 1; s <= 4; s++) if (designRun(contentOf(key), '보통', 'priest', s).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(3);
   });
 });

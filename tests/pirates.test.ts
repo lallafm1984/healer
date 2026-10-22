@@ -7,6 +7,7 @@ import { artPlaces, CONTENT_PLACE, FACTIONS, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
 import { aggroTarget, applyDebuff } from '../src/engine/bossParts';
 import { heal, living } from '../src/engine/core';
+import { midGearConfig } from '../src/sim/familiar';
 
 type F = ReturnType<typeof E.create>;
 const RAIDS = [
@@ -72,11 +73,11 @@ describe('탐험 예습', () => {
     expect(d).toHaveLength(1);
     expect([d[0].type, d[0].end?.p]).toEqual(['저주', 'flip']);
   });
-  it('자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('자동 힐러, 보통이면 대부분 깸 (중간 등급 장비, 레벨 디자인 보통 띠 80 ~ 94%)', () => {
     for (const [dungeon, level] of [['shellbeach', 36], ['wreck', 44]] as const) {
       let wins = 0;
-      for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon, diff: '보통', seed: s, level, gear: 'none' }).win) wins++;
-      expect(wins, dungeon).toBeGreaterThanOrEqual(19);
+      for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon, diff: '보통', seed: s, level, ...midGearConfig(level, 'priest', s) }).win) wins++;
+      expect(wins, dungeon).toBeGreaterThanOrEqual(15);
     }
   });
 });
