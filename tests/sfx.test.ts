@@ -88,15 +88,14 @@ describe('효과음 목록 (107)', () => {
     for (const h of HERO_KEYS) for (const b of ['heal', 'renew', 'hymn']) expect(names.has(`${b}-${h}`), `${b}-${h}`).toBe(true);
   });
 
-  it('6직업 소리: 재사용이 길수록 길고 (단계 1~4), 회복 기술에 겹치는 소리는 사제 확정본', () => {
-    const approval = JSON.parse(readFileSync('scripts/sfx/priest-approved.json', 'utf8')) as { files: { name: string }[] };
-    const priest = new Set(approval.files.map(f => f.name));
-    const cls = [...CLASS_BASE, ...CLASS_SOUNDS] as (Sound & { tier: number; layer: string })[];
+  it('6직업 소리: 재사용이 길수록 길고 (단계 1~4), 사제 소리를 섞지 않고 직업마다 고유 재료로', () => {
+    const cls = [...CLASS_BASE, ...CLASS_SOUNDS] as (Sound & { tier: number; heal: boolean; hero: string })[];
     expect(cls).toHaveLength(72);
     for (const s of cls) {
-      if (s.layer) expect(priest.has(s.layer), `${s.name} → ${s.layer}`).toBe(true);
       expect(s.keep, s.name).toBeLessThanOrEqual([0, 0.8, 1.0, 1.1, 1.45][s.tier]);
       if (s.tier === 4) expect(s.keep, s.name).toBeGreaterThanOrEqual(1.4);
+      expect(s.prompt, s.name).toContain(`${s.hero[0].toUpperCase()}${s.hero.slice(1)} character:`);
+      expect(s.prompt, s.name).not.toMatch(/priest/i);
     }
   });
 

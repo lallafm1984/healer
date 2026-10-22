@@ -53,6 +53,6 @@ if (!only) {
 }
 
 const params = join(raw, 'params.json');
-writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, presence: !!s.presence, bright: !!s.bright, warm: !!s.warm, soft: s.soft ?? 0, loop: !!s.loop, punch: !!s.punch, layer: s.layer || '' }))));
+writeFileSync(params, JSON.stringify(pick.map(s => ({ name: s.name, keep: s.keep, presence: !!s.presence, bright: !!s.bright, warm: !!s.warm, soft: s.soft ?? 0, loop: !!s.loop, punch: !!s.punch }))));
 const p = spawnSync('uv', ['run', '--no-project', '--with', 'numpy', '--with', 'soundfile', 'python', join(root, 'scripts/sfx/process.py'), raw, out, params], { cwd: root, stdio: 'inherit' });
 process.exit(p.status ?? 1);
