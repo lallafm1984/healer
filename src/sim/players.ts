@@ -14,7 +14,7 @@ import { ENCOUNTERS } from '../data/encounters';
 import { avgScore, gearStatsOf, itemScore, recommendedFor, SLOTS, specsOf, type ItemGrade } from '../data/equipment';
 import { MERCHANT } from '../data/economy';
 import { FEATURES } from '../data/features';
-import { guildLvOf } from '../data/guild';
+import { guildLvOf, hireGold } from '../data/guild';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { addXp, MAX_LEVEL, xpToNext } from '../data/progression';
 import { SKILLS } from '../data/skills';
@@ -27,7 +27,7 @@ import { rngFrom } from '../engine/rng';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { chestState, claimChalChest, claimChest, claimExped, claimGuildGoal, claimMission, missionReady } from '../game/economy';
 import { fitNow, rankStages, guideCtx, realOpen, type Fit } from '../game/guide';
-import { capOf, full, guildPartyFits, guildRoster, hire, postCost, postRecruit } from '../game/guild';
+import { capOf, full, guildPartyFits, guildRoster, hire, refreshPost } from '../game/guild';
 import { recommendPick } from '../game/recommend';
 import { refreshExped, refreshReqs } from '../game/guildjobs';
 import { buyUnknown, merchantGold } from '../game/merchant';
@@ -306,7 +306,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
             if (t.merchant !== 'none') gold(() => {
               for (let n = 0; n < 20; n++) {
                 const price = merchantGold(save.player.level), keep = t.merchant === 'spare' ? price * 3 : price;
-                if (save.player.gold < keep + (t.guild && save.guild.founded && !full(save) ? postCost(save) : 0)) break;
+                if (save.player.gold < keep + (t.guild && save.guild.founded && !full(save) ? hireGold(save.player.level) : 0)) break;
                 const slot = [...SLOTS].sort((a, b) => itemScore(save.gear.equipped[a.key], lv) - itemScore(save.gear.equipped[b.key], lv))[0].key;
                 if (typeof buyUnknown(save, slot, rng) === 'string') break;
                 bought++;
@@ -315,10 +315,13 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
             });
           }
           if (t.guild && save.guild.founded) gold(() => {
-            for (let n = 0; n < 5 && !full(save) && save.player.gold >= postCost(save); n++) {
-              if (postRecruit(save, rng)) break;
-              const cands = (save.guild.post?.cands ?? []).map((c, i) => ({ c, i })).sort((a, b) => b.c.lv - a.c.lv);
-              for (const { i } of cands) if (!full(save)) hire(save, i);
+            // 매일 공고 (2026-10-22): 그날 지원자 3명 가운데 레벨 높은 사람부터, 영입 골드 (지원자 Lv × 30)가 있으면
+            refreshPost(save, rng, now);
+            const nicks = [...(save.guild.post?.cands ?? [])].sort((a, b) => b.lv - a.lv).map(c => c.nick);
+            for (const nick of nicks) {
+              if (full(save)) break;
+              const i = save.guild.post?.cands.findIndex(c => c.nick === nick) ?? -1;
+              if (i >= 0) hire(save, i);
             }
           });
         };

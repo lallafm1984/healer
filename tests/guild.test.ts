@@ -5,11 +5,12 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
-import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
+import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
+import { dayKey } from '../src/game/clock';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, type GuildMember,
+  deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, hireGold, POST, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, type GuildMember,
 } from '../src/data/guild';
 import { birthV25, growWeights, lvAdds, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
@@ -156,42 +157,91 @@ describe('결성 (93 4-1)', () => {
     expect([s.guild.founded, s.guild.members, Gd.capOf(s).cap]).toEqual([true, [], 2]);
     expect(Gd.foundGuild(s)).toBe(false);
     expect(Gd.foundGuild(save(14))).toBe(false);
-    expect(Gd.postRecruit(s, rng)).toBe('');
-    expect(s.guild.post!.cands.length).toBe(POST.cands);
+    expect(s.guild.post!.cands.length).toBe(POST.cands); // 결성 직후 그날 공고 3명 (2026-10-22)
     expect(Gd.hire(s, 0)).toBe('');
     expect(s.guild.members.length).toBe(1);
   });
 });
 
-describe('영입 (93 4-2)', () => {
+describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 · Lv 1 ~ 내 레벨 · 레벨 비례 영입 골드)', () => {
   beforeEach(() => { seed = 7; });
-  it('모집 공고: 내 Lv × 30 골드로 3명을 모집하고, 저장을 다시 읽어도 남은 지원자를 모두 영입한다', () => {
-    const s = save(30, 1000); s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7 (103)
-    expect(postGold(30)).toBe(900);
-    expect(Gd.postRecruit(s, rng)).toBe('');
-    expect(s.player.gold).toBe(100);
-    const cands = s.guild.post!.cands;
-    expect(cands.length).toBe(POST.cands);
-    for (const c of cands) {
-      expect(c.lv).toBeGreaterThanOrEqual(25); expect(c.lv).toBeLessThanOrEqual(30);
-      expect(ABILITIES[c.ab].cls).toBe(c.cls);
-    }
-    expect(new Set(cands.map(x => x.nick)).size).toBe(3);
-    expect(Gd.postRecruit(s, rng)).toMatch(/골드 부족/);
-    const pick = cands[1];
+  const T = new Date(2026, 9, 22, 12).getTime(), H = 3600e3;
+  const founded = (lv: number, gold = 100000) => { const s = save(lv, gold); s.guild.founded = s.guild.storySeen = true; return s; };
+  it('공고는 무료, 하루 한 번 (오전 6시) 지원자 3명. 같은 날은 그대로 · 다 데려가도 그날은 새로 안 옴 · 시계를 뒤로 돌린 날도 그대로', () => {
+    const s = founded(30, 0); s.guild.fame = GUILD_STEPS[3]; // 정원 5 (셋을 다 데려가려고)
+    expect(Gd.refreshPost(s, rng, T)).toBe(true);
+    expect(s.player.gold).toBe(0);
+    const p = s.guild.post!;
+    expect([p.day, p.cands.length, p.seen, new Set(p.cands.map(c => c.nick)).size]).toEqual([dayKey(T), POST.cands, false, 3]);
+    expect(Gd.refreshPost(s, rng, T + 5 * H)).toBe(false);
+    s.player.gold = 1e6;
+    while (s.guild.post!.cands.length) expect(Gd.hire(s, 0)).toBe('');
+    expect(Gd.refreshPost(s, rng, T + 6 * H)).toBe(false); // 다음 날 오전 6시 전 (밤 12시 ~ 6시는 아직 그날)
+    expect(s.guild.post!.cands).toEqual([]);
+    expect(Gd.refreshPost(s, rng, T + 19 * H)).toBe(true); // 다음 날 오전 7시
+    expect(s.guild.post!.cands.length).toBe(3);
+    const now = JSON.stringify(s.guild.post);
+    expect(Gd.refreshPost(s, rng, T)).toBe(false);
+    expect(JSON.stringify(s.guild.post)).toBe(now);
+    expect(Gd.refreshPost(save(30), rng, T)).toBe(false); // 결성 전
+  });
+  it('지원자 레벨은 Lv 1 ~ 내 레벨 고르게 (예전 내 Lv − 5 이상), 능력치는 그 레벨까지 공개모집 굴림', () => {
+    const s = founded(40), lvs: number[] = [];
+    for (let i = 0; i < 400; i++) for (const c of Gd.makeCandidates(s, rng)) { lvs.push(c.lv); expect(ABILITIES[c.ab].cls).toBe(c.cls); }
+    expect([Math.min(...lvs), Math.max(...lvs)]).toEqual([1, 40]);
+    const mean = lvs.reduce((a, b) => a + b, 0) / lvs.length;
+    expect(mean).toBeGreaterThan(19); expect(mean).toBeLessThan(22);
+    expect(lvs.filter(l => l <= 10).length / lvs.length).toBeGreaterThan(0.2);
+    const c = Gd.makeCandidates(s, rng)[0], role = CLASSES[c.cls].role as 'tank' | 'melee' | 'ranged', p = Gd.personOf(c.nick)!;
+    const add2 = lvAdds(c.nick, c.pers, role, c.lv, p.fm.stats);
+    expect(c.stats).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, p.fm.stats[k] + add2[k]])));
+    expect(Gd.makeCandidates(founded(1), rng).every(x => x.lv === 1)).toBe(true);
+  });
+  it('영입 골드 = 지원자 Lv × 100, 모자라면 못 함. 영입한 사람만 빠지고 나머지는 저장을 다시 읽어도 남음', () => {
+    const s = founded(30, 0); s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7 (103)
+    Gd.refreshPost(s, rng, T);
+    const cands = [...s.guild.post!.cands], cost = hireGold(cands[1].lv);
+    expect(hireGold(30)).toBe(3000); // Lim 10-22 산정 (지원자 Lv × 100)
+    expect(cost).toBe(cands[1].lv * POST.hirePer);
+    expect(Gd.hire(s, 1)).toBe(`골드 부족 (${cost.toLocaleString()} 필요)`);
+    s.player.gold = cost + 5;
     expect(Gd.hire(s, 1)).toBe('');
-    expect([s.guild.members.length, s.guild.members[0].nick, s.guild.post?.cands.map(c => c.nick)]).toEqual([1, pick.nick, [cands[0].nick, cands[2].nick]]);
+    expect([s.player.gold, s.guild.members[0].nick, s.guild.post?.cands.map(c => c.nick)]).toEqual([5, cands[1].nick, [cands[0].nick, cands[2].nick]]);
     const restored = migrate(JSON.parse(JSON.stringify(s)));
-    expect(restored.guild.post?.cands.map(c => c.nick)).toEqual([cands[0].nick, cands[2].nick]);
+    restored.player.gold = 1e6;
+    expect(restored.guild.post).toMatchObject({ day: dayKey(T), cands: [{ nick: cands[0].nick }, { nick: cands[2].nick }] });
     expect(Gd.hire(restored, 1)).toBe('');
     expect(Gd.hire(restored, 0)).toBe('');
-    expect(restored.guild.members.map(m => m.nick)).toEqual([pick.nick, cands[2].nick, cands[0].nick]);
-    expect(new Set(restored.guild.members.map(m => m.id)).size).toBe(3);
-    expect(restored.player.gold).toBe(100);
-    expect(restored.guild.post).toBeNull();
+    expect(restored.guild.members.map(m => m.nick)).toEqual([cands[1].nick, cands[2].nick, cands[0].nick]);
+    expect(restored.player.gold).toBe(1e6 - hireGold(cands[2].lv) - hireGold(cands[0].lv));
+    expect(restored.guild.post).toMatchObject({ cands: [] });
     expect(Gd.hire(restored, 0)).toBe('지원자 없음');
   });
-  it('하나의 모집 공고에서 모든 직업이 나오고 희귀는 지원자당 약 3%', () => {
+  it('광고 보고 새로 뽑기 = 지원자 5명, 실제 시간 1시간에 한 번 (시계를 뒤로 돌리면 바로), 그날 공고는 그대로 하루 한 번', () => {
+    const s = founded(50);
+    Gd.refreshPost(s, rng, T);
+    expect(Gd.postAdWait(s, T)).toBe(0);
+    expect(Gd.adRefreshPost(s, rng, T)).toBe('');
+    expect([s.guild.post!.cands.length, s.guild.postAdAt, s.guild.post!.day, s.guild.post!.seen]).toEqual([POST.adCands, T, dayKey(T), true]);
+    expect(Gd.postAdWait(s, T + 20 * 60e3)).toBe(40 * 60e3);
+    expect(Gd.adRefreshPost(s, rng, T + 59 * 60e3)).toBe('아직 쿨타임');
+    expect(Gd.adRefreshPost(s, rng, T + H)).toBe('');
+    expect(Gd.postAdWait(s, T - 1)).toBe(0);
+    expect(Gd.refreshPost(s, rng, T + 2 * H)).toBe(false); // 같은 날: 광고로 뽑은 5명 그대로
+    expect(Gd.adRefreshPost(save(50), rng, T)).toBe('길드 결성 전');
+  });
+  it('빨간 점 (postNew): 새 공고를 아직 안 봤거나 날이 바뀜, 정원이 차면 없음', () => {
+    const s = founded(30);
+    expect(Gd.postNew(s, T)).toBe(true); // 공고가 아직 없음 = 곧 옴
+    Gd.refreshPost(s, rng, T);
+    expect(Gd.postNew(s, T)).toBe(true);
+    s.guild.post!.seen = true;
+    expect(Gd.postNew(s, T)).toBe(false);
+    expect(Gd.postNew(s, T + 24 * H)).toBe(true);
+    for (let i = 0; i < Gd.capOf(s).cap; i++) add(s, 'mage', i);
+    expect(Gd.postNew(s, T + 24 * H)).toBe(false);
+  });
+  it('하나의 공고에서 모든 직업이 나오고 희귀는 지원자당 약 3% (안쪽 굴림, 화면에는 등급 표시 없음)', () => {
     const s = save(40), classes = new Set<string>();
     let rare = 0, all = 0;
     for (let i = 0; i < 1000; i++) {
@@ -207,23 +257,24 @@ describe('영입 (93 4-2)', () => {
   });
   it('희귀 확률 경계와 고급 스킬 구분', () => {
     const s = save(40);
-    const roll = (chance: number) => { let n = 0; return () => n++ % 2 === 0 ? chance : 0.5; };
+    // 지원자마다 굴림 셋: 희귀 여부 · 사람 · 레벨
+    const roll = (chance: number) => { let n = 0; return () => n++ % 3 === 0 ? chance : 0.5; };
     expect(Gd.makeCandidates(s, roll(POST.rareChance - 0.00001)).every(Gd.rareCandidate)).toBe(true);
     expect(Gd.makeCandidates(s, roll(POST.rareChance)).some(Gd.rareCandidate)).toBe(false);
     const advanced = Object.values(ABILITIES).find(a => a.grade === 'rare')!;
     expect(Gd.rareCandidate({ pers: '고집불통', ab: advanced.key })).toBe(false);
   });
-  it('정원이 다 차면 공고 · 영입 안 됨', () => {
+  it('정원이 다 차면 영입 안 됨 (지원자는 그대로 보임)', () => {
     const s = save(15);
     for (let i = 0; i < 6; i++) add(s, 'mage', i);
-    expect(Gd.postRecruit(s, rng)).toMatch(/정원/);
-    s.guild.post = { cands: Gd.makeCandidates(s, rng) };
+    expect(Gd.refreshPost(s, rng, T)).toBe(true);
     expect(Gd.hire(s, 0)).toMatch(/정원/);
+    expect(s.guild.post!.cands.length).toBe(3);
   });
   it('영입 도중 정원이 차면 남은 지원자는 유지하고, 자리가 나면 이어서 영입한다', () => {
     const s = save(30); s.guild.fame = GUILD_STEPS[4]; // 길드 Lv 5 · 정원 6 (103)
     for (let i = 0; i < 5; i++) add(s, 'mage', i);
-    expect(Gd.postRecruit(s, rng)).toBe('');
+    Gd.refreshPost(s, rng, T);
     const cands = [...s.guild.post!.cands];
     expect(Gd.hire(s, 0)).toBe('');
     expect(Gd.hire(s, 0)).toMatch(/정원/);
@@ -232,14 +283,17 @@ describe('영입 (93 4-2)', () => {
     expect(Gd.hire(s, 0)).toBe('');
     expect(s.guild.post?.cands.map(c => c.nick)).toEqual([cands[2].nick]);
   });
-  it('공고 영입 시 그 지원자만 빼고 나머지 지원자는 보존한다 (명성 지원자는 2026-10-20 없앰)', () => {
-    const s = save(30);
-    Gd.postRecruit(s, rng);
-    const cands = [...s.guild.post!.cands];
-    expect(Gd.hire(s, 0)).toBe('');
-    expect(s.guild.members.map(m => m.nick)).toEqual([cands[0].nick]);
-    expect(s.guild.post?.cands.map(m => m.nick)).toEqual(cands.slice(1).map(m => m.nick));
-    expect(['apps' in s.guild, 'appsDay' in s.guild]).toEqual([false, false]);
+  it('v31 저장의 공고 지원자는 그대로 그날 공고로 (다음 날 오전 6시에 새로), 영입 골드는 그 지원자 레벨로', () => {
+    const s = founded(60), cands = Gd.makeCandidates(s, rng);
+    const old = JSON.parse(JSON.stringify({ ...s, v: 31, guild: { ...s.guild, post: { cands } } }));
+    delete old.guild.postAdAt;
+    const d = migrate(old);
+    expect(d.guild.post).toMatchObject({ day: dayKey(), seen: true, cands: cands.map(c => ({ nick: c.nick, lv: c.lv })) });
+    expect(d.guild.postAdAt).toBe(0);
+    expect(migrate(JSON.parse(JSON.stringify(d))).guild).toEqual(d.guild);
+    const g0 = d.player.gold;
+    expect(Gd.hire(d, 0)).toBe('');
+    expect(d.player.gold).toBe(g0 - hireGold(cands[0].lv));
   });
 });
 
@@ -601,7 +655,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(31);
+    expect(SAVE_VERSION).toBe(32);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;

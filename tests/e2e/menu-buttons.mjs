@@ -58,9 +58,8 @@ export default async function menuButtons(url, shots) {
     await page.reload(); await page.clock.runFor(300); await pastTitle(page);
     await page.click('#tabs [data-tab="guild"]');
     await page.click('#s-guild [data-sub="recruit"]');
-    await page.click('#s-guild [data-post="normal"]');
     await inspect('guild', '#s-guild');
-    await page.click('#s-guild [data-post="normal"]');
+    await page.click('#s-guild [data-post="ad"]');
     await inspect('confirm', '#s-guild .g-post-confirm'); await page.keyboard.press('Escape');
     await page.click('#s-guild [data-cand="0"]');
     await inspect('hire', '#s-guild .g-msheet'); await page.keyboard.press('Escape');

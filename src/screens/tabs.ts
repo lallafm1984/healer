@@ -10,7 +10,7 @@ import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
 import { talentsLeft } from '../game/charinfo';
 import { chestState, missionReady } from '../game/economy';
-import { guildOpen } from '../game/guild';
+import { guildOpen, postNew } from '../game/guild';
 import { jobsDot } from '../game/guildjobs';
 import { Flow } from '../game/flow';
 import { G, heroNow, newGearCount } from '../game/state';
@@ -50,8 +50,8 @@ export function lobbyReady(): number {
   const s = G.save, ch = chestState(s);
   return s.daily.missions.filter(missionReady).length + s.weekly.missions.filter(missionReady).length + (ch.today || ch.banked ? 1 : 0) + (s.chalChest ? 1 : 0);
 }
-/** 길드에서 확인할 것: 아직 영입하지 않은 모집 공고 지원자 */
-const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save)); // 지원자 · 부탁 쪽지 · 원정 상자 (93 8장, 빨간 점은 길드 탭 하나만)
+/** 길드에서 확인할 것: 새 공고 지원자 (매일 오전 6시, 아직 영입 탭을 안 봄, 2026-10-22) · 부탁 쪽지 · 원정 상자 (93 8장, 빨간 점은 길드 탭 하나만) */
+const guildReady = (): boolean => guildOpen(G.save).ok && (postNew(G.save) || jobsDot(G.save));
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;
   if (k === 'lobby') return lobbyReady() > 0;

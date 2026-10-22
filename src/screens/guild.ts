@@ -12,7 +12,7 @@ import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { CONTENT } from '../data/content';
-import { EXPED, REQ, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, LV_DOUBLE, type GuildMember } from '../data/guild';
+import { EXPED, hireGold, REQ, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, LV_DOUBLE, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { Flow } from '../game/flow';
@@ -20,7 +20,9 @@ import { claimExped } from '../game/economy';
 import { guideCtx, rankStages, realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
 import { abilityStars, STAT_NAMES } from '../data/fm';
-import { capOf, foundGuild, postCost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, postRecruit, release } from '../game/guild';
+import { adRefreshPost, capOf, foundGuild, postAdWait, postNew, refreshPost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, release } from '../game/guild';
+import { adsFree } from '../game/stamina';
+import { showRewarded } from '../platform/ads';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -44,8 +46,15 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.msg = ''; st.ask = null; st.tip = null; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
+// 「새로 뽑기」 쿨타임 글: 영입 탭이 보이는 동안 분 단위로 고치고, 다 되면 다시 그림
+setInterval(() => {
+  const b = s.el.querySelector<HTMLButtonElement>('[data-post="ad"]');
+  if (!b?.disabled || !s.el.getClientRects().length) return;
+  const w = postAdWait(G.save);
+  if (w > 0) b.textContent = adWaitText(w); else if (!st.sheet && !postReplace) render();
+}, 15_000);
 const modal = sheetDialog(s.el, closeSheet);
 
 /** 출전 문양 (길드 탭 깃발 그림이 없을 때), 오른쪽 화살표 */
@@ -77,7 +86,7 @@ function tabs(): string {
   const extra: Record<Sub, string> = {
     home: '',
     members: '',
-    recruit: cands ? `<i class="rdot" aria-label="지원자 ${cands}명"></i>` : '',
+    recruit: postNew(G.save) && cands ? `<i class="rdot" aria-label="새 지원자 ${cands}명"></i>` : '',
   };
   return `<nav class="subtabs" role="tablist" aria-label="길드 메뉴">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}${extra[k]}</button>`).join('')}</nav>`;
 }
@@ -109,6 +118,8 @@ function render(): void {
     return;
   }
   const hasCta = st.sub === 'home';
+  const seenPost = G.save.guild.post;
+  if (st.sub === 'recruit' && seenPost && !seenPost.seen) { seenPost.seen = true; commit(); } // 그날 공고를 봄: 빨간 점 끔
   const view = st.sub === 'home' ? homeHtml() : st.sub === 'members' ? membersHtml() : recruitHtml();
   const sheet = sheetHtml();
   if (!sheet) { st.sheet = null; st.ask = null; }
@@ -244,21 +255,27 @@ function membersHtml(): string {
 }
 
 // ---------- 영입 ----------
+/** 광고로 새로 뽑기까지 남은 시간 글 (1시간 쿨타임, 분 단위 올림) */
+const adWaitText = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))}분 뒤`;
+/**
+ * 모집 공고 (2026-10-22 Lim): 무료, 매일 오전 6시 새 지원자 3명 (Lv 1 ~ 내 레벨), 「새로 뽑기」 = 보상형 광고 한 번 (광고 제거면 바로) → 5명, 1시간에 한 번.
+ * 지원자 줄 = 영입 골드 (hireGold = 지원자 Lv × POST.hirePer). 희귀 · 스킬 등급 표시는 없음
+ */
 function recruitHtml(): string {
-  const g = G.save.guild, cap = capOf(G.save), isFull = full(G.save), gold = resourceBalance(G.save, 'gold'), my = topLevel(G.save);
+  const g = G.save.guild, cap = capOf(G.save), isFull = full(G.save), my = topLevel(G.save);
   const candRow = (c: GuildMember, i: number) => memRowHtml(card(c), {
     attrs: `data-cand="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: st.sheet?.k === 'cand' && st.sheet.i === i,
+    gold: `${goldCost(hireGold(c.lv))}<span class="sr">영입 골드</span>`,
   });
-  const cost = postCost(G.save), count = POST.cands;
-  const post = g.post, room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
-  const cands = post ? `<ul class="pcards g-list g-candidates">${post.cands.map((c, i) => candRow(c, i)).join('')}</ul>` : `<p class="g-empty0">공고를 내면 지원자 ${count}명이 찾아옵니다.<small>Lv ${Math.max(1, my - 5)} 이상 · ${roomTxt}</small></p>`;
+  const post = g.post, cands = post?.cands ?? [], room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
+  const list = cands.length ? `<ul class="pcards g-list g-candidates">${cands.map((c, i) => candRow(c, i)).join('')}</ul>` : `<p class="g-empty0">내일 새 지원자 ${POST.cands}명<small>오전 6시 · ${roomTxt}</small></p>`;
+  const wait = postAdWait(G.save), noads = adsFree(G.save);
   const postSec: Sec = {
-    key: 'post', flat: true, icon: IC.post(), title: POST.name, dot: !!post?.cands.length,
-    body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>${post ? `지원자 ${post.cands.length}명` : POST.name}<small> · ${roomTxt}</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">모든 직업 무작위 · 희귀 등장 ${POST.rareChance * 100}%</p></div>
-      <div class="g-post-action"><button class="btn mini primary" type="button" data-post="normal" aria-describedby="guild-post-cost"${post ? ' aria-haspopup="dialog"' : ''}${isFull || gold < cost ? ' disabled' : ''}>${post ? '새 공고' : '공고 내기'}</button><small id="guild-post-cost">${goldCost(cost)}</small></div></div>
-      ${gold < cost ? `<p class="g-empty0">골드 ${fmt(cost - gold)} 부족</p>` : ''}
-      ${cands}`,
-    tip: `<p>모든 직업에서 지원자 ${count}명이 무작위로 찾아옵니다 (Lv ${Math.max(1, my - 5)} 이상). 지원자마다 ${POST.rareChance * 100}% 확률로 희귀 성격 또는 희귀 스킬을 가진 사람이 등장합니다.</p><p>지원자를 누르면 능력치와 스킬을 확인하고 영입할 수 있습니다. 정원 안에서 모두 영입할 수 있으며, 영입하지 않은 지원자는 대기합니다. 새 공고를 내면 대기 중인 지원자는 돌아갑니다.</p>`,
+    key: 'post', flat: true, icon: IC.post(), title: POST.name, dot: postNew(G.save),
+    body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>지원자 ${cands.length}명<small> · ${roomTxt}</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">매일 새 ${POST.cands}명 · Lv 1~${my}</p></div>
+      <div class="g-post-action"><button class="btn mini primary" type="button" data-post="ad" aria-describedby="guild-post-ad"${cands.length ? ' aria-haspopup="dialog"' : ''}${wait ? ' disabled' : ''}>${wait ? adWaitText(wait) : '새로 뽑기'}</button><small id="guild-post-ad">${wait ? '다시 뽑기까지' : `${noads ? '바로' : '광고 보고'} ${POST.adCands}명`}</small></div></div>
+      ${list}`,
+    tip: `<p>매일 오전 6시에 모든 직업에서 지원자 ${POST.cands}명이 새로 옵니다. 지원자 레벨은 Lv 1부터 내 레벨까지 무작위입니다.</p><p>「새로 뽑기」는 ${noads ? '광고 없이' : '광고를 한 번 보면'} 지원자 ${POST.adCands}명으로 바꿉니다. 1시간에 한 번 쓸 수 있습니다.</p><p>지원자를 누르면 능력치와 스킬을 보고 영입할 수 있습니다. 영입 골드는 지원자 Lv × ${POST.hirePer}입니다. 영입하지 않은 지원자는 다음 갱신까지 남습니다.</p>`,
   };
 
   return `${isFull ? `<p class="warnbox g-full">정원 ${g.members.length} / ${cap.cap} 가득<small>길드 레벨을 올리면 정원이 늘어납니다.</small></p>` : ''}${secHtml(postSec)}`;
@@ -278,9 +295,10 @@ function sheetHtml(): string {
   if (x.k === 'cand') {
     const c = g.post?.cands[x.i];
     if (!c) return '';
-    const d = card(c);
+    const d = card(c), cost = hireGold(c.lv), gold = resourceBalance(G.save, 'gold'), short = gold < cost;
+    const limit = isFull ? '정원 가득' : short ? `골드 ${fmt(cost - gold)} 부족` : '';
     return sheetBox(`${c.nick} 상세`, `${sheetHead(d)}${memDetailHtml(d)}`,
-      `<footer class="g-hire-footer">${isFull ? '<p class="g-hire-limit">정원 가득</p>' : ''}<div class="g-hire-actions"><button class="btn2" type="button" data-shut>닫기</button><button class="btn mini primary" type="button" data-hire="${x.i}"${isFull ? ' disabled' : ''}>영입</button></div></footer>`);
+      `<footer class="g-hire-footer">${limit ? `<p class="g-hire-limit">${limit}</p>` : ''}<div class="g-hire-actions"><button class="btn2" type="button" data-shut>닫기</button><button class="btn mini primary g-hire-btn" type="button" data-hire="${x.i}"${isFull || short ? ' disabled' : ''}>영입<small>${goldCost(cost)}</small></button></div></footer>`);
   }
   const m = memberById(x.id);
   if (!m) return '';
@@ -326,18 +344,29 @@ function memberConfirmHtml(): string {
     </section>`;
 }
 
-/** 새 공고도 공통 확인 팝업을 사용한다. 확인 전에는 기존 지원자를 유지한다. */
+/** 새로 뽑기도 공통 확인 팝업 (지원자가 남아 있을 때만): 확인 전에는 기존 지원자를 유지한다. 확인 → 보상형 광고 → 5명 */
 function postConfirmHtml(): string {
   const post = G.save.guild.post;
-  if (!postReplace || !post) { postReplace = false; return ''; }
-  const cost = postCost(G.save), disabled = full(G.save) || resourceBalance(G.save, 'gold') < cost;
-  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="새 공고 취소" tabindex="-1"></button>
+  if (!postReplace || !post?.cands.length) { postReplace = false; return ''; }
+  const noads = adsFree(G.save), disabled = postAdWait(G.save) > 0;
+  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="새로 뽑기 취소" tabindex="-1"></button>
     <section class="sheet g-action-confirm g-post-confirm" role="dialog" aria-modal="true" aria-labelledby="guildPostTitle" aria-describedby="guildPostDesc">
-      <h3 id="guildPostTitle">새 공고</h3>
-      <p id="guildPostDesc">현재 지원자 ${post.cands.length}명이 돌아갑니다.<br>새 지원자 ${POST.cands}명을 모집하시겠습니까?</p>
-      <div class="g-action-cost"><span>모집 비용</span>${goldCost(cost)}</div>
-      <div class="g-action-buttons"><button type="button" id="cancelPost" data-shut>취소</button><button type="button" class="primary" data-confirm-post="normal"${disabled ? ' disabled' : ''}>확인</button></div>
+      <h3 id="guildPostTitle">새로 뽑기</h3>
+      <p id="guildPostDesc">현재 지원자 ${post.cands.length}명이 돌아갑니다.<br>새 지원자 ${POST.adCands}명을 받으시겠습니까?</p>
+      <div class="g-action-cost"><span>${noads ? '광고 없이 바로' : '보상형 광고 1회'}</span><b>${POST.adCands}명</b></div>
+      <div class="g-action-buttons"><button type="button" id="cancelPost" data-shut>취소</button><button type="button" class="primary" data-confirm-post="ad"${disabled ? ' disabled' : ''}>확인</button></div>
     </section>`;
+}
+/** 보상형 광고 (광고 제거면 바로) → 지원자 5명. 광고를 끝까지 안 보면 그대로 */
+async function adRefresh(): Promise<void> {
+  const ok = await showRewarded(`새 지원자 ${POST.adCands}명`, adsFree(G.save));
+  if (ok) {
+    const err = adRefreshPost(G.save, Math.random);
+    sfx(err ? 'deny' : 'guild-recruit');
+    st.msg = err || `새 지원자 ${POST.adCands}명 도착`;
+    commit();
+  }
+  render();
 }
 
 function confirmMemberAction(): void {
@@ -378,8 +407,7 @@ s.el.addEventListener('click', e => {
   if (confirmPost) {
     if (postReplace && !confirmPost.disabled) {
       postReplace = false;
-      st.msg = postRecruit(save, Math.random);
-      commit(); render();
+      render(); void adRefresh();
     }
     return;
   }
@@ -402,7 +430,7 @@ s.el.addEventListener('click', e => {
   const tip = t.closest<HTMLElement>('[data-tip]');
   if (tip) { const k = tip.dataset.tip!; st.tip = st.tip === k ? null : k; render(); return; }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
-  if (t.closest('#found')) { const ok = foundGuild(save); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, rankStages(guideCtx()), Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
+  if (t.closest('#found')) { const ok = foundGuild(save, Math.random); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, rankStages(guideCtx()), Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
   if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); st.sub = 'recruit'; st.tip = null; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   if (t.closest('#guildRecruit')) { st.sub = 'recruit'; st.tip = null; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
@@ -412,9 +440,8 @@ s.el.addEventListener('click', e => {
   const post = t.closest<HTMLButtonElement>('[data-post]');
   if (post) {
     if (!post.disabled) {
-      if (save.guild.post) { postReplace = true; render(); return; }
-      st.msg = postRecruit(save, Math.random);
-      postReplace = false; commit(); render();
+      if (save.guild.post?.cands.length) { postReplace = true; render(); return; }
+      void adRefresh();
     }
     return;
   }

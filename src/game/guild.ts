@@ -9,7 +9,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE,
+  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, hireGold, lowStageXp, POST, REQ, REST_SHARE,
   memberSkillLevel, LV_DOUBLE, spendPoints, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -60,11 +60,8 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
   const nm: GuildMember = { ...m, id: g.nextId++, joined: Date.now() };
   g.members.push(nm);
-  // 합류한 사람만 공고 지원자에서 빼고 나머지 지원자는 유지한다.
-  if (g.post) {
-    g.post.cands = g.post.cands.filter(c => c.nick !== m.nick);
-    if (!g.post.cands.length) g.post = null;
-  }
+  // 합류한 사람만 공고 지원자에서 빼고 나머지 지원자는 다음 갱신까지 유지한다 (다 데려가도 그날 공고는 남음: 같은 날 다시 3명이 오지 않게)
+  if (g.post) g.post.cands = g.post.cands.filter(c => c.nick !== m.nick);
   return nm;
 }
 
@@ -73,10 +70,11 @@ function join(save: SaveData, m: GuildMember): GuildMember {
  * 길드원 없이 결성한다 (Lim 10-21 「길드에서 스토리 동료 제거, 자동 영입 제거」): 영입은 모집 공고로만.
  * 예전엔 말없는탱 (스토리 동료) + 도적 1명이 저절로 들어왔음 (정원 2, 103).
  */
-export function foundGuild(save: SaveData): boolean {
+export function foundGuild(save: SaveData, r: () => number = Math.random, now = Date.now()): boolean {
   const g = save.guild;
   if (g.founded || !guildOpen(save).ok) return false;
   g.founded = true;
+  refreshPost(save, r, now); // 결성 직후에도 그날 지원자 3명 (2026-10-22)
   return true;
 }
 
@@ -88,37 +86,59 @@ function strangers(save: SaveData, ok: (p: Person) => boolean, taken: Set<string
 function drawOne(list: Person[], r: () => number): Person | null {
   return list.length ? list[Math.min(list.length - 1, Math.floor(r() * list.length))] : null;
 }
-/** 고급 스킬은 희귀가 아니다. 희귀 성격 또는 희귀 등급 스킬을 가진 사람을 하나의 희귀 풀로 센다. */
+/** 고급 스킬은 희귀가 아니다. 희귀 성격 또는 희귀 등급 스킬을 가진 사람을 하나의 희귀 풀로 센다 (안쪽 굴림만, 화면에는 등급 표시 없음, 2026-10-22). */
 export const rareCandidate = (p: Pick<Person, 'pers' | 'ab'>) => 'rare' in PERS[p.pers] || ABILITIES[p.ab]?.grade === 'epic';
-export const postCost = (save: SaveData) => postGold(topLevel(save));
-/** 내 Lv − 5 이상, 중복 없이 3명. 희귀 여부를 먼저 굴린 뒤 해당 풀에서 직업 구분 없이 뽑는다. */
-export function makeCandidates(save: SaveData, r: () => number): GuildMember[] {
+/**
+ * 지원자 n명 (중복 없이, 길드원이 아닌 사람): 희귀 여부를 먼저 굴린 뒤 그 풀에서 직업 구분 없이, 레벨은 Lv 1 ~ 내 레벨 고르게 (2026-10-22 Lim 「1레벨 부터 캐릭터 레벨까지 랜덤」).
+ * 능력치는 그 레벨까지 공개모집과 같은 레벨업 굴림 (newMember). 예전엔 내 Lv − 5 이상 · 그 사람 세상 레벨
+ */
+export function makeCandidates(save: SaveData, r: () => number, n: number = POST.cands): GuildMember[] {
   const my = topLevel(save), taken = new Set<string>(), out: GuildMember[] = [];
-  for (let i = 0; i < POST.cands; i++) {
-    let list = strangers(save, p => worldLevel(save, p) >= my - POST_LV_GAP, taken);
-    if (!list.length) list = strangers(save, () => true, taken);
+  for (let i = 0; i < n; i++) {
+    const list = strangers(save, () => true, taken);
     const rare = r() < POST.rareChance;
     const pool = list.filter(p => rareCandidate(p) === rare);
     const p = drawOne(pool.length ? pool : list, r);
     if (!p) break;
     taken.add(p.nick);
-    out.push(newMember(save, p, worldLevel(save, p)));
+    out.push(newMember(save, p, 1 + Math.min(my - 1, Math.floor(r() * my))));
   }
   return out;
 }
-export function postRecruit(save: SaveData, r: () => number): string {
-  const g = save.guild, gold = postCost(save);
-  if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
-  if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
-  spendResource(save, 'gold', gold);
-  g.post = { cands: makeCandidates(save, r) };
+/** 매일 공고 (오전 6시, dayKey): 결성한 길드에 그날 공고가 없으면 지원자 POST.cands명. 시계를 뒤로 돌린 날은 그대로. 새로 왔으면 true */
+export function refreshPost(save: SaveData, r: () => number, now = Date.now()): boolean {
+  const g = save.guild, day = dayKey(now);
+  if (!g.founded || (g.post && g.post.day >= day)) return false;
+  g.post = { day, cands: makeCandidates(save, r, POST.cands), seen: false };
+  return true;
+}
+/** 새 지원자가 왔거나 올 것 (길드 탭 · 영입 탭 빨간 점): 정원이 남았고 그날 공고를 아직 안 봤거나 날이 바뀜 */
+export function postNew(save: SaveData, now = Date.now()): boolean {
+  const g = save.guild, p = g.post;
+  return g.founded && !full(save) && (!p || p.day < dayKey(now) || (!p.seen && p.cands.length > 0));
+}
+/** 광고로 새로 뽑기까지 남은 시간 (ms, 0 = 지금 됨). 실제 시간 1시간 (시계를 뒤로 돌렸으면 바로) */
+export function postAdWait(save: SaveData, now = Date.now()): number {
+  const at = save.guild.postAdAt ?? 0;
+  return at > now ? 0 : Math.max(0, at + POST.adCooldownMs - now);
+}
+/** 보상형 광고를 본 뒤 (광고 제거면 바로): 지원자를 POST.adCands명으로 새로. 성공 = 빈 문자열 */
+export function adRefreshPost(save: SaveData, r: () => number, now = Date.now()): string {
+  const g = save.guild;
+  if (!g.founded) return '길드 결성 전';
+  if (postAdWait(save, now) > 0) return '아직 쿨타임';
+  g.post = { day: dayKey(now), cands: makeCandidates(save, r, POST.adCands), seen: true };
+  g.postAdAt = now;
   return '';
 }
-/** 고른 공고 지원자를 영입한다. 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
+/** 고른 공고 지원자를 영입한다 (골드 = 지원자 Lv × POST.hirePer, hireGold). 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
 export function hire(save: SaveData, i: number): string {
   const g = save.guild, c = g.post?.cands[i];
   if (!c) return '지원자 없음';
   if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
+  const gold = hireGold(c.lv);
+  if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', gold);
   join(save, c);
   return '';
 }
