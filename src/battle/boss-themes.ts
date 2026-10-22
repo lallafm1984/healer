@@ -4,6 +4,10 @@
  * 소리 문장은 scripts/sfx/boss.mjs. 표에 없는 기술 (새로 더한 기술)은 공통 착탄 (battle/combat-sound.ts impactSound)
  */
 export const BOSS_SKILL_SOUND: Record<string, string> = {
+  "orben:drip": 'boss-frost-wave', // 대마도사 오르벤 · 서리 바람 (111)
+  "abysslord:drip": 'boss-shadow-wave', // 심연의 군주 · 심연의 숨 (111)
+  "butler13:tray": 'boss-metal-hit', // 집사 유령 · 쟁반 던지기 (111)
+  "guardian23:buster": 'boss-earth-hit', // 신전 수호상 · 돌 주먹 (111)
   "crab36:wave": 'boss-water-wave', // 집게발 갑판장 · 거품 파도 (111 탐험 50% 구간)
   "peg38:hook": 'boss-metal-hit', // 밀수꾼 두목 외눈 페그 · 갈고리 당기기 (111 탐험 50% 구간)
   "goldbeard44:roar": 'boss-sound-wave', // 해적 선장 금빛수염 · 해적의 함성 (111 탐험 50% 구간)
@@ -1154,6 +1158,13 @@ export const BOSS_SKILL_OWN: Record<string, string> = {
 
 /** 예고 없이 바로 쓰는 보스 기술 → 특성 시전 소리 (boss-<특성>-cast). 키 = <대본>:<기술 key> (scripts/sfx/boss.mjs) */
 export const BOSS_CAST_SOUND: Record<string, string> = {
+  "hydra:drip": 'boss-poison-cast', // 111
+  "twins:drip": 'boss-shadow-cast', // 111
+  "belmore:drip": 'boss-shadow-cast', // 111
+  "shadow:drip": 'boss-frost-cast', // 111
+  "scholar:drip": 'boss-frost-cast', // 111
+  "priestess48:wilt": 'boss-nature-cast', // 111
+  "golem18:touch": 'boss-frost-cast', // 111
   "dwijuk:shell": 'boss-frost-cast', // 111 단단한 껍질
   "kwangkwang:shell": 'boss-shadow-cast', // 111 단단한 껍질
   "dolgae:charge": 'boss-lightning-cast', // 111 충전

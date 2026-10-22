@@ -840,6 +840,15 @@ const half = (text: string, o: { start?: string[]; period?: [string, number][]; 
   ],
 });
 
+/**
+ * 계속 아픈 것 (111 2-B, 2026-10-23): 한가한 판 (심연의 탑 · 판단 던전)에 채울 거리. 죽이는 피해가 아니라 짧은 지속 피해를 여럿에게 (n = 'all'이면 모두).
+ * 해제 유형은 그 보스 세력 것 (지울 수 있으면 지름길, 아니면 지속 힐로)
+ */
+const drip = (key: string, name: string, icon: string, type: string, n: number | 'all', first: number, period: number, dot: number, o: { left?: number; when?: SkillWhen; how?: string } = {}): SkillDef => ({
+  key, name, icon, kind: 'instant', first, period, cast: 0, when: o.when, how: o.how ?? `${n === 'all' ? '모두' : `${n}명`}에게 짧은 지속 피해 (${type}). 지울 수 있으면 지우고, 아니면 지속 힐로 채우기`,
+  effect: { p: 'debuff', n, debuff: { name, type, left: o.left ?? 8, dot } },
+});
+
 export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
   // 고철 경비병 (23 3장): 문지기를 순하게 줄인 첫 보스. 탱커 버스터 + 광역만
   scrap: {
@@ -884,6 +893,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'order', name: '차례대로 모시기', icon: '차례', kind: 'instant', first: 15, period: 30, cast: 2,
         how: '번호 순서대로 직접 힐을 한 번씩. 빠른 힐로 순서를 빨리',
         effect: { p: 'order', n: 2, sec: 8, wrong: 130, miss: 105, daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'tray', name: '쟁반 던지기', icon: '쟁반', kind: 'buster', first: 12, period: 20, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, // 111 2-B
+        how: '탱커 아닌 한 명에게 쟁반. 예고된 사람을 미리 채우기', effect: { p: 'strike', dmg: 220 } },
     ],
     enrage: { name: '접대 끝', period: 2, dmg: 160 },
   },
@@ -927,6 +938,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       AUTO(85),
       BUSTER('룬 주먹', '주먹', 8, 16, 385),
       { key: 'quake', name: '룬 진동', icon: '진동', kind: 'aoe', first: 12, period: 15, cast: 2, warn: 'aoe', effect: { p: 'quake', dmg: 50, lock: 3 } },
+      { key: 'touch', name: '서리 손길', icon: '손길', kind: 'instant', first: 10, period: 20, cast: 0, // 111 2-B (서리 마탑 썩는 상처 예습)
+        how: '탱커가 12초 동안 받는 치유 −20% (마법). 지우거나, 룬 주먹 전에 더 일찍 채우기',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '서리 손길', type: '마법', left: 12, healCut: 0.2 } } },
     ],
     enrage: { name: '룬 폭주', period: 2, dmg: 170 },
   },
@@ -940,6 +954,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'stagger', name: '우르릉 힘 모으기', icon: '우르', kind: 'instant', first: 20, period: 45, cast: 0,
         how: '10초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 광역 · 지속 힐로 전원을 70% 위로, 돌가루 (침묵)는 지우기',
         effect: { p: 'stagger', sec: 10, need: 7, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 275, lock: 3 } } },
+      BUSTER('돌 주먹', '주먹', 8, 18, 340), // 111 2-B (던전 깨진 신전에서 빌림)
     ],
     enrage: { name: '돌 폭주', period: 2, dmg: 180 },
   },
@@ -1053,6 +1068,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'youth', name: '젊음의 갈망', icon: '갈망', kind: 'instant', first: 20, period: 25, cast: 3, cut: true,
         how: '체력 비율이 가장 낮은 사람에게서 빨아들여 보스가 회복. 예고 동안 낮은 사람을 채우기',
         effect: { p: 'debuff', n: 1, pick: 'lowest', debuff: { name: '젊음의 갈망', type: '물리', left: 4, dot: U.dps(0.08), lock: true, feed: 0.5 } } },
+      drip('drip', '장원의 한기', '한기', '저주', 'all', 16, 22, U.dps(0.012)), // 111 2-B 계속 아픈 것
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'invert2', in: 2 }, { p: 'text', text: '무너지는 젊음: 뒤집힌 축복 2명' }] }],
     enrage: { name: '젊음의 폭주', period: 2, dmg: 240 },
@@ -1114,6 +1130,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'mark', name: '서리 표식', icon: '표식', kind: 'instant', first: 28, period: 32, cast: 0,
         how: '함정. 끝나거나 지우면 이웃 칸이 터짐. 두고 이웃 칸 사람을 채우기',
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '서리 표식', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: U.dps(0.3) } } } },
+      drip('drip', '얼어붙은 공기', '공기', '마법', 'all', 18, 22, U.dps(0.012)), // 111 2-B
     ],
     watch: { cap: 1.5, sec: 6, tauntSec: 3, every: 1.5, dmg: U.me(0.15), mythicRate: 1.3 },
     enrage: { name: '서리 폭풍', period: 2, dmg: 240 },
@@ -1306,6 +1323,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       })),
       { key: 'crack', name: '얼음 깨짐', icon: '깨짐', kind: 'instant', first: 20.5, period: 22, cast: 0, effect: { p: 'hole', n: 1, max: 6 } }, // 바닥이 언 뒤 가장자리가 구멍
       { key: 'aoe', name: '눈보라 강의', icon: '눈보', kind: 'aoe', first: 26, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+      drip('drip', '찬 바람', '찬바', '마법', 'all', 20, 22, U.dps(0.012)), // 111 2-B
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'recoil', sec: 20 }, { p: 'text', text: '마지막 강의: 역류가 잦아짐' }] }],
     enrage: { name: '강의 폭주', period: 2, dmg: 280 },
@@ -1370,6 +1388,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '12초 동안 넘친 치유가 꽃병에 모임. 가득 차면 전원 보호막. 일부러 넘치게 힐하기',
         effect: { p: 'vessel', name: '백합 꽃병', need: 0.25, sec: 12, shield: 10 } },
       { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 23, period: 36, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.21) } },
+      { key: 'wilt', name: '시든 백합', icon: '시든', kind: 'instant', first: 8, period: 18, cast: 0, // 111 2-B (던전 백합 납골당에서 빌림)
+        how: '받는 치유 −35% (저주). 지우면 꽃병을 채우기 쉬움, 못 지우면 걸린 사람은 더 오래 힐',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '시든 백합', type: '저주', left: 10, healCut: 0.35 } } },
     ],
     enrage: { name: '꽃잎 폭주', period: 2, dmg: 195 },
   },
@@ -3721,6 +3742,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'spew', name: '독안개 분출', icon: '분출', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2] },
         effect: { p: 'all', dmg: U.dps(0.17), debuff: { name: '독안개', type: '독', left: 10, dot: U.dps(0.007), stackMax: 3 } } },
       { key: 'sink', name: '늪에 잠김', icon: '잠김', kind: 'zone', first: 30, period: 30, cast: 3, warn: 'zone', dps: U.dps(0.04), dur: 10, when: { mythic: true }, cells: { p: 'line', at: 'back' } },
+      drip('drip', '늪 독기', '독기', '독', 4, 12, 16, U.dps(0.02), { left: 10 }), // 111 2-B
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
       { p: 'phase', n: 2, name: '2페이즈 · 머리가 셋' }, { p: 'start', skill: 'heads2', in: 2 }, { p: 'start', skill: 'spew', in: 6 }, { p: 'start', skill: 'breath2', in: 1 },
@@ -3752,6 +3774,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'trade', name: '뒤바뀐 자매', icon: '뒤바', kind: 'instant', first: 40, period: 40, cast: 2, when: { mythic: true }, effect: { p: 'trade', name: '가시' } },
       { key: 'grief', name: '상실의 분노', icon: '분노', hidden: true, first: null, period: 9999, cast: 0,
         how: '한쪽이 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지)', effect: { p: 'empower', boost: 0.3 } },
+      drip('drip', '자매의 속삭임', '속삭', '저주', 3, 10, 16, U.dps(0.02), { left: 10 }), // 111 2-B
     ],
     flow: [
       { p: 'when', if: { phase: 1, hpBelow: 0.6 }, do: [
@@ -3797,6 +3820,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '마력 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: U.me(0.07) } } } },
       { key: 'broken', name: '깨진 시간', icon: '깨진', kind: 'instant', first: null, period: 20, cast: 2, warn: 'aoe', when: { phase: [2], mythic: true },
         how: '3초 동안 내 시전 시간 2배. 예고가 뜨면 즉시 스킬 · 지속 힐로 버티기', effect: { p: 'slow', sec: 3, mult: 2 } },
+      { key: 'drip', name: '서리 바람', icon: '바람', kind: 'aoe', first: 14, period: 12, cast: 1.5, warn: 'aoe', when: { phase: [1, 2] }, // 111 2-B 계속 아픈 것
+        how: '12초마다 모두 조금씩. 큰 광역 전에 체력을 올려 두기', effect: { p: 'all', dmg: U.dps(0.08) } },
     ],
     flow: [
       { p: 'when', if: { phase: 1, hpBelow: 0.55 }, do: [
@@ -3842,6 +3867,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'collapse', name: '첨탑 붕괴', icon: '붕괴', kind: 'zone', first: null, period: 18, cast: 2.5, warn: 'zone', dps: U.dps(0.07), dur: 8, when: { phase: [2, 3, 4] }, cells: { p: 'edge' } },
       { key: 'dusk', name: '짙어지는 저녁', icon: '저녁', hidden: true, first: null, period: 10, cast: 0, when: { phase: [3, 4] },
         how: '10초마다 보스 피해 +5% (끝까지 쌓임). 쿨기는 이 구간에', effect: { p: 'empower', boost: 0.05 } },
+      { key: 'drip', name: '심연의 숨', icon: '숨', kind: 'aoe', first: 12, period: 10, cast: 1.5, warn: 'aoe', when: { phase: [1, 2, 3, 4] }, // 111 2-B 계속 아픈 것
+        how: '10초마다 모두 조금씩. 그림자 파동과 겹칠 때 미리 채우기', effect: { p: 'all', dmg: U.dps(0.07) } },
     ],
     flow: [
       { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
