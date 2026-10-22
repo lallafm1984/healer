@@ -9,7 +9,9 @@ import { SOUNDS } from '../scripts/sfx/sounds.mjs';
 // @ts-expect-error 생성 스크립트의 목록
 import { COMBAT_SOUNDS, EXTRA_SOUNDS } from '../scripts/sfx/combat.mjs';
 import { FX_SOUND, impactSound, bossSoundsFor } from '../src/battle/combat-sound';
-import { BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from '../src/battle/boss-themes';
+import { ABILITY_SOUND_OF, BOSS_CAST_OWN, BOSS_CAST_SOUND, BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from '../src/battle/boss-themes';
+import { CLASS_SKILL_SOUNDS, CLASS_TALENT_SOUNDS } from '../src/battle/class-sound';
+import { SPECS } from '../src/data/specials';
 import { BOSSES } from '../src/data/bosses';
 import { PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS } from '../src/battle/priest-sound';
 
@@ -42,7 +44,12 @@ function used(): Set<string> {
   }
   for (const base of ['heal', 'renew', 'hymn']) { out.delete(base); for (const h of HERO_KEYS) out.add(`${base}-${h}`); }
   for (const n of Object.values(FX_SOUND)) out.add(n);
-  for (const n of [...Object.values(BOSS_SKILL_SOUND), ...Object.values(BOSS_SKILL_OWN)]) out.add(n);
+  for (const n of [...Object.values(BOSS_SKILL_SOUND), ...Object.values(BOSS_SKILL_OWN), ...Object.values(BOSS_CAST_SOUND), ...Object.values(BOSS_CAST_OWN), ...Object.values(ABILITY_SOUND_OF)]) out.add(n);
+  // 6직업 기술 · 특성 버튼 소리, 치명적 치유 (core.ts Snd.play `${hero}-crit`), 장비 특수능력 묶음 소리 (combat-sound specSound `spec-${group | hero}`)
+  for (const m of [CLASS_SKILL_SOUNDS, CLASS_TALENT_SOUNDS]) for (const per of Object.values(m)) for (const n of Object.values(per ?? {}) as string[]) out.add(n);
+  for (const h of HERO_KEYS) if (h !== 'priest') out.add(`${h}-crit`);
+  for (const sp of Object.values(SPECS)) if (sp.group !== 'hero') out.add(`spec-${sp.group}`);
+  for (const h of HERO_KEYS) out.add(`spec-${h}`);
   for (const mapping of [PRIEST_SKILL_SOUNDS, PRIEST_TALENT_SOUNDS, PRIEST_FEEDBACK_SOUNDS]) for (const n of Object.values(mapping)) out.add(n!);
   out.add('priest-relay-hop');
   const combat = readFileSync('src/battle/combat-sound.ts', 'utf8');

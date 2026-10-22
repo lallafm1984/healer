@@ -1,6 +1,7 @@
 /**
  * 보스 기술 착탄 소리 (2026-10-21 Lim 「보스 기술 - 보스별로 스킬의 특성을 이용하여 개별적으로 효과음을 만들자」):
  * 기술마다 특성 (src/battle/boss-themes.ts: 불 · 얼음 · 독 …)을 붙이고, 특성 × 맞는 방식 (강타 hit · 광역 wave · 장판 ground)마다 소리 하나.
+ * 예고 없이 바로 쓰는 기술은 특성마다 시전 소리 (cast, 2026-10-22 Lim 「전투를 풍요롭게」)
  * 이름 = boss-<특성>-<방식>. 쓰는 곳에 있는 조합만 만듦 (BOSS_THEME_KINDS). 생성은 make.mjs에 이름을 줌 (예: node scripts/sfx/make.mjs 'boss-fire-*')
  */
 export const HEAD = 'Original sound design for a warm tactile fantasy healer game. ';
@@ -10,9 +11,10 @@ export const KIND = {
   hit: { ko: '강타', keep: 0.9, lead: 'A monstrous boss lands one devastating single blow on a shielded knight:' },
   wave: { ko: '광역', keep: 1.1, lead: 'A boss unleashes a powerful attack that sweeps over the whole party at once:' },
   ground: { ko: '장판', keep: 0.9, lead: 'A boss attack erupts from the ground under the party:' },
+  cast: { ko: '시전', keep: 0.8, lead: 'A monster boss uses a skill instantly:' },
 };
 
-/** 특성 → [한국어, 강타, 광역, 장판 소리 묘사] */
+/** 특성 → [한국어, 강타, 광역, 장판 소리 묘사]. 시전 (cast) 묘사는 BOSS_CAST */
 export const BOSS_THEMES = {
   blade: ['칼날', 'a massive blade cleaves down with a ringing steel shriek and a hard metallic crack.',
     'a huge blade arc whooshes across everyone, a long steel swish ending in a sharp slicing ring.',
@@ -70,6 +72,28 @@ export const BOSS_THEMES = {
     'projectiles pepper the floor, rapid whistling shots and sharp punchy thuds.'],
 };
 
+/** 특성 → 바로 쓰는 기술의 시전 소리 묘사 */
+export const BOSS_CAST = {
+  'blade': 'it flicks a blade through the air with a sharp ringing steel shing and a quick menacing swish.',
+  'blunt': 'it pounds its huge fists together with a heavy thudding clap and a short rumbling shake.',
+  'beast': 'a monstrous creature scrapes its claws with a sharp rasping hiss and a quick animal snarl texture.',
+  'fire': 'a burst of flame flares up in its claws with a whooshing ignition and crackling embers.',
+  'frost': 'freezing magic gathers with a crisp crackling of frost and tinkling ice crystals.',
+  'poison': 'toxic bubbles swell and pop with a wet gurgling hiss and a sticky splash.',
+  'lightning': 'electricity charges up with a buzzing crackle and a sharp snapping spark.',
+  'water': 'water swirls up with a splashing gush and bubbling droplets.',
+  'wind': 'a gust is summoned with a rising whooshing swirl and flapping air.',
+  'earth': 'stone grinds and cracks as rocks rise with a gritty crunching rumble.',
+  'shadow': 'dark magic gathers with a hollow sucking whoosh and an eerie airy rasp.',
+  'holy': 'light gathers with a bright shimmering swell and a crisp radiant ping.',
+  'arcane': 'raw magic is woven with a warping magical hum and crackling glassy sparks.',
+  'sound': 'a booming drum-like pulse and a rattling resonant buzz ring out.',
+  'blast': 'a fuse is lit with a hissing sizzle and a sharp small pop.',
+  'nature': 'vines and leaves burst into motion with a lively rustling swish and snapping twigs.',
+  'metal': 'gears clank and chains rattle with a sharp metallic clatter.',
+  'projectile': 'something is hurled with a quick whooshing throw and a sharp whistling flight.',
+};
+
 /** 보스 기술에 실제로 쓰는 특성 × 방식 (boss-themes.ts에서 셈). 소리 목록 · 생성은 이것만 */
 export const BOSS_THEME_KINDS = [
   ['blade', 'hit'],
@@ -122,12 +146,30 @@ export const BOSS_THEME_KINDS = [
   ['projectile', 'hit'],
   ['projectile', 'wave'],
   ['projectile', 'ground'],
+  ['arcane', 'cast'],
+  ['beast', 'cast'],
+  ['blade', 'cast'],
+  ['blast', 'cast'],
+  ['blunt', 'cast'],
+  ['earth', 'cast'],
+  ['fire', 'cast'],
+  ['frost', 'cast'],
+  ['holy', 'cast'],
+  ['lightning', 'cast'],
+  ['metal', 'cast'],
+  ['nature', 'cast'],
+  ['poison', 'cast'],
+  ['projectile', 'cast'],
+  ['shadow', 'cast'],
+  ['sound', 'cast'],
+  ['water', 'cast'],
+  ['wind', 'cast'],
 ];
 
 export const BOSS_SOUNDS = BOSS_THEME_KINDS.map(([theme, kind]) => {
-  const [ko, ...desc] = BOSS_THEMES[theme], k = KIND[kind], i = ['hit', 'wave', 'ground'].indexOf(kind);
+  const [ko, ...ds] = BOSS_THEMES[theme], k = KIND[kind], desc = [...ds, BOSS_CAST[theme]], i = ['hit', 'wave', 'ground', 'cast'].indexOf(kind);
   return {
-    name: `boss-${theme}-${kind}`, group: '보스 기술', where: `보스 기술 착탄: ${ko} 특성 ${k.ko}`, ko: `${ko} ${k.ko}`, p: 'P0',
+    name: `boss-${theme}-${kind}`, group: '보스 기술', where: `보스 기술 ${kind === 'cast' ? '시전' : '착탄'}: ${ko} 특성 ${k.ko}`, ko: `${ko} ${k.ko}`, p: 'P0',
     gen: 2, keep: k.keep, presence: true, punch: true, prompt: `${HEAD}${k.lead} ${desc[i]} ${loud(k.keep)}`, match: desc[i],
   };
 });

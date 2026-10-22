@@ -151,7 +151,7 @@ export interface Coach { uid: number | null; freeze: boolean; until: number; nee
 export const ui = {
   selectedUnitId: null as number | null,
   pointer: null as Pointer | null, lastHealSnd: 0, lastAtkSnd: 0, tickSec: null as number | null, lowFlags: {} as Record<number, boolean>, lastLowVibe: 0, qAt: 0,
-  vibeAt: 0, vibedTel: new Set<number>(), warnedTel: new Set<number>(), flowAt: new Map<object, number>(), telSnap: [] as Telegraph[], lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
+  vibeAt: 0, vibedTel: new Set<number>(), warnedTel: new Set<number>(), flowAt: new Map<object, number>(), telSnap: [] as Telegraph[], breaks: 0, lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
   touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, busterHint: false,
   swipes: {} as Record<string, number>, swipeCancel: 0, swipeEmpty: 0,
   coach: null as Coach | null,
@@ -203,6 +203,7 @@ export const Snd = {
   play(name: string) {
     if (!S.sound) return;
     if (S.hero === 'priest' && PRIEST_FEEDBACK_SOUNDS[name] && sfx(PRIEST_FEEDBACK_SOUNDS[name])) return;
+    if (name === 'crit' && S.hero !== 'priest' && sfx(`${S.hero}-crit`)) return; // 6직업 치명적 치유 (class-sound)
     if (HERO_SND.has(name) && sfx(`${name}-${S.hero}`, name === 'heal' ? { rate: HEAL_RATE[(Math.random() * HEAL_RATE.length) | 0] } : {})) return;
     if (sfx(name)) return;
     this.synth(SYNTH[name] ?? name);
@@ -286,7 +287,7 @@ export function alarm(a: { title: string; text: string } | null): void {
   if (a) {
     el.querySelector('b')!.textContent = a.title;
     el.querySelector('span')!.textContent = a.text;
-    if (!was) vibe([30, 50, 30]);
+    if (!was) { vibe([30, 50, 30]); Snd.play('alarm-rule'); } // 2026-10-22: 진동만 있던 붉은 경고에 소리
   } else { noteAt = performance.now(); showNote(); }
 }
 let bannerTimer: ReturnType<typeof setTimeout> | undefined;

@@ -19,6 +19,7 @@ import type { ClassKey } from '../data/classes';
 import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
 import { bossSoundsFor, combatSounds, impactSound } from './combat-sound';
 import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
+import { classSounds, CLASS_TALENT_SOUNDS } from './class-sound';
 import { autoHealer, create, DT, noviceHealer, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats, type Telegraph } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -73,7 +74,7 @@ function startBattle(guideSec = 0): void {
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
-    vibedTel: new Set(), warnedTel: new Set(), flowAt: new Map(), telSnap: [], debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
+    vibedTel: new Set(), warnedTel: new Set(), flowAt: new Map(), telSnap: [], breaks: 0, debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
   });
   closeTip(); resetBoardFx(); resetDmgNums();
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
@@ -272,6 +273,7 @@ function pressSlot(slot: string): void {
   // 대상 없는 스킬 · 되살리기 (환생: 탱커 먼저, 엔진 reviveTarget)는 누르면 바로 (2026-10-19 Lim 「버튼을 클릭하면 대상지정없이 살릴수 있게」)
   if (SKILLS[key].target === 'none' || SKILLS[key].target === 'dead') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
+  if (S.sound) sfx(B.armed ? 'ui-arm' : 'ui-disarm'); // 스킬 장전 · 내려놓기 (전투 판 버튼은 메뉴 누름 소리를 안 냄)
   vibe(8);
 }
 
@@ -328,6 +330,7 @@ function pressAux(key: TalentKey): void {
     const r = talentReady(F, key);
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('deny'); return; }
     ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false;
+    if (S.sound) sfx(ui.talArmed ? 'ui-arm' : 'ui-disarm');
     if (ui.talArmed) toast(`${def.name}: 빈 칸 선택`);
     vibe(8); return;
   }
@@ -468,13 +471,17 @@ const ATK_SFX: Record<ClassKey, string> = { warrior: 'atk-warrior', paladin: 'at
 const atkGap = (n: number) => (n >= 20 ? 260 : n >= 10 ? 170 : 90);
 function handleEvents(now: number): void {
   const F = B.F!;
-  const priest = priestSounds(F);
+  // 직업 기술 소리: 사제는 확정본 (priest-sound.ts), 나머지 6직업은 사제를 바탕으로 만든 직업 소리 (class-sound.ts, 2026-10-22 Lim)
+  const priest = F.hero === 'priest' ? priestSounds(F) : classSounds(F);
   // 이번에 떨어진 보스 기술: 지난번에 있던 예고 중 시간이 된 것 (엔진이 예고 순서대로 impact 사건을 냄 → 종류마다 차례로 짝)
   const landed = new Map<string | undefined, Telegraph[]>();
   for (const tl of ui.telSnap) if (tl.impact <= F.t + 1e-6 && !tl.fake) landed.set(tl.kind, [...(landed.get(tl.kind) ?? []), tl]);
   const impact = (kind: string | undefined) => { const tl = landed.get(kind)?.shift(); return tl && impactSound(F.enc.script, tl); };
   if (S.sound) for (const cue of [...priest.cues, ...combatSounds(F, priest.combatEvents, { partyAttacks: false, impact })]) sfx(cue.name, { vol: cue.vol });
   ui.telSnap = F.tels.slice();
+  // 시전 · 찬가가 끊김 (취소 · 대상 바꿈 · 다른 스킬로 끊김 · 보스 방해): 엔진 기록이 늘면 한 번
+  const breaks = F.stats.cancels + F.stats.hymnBroken;
+  if (breaks > ui.breaks) { ui.breaks = breaks; if (S.sound) sfx('cast-break'); }
   // 빨간 주의 표시 (기술 예고 · 졸개 내려찍기 예고)가 새로 뜨면 경고음 하나 (2026-10-21 Lim). 같은 때 여럿 떠도 한 번
   let warn = F.events.some(e => e.type === 'fx' && e.name === 'warn');
   for (const tl of F.tels) if (!ui.warnedTel.has(tl.id)) {
@@ -521,7 +528,7 @@ function handleEvents(now: number): void {
         break;
       }
       case 'talent': { // 특성 버튼 발동 (2026-10-19 Lim): 칸 특성 = 고른 칸, 봄비 = 살아 있는 모두, 고목 = 받는 사람, 나머지 = 내 칸
-        if (F.hero !== 'priest' || !PRIEST_TALENT_SOUNDS[ev.key]) Snd.play('talent-use');
+        if (!(F.hero === 'priest' ? PRIEST_TALENT_SOUNDS[ev.key] : hasSfx(CLASS_TALENT_SOUNDS[F.hero]?.[ev.key] ?? ''))) Snd.play('talent-use');
         const fx = HERO_TALENT_FX[F.hero];
         if (!fx) break;
         if (ev.cell != null) fxPxfCell(ev.cell, fx, now);
@@ -545,7 +552,7 @@ function handleEvents(now: number): void {
       case 'cure': if (u) fxCure(u, ev.name, now); break; // 체력을 채워 쇠약·완치 표식이 사라짐 (얼음 갑옷은 녹음, 63 E)
       case 'revive': if (u) fxRevive(u, now, '부활', plain.has(ev.id)); Snd.play('revive'); break;
       case 'debuff': {
-        const nm = ({ '질병': 'debuff-disease', '독': 'debuff-poison', '마법': 'debuff-magic', '저주': 'debuff-curse' } as Record<string, string>)[ev.dtype];
+        const nm = ({ '질병': 'debuff-disease', '독': 'debuff-poison', '마법': 'debuff-magic', '저주': 'debuff-curse', '물리': 'debuff-physical' } as Record<string, string>)[ev.dtype];
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
         if (u) fxDebuff(u, ev.dtype, now); // 디버프 걸림 그림 (44 E-1, 종류 색)
         break;
@@ -591,7 +598,7 @@ function handleEvents(now: number): void {
         if (fx) fxPxf(u, fx, now);
         break;
       }
-      case 'spec': if (u) { fxSpec(u, ev.name, now); Snd.play('proc'); } break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
+      case 'spec': if (u) fxSpec(u, ev.name, now); break; // 소리는 combat-sound specSound (묶음마다) // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'dmg': if (u) fxDamage(u, ev.amt, now); break; // 받은 피해: 회복 숫자 자리에 빨간 숫자 (뒤집힌 축복도 이것, hurt 사건은 말풍선만)
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
@@ -776,6 +783,7 @@ function endSegment(): void {
   const next = F.over === 'win' && R.idx < R.segs.length - 1;
   // 화면이 넘어가기 전 판에 결과 띠: 구간 처치 · 마지막 승리 · 전멸 (이유는 아래 줄). 지면 판을 잿빛으로
   if (F.over === 'win') banner(next ? '처치' : '승리', { tone: 'win', sub: next ? F.enc.name : R.name });
+  if (F.over === 'win' && S.sound) sfx('boss-down'); // 보스가 쓰러지는 순간 (2026-10-22 Lim: 중간 보스 「처치」 띠에 소리가 없었음)
   else banner('전멸', { tone: 'lose', sub: F.reason });
   $('battle').classList.add(F.over === 'win' ? 'over-win' : 'over-lose');
   // 실패는 전투 상태를 2초 보여 준 뒤 정산. 이전 판의 타이머가 새 판을 종료하지 않게 한다.
