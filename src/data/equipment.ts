@@ -251,14 +251,22 @@ export const HERO_MAX: Record<0 | 10 | 20, Record<DiffName, number>> = {
   20: { '쉬움': 0.04, '보통': 0.08, '어려움': 0.2, '악몽': 0.3 },
 };
 export const heroRamp = (lv: number) => Math.max(0, Math.min(1, (lv - (HERO_FROM - 1)) / (MAX_LEVEL - (HERO_FROM - 1))));
-/** 전설 (88, Lim 「노란색은 100레벨부터」): 내 레벨 100부터 20인 레이드 어려움 · 악몽에서만. 고유 장비 · 이름 있는 장신구 (그 구역 것) */
+/**
+ * 전설 (88, Lim 「노란색은 100레벨부터」): 내 레벨 100부터 레이드 어려움 · 악몽. 20인 = 고유 장비 · 이름 있는 장신구 (그 구역 것).
+ * 10인도 (2026-10-22 Lim 「10인 레이드에서도 어려움, 악몽에서 확률은 20인 레이드 반으로 해서 나올수 있게」): 확률은 20인의 절반 (LEGEND_CHANCE_10),
+ * 10인 구역에는 고유 장비 · 이름 있는 장신구 배치가 없어 고유 능력 한 줄 (1.3~1.7배) + 특수능력 1줄의 보통 전설 (makeItem). 아이템 레벨 = 그 레이드 레벨
+ */
 export const LEGEND_LEVEL = MAX_LEVEL;
 export const LEGEND_CHANCE: Partial<Record<DiffName, number>> = { '어려움': 0.02, '악몽': 0.05 };
+/** 10인 레이드 전설 = 20인의 절반 */
+export const LEGEND_CHANCE_10: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.025 };
 /**
  * 레이드 다시 깬 판 (2026-10-19 Lim 카드 「주 첫 판만 크게」): 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표 그대로, 그 주에 다시 깨면 같은 레벨 던전 표
- * (바탕 표 · 영웅 확률 = 던전) + 20인 · 내 레벨 100 어려움 · 악몽 전설 이만큼
+ * (바탕 표 · 영웅 확률 = 던전) + 내 레벨 100 어려움 · 악몽 전설 이만큼 (20인 REPEAT_LEGEND · 10인 그 절반 REPEAT_LEGEND_10)
  */
 export const REPEAT_LEGEND: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.01 };
+/** 10인 레이드 다시 깬 판 전설 = 20인의 절반 */
+export const REPEAT_LEGEND_10: Partial<Record<DiffName, number>> = { '어려움': 0.005, '악몽': 0.005 };
 
 /** 클리어 등급이 높을수록 바탕 표에서 상위 등급 확률 소폭↑ (02 10-4): 굴린 값을 이만큼 위로 민다 (바탕 표 상한까지) */
 export const GRADE_BONUS: Record<'S' | 'A' | 'B' | 'C', number> = { S: 0.05, A: 0.02, B: 0, C: 0 };
@@ -277,8 +285,12 @@ export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; l
 const tableOf = (o: OddsCtx): 0 | 10 | 20 => (o.repeat ? 0 : o.raid ?? 0);
 /** 영웅 확률 (클리어 등급 · 보너스 배율 포함) */
 export const heroChance = (o: OddsCtx) => HERO_MAX[tableOf(o)][o.diff] * heroRamp(o.tierLv) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
-/** 전설 확률: 20인 레이드 · 내 레벨 100부터 (다시 깬 판은 REPEAT_LEGEND) */
-export const legendChance = (o: OddsCtx) => (o.raid === 20 && o.level >= LEGEND_LEVEL ? ((o.repeat ? REPEAT_LEGEND : LEGEND_CHANCE)[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1) : 0);
+/** 전설 확률: 레이드 · 내 레벨 100부터, 20인 LEGEND_CHANCE · 10인 그 절반 (다시 깬 판은 REPEAT_LEGEND · REPEAT_LEGEND_10). 클리어 등급 · 공개모집 보너스 배율은 같게 */
+export function legendChance(o: OddsCtx): number {
+  if (!o.raid || o.level < LEGEND_LEVEL) return 0;
+  const table = o.raid === 20 ? (o.repeat ? REPEAT_LEGEND : LEGEND_CHANCE) : (o.repeat ? REPEAT_LEGEND_10 : LEGEND_CHANCE_10);
+  return (table[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
+}
 /** 최종 등급 확률 (ITEM_GRADES 순): 바탕 표를 보너스만큼 밀고 (상한 그대로), 영웅 · 전설 확률만큼 덜어 냄 */
 export function dropOdds(o: OddsCtx): number[] {
   const base = dropTable(o.diff, tableOf(o), o.tierLv), top = ITEM_GRADES.indexOf(topGrade(base));
@@ -621,7 +633,7 @@ export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: n
 }
 
 /**
- * 전설 (88, 노란색): 그 장소 (20인 레이드 구역, 61 3-4)의 고유 장비 · 이름 있는 장신구 가운데 하나. 그림 · 이름 · 고유 능력이 정해져 있고,
+ * 전설 (88, 노란색): 그 장소 (20인 레이드 구역, 61 3-4)의 고유 장비 · 이름 있는 장신구 가운데 하나 (10인 구역은 배치가 없어 null → makeItem 보통 전설). 그림 · 이름 · 고유 능력이 정해져 있고,
  * 부위는 고른 것이 정함. 특수능력 1줄 (전설 배율) 더. 그 직업에 효과 없는 고유 장비는 빼고, 하나도 없으면 null (makeItem으로)
  */
 export function makeLegend(r: () => number, id: number, o: DropCtx = {}): GearItem | null {
