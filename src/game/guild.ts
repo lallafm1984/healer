@@ -7,7 +7,7 @@ import { ABILITIES } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
-import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { dayOffset, LV_BAND, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, hireGold, lowStageXp, POST, REQ, REST_SHARE,
   memberSkillLevel, LV_DOUBLE, spendPoints, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember,
@@ -89,21 +89,33 @@ function drawOne(list: Person[], r: () => number): Person | null {
 /** 고급 스킬은 희귀가 아니다. 희귀 성격 또는 희귀 등급 스킬을 가진 사람을 하나의 희귀 풀로 센다 (안쪽 굴림만, 화면에는 등급 표시 없음, 2026-10-22). */
 export const rareCandidate = (p: Pick<Person, 'pers' | 'ab'>) => 'rare' in PERS[p.pers] || ABILITIES[p.ab]?.grade === 'epic';
 /**
- * 지원자 n명 (중복 없이, 길드원이 아닌 사람): 희귀 여부를 먼저 굴린 뒤 그 풀에서 직업 구분 없이, 레벨은 Lv 1 ~ 내 레벨 고르게 (2026-10-22 Lim 「1레벨 부터 캐릭터 레벨까지 랜덤」).
- * 능력치는 그 레벨까지 공개모집과 같은 레벨업 굴림 (newMember). 예전엔 내 Lv − 5 이상 · 그 사람 세상 레벨
+ * 지원자 n명 (중복 없이, 길드원이 아닌 사람): 희귀 여부를 먼저 굴린 뒤 (POST.rareChance, 그 풀에서), 목표 레벨을 Lv 1 ~ 내 레벨에서 고르게 하나 뽑고
+ * (2026-10-22 Lim 「1레벨 부터 캐릭터 레벨까지 랜덤」), 공개모집 레벨 (worldLevel = 내 Lv × 빠르기)이 목표 ±1 · ±3 · 가장 가까운 사람을 데려옴.
+ * 지원자 레벨 = 그 사람의 공개모집 레벨 그대로 (Lim 10-22 「맞추고 빼기」: 한 사람은 어디서든 같은 레벨), 내 레벨을 넘는 사람은 빼고.
+ * 능력치는 그 레벨까지 공개모집과 같은 레벨업 굴림 (newMember)
  */
 export function makeCandidates(save: SaveData, r: () => number, n: number = POST.cands): GuildMember[] {
   const my = topLevel(save), taken = new Set<string>(), out: GuildMember[] = [];
   for (let i = 0; i < n; i++) {
-    const list = strangers(save, () => true, taken);
+    const all = strangers(save, () => true, taken), list = all.filter(p => worldLevel(save, p) <= my);
+    const base = list.length ? list : all;
     const rare = r() < POST.rareChance;
-    const pool = list.filter(p => rareCandidate(p) === rare);
-    const p = drawOne(pool.length ? pool : list, r);
+    const pool = base.filter(p => rareCandidate(p) === rare);
+    const target = 1 + Math.min(my - 1, Math.floor(r() * my));
+    const p = drawOne(nearLevel(save, pool.length ? pool : base, target), r);
     if (!p) break;
     taken.add(p.nick);
-    out.push(newMember(save, p, 1 + Math.min(my - 1, Math.floor(r() * my))));
+    out.push(newMember(save, p, worldLevel(save, p)));
   }
   return out;
+}
+/** 공개모집 레벨이 목표 ±1 (LV_BAND), 모자라면 ±3, 그래도 없으면 가장 가까운 사람들 (공개모집 pickMember의 띠와 같은 규칙) */
+function nearLevel(save: SaveData, list: Person[], target: number): Person[] {
+  const gap = (p: Person) => Math.abs(worldLevel(save, p) - target);
+  for (const b of LV_BAND) { const l = list.filter(p => gap(p) <= b); if (l.length) return l; }
+  if (!list.length) return list;
+  const best = Math.min(...list.map(gap));
+  return list.filter(p => gap(p) === best);
 }
 /** 매일 공고 (오전 6시, dayKey): 결성한 길드에 그날 공고가 없으면 지원자 POST.cands명. 시계를 뒤로 돌린 날은 그대로. 새로 왔으면 true */
 export function refreshPost(save: SaveData, r: () => number, now = Date.now()): boolean {
@@ -247,6 +259,8 @@ export function guildRoster(save: SaveData, pick: number[], publicParty: RosterE
 }
 /** 공개모집에서 빼는 사람: 길드원 (내 길드원이 파티 찾기로 들어오면 어색함, 93 7-2) */
 export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.members.map(m => m.nick));
+/** 공개모집에서 빼는 사람: 길드원 + 지금 공고에 떠 있는 지원자 (Lim 10-22 「맞추고 빼기」: 같은 사람이 영입 탭과 공개모집에 동시에 안 보이게) */
+export const recruitExclude = (save: SaveData): Set<string> => new Set([...guildNicks(save), ...(save.guild.post?.cands ?? []).map(c => c.nick)]);
 
 // ---------- 판 뒤 ----------
 /** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준) */

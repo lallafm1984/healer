@@ -185,17 +185,34 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     expect(JSON.stringify(s.guild.post)).toBe(now);
     expect(Gd.refreshPost(save(30), rng, T)).toBe(false); // 결성 전
   });
-  it('지원자 레벨은 Lv 1 ~ 내 레벨 고르게 (예전 내 Lv − 5 이상), 능력치는 그 레벨까지 공개모집 굴림', () => {
+  it('지원자 레벨은 Lv 1 ~ 내 레벨 고르게 (예전 내 Lv − 5 이상), 그 사람의 공개모집 레벨 (내 Lv × 빠르기) 그대로 · 능력치는 그 레벨까지 공개모집 굴림 (Lim 10-22 「맞추고 빼기」)', () => {
     const s = founded(40), lvs: number[] = [];
-    for (let i = 0; i < 400; i++) for (const c of Gd.makeCandidates(s, rng)) { lvs.push(c.lv); expect(ABILITIES[c.ab].cls).toBe(c.cls); }
+    for (let i = 0; i < 400; i++) for (const c of Gd.makeCandidates(s, rng)) {
+      lvs.push(c.lv);
+      expect(ABILITIES[c.ab].cls).toBe(c.cls);
+      expect(c.lv, c.nick).toBe(Gd.worldLevel(s, Gd.personOf(c.nick)!)); // 한 사람은 어디서든 같은 레벨
+    }
     expect([Math.min(...lvs), Math.max(...lvs)]).toEqual([1, 40]);
     const mean = lvs.reduce((a, b) => a + b, 0) / lvs.length;
-    expect(mean).toBeGreaterThan(19); expect(mean).toBeLessThan(22);
-    expect(lvs.filter(l => l <= 10).length / lvs.length).toBeGreaterThan(0.2);
+    expect(mean).toBeGreaterThan(19); expect(mean).toBeLessThan(22.5);
+    for (let lo = 1; lo <= 31; lo += 10) { const share = lvs.filter(l => l >= lo && l < lo + 10).length / lvs.length; expect(share, `Lv ${lo}~${lo + 9}`).toBeGreaterThan(0.18); expect(share).toBeLessThan(0.32); }
     const c = Gd.makeCandidates(s, rng)[0], role = CLASSES[c.cls].role as 'tank' | 'melee' | 'ranged', p = Gd.personOf(c.nick)!;
     const add2 = lvAdds(c.nick, c.pers, role, c.lv, p.fm.stats);
     expect(c.stats).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, p.fm.stats[k] + add2[k]])));
     expect(Gd.makeCandidates(founded(1), rng).every(x => x.lv === 1)).toBe(true);
+    for (const lv of [5, 60, 100]) { const t = founded(lv); for (const x of Gd.makeCandidates(t, rng, 5)) { expect(x.lv).toBeLessThanOrEqual(lv); expect(x.lv).toBe(Gd.worldLevel(t, Gd.personOf(x.nick)!)); } }
+  });
+  it('공고에 떠 있는 지원자는 길드원처럼 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」), 영입하면 길드원으로 계속 빠짐', () => {
+    const s = founded(50); add(s, 'mage', 0);
+    Gd.refreshPost(s, rng, T);
+    const cands = s.guild.post!.cands.map(c => c.nick), ex = Gd.recruitExclude(s);
+    expect([...ex].sort()).toEqual([...new Set([s.guild.members[0].nick, ...cands])].sort());
+    for (const c of s.guild.post!.cands) {
+      const enc = contentOf('rustfort').fights('보통')[0];
+      for (let sd = 1; sd <= 40; sd++) for (const m of E.recruitParty(enc, sd, { abilities: true, myLv: 50, stageLv: c.lv, exclude: ex })) expect(cands, `${m.nick} Lv ${m.lv}`).not.toContain(m.nick);
+    }
+    Gd.hire(s, 0);
+    expect(Gd.recruitExclude(s).has(cands[0])).toBe(true);
   });
   it('영입 골드 = 지원자 Lv × 100, 모자라면 못 함. 영입한 사람만 빠지고 나머지는 저장을 다시 읽어도 남음', () => {
     const s = founded(30, 0); s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7 (103)
