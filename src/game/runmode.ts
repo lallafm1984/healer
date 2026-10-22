@@ -8,7 +8,8 @@
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { CHAL, CHAL_ROTA, CHAL_ROTA_START, chalLimit, chalMult } from '../data/challenge';
-import { stageOf, type ContentDef } from '../data/content';
+import { CHAL_DUN } from '../data/chal-dungeons';
+import { CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { SaveData } from '../platform/storage';
 import { daysBetween, weekKey } from './clock';
@@ -21,6 +22,29 @@ export function weekAffixes(now = Date.now()): AffixKey[] {
 }
 /** 다음 주 어픽스 (주간 도전 화면 「다음 주」) */
 export const nextWeekAffixes = (now = Date.now()): AffixKey[] => weekAffixes(now + 7 * 864e5);
+
+/**
+ * 주간 도전 던전 후보 (110 2차, 2026-10-22 Lim 「기존의 던전들을 재활용하여 레벨에 맞춰서 재활용하자 (단 현재 캐릭터 레벨보다 상위 던전은 나오지 않게)」):
+ * 열린 레벨이 내 레벨 이하인 던전 (해금 전 개발 빌드는 Lv 20까지), 표 (chal-dungeons)가 있는 것만
+ */
+export const chalPool = (lv: number): ContentKey[] =>
+  CONTENT.filter(c => c.kind === 'dungeon' && c.ready && c.unlockLv <= Math.max(CHAL.lv, lv) && CHAL_DUN[c.key]).map(c => c.key as ContentKey);
+/** 새 주 던전: 후보 가운데 무작위, 지난주 던전은 빼고 (후보가 하나면 그것) */
+export function pickChalContent(lv: number, r: () => number, last?: ContentKey): ContentKey {
+  const pool = chalPool(lv), pick = pool.length > 1 ? pool.filter(k => k !== last) : pool;
+  return pick[Math.floor(r() * pick.length)];
+}
+/**
+ * 이번 주 주간 도전 던전: 주가 바뀔 때 (economy rollover) 고른 것 (save.weekly.chal), 한 주 동안 그대로 (중간에 레벨이 올라도).
+ * 없으면 (110 전 저장 · 주 시작 전) 주 번호로 고정해 고르고 적어 둠
+ */
+export function chalContent(save: SaveData, now = Date.now()): ContentKey {
+  const w = save.weekly;
+  if (w.chal && CHAL_DUN[w.chal]) return w.chal;
+  const n = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7), pool = chalPool(save.player.level);
+  w.chal = pool[(((n * 7919) % pool.length) + pool.length) % pool.length];
+  return w.chal;
+}
 
 export interface RunMode {
   /** 적 레벨 (파티원·적 배율, 보상) */
@@ -41,7 +65,8 @@ export interface RunMode {
 export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number }, now = Date.now()): RunMode {
   if (o.chal) {
     const st = Math.max(1, Math.min(CHAL.max, o.chal));
-    return { stage: Math.max(CHAL.lv, save.player.level), affixes: weekAffixes(now), bossMult: chalMult(st), limit: chalLimit(st), chal: st };
+    const lv = Math.max(CHAL.lv, save.player.level), key = c.key as ContentKey;
+    return { stage: lv, affixes: weekAffixes(now), bossMult: chalMult(st, key, lv), limit: chalLimit(st, key), chal: st };
   }
   if (save.tut < TUT.done) return { stage: stageOf(c, d), affixes: [], chal: 0 };
   const stage = stageOf(c, d);

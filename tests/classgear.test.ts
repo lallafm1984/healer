@@ -129,7 +129,7 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
   });
   it('주간 도전 상자는 기록을 세운 캐릭터가 받음', () => {
     G.save.weekly.chalBest = 0;
-    settle(G.save, result({ content: CHAL.content, diff: CHAL.diff, chal: 12, limit: chalLimit(12), time: 300, segN: 4, segIdx: 3 }), () => 0.5, [], MON);
+    settle(G.save, result({ content: 'rustfort', diff: CHAL.diff, chal: 12, limit: chalLimit(12, 'rustfort'), time: 300, segN: 4, segIdx: 3 }), () => 0.5, [], MON);
     makeChar('druid', '', MON);
     expect(G.save.chalChest).toBe(0);
     pickChar(1, NEXT);

@@ -21,7 +21,7 @@ import { chestState, claimChalChest, claimChest, claimMission, missionReady } fr
 import { Flow } from '../game/flow';
 import { guide } from '../game/guide';
 import { merchantOffer } from '../game/merchant';
-import { chalGate } from '../game/runmode';
+import { chalContent, chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
@@ -276,7 +276,7 @@ s.el.addEventListener('click', e => {
   }
   if (t.closest('[data-chal-go]')) {
     // 주간 도전 바로 가기: 전투 탭 도전 카드와 같은 길 (content.ts [data-chal])
-    Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
+    Flow.content = chalContent(save); Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
     go('s-entry'); return;
   }
   if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }

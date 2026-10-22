@@ -1,15 +1,16 @@
 /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전)·적 레벨 = 내 레벨 (32)·주간 도전 「모래시계 시련」 (13 3-2)·광고 이어하기 (15) */
 import { describe, expect, it } from 'vitest';
 import { diffAffixes, GOOD_AFFIXES, WEEKLY_AFFIXES } from '../src/data/affixes';
-import { CHAL, CHAL_ROTA, chalLimit, chalMult, chalReward } from '../src/data/challenge';
-import { ALL_DIFFS, contentOf, stageOf } from '../src/data/content';
+import { CHAL, CHAL_ROTA, chalHalf, chalLimit, chalMult, chalReward, chalShown } from '../src/data/challenge';
+import { CHAL_DUN } from '../src/data/chal-dungeons';
+import { ALL_DIFFS, CONTENT, contentOf, stageOf } from '../src/data/content';
 import { clearGold, clearXp, EXPLORE_REWARD, restRun } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affCast, affDebuffEnd, affixTick, affHeal, affMobDown, affNecrotic, affRegen, AFX } from '../src/engine/affixes';
 import { castOf } from '../src/engine/talents';
 import { heal } from '../src/engine/core';
 import { rollover } from '../src/game/economy';
-import { nextWeekAffixes, runMode, weekAffixes } from '../src/game/runmode';
+import { chalContent, chalPool, nextWeekAffixes, pickChalContent, runMode, weekAffixes } from '../src/game/runmode';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -217,18 +218,20 @@ describe('새 어픽스 8개 (110, 2026-10-22 Lim 「다양한 어픽스를 추�
     expect(u.debuffs.filter(x => x.name === '복수심').length).toBe(1);
   });
 
-  it('주간 도전 단계 보너스: 골드 · 경험치 × (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%', () => {
+  it('주간 도전 골드 · 경험치 = 보통 던전의 반 × 단계 보너스 (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%', () => {
     expect(chalReward(1)).toBe(1);
     expect(chalReward(11)).toBeCloseTo(1.3);
     expect(chalReward(20)).toBeCloseTo(1.57);
+    expect(CHAL.rewardCut).toBe(0.5);
     const s1 = save(), s2 = save(), s3 = save();
-    const one = settle(s1, result({ stage: 30, chal: 1, limit: chalLimit(1), time: 300 }), rng, [], T0);
-    const ten = settle(s2, result({ stage: 30, chal: 11, limit: chalLimit(11), time: 300 }), rng, [], T0);
-    expect(ten.gold).toBe(restRun(clearGold(30, '보통', 'S') * chalReward(11)));
-    expect(ten.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * chalReward(11)));
-    expect(ten.gold).toBeGreaterThan(one.gold);
-    const b = settle(s3, result({ stage: 30, chal: 1, limit: chalLimit(1), time: 300, affixes: ['bounty', 'haste'] }), rng, [], T0);
-    expect(b.gold).toBe(restRun(clearGold(30, '보통', 'S') * CHAL.bountyGold));
+    const one = settle(s1, result({ stage: 30, chal: 1, limit: chalLimit(1, 'rustfort'), time: 300 }), rng, [], T0);
+    const ten = settle(s2, result({ stage: 30, chal: 11, limit: chalLimit(11, 'rustfort'), time: 300 }), rng, [], T0);
+    expect(one.gold).toBe(restRun(clearGold(30, '보통', 'S') * 0.5));
+    expect(one.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * 0.5));
+    expect(ten.gold).toBe(restRun(clearGold(30, '보통', 'S') * 0.5 * chalReward(11)));
+    expect(ten.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * 0.5 * chalReward(11)));
+    const b = settle(s3, result({ stage: 30, chal: 1, limit: chalLimit(1, 'rustfort'), time: 300, affixes: ['bounty', 'haste'] }), rng, [], T0);
+    expect(b.gold).toBe(restRun(clearGold(30, '보통', 'S') * 0.5 * CHAL.bountyGold));
     expect(b.xp).toBe(one.xp);
   });
 });
@@ -349,24 +352,69 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
     expect(nextWeekAffixes(T0)).toEqual(CHAL_ROTA[1]);
   });
 
-  it('단계마다 보스 체력 +2% · 피해 +10%, 제한시간 8분 + 단계마다 10초 (110), 단계 레벨 = 내 레벨 (최소 20)', () => {
-    expect(chalMult(1)).toEqual({ hp: 1, dmg: 1 });
-    expect(chalMult(11).dmg).toBeCloseTo(2);
-    expect(chalLimit(1)).toBe(480);
-    expect(chalLimit(20)).toBe(670);
-    const m = runMode(save(45), contentOf(CHAL.content), CHAL.diff, { chal: 6 }, T0);
-    expect(m).toMatchObject({ stage: 45, chal: 6, limit: chalLimit(6), affixes: CHAL_ROTA[0] });
-    expect(runMode(save(5), contentOf(CHAL.content), CHAL.diff, { chal: 1 }, T0).stage).toBe(20);
-    expect(runMode(save(), contentOf(CHAL.content), CHAL.diff, { chal: 99 }, T0).chal).toBe(CHAL.max);
+  it('단계 세기: 체력 +2%/단계, 피해 = 던전 · 레벨의 깨기 반 배율 × 1.045^(단계 − 15), 제한시간은 던전 1단계 시간 기준 (110 2차)', () => {
+    const lv = 60, half = chalHalf('manor', lv);
+    expect(chalMult(1, 'manor', lv).hp).toBe(1);
+    expect(chalMult(15, 'manor', lv).dmg).toBeCloseTo(half);
+    expect(chalMult(16, 'manor', lv).dmg / chalMult(15, 'manor', lv).dmg).toBeCloseTo(CHAL.dmgRate);
+    expect(chalShown(1)).toEqual({ hp: 0, dmg: 0 });
+    expect(chalShown(11).hp).toBeCloseTo(0.2);
+    // 깨기 반 배율은 점 (들어가는 레벨 · Lv 60 · Lv 100) 사이 로그 직선
+    const p = CHAL_DUN.manor.p;
+    expect(p.map(x => x[0])).toEqual([24, 60, 100]);
+    expect(chalHalf('manor', 24)).toBeCloseTo(p[0][1]);
+    expect(chalHalf('manor', 20)).toBeCloseTo(p[0][1]);
+    expect(chalHalf('manor', 100)).toBeCloseTo(p[2][1]);
+    expect(chalHalf('manor', 80)).toBeCloseTo(Math.sqrt(p[1][1] * p[2][1]));
+    expect(CHAL_DUN.heartcrack.p.length).toBe(1);
+    // 제한시간: 1단계 = 가운데 시간 × 1.2, 단계마다 늘어남, 5초 단위
+    const t1 = CHAL_DUN.manor.t;
+    expect(chalLimit(1, 'manor')).toBe(Math.round((t1 * 1.2) / 5) * 5);
+    expect(chalLimit(20, 'manor')).toBeGreaterThan(chalLimit(1, 'manor'));
+    expect(chalLimit(7, 'manor') % 5).toBe(0);
+    const s45 = save(45), key = chalContent(s45, T0);
+    const m = runMode(s45, contentOf(key), CHAL.diff, { chal: 6 }, T0);
+    expect(m).toMatchObject({ stage: 45, chal: 6, limit: chalLimit(6, key), bossMult: chalMult(6, key, 45), affixes: CHAL_ROTA[0] });
+    expect(runMode(save(5), contentOf('rustfort'), CHAL.diff, { chal: 1 }, T0).stage).toBe(20);
+    expect(runMode(save(), contentOf('rustfort'), CHAL.diff, { chal: 99 }, T0).chal).toBe(CHAL.max);
+  });
+
+  it('주간 도전 던전: 주마다 내 레벨 이하 던전 가운데 하나, 한 주 동안 그대로, 지난주 것은 안 나옴 (110 2차)', () => {
+    // 모든 던전에 표가 있음 (새 던전을 넣으면 npm run sim:chal -- --tune)
+    for (const c of CONTENT.filter(x => x.kind === 'dungeon' && x.ready)) expect(CHAL_DUN[c.key], c.key).toBeTruthy();
+    for (const lv of [1, 20, 45, 70, 100]) {
+      const pool = chalPool(lv);
+      expect(pool.length).toBeGreaterThan(1);
+      for (const k of pool) expect(contentOf(k).unlockLv).toBeLessThanOrEqual(Math.max(CHAL.lv, lv));
+    }
+    expect(chalPool(20).length).toBeLessThan(chalPool(100).length);
+    for (let i = 0; i < 30; i++) {
+      const r = () => (i * 0.137) % 1, k = pickChalContent(45, r, 'manor');
+      expect(k).not.toBe('manor');
+      expect(contentOf(k).unlockLv).toBeLessThanOrEqual(45);
+    }
+    // 새 주 (rollover)에 고르고, 레벨이 올라도 그 주 동안 그대로
+    const s = save(30), k = s.weekly.chal!;
+    expect(chalPool(30)).toContain(k);
+    s.player.level = 100;
+    expect(chalContent(s, T0)).toBe(k);
+    rollover(s, new Date(2026, 9, 12, 7).getTime(), rng);
+    expect(s.weekly.chal).not.toBe(k);
+    expect(chalPool(100)).toContain(s.weekly.chal);
+    // 110 전 저장 (그 주 던전이 없음): 주 번호로 고정해 고르고 적어 둠
+    const old = save(50); delete old.weekly.chal;
+    const a = chalContent(old, T0);
+    expect(old.weekly.chal).toBe(a);
+    expect(chalPool(50)).toContain(a);
   });
 
   it('제한시간 안에 깨면 기록·다음 단계, 넘기면 안 열림, 지면 단계 유지', () => {
     const s = save();
-    const chal = (o: Partial<BattleResult>) => settle(s, result({ chal: s.chalOpen, limit: chalLimit(s.chalOpen), stage: 30, ...o }), rng, [], T0);
+    const chal = (o: Partial<BattleResult>) => settle(s, result({ chal: s.chalOpen, limit: chalLimit(s.chalOpen, 'rustfort'), stage: 30, ...o }), rng, [], T0);
     let x = chal({ time: 400 });
     expect(x.chal).toMatchObject({ stage: 1, inTime: true, opened: true, best: 1 });
     expect(s.chalOpen).toBe(2);
-    x = chal({ time: chalLimit(2) + 1 });
+    x = chal({ time: chalLimit(2, 'rustfort') + 1 });
     expect(x.chal).toMatchObject({ stage: 2, inTime: false, opened: false });
     expect(s.chalOpen).toBe(2);
     x = chal({ win: false });
@@ -381,7 +429,7 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
 
   it('최고 단계는 월요일에 상자로, 열린 단계는 그대로', () => {
     const s = save();
-    settle(s, result({ chal: 1, limit: chalLimit(1), time: 300 }), rng, [], T0);
+    settle(s, result({ chal: 1, limit: chalLimit(1, 'rustfort'), time: 300 }), rng, [], T0);
     rollover(s, new Date(2026, 9, 12, 7).getTime(), rng);
     expect(s.chalChest).toBe(1);
     expect(s.weekly.chalBest).toBe(0);

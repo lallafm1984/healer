@@ -83,8 +83,9 @@ export default async function challenge(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
-  const ent = await text('#s-entry');
-  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /8:00/.test(ent) && /깊은 상처/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 8:00 · 이번 주 어픽스, 하단 규칙 문구 없음');
+  const ent = await text('#s-entry'), limit = (await text('#s-entry .f-cinfo dd')).trim(), wk = (await save()).weekly.chal;
+  // 110 2차: 던전은 주마다 내 레벨 이하에서 (새 주에 무작위), 제한시간은 그 던전 1단계 시간 기준
+  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /^\d+:\d\d$/.test(limit) && !!wk && /깊은 상처/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), `도전 입장: 1단계 · 제한 ${limit} · 이번 주 던전 ${wk} · 이번 주 어픽스, 하단 규칙 문구 없음`);
   await page.screenshot({ path: `${shots}/challenge_entry.png`, fullPage: true });
   await page.click('#entryGo'); await page.clock.runFor(100); await entryGo(page);
   ok(/주간 도전 1단계/.test(await text('#s-party .topbar')) && (await page.locator('#reroll, #adReroll').count()) === 0, '주간 도전 편성: 다시 뽑기·광고 다시 뽑기 버튼 없음');
@@ -96,8 +97,8 @@ export default async function challenge(url, shots) {
   let sv = await save();
   ok(sv.daily.ads.reroll === ads0 && sv.player.gold === g0, '주간 도전 공략 확인 중 골드·광고 횟수 그대로');
   await departGo(page); await page.clock.runFor(3100 + 300);
-  const cf = await F(() => { const f = window.__proto.F; return { grievous: !!f.aff?.on.grievous, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv }; });
-  ok(cf.grievous && cf.con && cf.stage === 30 && /\/ 8:00/.test(await text('#timer')), `도전 전투: 깊은 상처·전염병, 단계 레벨 = 내 레벨, 타이머 / 8:00 (${JSON.stringify(cf)})`);
+  const cf = await F(() => { const f = window.__proto.F; return { grievous: !!f.aff?.on.grievous, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv, enc: f.cfg.encounter }; });
+  ok(cf.grievous && cf.con && cf.stage === 30 && cf.enc && (await text('#timer')).includes(`/ ${limit}`), `도전 전투: 깊은 상처·전염병, 단계 레벨 = 내 레벨, 타이머 / ${limit} (${JSON.stringify(cf)})`);
   await lose();
   ok(!(await page.isVisible('.admodal')) && await page.isVisible('#s-settle') && /단계는 그대로/.test(await text('#s-settle')), '도전은 이어하기 없음 · 실패해도 단계 그대로');
   ok((await text('#again')) === '다시 도전', '실패: 다시 도전 (같은 단계)');

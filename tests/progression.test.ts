@@ -341,7 +341,7 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(RAMP_FIRST['어려움']).toBeGreaterThan(RAMP_FIRST['보통']);
   });
 
-  it('Lv 21부터 · Lv 21 장소부터 · 주간 도전은 전과 같음 (내 레벨 기준, 장소 레벨 차이 감산 없음)', () => {
+  it('Lv 21부터 · Lv 21 장소부터 · 주간 도전은 내 레벨 기준 보통 던전의 반 (장소 레벨 차이 감산 없음, 110 2차)', () => {
     expect(inRamp(contentOf('rustfort'), 20)).toBe(true);
     expect(inRamp(contentOf('rustfort'), 21)).toBe(false);
     expect(inRamp(contentOf('mossroot'), 20)).toBe(false);
@@ -350,7 +350,7 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 21;
     expect(play(s, 'rustfort', '보통', 1).xp).toBe(restRun(clearXp(21, '보통', 'A', { win: true })));
     const t = newSave(1); t.tut = TUT.done; t.daily.pub = 3; t.player.level = 20;
-    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(restRun(clearXp(20, '보통', 'A', { win: true })));
+    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(restRun(clearXp(20, '보통', 'A', { win: true }) * 0.5));
   });
   it('휴식 판 = 예전 × 2/3 (2026-10-17 Lim: 기본 = 예전 휴식 판의 1/3, 휴식 보너스 ×2, Lv 1부터 장소 경험치 · 골드도), 튜토리얼 판은 그대로', () => {
     expect(REST_RUN_SCALE).toBeCloseTo(2 / 3, 9);

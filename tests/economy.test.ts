@@ -165,7 +165,7 @@ describe('주간 (13 3장)', () => {
     expect((r as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['희귀']);
     expect(s.chalChest).toBe(0);
   });
-  it('주간 도전 상자 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2, 1~4단계는 골드만. 장비 · 골드는 받는 캐릭터 레벨', () => {
+  it('주간 도전 상자 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2, 1~4단계는 골드만. 장비 · 골드는 받는 캐릭터 레벨, 골드는 반 (110 2차)', () => {
     expect([1, 4, 5, 9, 10, 14, 15, 19, 20].map(n => chalChestOf(n).grades.join('+'))).toEqual(['', '', '고급', '고급', '희귀', '희귀', '영웅', '영웅', '영웅+영웅']);
     const s = save(30);
     s.heroes.druid = { ...(s.heroes.druid ?? {}), level: 80 } as never; // 다른 캐릭터가 더 높아도 이 캐릭터 레벨로
@@ -177,12 +177,12 @@ describe('주간 (13 3장)', () => {
     const h = save(50); h.chalChest = 20;
     expect((claimChalChest(h, rng) as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['영웅', '영웅']);
     expect([1, 4, 5, 10, 20].map(n => chalChestOf(n).goldRuns)).toEqual([1, 1, 2, 3, 5]);
-    expect(r.gold).toBe(5 * runGold(30));
+    expect(r.gold).toBe(Math.round(5 * runGold(30) * 0.5));
     const t = save(30); t.chalChest = 3;
     const g0 = t.player.gold;
     const g = claimChalChest(t, rng) as { items?: unknown[]; gold: number };
     expect(g.items ?? []).toEqual([]);
-    expect([g.gold, t.player.gold - g0]).toEqual([385, 385]);
+    expect([g.gold, t.player.gold - g0]).toEqual([193, 193]); // 385의 반
   });
 });
 

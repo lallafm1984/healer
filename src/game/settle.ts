@@ -134,8 +134,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const pubBonus = play && r.win && pub && (c.kind === 'dungeon' || c.kind === 'raid') && save.daily.pub < PUB_BONUS.runs ? ++save.daily.pub : 0;
   // 축제 주간 (주간 도전 어픽스): 경험치 +20% (v16, 예전 골드 +20%)
   const festival = r.affixes?.includes('festival') ? CHAL.festivalXp : 1;
-  // 주간 도전 단계 보너스 (110): 골드 · 경험치 × (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%
-  const stageBonus = r.chal ? chalReward(r.chal) : 1, bounty = r.affixes?.includes('bounty') ? CHAL.bountyGold : 1;
+  // 주간 도전 (110): 골드 · 경험치 = 보통 던전 한 판의 반 (2차 Lim 「경험치 및 골드 수급처가 되어선 안된다」) × 단계 보너스 (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%
+  const stageBonus = r.chal ? CHAL.rewardCut * chalReward(r.chal) : 1, bounty = r.affixes?.includes('bounty') ? CHAL.bountyGold : 1;
   // 탐험은 짧고 쉬워서 골드 · 경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
@@ -178,7 +178,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   }
 
   let first = false, best = false;
-  if (r.win) {
+  // 주간 도전 판은 그 던전 기록 (별 · 등급 · 최고 시간 · 첫 클리어)에 안 넣음 (110 2차: 주마다 다른 던전을 단계 배율 · 어픽스로 함, 길잡이의 안 깬 칸도 그대로)
+  if (r.win && !r.chal) {
     const byDiff = (save.clears[r.content] ||= {});
     const prev = byDiff[r.diff];
     const n = stars.filter(Boolean).length;

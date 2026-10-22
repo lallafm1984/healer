@@ -15,7 +15,7 @@ import { birthV25, lvAdds, profileOf, seedOf, STAT_KEYS, type StatKey, type Stat
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
-import { CONTENT } from '../data/content';
+import { CONTENT, type ContentKey } from '../data/content';
 import { STAMINA } from '../data/economy';
 import type { Grade } from '../data/progression';
 
@@ -172,6 +172,8 @@ export interface WeeklySave {
   chalBest: number;
   /** chalBest를 세운 직업: 월요일 상자 장비의 전용 효과 기준. 현재 직업과 무관하게 수령 가능 */
   chalHero?: HeroKey;
+  /** 주간 도전: 이번 주 던전 (110 2차, 주가 바뀔 때 내 레벨 이하 던전 가운데 고름, game/runmode chalContent) */
+  chal?: ContentKey;
   /** 길드 주간 목표 진행 · 받음 */
   guild: { n: number; got: boolean };
 }
