@@ -14,7 +14,7 @@ import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, guildNicks, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
+import { autoPick, guildNicks, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, savePick, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -33,8 +33,9 @@ const s = screen('s-party', '파티 편성', {
   enter() {
     if (!Flow.party) {
       roll();
-      // 길드원이 있으면 지난번 길드파티 편성으로 시작 (09 S05). 길드 탭 「길드파티로 출전」이면 길드파티로 (30)
-      Flow.mode = guildReady() && ((G.save.guild.picks[sizeKey(firstEnc())]?.length ?? 0) || Flow.preferGuild) ? 'guild' : 'public';
+      // 늘 첫 탭 공개모집부터 (2026-10-22 Lim 「편성 화면도 공개모집 탭부터」, 예전 09 S05는 지난번 길드파티로 시작).
+      // 길드 탭 「길드파티로 출전」 · 부탁으로 왔으면 길드파티로 (30). 길드파티 탭을 누르면 그 규모의 지난 편성 (autoPick)
+      Flow.mode = guildReady() && Flow.preferGuild ? 'guild' : 'public';
       Flow.preferGuild = false;
       Flow.gpick = guildReady() ? autoPick(G.save, firstEnc()) : [];
       compose();
