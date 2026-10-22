@@ -24,8 +24,8 @@ export default async function shop(url, shots) {
   // ---- 로비 → 임무 ----
   // 오른쪽 팻말 = 상점 · 행상인 (2026-10-21 Lim 「레이드, 대장간 제거, 잡화점은 상점으로」). 휴식은 입장 비용이 아니라 적지 않는다 (90)
   const shopLabel = await page.locator('#s-lobby .lb-shop').innerText();
-  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /상점/.test(shopLabel) && /광고 제거/.test(shopLabel) && !/새 직업|휴식/.test(shopLabel)
-    && await page.locator('#s-lobby .lb-raid, #s-lobby .lb-forge').count() === 0, '로비 이름표: 임무 일일 0/5 · 상점 = 광고 제거 (새 직업 줄 · 레이드 · 대장간 팻말 없음)');
+  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && shopLabel.trim() === '상점'
+    && await page.locator('#s-lobby .lb-raid, #s-lobby .lb-forge').count() === 0, '로비 이름표: 임무 일일 0/5 · 상점 팻말은 이름만 (광고 제거 · 새 직업 줄 · 레이드 · 대장간 팻말 없음)');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
