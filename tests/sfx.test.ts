@@ -8,6 +8,8 @@ import { HERO_KEYS } from '../src/data/heroes';
 import { SOUNDS } from '../scripts/sfx/sounds.mjs';
 // @ts-expect-error 생성 스크립트의 목록
 import { COMBAT_SOUNDS, EXTRA_SOUNDS } from '../scripts/sfx/combat.mjs';
+// @ts-expect-error 생성 스크립트의 목록
+import { CLASS_BASE, CLASS_SOUNDS } from '../scripts/sfx/class.mjs';
 import { FX_SOUND, impactSound, bossSoundsFor } from '../src/battle/combat-sound';
 import { ABILITY_SOUND_OF, BOSS_CAST_OWN, BOSS_CAST_SOUND, BOSS_SKILL_OWN, BOSS_SKILL_SOUND } from '../src/battle/boss-themes';
 import { CLASS_SKILL_SOUNDS, CLASS_TALENT_SOUNDS } from '../src/battle/class-sound';
@@ -84,6 +86,18 @@ describe('효과음 목록 (107)', () => {
 
   it('직업마다 직접 힐 · 지속 힐 · 큰 기술 소리', () => {
     for (const h of HERO_KEYS) for (const b of ['heal', 'renew', 'hymn']) expect(names.has(`${b}-${h}`), `${b}-${h}`).toBe(true);
+  });
+
+  it('6직업 소리: 재사용이 길수록 길고 (단계 1~4), 회복 기술에 겹치는 소리는 사제 확정본', () => {
+    const approval = JSON.parse(readFileSync('scripts/sfx/priest-approved.json', 'utf8')) as { files: { name: string }[] };
+    const priest = new Set(approval.files.map(f => f.name));
+    const cls = [...CLASS_BASE, ...CLASS_SOUNDS] as (Sound & { tier: number; layer: string })[];
+    expect(cls).toHaveLength(72);
+    for (const s of cls) {
+      if (s.layer) expect(priest.has(s.layer), `${s.name} → ${s.layer}`).toBe(true);
+      expect(s.keep, s.name).toBeLessThanOrEqual([0, 0.8, 1.0, 1.1, 1.45][s.tier]);
+      if (s.tier === 4) expect(s.keep, s.name).toBeGreaterThanOrEqual(1.4);
+    }
   });
 
   it('모든 전투음에 실제 OGG 파일이 있어 합성 자리표시로 빠지지 않는다', () => {

@@ -1,4 +1,4 @@
-/** 6직업 기술 · 특성 버튼 소리 이름 (소리 문장은 scripts/sfx/class.mjs · sounds.mjs heal · renew · hymn-<직업>). class-sound.ts가 씀 */
+/** 6직업 기술 · 특성 버튼 소리 이름 (소리 문장 · 재사용 시간 단계는 scripts/sfx/class.mjs). class-sound.ts가 씀 */
 import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
