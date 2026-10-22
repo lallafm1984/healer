@@ -1,5 +1,5 @@
-/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬, 등급 색 + LV) · 능력치 · 성격 (17 11장) */
-import { ABILITIES, AB_GRADE } from '../data/abilities';
+/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬 + LV) · 능력치 · 성격 (17 11장) */
+import { ABILITIES } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
 import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
@@ -7,13 +7,17 @@ import { classGlyphSvg } from './class-icons';
 import { ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
 
-/** 스킬 정보: 이름 · LV · 등급, 효과, 발동 조건을 각각 읽는다. */
+/**
+ * 스킬 글자색 하나 (2026-10-22 Lim 「스킬도 일반, 고급 같은 등급 제거」): 예전 등급 색 (일반 회색 · 고급 초록 · 희귀 파랑)과 「일반 · 고급 · 희귀」 글은 없앰.
+ * 뽑기 확률 (AB_GRADE · 공고 희귀 3%)은 안쪽 그대로
+ */
+const SKILL_COLOR = '#E6D3A3';
+/** 스킬 정보: 이름 · LV, 효과, 발동 조건을 각각 읽는다. */
 export function abHtml(key: string | undefined, star = 0, when = true): string {
   const a = key ? ABILITIES[key] : null;
   if (!a) return '';
-  const g = AB_GRADE[a.grade];
-  return `<section class="member-trait pab" style="--trait-color:${g.color}" aria-label="직업 스킬">
-    <div class="trait-heading"><span class="trait-label">스킬</span><b class="trait-title">${esc(a.name)}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}<span class="trait-grade">${g.name}</span></div>
+  return `<section class="member-trait pab" style="--trait-color:${SKILL_COLOR}" aria-label="직업 스킬">
+    <div class="trait-heading"><span class="trait-label">스킬</span><b class="trait-title">${esc(a.name)}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}</div>
     <p class="trait-description">${esc(a.desc)}</p>${when ? `<p class="trait-condition"><span>발동</span><span>${esc(a.when)}</span></p>` : ''}</section>`;
 }
 
@@ -87,7 +91,7 @@ export function classIcon(cls: ClassKey): string {
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `<span class="skill-name"><b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
+    ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
     <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span>

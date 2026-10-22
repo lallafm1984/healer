@@ -42,11 +42,15 @@ export const FAME = { explore: 1, dungeon: 2, raid10: 4, raid20: 6, first: 6 };
 export const FAME_LOW_GAP = 10;
 
 // ---------- 영입 (93 4-2) ----------
-/** 모집 공고 하나: 전 직업 무작위 3명 · 내 Lv × 30 골드. 희귀 성격 또는 희귀 스킬 보유자는 지원자당 3%. */
-export const POST = { name: '모집 공고', per: 30, cands: 3, rareChance: 0.03 };
-export const postGold = (myLv: number) => POST.per * myLv;
-/** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자 (길드 Lv에 따라 하루 1~3명)는 2026-10-20 Lim 「길드원 모집은 새공고만 있게, 명성에따른 지원은 없다」로 없앰 */
-export const POST_LV_GAP = 5;
+/**
+ * 모집 공고 (2026-10-22 Lim 「공고는 하루에 한번 기본으로 3명이 변경 … 보상 광고를 보면 5명으로 갱신 (쿨타임 1시간) … 1레벨부터 캐릭터 레벨까지 랜덤 …
+ * 지원자 별로 레벨에 비례해서 영입시 골드」): 공고는 무료, 매일 오전 6시 (dayKey) 전 직업 무작위 cands명으로 바뀜. 보상형 광고 = adCands명으로 새로 (adCooldownMs마다 한 번, 실제 시간).
+ * 지원자 레벨은 Lv 1 ~ 내 레벨 고르게, 영입 골드 = 지원자 Lv × hirePer (100: Lim 10-22 산정, 공유 guild-plan/영입_골드_산정.md. 같은 레벨 지원자 한 명 ≈ 보통 사람 하루 골드 0.6 ~ 0.9일 · 행상인 장비 한 개의 절반 ~ 같은 값). 희귀 성격 또는 희귀 스킬 보유자는 지원자당 rareChance (안쪽 굴림만, 화면에는 등급 표시 없음).
+ * 예전 (#323까지): 공고 = 내 Lv × 30 골드 · 3명 · 내 Lv − 5 이상 · 영입 무료. 명성 지원자는 2026-10-20 없앰
+ */
+export const POST = { name: '모집 공고', cands: 3, adCands: 5, adCooldownMs: 3600_000, hirePer: 100, rareChance: 0.03 };
+/** 영입 골드 (지원자 Lv × POST.hirePer = 100, 예: Lv 30 지원자 3,000) */
+export const hireGold = (lv: number) => POST.hirePer * Math.max(1, lv);
 /**
  * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 20 골드 = 「후원 5판」. 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
  * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 남은 지원이 있으면 추가 지원 불가 (2026-10-19 Lim). 레벨이 오르면 능력치도 (레벨업 능력치)

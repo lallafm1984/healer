@@ -9,6 +9,7 @@ import { PARTY_POOL } from '../src/data/nicknames';
 import { claimExped } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
 import { expedReady, jobsAfter, jobsDot, refreshExped, refreshReqs } from '../src/game/guildjobs';
+import { dayKey } from '../src/game/clock';
 import { TUT } from '../src/game/tutorial';
 import { doubleV27, migrate, newSave, statsV26, type SaveData } from '../src/platform/storage';
 
@@ -35,7 +36,7 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     const d = migrate(old);
     expect(d.player.gold).toBe(s.player.gold + 155000 + 35000);
     expect(d.guild).not.toHaveProperty('fac');
-    expect(d.guild.post).toEqual({ cands: cands.map(c => ({ ...c, skillFloor: 1, stats: statsV26(c) })) }); // v26이 능력치를 새 바탕으로
+    expect(d.guild.post).toEqual({ day: dayKey(), seen: true, cands: cands.map(c => ({ ...c, skillFloor: 1, stats: statsV26(c) })) }); // v26이 능력치를 새 바탕으로, v31이 그날 공고로
     expect(d.guild.members).toEqual([a, b].map(m => { const x = { ...m, skillFloor: 1, stats: statsV26(m) }; doubleV27(x); return x; })); // v27: 지난 레벨 두 배 몫 (모집 후보는 그대로)
     expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
@@ -44,9 +45,8 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: NaN, post: -3 } } }).player.gold).toBe(s.player.gold);
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: 99, post: '5' } } }).player.gold).toBe(s.player.gold + 155000);
   });
-  it('명성 지원자는 없음 (2026-10-20 Lim 「길드원 모집은 새공고만 있게」): 옛 저장 (v28)의 지원자는 버림, 공고 값은 그대로', () => {
+  it('명성 지원자는 없음 (2026-10-20 Lim 「길드원 모집은 새공고만 있게」): 옛 저장 (v28)의 지원자는 버림', () => {
     const s = save(30); s.guild.fame = GUILD_STEPS[9];
-    expect(Gd.postCost(s)).toBe(900);
     const m = Gd.newMember(s, Gd.personOf(PARTY_POOL.mage[0].nick)!, 30);
     const d = migrate({ ...JSON.parse(JSON.stringify(s)), v: 28, guild: { ...JSON.parse(JSON.stringify(s.guild)), apps: [{ m, until: '2026-10-09' }], appsDay: '2026-10-07' } });
     expect(['apps' in d.guild, 'appsDay' in d.guild]).toEqual([false, false]);
