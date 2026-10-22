@@ -79,7 +79,7 @@ describe('기준 조건과 목표 (26 9-2)', () => {
     // 이 칸들은 권장 장비 경고도 없음
     expect(recommendedFor(contentOf('plateau'), '어려움')).toBeNull();
     expect(recommendedFor(contentOf('plateau'), '악몽')).toBeNull();
-    expect(recommendedFor(contentOf('mossroot'), '어려움')?.label).toBe('고급');
+    expect(recommendedFor(contentOf('mossroot'), '어려움')?.label).toBe('희귀'); // 2026-10-22 #382 중간 등급 기준 (예전 고급)
     expect(recommendedFor(contentOf('abyss1'), '악몽')?.label).toBe('희귀');
   });
   it('보정을 넘기면 data/tune 대신 그 값', () => {
