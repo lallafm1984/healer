@@ -306,7 +306,7 @@ export const TX = {
   /** 막 위의 빛: 보호막이 있는 대상 직접 힐 + · 긴 인장: 초 · 맑은 결계: 보호막 */
   lightOnBarrier: 0.15, longSeal: 25, cleanWard: { amt: 100 },
   /** 굳은 결계: 수호 결계 감소 · 빠른 막: 재사용 · 번지는 인장: 인원 */
-  firmWard: 0.5, quickBarrier: 4, sealSpread: { n: 1 },
+  firmWard: 0.6, quickBarrier: 4, sealSpread: { n: 1 }, // 굳은 결계 0.5 → 0.6 (기본 수호 결계 50%를 따라, 한 사람 보호막 상한 shieldCap) (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」)
   /** 무거운 심판: 가장 낮은 1명 배 · 빠른 심판: 시전 · 넓은 심판: 인원 */
   heavyJudge: 2, quickJudge: 1.5, wideJudge: 8,
   /** 심판의 망치 (★) · 새 인장: 회복 */
@@ -555,7 +555,7 @@ export const WARDER_TALENTS: TalentTier[] = [
     t('longSeal', '긴 인장', `인장 시간이 15초에서 ${TX.longSeal}초로 늘어납니다.`),
     t('cleanWard', '맑은 결계', `결계 정화로 디버프를 지우면 대상과 붙어 있는 6칸의 아군에게 {${TX.cleanWard.amt}} 보호막을 씌웁니다.`)] },
   { lv: 15, theme: '기본 강화', picks: [
-    t('firmWard', '굳은 결계', `수호 결계 보호막이 대상 최대 체력의 ${pc(TX.firmWard)}가 됩니다 (원래 30%).`),
+    t('firmWard', '굳은 결계', `수호 결계 보호막이 대상 최대 체력의 ${pc(TX.firmWard)}가 됩니다 (원래 ${pc(WARDER.guard.hp)}).`),
     t('quickBarrier', '빠른 막', `빛의 막 재사용 대기가 6초에서 ${TX.quickBarrier}초로 줄어듭니다.`),
     t('sealSpread', '번지는 인장', `인장 치유가 붙어 있는 아군 ${TX.sealSpread.n}명에게도 인장을 붙입니다.`)] },
   { lv: 20, theme: '심판', picks: [
