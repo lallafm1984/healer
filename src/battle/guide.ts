@@ -10,7 +10,7 @@ import { SKILLS } from '../data/skills';
 import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
-import { BOSSES, hardDef, hardOn, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, mythicDef, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
 import { bossNums } from './guideNums';
 import { RULES, zoneDps } from '../data/rules';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
@@ -383,7 +383,7 @@ function dataGuide(c: GuideCtx): GuideBody {
   const def = BOSSES[c.enc.script as Exclude<ScriptKey, 'trash'>], { sk, B, n } = c;
   // 대기열에 안 보이는 기술도 공략 글(how)이 있으면 공략에 (가시 중첩 · 짙어지는 저녁)
   const hard = hardOn(c.diff) ? def.hard : undefined; // 어려움 변화 (111 공통 ②): 바뀐 값으로 보여 줌
-  const shown = def.skills.filter(d => (!d.hidden || d.how) && (d.when?.mythic == null || d.when.mythic === c.mythic)).map(d => hardDef(d, hard));
+  const shown = def.skills.filter(d => (!d.hidden || d.how) && (d.when?.mythic == null || d.when.mythic === c.mythic)).map(d => mythicDef(hardDef(d, hard), c.mythic ? def.mythicStep : undefined));
   const phases: GuidePhase[] = [{ id: 'p1', name: '시작', at: '처음부터', text: shown.filter(d => !whenText(d)).map(d => d.name).join(' · ') }];
   // 체력 문턱 · 페이즈 흐름: 문턱마다 한 줄
   const marks = new Map<number, string[]>();
@@ -398,7 +398,7 @@ function dataGuide(c: GuideCtx): GuideBody {
     const ps = sk[d.key], [what0, how0] = effectText(d, d.effect, c, ps), wt = whenText(d);
     const what = d.mirage ? `${what0}. ${mirageText(d, c)}` : what0;
     const every = `${wt ? `${wt} · ` : ''}${secT(d.period)}마다`;
-    return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, art: bossSkillArt(c.enc, d), when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}${hard?.skill === d.key ? ' · 어려움 변화' : ''}`,
+    return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, art: bossSkillArt(c.enc, d), when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}${hard?.skill === d.key ? ' · 어려움 변화' : ''}${c.mythic && def.mythicStep?.skill === d.key ? ' · 악몽 변화' : ''}`,
       what, how: d.how ?? (how0 || undefined), every, tip: () => [what.replace(/<\/?b>/g, '')] };
   });
   skills.push({ ic: '광폭', name: B.enrName, enr: true, when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
