@@ -272,6 +272,11 @@ export type SkillEffect =
    * 남은 시간이 두 배로 빨리 줄어듦 → 미리 걸지 말고 큰 피해 직전에. 열기 끝에 오는 큰 피해는 따로 적은 광역 기술
    */
   | { p: 'melt'; sec: number; rate: number }
+  /**
+   * 가시 갑옷 (P-THORNS, 111 4-3): sec초 동안 보스 (몸통 포함, 쫄 · 오브젝트는 아님)를 때리는 파티원이 한 대마다 dmg (물리, 원거리 기준). 탱커는 × tank (기본 0.5).
+   * 힐 대상이 탱커에서 딜러들로 바뀜 → 예고 동안 딜러 줄을 지속 힐 · 광역으로
+   */
+  | { p: 'thorns'; sec: number; dmg: number; tank?: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
   | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
   /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
@@ -696,6 +701,8 @@ const shellOf = (name: string, x: number, left = 10): DebuffDef => ({ name, type
 /** 충전 (P-CHARGE, 111 4-4): 직접 힐 횟수가 쌓여 방전. 공략 글과 디버프 */
 const CHARGE_HOW = '직접 힐이 들어올 때마다 1중첩, 4중첩이면 방전해 본인과 이웃 칸이 아픔. 지속 힐 · 광역 힐은 안 셈 → 큰 힐 적게 넣고 지속 힐로 버티기';
 const chargeOf = (name: string, left = 12): DebuffDef => ({ name, type: '마법', left, charge: { max: 4, self: U.dps(0.2), near: U.dps(0.1) }, art: 'icon-gim-charge' });
+/** 가시 갑옷 (P-THORNS, 111 4-3) 공략 글 */
+const THORNS_HOW = '8초 동안 보스를 때리는 사람이 한 대마다 아픔 (근접이 가장 자주). 탱커보다 딜러 줄을 예고 동안 지속 힐 · 광역으로 채우기';
 /** 하늘 던지기 (탱커 띄우기, 56 4-2) 공략 글 */
 const TOSS_HOW = '보스를 맞는 탱커를 4초 하늘로. 그동안 보스는 다른 탱커를 침 (창 찌르기 중첩이 남아 있으면 아픔). 예고가 뜨면 다른 탱커를 미리 채우고, 내려온 탱커 (낙하 탱체 25%)를 바로';
 /** 쌩쌩이 번개 창 찌르기 (탱커 교대): 받는 피해 +15% 중첩 (최대 4), 4중첩이면 다른 탱커가 가져감 */
@@ -1551,6 +1558,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '금화 더미가 살아 있는 동안 한 개마다 내 마나가 샘. 아끼는 힐로 버티기',
         effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '금화 더미', short: '금화', art: 'mob-gold-pile', hp: 0.015, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } } },
       { key: 'rain', name: '금화 비', icon: '금비', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+      { key: 'thorns', name: '가시 돋친 상자', icon: '가시', kind: 'aoe', first: 30, period: 30, cast: 2, warn: 'aoe', how: THORNS_HOW, // 111 가시 갑옷 (P-THORNS) 처음
+        effect: { p: 'thorns', sec: 8, dmg: U.dps(0.04), tank: 0.5 } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '배고픈 상자: 덥석 2명' }] }],
     enrage: { name: '금화 폭식', period: 3, dmg: 180 },
@@ -2075,6 +2084,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '15초 안에 딜러가 못 깨면 번쩍이가 주워 보스 피해 +20% (겹침). 딜러를 살려 두기',
         effect: { p: 'adds', n: 1, add: { name: '금화 더미', short: '금화', art: 'mob-gold-pile', hp: 0.02, dmg: 0, every: 0, at: 'random', job: { p: 'hoard', sec: 15, boost: 0.2 } } } },
       { key: 'rain', name: '보물 비', icon: '보물', kind: 'aoe', first: null, period: 25, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+      { key: 'thorns', name: '가시 금화 갑옷', icon: '가시', kind: 'aoe', first: 20, period: 32, cast: 2, warn: 'aoe', how: THORNS_HOW, // 111 가시 갑옷 (P-THORNS)
+        effect: { p: 'thorns', sec: 8, dmg: U.dps(0.04), tank: 0.5 } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'greed2', in: 2 }, { p: 'start', skill: 'greed2m', in: 2 }, { p: 'start', skill: 'rain', in: 5 },

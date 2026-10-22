@@ -895,6 +895,8 @@ export interface Fight {
   vessel: { name: string; fill: number; need: number; until: number; shield: number } | null;
   /** 녹는 보호막 (P-MELT, 51 5장): until까지 흡수 보호막이 초마다 rate씩 녹고 보호막 · 외부 생존기 시간이 두 배로 줄어듦 */
   melt: { name: string; until: number; rate: number } | null;
+  /** 가시 갑옷 (P-THORNS, 111 4-3): 이때까지 보스를 때리는 파티원이 한 대마다 dmg (탱커 × tank) */
+  thorns?: { name: string; until: number; dmg: number; tank: number } | null;
   /** 모래시계 (P-GLASS, 54 5장): 겹치면 각자 자기 기록으로 (짧은 것이 먼저) */
   glass: GlassState[];
   /** 영혼 축복: until까지 받는 치유 × heal (정화의 물) */
