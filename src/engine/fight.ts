@@ -17,7 +17,7 @@ import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, affMobDown, initAffixes } from './affixes';
-import { bark, damageMob, DT, emit, regrouping } from './core';
+import { bark, damage, damageMob, DT, emit, regrouping } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
@@ -315,6 +315,10 @@ function partyHits(f: Fight): void {
 function land(f: Fight, u: Unit, amt: number): void {
   if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
   u.dealt += Math.min(amt, f.bossHp);
+  if (f.thorns && f.t < f.thorns.until && (f.bodyHp || !(u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)))) { // 가시 갑옷 (P-THORNS, 111): 보스 · 몸통을 친 한 대마다
+    damage(f, u, f.thorns.dmg * (u.role === 'tank' ? f.thorns.tank : 1));
+    if (!u.alive) return;
+  }
   if (f.bodyHp) hitMobs(f, amt, u);
   else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
   else {

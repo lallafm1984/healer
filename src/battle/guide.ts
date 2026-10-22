@@ -317,6 +317,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : (e.n ?? 1)}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
     case 'greed': return [`🎯 예고 때 체력 비율이 가장 높은 탱커 · 나 아닌 ${typeof d.target === 'object' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`,
       `모두를 가득 채우면 누가 맞을지 모름. 예고된 사람에게 맞기 직전 ${act('guardian', EUL)} · 맞은 뒤 바로 힐`];
+    case 'thorns': return [`🌵 ${secT(e.sec)} 동안 가시 갑옷: 보스를 때리는 사람이 한 대마다 <b>${n(e.dmg)}</b> (탱커는 × ${e.tank ?? 0.5}, 근접이 가장 자주 맞음)`, `탱커보다 딜러 줄을 예고 동안 ${act('renew', EUL)} · ${act('poh', RO)} 채우기`];
     case 'melt': return [`${secT(e.sec)} 동안 열기: 보호막이 초마다 ${pctT(e.rate)}씩 녹고 외부 생존기 시간이 두 배로 빨리 줄어듦`, `${act('guardian', EUL)} 미리 걸지 말고 큰 피해 예고 직전에. ${act('renew', EUL)}은 미리`];
     case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
     case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];

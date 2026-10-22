@@ -4,6 +4,8 @@
  * 소리 문장은 scripts/sfx/boss.mjs. 표에 없는 기술 (새로 더한 기술)은 공통 착탄 (battle/combat-sound.ts impactSound)
  */
 export const BOSS_SKILL_SOUND: Record<string, string> = {
+  "mimic:thorns": 'boss-metal-wave', // 보물 상자 덥석이 · 가시 돋친 상자 (111)
+  "beonjjeok:thorns": 'boss-metal-wave', // 코볼트 대장 번쩍이 · 가시 금화 갑옷 (111)
   "orben:drip": 'boss-frost-wave', // 대마도사 오르벤 · 서리 바람 (111)
   "abysslord:drip": 'boss-shadow-wave', // 심연의 군주 · 심연의 숨 (111)
   "butler13:tray": 'boss-metal-hit', // 집사 유령 · 쟁반 던지기 (111)

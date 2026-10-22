@@ -138,6 +138,13 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       }
       if (tel?.units.length) emit(f, { type: 'msg', text: `${s.name ?? '보물 욕심'}: ${tel.units.map(id => unitById(f, id)?.nick).filter(Boolean).join(' · ')}` });
       return;
+    case 'thorns': {
+      // 가시 갑옷 (P-THORNS, 111 4-3): sec초 동안 보스를 때리는 사람이 한 대마다 아픔 (fight.ts land)
+      const name = s.name ?? '가시 갑옷';
+      f.thorns = { name, until: f.t + e.sec, dmg: e.dmg, tank: e.tank ?? 0.5 };
+      emit(f, { type: 'msg', text: `${name}: ${e.sec}초 동안 보스를 때리면 아픔` });
+      return;
+    }
     case 'melt': {
       // 녹는 보호막 (P-MELT, 51 5장): 열기 동안 흡수 보호막이 녹고 보호막 · 외부 생존기가 빨리 끝남 (units.ts unitTick)
       const name = s.name ?? '열기';
