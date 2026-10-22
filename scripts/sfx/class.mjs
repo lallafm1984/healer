@@ -16,7 +16,7 @@ const LOOK = {
 };
 /** 직업마다 소리 재료 (다른 직업 · 사제와 겹치지 않게) */
 const CHARACTER = {
-  druid: 'Druid character: organic and woody, made of hollow wooden knocks, rustling leaves, creaking branches, snapping twigs and soft earth, with a warm woody marimba-like tone. No metal, glass, sparkle or choir-like pad.',
+  druid: 'Druid character: organic nature magic, made of hollow wooden knocks, rustling leaves, creaking branches, snapping twigs and soft earth, with a warm woody marimba and kalimba-like tone. No metal, bells, glass or choir-like pad.',
   paladin: 'Paladin character: heavy and martial, made of polished brass, plate armor, steel shield clangs and a crackling holy flame, with a warm golden brass tone. No glass, water, sparkle or choir-like pad.',
   shaman: 'Shaman character: elemental and tribal, made of splashing and bubbling water, stone thuds, carved wooden totem knocks and a taut hide drum skin. No metal, glass, sparkle or choir-like pad.',
   monk: 'Monk character: physical and airy, made of fast whooshing wind, snapping cloth, palm strikes on cloth, bamboo knocks, ceramic clinks and hissing warm steam. No metal, glass, sparkle or choir-like pad.',
@@ -24,6 +24,10 @@ const CHARACTER = {
   warder: 'Warder character: crystalline and mechanical, made of heavy crystal panels sliding, locking seal clicks, a humming force-field barrier and resonant glass, firm and precise. No wood, water, airy sparkle or choir-like pad.',
 };
 const HEAL = 'It feels restorative and comforting like a healing spell, warm and gentle, but only through these materials.';
+/** 드루이드는 재료만으로는 치유 느낌이 전혀 없어 (2026-10-22 Lim 「드루이드를 들어보면 힐의 느낌 (사제 같은) 전혀 없다」) 자연 마법의 따스한 음색을 얹음 */
+const HEAL_OF = {
+  druid: 'A clear healing spell: over the nature sounds, a warm glowing tone of nature magic rises and blooms, soft wooden chime and breathy flute-like notes lifting gently upward, soothing and restorative like a healer mending wounds.',
+};
 const tail = (tier, keep) => `${LOOK[tier]} One isolated event near the start; the active sound and its natural tail finish within ${keep} seconds, followed by silence. ${tier >= 3 ? 'Close perspective with a short natural tail, clear midrange, clean mono-compatible center.' : 'Close dry perspective, rounded transients, clear midrange, minimal room reverb, clean mono-compatible center.'} A non-musical sound effect with no spoken or sung voice, gong, backing music, ambience bed, or repeated rhythmic pattern.`;
 const HERO_KO = { druid: '드루이드', paladin: '성기사', shaman: '주술사', monk: '수도사', astrologer: '점성술사', warder: '결계사' };
 const ROLE_KO = { basic: '기본 힐', fast: '빠른 기술', hot: '지속 기술', aoe: '광역 기술', dispel: '해제', ext: '외부 생존기', raid: '공대 기술', unique: '고유 기술', talent: '특성 버튼', crit: '치명적 치유' };
@@ -186,7 +190,7 @@ const sound = ([name, hero, role, what, cd, tier, keep, heal, ko, desc]) => ({
   name, group: BASE.test(name) ? '직업' : '직업 기술',
   where: `${HERO_KO[hero]} ${role === 'crit' ? '치명적 치유' : role === 'talent' ? `특성 버튼 「${what}」` : `${ROLE_KO[role]} 「${what}」`}${cd ? ` (재사용 ${cd})` : ''}`,
   ko, p: BASE.test(name) ? 'P0' : 'P1', gen: 2, keep, presence: true, tier, cd, hero, role, skill: what, heal,
-  prompt: `${HEAD}${desc} ${CHARACTER[hero]}${heal ? ` ${HEAL}` : ''} ${tail(tier, keep)}`, match: desc,
+  prompt: `${HEAD}${desc} ${CHARACTER[hero]}${heal ? ` ${HEAL_OF[hero] ?? HEAL}` : ''} ${tail(tier, keep)}`, match: desc,
 });
 
 /** 직접 힐 · 지속 힐 · 공대 기술 (sounds.mjs 「직업」 묶음) */
