@@ -15,7 +15,7 @@
 }
 :is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b) { color: var(--gk-head); text-shadow: none; }
 :is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .group > p, .done) { color: var(--gk-mute); }
-:is(#s-missions, #s-shop, #s-guild) :is(.mrow, .g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
+:is(#s-shop, #s-guild) :is(.g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
 
 /* ---------- 버튼 · 칩 (최신 공통 표면은 menu-buttons.css) ---------- */
 :is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot),
@@ -56,5 +56,3 @@
 #s-settings .vol-row input[type="range"] { width: 100%; height: 28px; margin: 0; accent-color: var(--gk-accent); }
 #s-settings .vol-row output { color: var(--gk-ink); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
 #s-settings.ns .group > h2 { font-weight: 800; }
-/* 임무 진행 숫자 (1/1 · 0/2): 10.8px → 12px, 이름과 같은 줄 기준 */
-#s-missions .mrow > div > small { font-size: 12px; font-variant-numeric: tabular-nums; }

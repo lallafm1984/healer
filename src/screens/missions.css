@@ -1,61 +1,48 @@
-/* 임무 화면 (2026-10-22 Lim 임무 시안): 일일 · 주간 탭, 완료 상자 그림, 짙은 목재 · 황동 줄. 숫자 · 글은 실제 임무 값 */
-#s-missions.ns { background: #25251d url('../art/village-base.webp') center / cover no-repeat; }
-#s-missions.ns .missions { padding: 10px 10px 24px; container-type: inline-size; gap: 0; background: #14110b66; }
-#s-missions.ns [role=tabpanel][hidden] { display: none; }
-#s-missions.ns .mission-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 0 16px 12px; }
-#s-missions.ns .mission-tabs button { min-height: 44px; border: 0; padding: 9px 12px; color: #d6c4a4; font: 800 20px/1.3 var(--font-display); background: url('../art/ui-sunforged-panel-frame.webp') center / 100% 100% no-repeat, #302016 var(--a2-wood) center / cover; }
-#s-missions.ns .mission-tabs button[aria-selected=true] { color: #fff2c9; background-color: #125b7b; background-blend-mode: normal, luminosity; }
-#s-missions.ns .mission-tabs button:focus-visible { outline: 2px solid #ffe29a; outline-offset: 2px; }
-#s-missions.ns .mission-chest { margin-bottom: 12px; }
-#s-missions.ns .mission-chest-art { min-height: 140px; background: url('../art/ui-mission-reward-v1.webp') center / 100% 100% no-repeat; padding: 15px 12px; display: flex; align-items: center; }
-#s-missions.ns .mission-chest-copy { width: 60%; min-width: 0; color: #fff0cd; text-shadow: 0 1px 2px #130b03; }
-#s-missions.ns .mission-chest-copy h2 { margin: 0 0 8px; font: 800 clamp(22px, 7cqw, 29px)/1.2 var(--font-display); color: #fff0cd; }
-#s-missions.ns .mission-chest-copy p { margin: 0 0 8px; font-size: 11px; line-height: 1.45; word-break: keep-all; }
-#s-missions.ns .mission-chest-rewards { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; font-weight: 700; }
-#s-missions.ns .mission-chest-rewards > span { display: inline-flex; align-items: center; gap: 3px; }
-#s-missions.ns .mission-chest-rewards img { width: 22px; height: 22px; object-fit: contain; }
-#s-missions.ns .mission-collection { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 26px; min-height: 48px; background: url('../art/ui-sunforged-panel-frame.webp') center / 100% 100% no-repeat, #302016 var(--a2-wood) center / cover; color: #fff0cd; font: 700 13px/1.3 var(--font-body); }
-#s-missions.ns .mission-collection b { margin-left: 4px; font-variant-numeric: tabular-nums; }
-#s-missions.ns .mission-shields { display: flex; justify-content: flex-end; gap: clamp(3px, 1.3cqw, 7px); }
-#s-missions.ns .mission-shields img { width: clamp(23px, 7.5cqw, 30px); height: 32px; object-fit: contain; }
-#s-missions.ns .mission-shields .empty { filter: grayscale(1) brightness(.32); }
-#s-missions.ns .mission-chest .gbtns { margin-top: 6px; }
-#s-missions.ns .mission-chest .gbtns .btn { min-height: 44px; }
-#s-missions.ns .mission-chest .gbtns:has(#chest:disabled):not(:has(#chest2)) { display: none; }
-#s-missions.ns .mission-heading { margin: 10px 3px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #ffebbf; font: 800 18px/1.3 var(--font-display); }
-#s-missions.ns .mission-heading small { font: 500 10px/1.4 var(--font-body); color: #e1d3bb; text-align: right; }
-#s-missions.ns .mlist { gap: 4px; }
-#s-missions.ns .mrow { display: grid; grid-template-columns: 48px minmax(0,1fr) 43px 52px; align-items: center; gap: 5px; min-height: 72px; padding: 2px 3px; border: 8px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 56 60 / 8px stretch; border-radius: 0; background: #302016 var(--a2-wood) center / cover; background-blend-mode: soft-light; box-shadow: none; }
-#s-missions.ns .mission-icon { display: grid; place-items: center; width: 48px; height: 48px; background: url('../art/ui-sunforged-spell-socket.webp') center / contain no-repeat; }
-#s-missions.ns .mission-icon img { width: 42px; height: 42px; object-fit: contain; }
-#s-missions.ns .mrow > .mission-copy { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
-#s-missions.ns .mrow .mission-copy > b { color: #ffefd4; font: 700 14px/1.4 var(--font-body); word-break: keep-all; overflow-wrap: anywhere; text-shadow: 0 1px 2px #120b04; }
-#s-missions.ns .mission-progress { display: flex; align-items: center; gap: 5px; }
-#s-missions.ns .mrow .mission-progress small { flex: none; color: #c8e0ce; font-size: 11px; font-variant-numeric: tabular-nums; }
-#s-missions.ns .mrow .bar { flex: 1; height: 9px; min-width: 12px; background: #121814; border: 1px solid #ae9060; }
-#s-missions.ns .mrow .bar i { background: #389c70; border-top: 1px solid #8cdbb4; }
-#s-missions.ns .mission-reward { font: 700 11px/1.3 var(--font-body); color: #f2d374; white-space: nowrap; text-align: center; }
-#s-missions.ns .mission-reward .currency-amount { display: flex; flex-direction: row; gap: 2px; }
-#s-missions.ns .mission-reward img { width: 20px; height: 20px; object-fit: contain; }
-#s-missions.ns .mission-action { display: flex; justify-content: center; min-width: 0; }
-#s-missions.ns .mission-action .btn { width: 100%; min-width: 44px; min-height: 44px; padding: 7px 4px; font-size: 13px; }
-#s-missions.ns .mission-action .done, #s-missions.ns .mission-pending { color: #d6c7ae; font-size: 11px; font-style: normal; text-align: center; }
-#s-missions.ns .mrow.got { opacity: 1; }
-#s-missions.ns .mrow.got .mission-icon, #s-missions.ns .mrow.got .mission-reward { opacity: .65; }
-#s-missions.ns .mrow.got .mission-copy > b { color: #d2c1a6; }
-#s-missions.ns .mission-week-head { display: flex; align-items: center; gap: 12px; padding: 18px 14px; background: url('../art/ui-sunforged-panel-frame.webp') center / 100% 100% no-repeat, #302016 var(--a2-wood) center / cover; }
-#s-missions.ns .mission-week-head > img { width: 58px; height: 58px; object-fit: contain; }
-#s-missions.ns .mission-week-head h2 { margin: 0 0 5px; font: 800 24px/1.2 var(--font-display); color: #ffe8b6; }
-#s-missions.ns .mission-week-head p { margin: 0; color: #deceb1; font-size: 11px; }
-#s-missions.ns #mission-weekly .mlist { margin-top: 10px; }
-#s-missions.ns #mission-weekly .panel { margin-top: 12px; }
-#s-missions.ns .mission-locked { padding: 22px 14px; text-align: center; color: #ead7b7; }
-@container (max-width: 325px) {
-  #s-missions.ns .mrow { grid-template-columns: 38px minmax(0,1fr) 35px 46px; gap: 3px; padding: 2px 1px; }
-  #s-missions.ns .mission-icon { width: 38px; height: 46px; }
-  #s-missions.ns .mission-icon img { width: 32px; height: 32px; }
-  #s-missions.ns .mrow .mission-copy > b { font-size: 12px; }
-  #s-missions.ns .mission-chest-art { min-height: 132px; padding: 14px 10px; }
-  #s-missions.ns .mission-heading { font-size: 16px; }
-  #s-missions.ns .mission-heading small { max-width: 135px; }
+/*
+ * 임무 화면 (2026-10-22 Lim 「주간이 끝나면 임무 화면도 동일하게 시안을 만들어서 디자인 하자」 → 「b시안으로 해줘」 · 「상점과 행상인과 비슷한 느낌으로」).
+ * 바탕 · 돌 버튼은 service-hall.css 목록, 판 · 줄 · 알약 · ⓘ는 guild-hall.css를 길드 · 주간 도전과 같이 쓴다.
+ * 여기는 임무에만 있는 것: 그림 머리 (상점 · 행상인과 같은 결, ui-mission) · 임무 줄의 막대 · 숫자 · 오른쪽 알약 + 버튼.
+ * guild-hall.css가 이 파일 뒤에 읽혀서 공통 부품을 고칠 때는 .missions를 붙여 더 세게 쓴다.
+ */
+#s-missions.ns .missions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0 12px 16px; scrollbar-width: none; }
+#s-missions.ns .missions::-webkit-scrollbar { display: none; }
+#s-missions.ns .m-panel { display: flex; flex-direction: column; gap: 10px; }
+#s-missions.ns .m-panel[hidden] { display: none; }
+#s-missions.ns .missions .warnbox { margin: 10px 0 0; }
+#s-missions.ns .missions .g-card { flex: none; }
+
+/* ---------- 그림 머리: 상점 · 행상인 머리와 같은 결 (임무 게시판 그림, 오른쪽 알약 = 행상인 보유 골드 자리) ---------- */
+#s-missions.ns .m-hero { --hero-art: var(--art-ui-mission, none); flex: none; min-height: 96px; margin: 0 -12px; align-items: flex-end; justify-content: space-between; border-bottom-color: var(--gk-edge); }
+#s-missions.ns .m-hero::before { background-position: center 55%; }
+#s-missions.ns .m-hero .ah-copy { min-width: 0; }
+#s-missions.ns .m-left { flex: none; display: inline-flex; align-items: baseline; gap: 6px; margin: 0; padding: 4px 10px; border-radius: 999px; background: #0d0b08cc; border: 1px solid var(--gk-card-bd); color: var(--gk-ink); }
+#s-missions.ns .m-left small { color: var(--gk-mute); font-size: 11px; }
+#s-missions.ns .m-left b { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- 줄: 길드 줄 + 막대 · 숫자, 오른쪽 알약 위 · 버튼 아래 ---------- */
+/* .mrow는 screens.css · service-hall.css의 예전 임무 줄 모양을 받아서 여기서 길드 줄로 되돌린다 */
+#s-missions.ns .missions .mlist { gap: 0; }
+#s-missions.ns .missions .mrow { display: flex; min-height: 64px; padding: 8px 12px; border: 0; border-top: 1px solid var(--gk-line); border-radius: 0; background: none; box-shadow: none; }
+#s-missions.ns .missions .mrow:first-child { border-top: 0; }
+#s-missions.ns .missions :is(.mrow, .m-chest) > .g-rm { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px; text-align: left; font-size: 12px; }
+#s-missions.ns .missions .mrow .g-rm > b { color: var(--gk-ink); font: 700 14px/1.3 var(--font-body); white-space: normal; word-break: keep-all; }
+#s-missions.ns .m-prog { display: flex; align-items: center; gap: 6px; }
+#s-missions.ns .m-prog .g-bar { flex: 1; min-width: 0; }
+#s-missions.ns .missions .m-prog small { flex: none; color: var(--gk-mute); font-size: 11px; font-variant-numeric: tabular-nums; }
+#s-missions.ns .missions .m-rs { flex-direction: column; align-items: flex-end; justify-content: center; gap: 5px; min-width: 64px; }
+#s-missions.ns .missions .m-rs > .btn { min-width: 64px; min-height: 44px; padding: 0 8px; font-size: 13px; }
+#s-missions.ns .mission-reward { font: 700 12px/1 var(--font-body); }
+#s-missions.ns .missions .g-pill .currency-amount { display: inline-flex; align-items: center; gap: 3px; }
+#s-missions.ns .missions .g-pill :is(.currency-icon, .currency-icon img, .g-ic) { width: 16px; height: 16px; object-fit: contain; }
+#s-missions.ns .missions .mrow.ready { background: linear-gradient(90deg, #ffd34d14, #ffd34d00 70%); }
+#s-missions.ns .missions .mrow.got .g-ri, #s-missions.ns .missions .mrow.got .mission-reward { opacity: .55; }
+#s-missions.ns .missions .mrow.got .g-rm > b { color: var(--gk-mute); }
+#s-missions.ns .g-rewards { display: flex; flex-wrap: wrap; gap: 4px; }
+#s-missions.ns .m-chest { min-height: 64px; }
+#s-missions.ns .m-chest .g-bar { height: 8px; }
+
+@media (max-width: 359px) {
+  #s-missions.ns .m-hero { padding-inline: 12px; gap: 6px; }
+  #s-missions.ns .missions .mrow { padding-inline: 8px; gap: 8px; }
+  #s-missions.ns .missions .mrow .g-rm > b { font-size: 13px; }
 }
