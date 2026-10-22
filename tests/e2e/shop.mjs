@@ -52,6 +52,7 @@ export default async function shop(url, shots) {
   sv = await save();
   ok(sv.daily.chest2 && sv.daily.ads.chest === 1, '광고 끝 → 한 번 더 받음');
   const w0 = await save();
+  await page.click('#mission-tab-weekly'); await page.clock.runFor(50);
   await page.click('#s-missions [data-claim="weekly"]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.player.gold === w0.player.gold + 495 * 3 && !('wallet' in sv), '주간 임무 = 클리어 골드 3판 (91, 악몽 열쇠 · 공훈 없음)');

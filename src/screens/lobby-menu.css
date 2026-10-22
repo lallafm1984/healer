@@ -1,15 +1,29 @@
 /*
- * 로비 메뉴 A안 「마을 표지판」 (2026-10-16 Lim). 마을 · 위 정보창 · 하단 탭 · 목표 · 출전은 그대로.
- * 왼쪽 소켓 = 오늘 할 일 (임무 · 주간 도전 · 휴식 충전), 오른쪽 팻말 = 마을 건물 (상점 · 행상인 106). 레이드 · 대장간 팻말은 2026-10-21 Lim이 뺌.
- * 두 팻말 모두 황동 테 나무판 (막대 팻말 기본값은 위 여백 18px라 두 줄 글이 판 아래로 5px 나갔음, #317 → 화면 테스트 「A2 로비」),
- * 이름 · 줄 글은 가운데 (2026-10-21 Lim 「새직업, 골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」).
+ * 로비 상점 · 행상인 = 2026-10-22 Lim 시안 1의 원형 문장과 짙은 목재 명패.
+ * 폭을 줄인 두 버튼을 오른쪽에 세로로 정렬한다. 이름과 잠금 문구는 이미지에 굽지 않는다.
+ * 마을 · 위 정보창 · 왼쪽 임무 · 하단 탭 · 목표 · 출전은 기존 배치를 유지한다.
  */
-#s-lobby .lb-right { gap: 7px; }
-#s-lobby .lb-plate.lb-merchant {
-  padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.webp'); background-size: 102.103% 89.954%; background-position: 55% 50%;
+#s-lobby .lb-right { gap: clamp(8px, 2.6cqw, 12px); }
+#s-lobby .lb-plate.lb-emblem {
+  --lb-emblem-width: clamp(68px, 19cqw, 86px);
+  display: block; width: var(--lb-emblem-width); height: calc(var(--lb-emblem-width) * 1.25);
+  min-width: 44px; min-height: 44px; max-width: none; padding: 0;
+  border: 0; border-image: none; border-radius: 0; background: none; box-shadow: none;
 }
-#s-lobby .lb-plate:is(.lb-shop, .lb-merchant) .lb-pt { padding-left: 0; align-items: center; text-align: center; }
-#s-lobby .lb-plate:is(.lb-shop, .lb-merchant) .lb-pt > span { align-items: center; }
+#s-lobby .lb-emblem-art { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+#s-lobby .lb-emblem .lb-pt {
+  position: absolute; inset: 69% 9% 8%; justify-content: center; align-items: center;
+  gap: 0; padding: 0; text-align: center; pointer-events: none;
+}
+#s-lobby .lb-emblem .lb-pt > b {
+  font: 800 clamp(13px, 3.6cqw, 15px)/1.1 var(--font-body);
+  color: var(--a2-cream); letter-spacing: -.045em; white-space: nowrap;
+  text-shadow: 0 1px 2px #160c05;
+}
+#s-lobby .lb-emblem .lb-pt > span { align-items: center; font: 600 9px/1.1 var(--font-body); color: var(--a2-cream); }
+#s-lobby .lb-emblem.lock .lb-pt { top: 68%; bottom: 7%; }
+#s-lobby .lb-emblem.lock .lb-pt > b { font-size: 11px; }
+#s-lobby .lb-emblem.lock > .lb-emblem-art { filter: saturate(.65) brightness(.82); }
 #s-lobby .lb-plate .g-badge { top: -6px; right: -4px; }
 
 /* 휴식 충전 소켓: 재화 그림 (베개 위 초승달)은 다른 소켓 그림보다 여백이 커서 조금 크게 */
