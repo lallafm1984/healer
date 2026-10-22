@@ -54,7 +54,7 @@ export default async function missionsUI(url, shots) {
       ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('healer.save')).chalChest===0),'weekly challenge chest remains claimable');
       await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.player.level=1;s.daily.day='';s.weekly.week='';localStorage.setItem('healer.save',JSON.stringify(s));});
       await page.reload();await page.clock.runFor(300);await pastTitle(page);await page.click('#s-lobby .lb-missions .lb-main');await page.clock.runFor(100);
-      ok(await page.locator('#mission-daily .mrow').count()===4&&await page.locator('#mission-daily .mission-shields img').count()===4,'Lv1: actual 4 missions/shields (not hardcoded 5)');
+      ok(await page.locator('#mission-daily .mrow').count()===4&&/0\s*\/\s*4/.test(await page.textContent('#mission-daily [data-sec="chest"] .g-meta')),'Lv1: actual 4 missions, chest 0/4 (not hardcoded 5)');
       await page.click('#mission-tab-weekly');await page.clock.runFor(100);ok(await page.locator('#mission-weekly .mrow').count()===0&&/Lv 10/.test(await page.textContent('#mission-weekly')),'Lv1 weekly locked without invented missions');
       await page.screenshot({path:`${shots}/mission-weekly-locked-390.png`});
     }
