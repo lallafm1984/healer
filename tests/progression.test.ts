@@ -155,7 +155,7 @@ describe('장비 (02 10장)', () => {
       expect(avgScore(presetGear('희귀', 1, lv), lv)).toBeLessThan(RECOMMENDED['악몽']!.score);
     }
   });
-  it('드롭 등급 비율이 표를 따름, 전설은 20인 · Lv 100부터 (61 3장 · 88)', () => {
+  it('드롭 등급 비율이 표를 따름, 전설은 레이드 · Lv 100부터 (61 3장 · 88, 10인은 20인의 절반)', () => {
     const rng = rngFrom(7);
     const count = (diff: '보통' | '악몽', level: number, raid: 0 | 10 | 20 = 0) => {
       const c: Record<string, number> = {};
@@ -167,7 +167,8 @@ describe('장비 (02 10장)', () => {
       dropTable('보통', raid).forEach((p, i) => expect((n[ITEM_GRADES[i]] || 0) / 4000).toBeCloseTo(p, 1));
     }
     expect(count('악몽', 100)['전설']).toBeUndefined();
-    expect(count('악몽', 100, 10)['전설']).toBeUndefined();
+    expect(count('악몽', 100, 10)['전설']).toBeGreaterThan(4000 * 0.025 * 0.6); // 10인 = 20인의 절반 (2026-10-22 Lim)
+    expect(count('악몽', 100, 10)['전설']).toBeLessThan(4000 * 0.05 * 0.7);
     expect(count('악몽', 99, 20)['전설']).toBeUndefined(); // 88: 전설은 Lv 100부터
     expect(count('악몽', 100, 20)['전설']).toBeGreaterThan(4000 * 0.05 * 0.7);
   });

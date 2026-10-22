@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_DIFFS } from '../src/data/content';
-import { descending, dropOdds, dropTable, HERO_MAX, heroRamp, ITEM_GRADES, LEGEND_CHANCE, minGrade, rollGrade } from '../src/data/equipment';
+import { descending, dropOdds, dropTable, HERO_MAX, heroRamp, ITEM_GRADES, LEGEND_CHANCE, LEGEND_CHANCE_10, minGrade, rollGrade } from '../src/data/equipment';
 import { gearGradeOdds } from '../src/data/reward-preview';
 
 describe('출전 보상 확률 (88: 바탕 표 희귀까지 + 영웅 · 전설 따로, 낮은 등급일수록 높게)', () => {
@@ -10,7 +10,7 @@ describe('출전 보상 확률 (88: 바탕 표 희귀까지 + 영웅 · 전설 �
     ['보통', 0, [0, 0, 1 - .044, .044, 0]],
     ['어려움', 0, [0, 0, 1 - .11, .11, 0]],
     ['악몽', 0, [0, 0, 1 - .22, .22, 0]],
-    ['악몽', 10, [0, 0, 1 - .275, .275, 0]],
+    ['악몽', 10, [0, 0, 1 - .275 - .0275, .275, .0275]], // 10인 전설 = 20인의 절반 (2026-10-22 Lim)
     ['악몽', 20, [0, 0, 1 - .33 - .055, .33, .055]],
   ] as const)('%s · %s인 A 평가 (Lv 100)', (diff, raid, expected) => {
     const actual = gearGradeOdds(diff, raid, 100);
@@ -42,13 +42,16 @@ describe('출전 보상 확률 (88: 바탕 표 희귀까지 + 영웅 · 전설 �
     descending([0, 0.2, 0.5, 0.3, 0]).forEach((v, i) => expect(v).toBeCloseTo([0, 0.35, 0.35, 0.3, 0][i], 12)); // 뒤집힌 이웃만 고르게
   });
 
-  it('영웅은 Lv 45부터 레벨마다 같은 만큼 늘어 Lv 100에 최대, 그 전엔 없음 · 전설은 Lv 100 20인만', () => {
+  it('영웅은 Lv 45부터 레벨마다 같은 만큼 늘어 Lv 100에 최대, 그 전엔 없음 · 전설은 Lv 100 레이드 어려움 · 악몽 (10인은 20인의 절반)', () => {
     expect([1, 44, 45, 72, 100].map(heroRamp)).toEqual([0, 0, 1 / 56, 28 / 56, 1]);
     expect(gearGradeOdds('악몽', 0, 44, 'S', true)['영웅']).toBe(0);
     expect(gearGradeOdds('악몽', 10, 45)['영웅']).toBeCloseTo(HERO_MAX[10]['악몽'] * 1.1 / 56, 12);
     expect(gearGradeOdds('악몽', 20, 99)['전설']).toBe(0);
     expect(gearGradeOdds('악몽', 20, 100)['전설']).toBeCloseTo(LEGEND_CHANCE['악몽']! * 1.1, 12);
-    expect(gearGradeOdds('악몽', 10, 100)['전설']).toBe(0);
+    expect(gearGradeOdds('악몽', 10, 100)['전설']).toBeCloseTo(LEGEND_CHANCE_10['악몽']! * 1.1, 12);
+    expect([gearGradeOdds('어려움', 10, 100)['전설'], gearGradeOdds('어려움', 20, 100)['전설']]).toEqual([expect.closeTo(0.011, 12), expect.closeTo(0.022, 12)]);
+    for (const d of ['어려움', '악몽'] as const) expect(LEGEND_CHANCE_10[d]).toBe(LEGEND_CHANCE[d]! / 2);
+    expect([gearGradeOdds('보통', 10, 100)['전설'], gearGradeOdds('악몽', 10, 99)['전설'], gearGradeOdds('악몽', 0, 100)['전설']]).toEqual([0, 0, 0]);
     // 탐험 · 던전은 장소 레벨 (tierLv): Lv 100이 장소 Lv 20 악몽을 돌면 영웅 없음
     expect(gearGradeOdds('악몽', 0, 100, 'A', false, 20)['영웅']).toBe(0);
     for (const d of ALL_DIFFS) {
