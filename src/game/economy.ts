@@ -140,7 +140,7 @@ function give(save: SaveData, g: Gain): Gain {
   return g;
 }
 
-/** 임무 하나 보상 골드 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81). 받기와 임무 화면 표시가 함께 씀 */
+/** 임무 하나 보상 골드 (13 2-1): 일일 = 클리어 골드의 35%, 주간 = 클리어 골드 1.75판 (2026-10-22 B안, 예전 20% · 3판), 정수로 반올림. 받기와 임무 화면 표시가 함께 씀 */
 export function missionGold(save: SaveData, kind: 'daily' | 'weekly'): number {
   const gold = runGold(topLevel(save));
   return Math.round(gold * (kind === 'daily' ? MISSION_REWARD.goldShare : WEEKLY_REWARD.runs));

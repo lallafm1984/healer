@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES } from '../src/data/features';
 import type { HeroKey } from '../src/data/heroes';
-import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
+import { DAILY, DAILY_BASIC, MISSION_REWARD, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
 import { clearGold } from '../src/data/progression';
 import { dayKey, daysBetween, weekKey } from '../src/game/clock';
 import {
@@ -69,7 +69,7 @@ describe('일일 임무 (13 2-1)', () => {
       expect(low.daily.missions.every(m => DAILY.find(d => d.key === m.key)!.lv <= 3)).toBe(true);
     }
   });
-  it('판·판매로 채우고 받기: 클리어 골드의 20% (91: #172 전 골드 값, 「장비 강화」 → 「장비 판매」)', () => {
+  it('판·판매로 채우고 받기: 클리어 골드의 35% (2026-10-22 B안, 예전 20%, 「장비 강화」 → 「장비 판매」)', () => {
     const s = save(20);
     s.daily.missions = [{ key: 'clear3', n: 0, got: false }, { key: 'nodeath', n: 0, got: false }, { key: 'sell2', n: 0, got: false }, { key: 'dispel10', n: 0, got: false }, { key: 'guild2', n: 0, got: false }];
     expect(onRun(s, ev())).toEqual(['사망자 0명으로 클리어']);
@@ -82,8 +82,8 @@ describe('일일 임무 (13 2-1)', () => {
     const g0 = s.player.gold;
     const r = claimMission(s, 'daily', 1);
     expect(runGold(20)).toBe(clearGold(20, '보통', 'A'));
-    expect(r).toEqual({ gold: Math.round(runGold(20) * 0.2) });
-    expect(s.player.gold - g0).toBe(55);
+    expect(r).toEqual({ gold: Math.round(runGold(20) * MISSION_REWARD.goldShare) });
+    expect(s.player.gold - g0).toBe(96); // Lv 20 판 골드 275 × 0.35 (2026-10-22 B안, 예전 20% = 55)
     expect(claimMission(s, 'daily', 1)).toBe('아직 못 채움');
   });
   it('완료 상자: 5개 다 받으면 1번 (클리어 골드 1판 + 장비 1개), 광고로 한 번 더', () => {
@@ -139,7 +139,7 @@ describe('일일 임무 (13 2-1)', () => {
 });
 
 describe('주간 (13 3장)', () => {
-  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 클리어 골드 3판 (91: #172 전 값)', () => {
+  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 클리어 골드 1.75판 (2026-10-22 B안, 예전 3판)', () => {
     expect(save(9).weekly.missions).toEqual([]);
     for (let i = 0; i < 20; i++) { seed = i + 3; expect(save(20).weekly.missions.some(m => m.key === 'w_raid3')).toBe(false); }
     const s = save(40);
@@ -148,8 +148,8 @@ describe('주간 (13 3장)', () => {
     for (let i = 0; i < 3; i++) onRun(s, ev({ raid: 10 }));
     expect(missionReady(s.weekly.missions[0])).toBe(true);
     const g0 = s.player.gold;
-    expect(claimMission(s, 'weekly', 0)).toEqual({ gold: runGold(40) * WEEKLY_REWARD.runs });
-    expect(s.player.gold - g0).toBe(495 * 3);
+    expect(claimMission(s, 'weekly', 0)).toEqual({ gold: Math.round(runGold(40) * WEEKLY_REWARD.runs) });
+    expect(s.player.gold - g0).toBe(866); // Lv 40 판 골드 495 × 1.75 (2026-10-22 B안)
     expect(claimMission(s, 'weekly', 0)).toMatch(/못 채움/);
     expect(WEEKLY.length).toBeGreaterThanOrEqual(3);
   });

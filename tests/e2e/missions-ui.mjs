@@ -27,7 +27,7 @@ export default async function missionsUI(url, shots) {
       return {overflow:s.scrollWidth>s.clientWidth+1,rows:rows.map(r=>{const b=r.getBoundingClientRect();const children=[...r.children].map(x=>x.getBoundingClientRect());return {width:b.width,overlap:children.some((x,i)=>i&&x.left<children[i-1].right-1),outside:children.some(x=>x.left<b.left-1||x.right>b.right+1),text:r.querySelector('b').textContent};}),small:[...s.querySelectorAll('#mission-daily button')].filter(b=>b.getClientRects().length).some(b=>{const r=b.getBoundingClientRect();return r.width<44||r.height<44;})};
     });
     ok(!geo.overflow&&!geo.small&&geo.rows.every(r=>!r.overlap&&!r.outside),`${width}: no row overlap/overflow, touch targets >=44px`,geo);
-    ok((await page.locator('#mission-daily .mission-reward').allTextContents()).every(s=>s.trim()==='99'),`${width}: live level-40 reward 99, no mockup amount`);
+    ok((await page.locator('#mission-daily .mission-reward').allTextContents()).every(s=>s.trim()==='173'),`${width}: live level-40 reward 173 (495 × 0.35), no mockup amount`);
     await page.screenshot({path:`${shots}/mission-daily-${width}.png`});
     await page.locator('#mission-daily .mrow').last().scrollIntoViewIfNeeded();
     ok(await page.locator('#mission-daily [data-swap="4"]').isVisible(),`${width}: bottom row reachable by scrolling`);
@@ -35,7 +35,7 @@ export default async function missionsUI(url, shots) {
     const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('healer.save')).player.gold);
     await page.click('#mission-daily [data-claim]');await page.clock.runFor(100);
     const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('healer.save')));
-    ok(after.player.gold===before+99&&after.daily.missions[0].got,`${width}: claim uses existing economy`);
+    ok(after.player.gold===before+173&&after.daily.missions[0].got,`${width}: claim uses existing economy`);
     await page.click('#mission-tab-weekly');await page.clock.runFor(100);
     ok(await page.isVisible('#mission-weekly')&&await page.isHidden('#mission-daily')&&await page.locator('#mission-weekly .mrow').count()===3,`${width}: weekly tab shows 3 actual missions`);
     ok(await page.locator('#mission-weekly [data-swap]').count()===0,`${width}: no invented weekly swap`);

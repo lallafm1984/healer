@@ -74,7 +74,7 @@ export const DAILY: MissionDef[] = [
 export const DAILY_BASIC = ['clear3', 'pub2'];
 export const DAILY_N = 5;
 
-/** 주간 임무 3개 (하나마다 골드 3판. 81에서 악몽 열쇠 1개 → 골드 3판, v16 강화석 5, 91 다시 골드 3판). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
+/** 주간 임무 3개 (하나마다 골드 1.75판, 2026-10-22 B안. 81에서 악몽 열쇠 1개 → 골드 3판, v16 강화석 5, 91 다시 골드 3판). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
 export const WEEKLY: MissionDef[] = [
   { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: RAID10_LV, run: e => (e.win && e.raid ? 1 : 0) },
   { key: 'w_hard5', text: '어려움 이상 던전 클리어', need: 5, lv: 10, run: e => (won(e) && !e.raid && e.diffIdx >= 2 ? 1 : 0) },
@@ -89,12 +89,14 @@ export const WEEKLY_LV = 10;
 export const GUILD_GOAL = { need: 10, fame: 10 };
 
 /**
- * 임무 보상 (13 2-1): 1개 = 클리어 골드의 20%, 완료 상자 = 클리어 골드 1판 + 장비 1개. 클리어 골드 1판 = 그 레벨 보통 A (economy runGold).
+ * 임무 보상 (13 2-1): 일일 1개 = 클리어 골드의 35%, 완료 상자 = 클리어 골드 1판 + 장비 1개, 주간 1개 = 1.75판. 클리어 골드 1판 = 그 레벨 보통 A (economy runGold).
+ * 2026-10-22 Lim 「임무 보상의 골드를 밸런스 있게 손보자」 → B안 「고르게」 (예전 일일 20% · 주간 3판: 한 판에 돌려주는 골드가 일일 0.13판 · 주간 0.5판으로 15배 차이 →
+ * 0.23 · 0.29판, 하루 총량 3.3 → 3.5판. 근거 공유 guild-plan/임무_골드_균형.md). 반올림은 missionGold
  * v16에서 골드 몫을 강화석으로 바꿨다가 91 (디아2식, 강화석 없앰)에서 #172 전 골드 값으로
  */
-export const MISSION_REWARD = { goldShare: 0.2 };
-/** 주간 임무 하나 (81): 골드 = 이 레벨 클리어 골드 × runs */
-export const WEEKLY_REWARD = { runs: 3 };
+export const MISSION_REWARD = { goldShare: 0.35 };
+/** 주간 임무 하나 (81): 골드 = 이 레벨 클리어 골드 × runs (B안 1.75, 예전 3) */
+export const WEEKLY_REWARD = { runs: 1.75 };
 export const CHEST_REWARD = { runs: 1 };
 /** 놓친 날 완료 상자는 2일까지 (13 7장) */
 export const CHEST_BANK = 2;
