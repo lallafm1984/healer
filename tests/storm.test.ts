@@ -73,7 +73,7 @@ describe('20인 ⑥ 수정 뿌리굴', () => {
     expect(skill('gulgul', 'bolt').effect).toMatchObject({ p: 'chain', jumps: 5 });
   });
   it('핑핑이: 회오리는 탱커 · 나 아닌 4명 (악몽 5명), 떠 있는 동안에도 수정 가시가 쌓임 (힐로 못 지움)', () => {
-    for (const [mythic, n] of [[false, 4], [true, 5]] as const) {
+    for (const [mythic, n] of [[false, 4], [true, 6]] as const) { // 악몽 5명 + 어려움 변화 1 (111)
       const f = boss('pingping', mythic);
       skillOn(f, 'whirl');
       E.step(f); f.events.length = 0;

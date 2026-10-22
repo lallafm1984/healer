@@ -88,7 +88,7 @@ describe('10인 ⑩ 노을 시장', () => {
     expect(f.empower).toBeCloseTo(e0 + 0.3, 6);
   });
   it('혹돌이: 매운 재채기 (옮겨붙는 질병) 2명 · 악몽 3명, 신기루 짐더미는 장판 두 곳 (하나는 가짜)', () => {
-    for (const [mythic, n] of [[false, 2], [true, 3]] as const) {
+    for (const [mythic, n] of [[false, 2], [true, 4]] as const) { // 악몽 3명 + 어려움 변화 1 (111)
       const f = boss('hokdol', mythic);
       skillOn(f, 'sneeze');
       steps(f, 0.1);
