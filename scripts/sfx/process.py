@@ -5,7 +5,7 @@
 
 한 소리에 생성본이 여럿이면 (<이름>.wav, <이름>~2.wav …, make.mjs --takes) 하나를 고름:
 폰 스피커 (약 350Hz 밑을 못 냄)로 들어도 덜 작아지고, keep 안에서 스스로 끝나며 (자른 곳이 크면 감점, 108: 길이 강제 절단 대신 다시 생성),
-잡음 같지 않은 것. <raw>/picks.json {"이름": "~2"} 이 있으면 그 생성본으로 (듣고 고른 것). 후보마다 다듬은 소리는 <raw>/takes/에 남김.
+잡음 같지 않은 것. <raw>/picks.json {"이름": "~2"} 이 있으면 그 생성본으로 (듣고 고른 것), {"이름": {"file": "경로"}} 면 그 완성 파일을 그대로. 후보마다 다듬은 소리는 <raw>/takes/에 남김.
 
 실행 (scripts/sfx/make.mjs가 부름):
   uv run --with numpy --with soundfile python scripts/sfx/process.py <raw 폴더> <출력 폴더> <params.json>
@@ -57,7 +57,6 @@ def soften(y: np.ndarray, rate: int, level: int) -> np.ndarray:
 
 
 PUNCH_DRIVE = 2.5  # 보스 기술 착탄: 부드럽게 눌러 첨두 대비 몸통을 키움 (같은 첨두에서 더 크게 들림)
-LAYER_DB = -3.0  # 직업 소리에 겹치는 사제 치유음은 직업 소리보다 이만큼 낮게 (활성 구간 RMS 기준)
 PUNCH_GAIN_DB = 4.0  # 보스 기술 착탄은 다른 효과음보다 이만큼 크게 맞춤 (첨두 -1 dBFS 제한은 그대로)
 
 
@@ -67,27 +66,8 @@ def act_rms(y: np.ndarray) -> float:
     return float(np.sqrt(np.mean(act**2))) if len(act) else float(np.sqrt(np.mean(y**2)))
 
 
-def mix_layer(y: np.ndarray, rate: int, lay: np.ndarray, keep: float) -> np.ndarray:
-    """회복하는 직업 기술 (2026-10-22 Lim 「힐 을 하는 스킬은 사제의 힐 사운드 같은 소리도 들어가게」): 사제 확정 치유음 (lay)을
-    직업 소리가 가장 큰 곳 조금 앞에서 시작해 LAYER_DB만큼 낮게 섞음. keep을 넘는 몫은 자르고 끝을 페이드"""
-    n = int(keep * rate)
-    k = max(1, int(0.03 * rate))
-    env = np.convolve(y**2, np.ones(k) / k, mode="same")
-    at = max(0, min(int(np.argmax(env)) - int(0.02 * rate), n - len(lay)))
-    end = min(n, at + len(lay))
-    z = lay[: end - at].astype(np.float64).copy()
-    if len(z) < len(lay):
-        f = min(len(z) // 3, int(0.08 * rate))
-        if f > 1:
-            z[-f:] *= np.cos(np.linspace(0, np.pi / 2, f)) ** 2
-    out = np.zeros(max(len(y), end))
-    out[: len(y)] += y
-    out[at:end] += z * act_rms(y) / max(act_rms(lay), 1e-9) * 10 ** (LAYER_DB / 20)
-    return out
-
-
 def shape(x: np.ndarray, rate: int, keep: float, o: dict) -> np.ndarray:
-    """o = params.json 항목: presence (폰 대역 EQ) · bright (더 밝게) · warm · soft (덜 날카롭게 1~3) · punch (보스 착탄) · _lay (겹칠 사제 치유음)"""
+    """o = params.json 항목: presence (폰 대역 EQ) · bright (더 밝게) · warm · soft (덜 날카롭게 1~3) · punch (보스 착탄)"""
     punch = bool(o.get("punch"))
     if o.get("presence") or o.get("bright") or o.get("warm"):
         x = presence(x, rate, bool(o.get("bright")), bool(o.get("warm")))
@@ -114,8 +94,6 @@ def shape(x: np.ndarray, rate: int, keep: float, o: dict) -> np.ndarray:
     fout = min(n // 3, int(0.08 * rate))
     if fout > 1:
         y[-fout:] *= np.cos(np.linspace(0, np.pi / 2, fout)) ** 2
-    if o.get("_lay") is not None:
-        y = mix_layer(y, rate, o["_lay"], keep)
     # 세기: 활성 구간 (첨두 -30 dB 위) RMS를 목표로, 첨두는 -1 dBFS까지만
     rms = act_rms(y)
     target = RMS_TARGET_DB + (PUNCH_GAIN_DB if punch else 0.0)
@@ -212,10 +190,14 @@ def main() -> None:
     report = []
     for p in json.loads(params.read_text(encoding="utf-8")):
         name, keep = p["name"], float(p["keep"])
-        if p.get("layer"):
-            # 겹칠 사제 확정 치유음 (출력 폴더의 <layer>.ogg, 읽기만 함)
-            lay, lr = sf.read(str(out / f"{p['layer']}.ogg"), dtype="float64", always_2d=True)
-            p["_lay"], p["_lay_rate"] = lay.mean(axis=1), lr
+        pk = picks.get(name)
+        if isinstance(pk, dict) and pk.get("file"):
+            # 듣고 고른 것이 예전 판의 완성 파일일 때 ({"file": "루트 기준 경로"}): 생성본 대신 그 파일을 그대로 씀
+            src = raw.parent / pk["file"]
+            (out / f"{name}.ogg").write_bytes(src.read_bytes())
+            report.append({"name": name, "take": "file", "picked": "듣고 고름 (파일)", "file": pk["file"], "bytes": src.stat().st_size, "takes": []})
+            print(f"{name}: {pk['file']} (듣고 고름, 파일 그대로)")
+            continue
         srcs = [s for s in [raw / f"{name}.wav", *sorted(raw.glob(f"{name}~*.wav"))] if s.is_file()]
         if not srcs:
             report.append({"name": name, "error": "생성 파일 없음"})
@@ -224,10 +206,6 @@ def main() -> None:
         for src in srcs:
             label = src.stem[len(name) :] or "~1"
             x, rate = sf.read(str(src), dtype="float64", always_2d=True)
-            if p.get("_lay") is not None and p["_lay_rate"] != rate:
-                lay = p["_lay"]
-                p["_lay"] = np.interp(np.arange(int(len(lay) * rate / p["_lay_rate"])) * p["_lay_rate"] / rate, np.arange(len(lay)), lay)
-                p["_lay_rate"] = rate
             if not np.all(np.isfinite(x)):
                 tries.append({"take": label, "error": "숫자가 아닌 값"})
                 continue
