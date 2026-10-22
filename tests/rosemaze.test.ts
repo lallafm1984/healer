@@ -4,6 +4,7 @@ import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
+import { midGearConfig } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { while (!f.over && f.t < sec && !done()) { if (auto) E.autoHealer(f); E.step(f); f.events.length = 0; } };
 
@@ -31,9 +32,9 @@ describe('장미 울타리 미로', () => {
     for (const u of E.living(f)) expect(u.shield).toBeGreaterThan(9);
   });
 
-  it('Lv 25 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 25 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'rosemaze', diff: '보통', seed: s, level: 48, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'rosemaze', diff: '보통', seed: s, level: 48, ...midGearConfig(48, 'priest', s) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });

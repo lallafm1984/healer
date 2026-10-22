@@ -46,6 +46,7 @@ for (const c of places) {
     const f = why(r.now);
     console.log(`  ${d.padEnd(3)} ${stdLabel(r.std)} ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now, c)}${f ? ` | 실패: ${f}` : ''}`);
     if (r.next) console.log(`      → dmg ${r.next.dmg} = ${mTxt(r.next.m)}`);
+    if (r.design) console.log(`      그 레벨 사람 · 중간 등급 장비 ${Math.round(r.design.before)}% → ${Math.round(r.design.after)}% · 띠 ${r.design.min} ~ ${r.design.max}% (겨눔 ${r.design.aim})`);
     if (r.novice) console.log(`      초보 (사제 ${NOVICE_N}판) ${Math.round(r.novice.before)}% → ${Math.round(r.novice.after)}% · 목표 ${r.novice.target}%${r.novice.capped ? ' · 초보 하한으로 내림' : ''}`);
   }
 }

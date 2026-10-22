@@ -4,6 +4,7 @@ import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
+import { midGearConfig } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
@@ -21,7 +22,7 @@ describe('책갈피 설원', () => {
   });
 
   it('서고 사서: 마나 먹는 책 1권이 마나를 뺌', () => {
-    const f = E.create({ encounter: 'librarian40', diff: '보통', seed: 3, level: 40 });
+    const f = E.create({ encounter: 'librarian40', diff: '보통', seed: 3, level: 40, tune: {} }); // 기믹만 봄 (장소 보정 없이, 레벨 디자인 보정으로 판이 일찍 끝나지 않게)
     f.party.forEach(u => { u.dps = 0; });
     until(f, 20, () => f.mobs.some(m => m.add && m.alive));
     expect(f.mobs.filter(m => m.add && m.alive)).toHaveLength(1);
@@ -30,10 +31,10 @@ describe('책갈피 설원', () => {
     expect(f.mana).toBeLessThan(m0);
   });
 
-  it('Lv 31 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 31 자동 힐러, 보통이면 대부분 깸 (중간 등급 장비, 레벨 디자인 보통 띠 80 ~ 94%)', () => {
     let wins = 0;
     // 공개모집처럼 직업 스킬이 있는 파티 (튜토리얼 뒤, 자동 밸런스 기준과 같음. 75: 파티원 목록)
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, gear: 'none', party: E.recruitParty('pagedrift', s, { abilities: true }) }).win) wins++;
-    expect(wins).toBeGreaterThanOrEqual(19);
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, ...midGearConfig(40, 'priest', s), party: E.recruitParty('pagedrift', s, { abilities: true }) }).win) wins++;
+    expect(wins).toBeGreaterThanOrEqual(15);
   });
 });

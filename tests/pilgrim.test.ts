@@ -5,6 +5,7 @@ import { BOSSES } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
+import { midGearConfig } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
@@ -44,9 +45,9 @@ describe('무너진 순례길', () => {
     expect(go.every(u => u.role === 'ranged')).toBe(true);
   });
 
-  it('Lv 36 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 36 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'pilgrim', diff: '보통', seed: s, level: 28, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'pilgrim', diff: '보통', seed: s, level: 28, ...midGearConfig(28, 'priest', s) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });

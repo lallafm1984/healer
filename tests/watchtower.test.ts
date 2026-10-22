@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { BOSSES, type DebuffDef } from '../src/data/bosses';
 import * as E from '../src/engine';
-import { runOnce } from '../src/sim/balance';
 import { applyDebuff } from '../src/engine/bossParts';
 import { hexDist } from '../src/engine/board';
 import { doDispel } from '../src/engine/heroes';
+import { designRun } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 const only = (f: E.Fight, key: string, at = f.t) => { f.skills.forEach(s => { s.next = s.key === key ? at : Infinity; }); };
@@ -114,9 +114,9 @@ describe('무너진 망루', () => {
     expect(f.bs.echo2.next).toBeLessThan(Infinity);
   });
 
-  it('Lv 41 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('Lv 41 자동 힐러, 보통이면 대부분 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (runOnce(contentOf('watchtower'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
+    for (let s = 1; s <= 20; s++) if (designRun(contentOf('watchtower'), '보통', 'priest', s).win) wins++; // 레벨 디자인 기준 (2026-10-22): 중간 등급 장비 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(16);
   }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

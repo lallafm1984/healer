@@ -9,6 +9,7 @@ import { FEATURED, NAMED } from '../src/data/specials';
 import { UNIQUES } from '../src/data/uniques';
 import * as E from '../src/engine';
 import { aggroTarget } from '../src/engine/bossParts';
+import { midGearConfig } from '../src/sim/familiar';
 
 type F = ReturnType<typeof E.create>;
 const quiet = (f: F) => { f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; }); return f; };
@@ -167,9 +168,9 @@ describe('잠긴 호숫가 · 20인 ①', () => {
 });
 
 describe('자동 힐러', () => {
-  it('잠긴 호숫가 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('잠긴 호숫가 보통이면 거의 다 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'lakeshore', diff: '보통', seed: s, level: 68, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'lakeshore', diff: '보통', seed: s, level: 68, ...midGearConfig(68, 'priest', s) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });

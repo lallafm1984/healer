@@ -29,7 +29,7 @@ import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
 import { rampPlace } from '../data/progression';
-import { familiarTarget, measureFamiliar } from './familiar';
+import { designTarget, measureFamiliar } from './familiar';
 import { measureNovice, noviceCells, noviceTarget, type NoviceCell } from './novice';
 import { rampLevel, rampPlayer, usesRamp, type RampPlayer } from './ramp';
 
@@ -213,6 +213,8 @@ export interface Row {
   next?: { dmg: number; m: Measure };
   /** 하한 칸 (초보 · 익숙한 사람): 클리어율 (지금 배율 · 쓴 배율), 목표, 하한으로 내렸는지 */
   novice?: { before: number; after: number; target: number; capped: boolean };
+  /** 레벨 디자인 칸 (Lv 21 ~ 100 · 레이드): 그 레벨 사람 · 중간 등급 장비 클리어율 (지금 배율 · 쓴 배율)과 띠 */
+  design?: { before: number; after: number; min: number; max: number; aim: number };
 }
 
 /** 초보 하한 판 수 (사제, 시드 1 ~ n: npm run sim:novice 기본과 같음) */
@@ -229,17 +231,38 @@ function noviceProbe(x: NoviceCell, base: Tune, n: number): FloorProbe {
 export const FAMILIAR_N = 20;
 /** 하한 재기: 목표 · 배율 → 클리어율 · 지킴 */
 export interface FloorProbe { target: number; rate: (dmg: number) => number; ok: (dmg: number) => boolean }
-/**
- * 그 칸의 하한 (없으면 null): 순차 구간 길의 칸은 그 레벨 초보 (사제, sim/novice), 그 밖 장소 (Lv 21 ~ 100 · 레이드)는 2026-10-22 Lim 「고친다. 20레벨 이후는 장비를 감안해서」
- * 그 레벨 사람 (Lv 20 익숙 → 60 능숙)이 길잡이 길 장비로 (sim/familiar, 기준 직업 셋 × FAMILIAR_N)
- */
+/** 그 칸의 하한 (없으면 null): 순차 구간 길의 칸은 그 레벨 초보 (사제, sim/novice). Lv 21 ~ 100 · 레이드는 레벨 디자인 (designCell)이 맡음 */
 export function floorProbe(c: ContentDef, d: DiffName, base: Tune): FloorProbe | null {
   const nx = noviceCellOf(c, d);
-  if (nx) return noviceProbe(nx, base, NOVICE_N);
-  if (rampPlace(c) || !balanceable(c)) return null;
-  const x = { c, d }, seen = new Map<number, number>(), target = familiarTarget(x);
-  const rate = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, FAMILIAR_N, 'familiar', BASE_HEROES, { ...base, dmg }).rate); return seen.get(dmg)!; };
-  return { target, rate, ok: (dmg: number) => rate(dmg) >= target };
+  return nx ? noviceProbe(nx, base, NOVICE_N) : null;
+}
+/**
+ * 레벨 디자인 칸 (2026-10-22 Lim 「장비는 20레벨 부터 부위마다 중간 등급 기준으로해서 너무 쉽지도, 너무 어렵지도 않는 적절한 레벨디자인이 필요하다」):
+ * 순차 구간 밖 장소 (Lv 21 ~ 100 · 레이드). 숙련 목표 (장소 레벨 곡선) · 바쁨 하한 대신 그 레벨 사람 (Lv 20 익숙 → 60 능숙)이 중간 등급 장비 (sim/familiar midGear)로
+ * 띠 (designTarget: 쉬움 90 이상 · 보통 85 ~ 99 → 80 ~ 94 · 어려움 60 ~ 74 → 45 ~ 59 · 악몽 45 ~ 59 → 30 ~ 44, 적 Lv 21 → 100) 안에 들게 맞춤 (기준 직업 셋 × FAMILIAR_N)
+ */
+export const designCell = (c: ContentDef) => balanceable(c) && !rampPlace(c);
+/** 배율 → 그 레벨 사람 · 중간 등급 장비 클리어율 (잰 값은 기억) */
+export function designRate(c: ContentDef, d: DiffName, base: Tune, n = FAMILIAR_N): (dmg: number) => number {
+  const seen = new Map<number, number>(), x = { c, d };
+  return dmg => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, n, 'familiar', BASE_HEROES, { ...base, dmg }).rate); return seen.get(dmg)!; };
+}
+/** 레벨 디자인 배율 위 끝: 숙련 찾기 (HI 3)로는 늦은 탐험이 3배에서도 너무 쉬워서 (바람개비 언덕 · 물빛 정원 어려움 92%) 더 열어 둠 */
+export const DESIGN_HI = 6;
+/** 레벨 디자인 배율 찾기: 띠 안이면 그대로, 밖이면 겨눌 값에 맞는 배율 (쉬움은 내리기만) */
+export function designDmg(rate: (dmg: number) => number, d: DiffName, curDmg: number, tg: { min: number; max: number; aim: number }): number {
+  const r = rate(curDmg);
+  if (r >= tg.min && r <= tg.max) return curDmg;
+  return findDmg(rate, tg.aim, LO, d === '쉬움' ? curDmg : DESIGN_HI).dmg;
+}
+function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, cur: Tune | null): Row {
+  const base = cur ?? {}, curDmg = base.dmg ?? 1, tg = designTarget({ c, d }), rate = designRate(c, d, base);
+  const before = rate(curDmg), verdict: Verdict = before < tg.min ? 'hard' : before > tg.max ? 'easy' : 'ok';
+  const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now: measure(c, d, n, cur ?? undefined), verdict, design: { before, after: before, ...tg } };
+  if (!search || verdict === 'ok') return row;
+  const dmg = designDmg(rate, d, curDmg, tg);
+  if (dmg !== curDmg) { row.next = { dmg, m: measure(c, d, n, { ...base, dmg }) }; row.design!.after = rate(dmg); }
+  return row;
 }
 /**
  * 초보 하한을 지키는 가장 큰 배율 (hi 아래, 0.01 단위). hi가 지키면 hi. 아래로 0.85배씩 내려 지키는 값을 찾고 그 사이를 좁힘
@@ -263,6 +286,7 @@ export const tooIdle = (d: DiffName, m: Measure, c?: ContentDef): boolean => BUS
 /** 장소 하나 · 난이도 하나: 지금 값으로 재고, 목표 밖이면 (search) 피해 배율을 찾음 */
 export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, search = true): Row {
   const cur = placeTune(t, c, d);
+  if (designCell(c)) return balanceDesign(c, d, n, search, cur);
   let now = measure(c, d, n), verdict = verdictOf(d, now.rate, c);
   // 목표 밖이면 판 수를 두 배로 다시 재서 확인 (선 근처의 흔들림으로 값을 자꾸 바꾸지 않게)
   if (search && verdict !== 'ok') { now = measure(c, d, n * 2); verdict = verdictOf(d, now.rate, c); }

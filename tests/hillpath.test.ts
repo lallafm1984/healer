@@ -4,6 +4,7 @@ import { contentOf } from '../src/data/content';
 import { BOSSES } from '../src/data/bosses';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
+import { midGearConfig } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
@@ -35,9 +36,9 @@ describe('해바라기 언덕길', () => {
     expect(f.daze?.name).toBe('무방비');
   });
 
-  it('Lv 35 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 35 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'hillpath', diff: '보통', seed: s, level: 23, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'hillpath', diff: '보통', seed: s, level: 23, ...midGearConfig(23, 'priest', s) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });

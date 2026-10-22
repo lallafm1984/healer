@@ -288,11 +288,10 @@ describe('성기사', () => {
 describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)', () => {
   const mk = (hero: 'priest' | 'druid' | 'paladin', level: number, encounter: 'plague' | 'choir' = 'plague', diff: '보통' | '어려움' | '악몽' = '보통') =>
     E.create({ encounter, diff, seed: 7, level, hero });
-  it('난이도별 보스 보정: 역병 군주 어려움은 난이도 ×1.2에 보정이 더 붙고, 보통은 그대로', () => {
-    expect(TUNE.plague?.['보통']).toBeUndefined();
-    const tn = TUNE.plague!['어려움']!.dmg!;
+  it('난이도별 보스 보정: 역병 군주 어려움은 난이도 ×1.2에 그 난이도 보정이 붙음 (보통도 레벨 디자인 보정, 2026-10-22)', () => {
+    const tn = TUNE.plague!['어려움']!.dmg!, tnN = TUNE.plague?.['보통']?.dmg ?? 1;
     expect(tn).toBeGreaterThan(1);
-    expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * tn);
+    expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo((1.2 * tn) / tnN);
   });
   it('특성 단 마나 보정: 열린 특성 단마다 직업별 비율 (기본 −2%, 84: 사제 −3% · 드루이드 −1.5%), 프로토타입은 그대로 (67 → 77)', () => {
     expect(TIER_MANA_BY.priest).toBe(0.03);
