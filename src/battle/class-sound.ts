@@ -2,7 +2,7 @@
  * 6직업 기술 소리 (2026-10-22 Lim 「사제 말고 6직업은 사제를 베이스로 참고해서 직업군 사운드를 모두 만들자」).
  * 사제 (priest-sound.ts)처럼 스킬이 실제로 들어간 기록 (Fight.used)마다 그 직업 · 그 스킬 소리를 내고, 같은 사건에 엔진이 낸 공통 소리
  * (renew · hymn · chime · dispel)와 공통 치유음은 대신함. 한 화면에 같은 스킬이 여럿 (연쇄 · 광역 대상마다)이면 한 번.
- * 소리 문장 · 파일 이름은 scripts/sfx/class.mjs (heal · renew · hymn-<직업>은 sounds.mjs)
+ * 소리 문장 · 파일 이름 · 재사용 시간 단계는 scripts/sfx/class.mjs (heal · renew · hymn-<직업>도 여기, sounds.mjs가 가져다 씀)
  */
 import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';

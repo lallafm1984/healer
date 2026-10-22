@@ -3,6 +3,7 @@
  * 없으면 sfx()가 false를 돌려 부른 쪽이 합성음 자리표시 (battle/core.ts Snd)를 낸다.
  * 이름 · 쓰는 곳 · 생성 문장은 scripts/sfx/sounds.mjs (107 표). 설정 「소리」를 끄면 아무것도 안 울림.
  */
+import { CLASS_VOL } from './class-vol';
 import { sfxTiming } from './timing';
 const files = import.meta.glob<string>('./*.{ogg,mp3,m4a,wav}', { eager: true, query: '?url', import: 'default' });
 
@@ -23,9 +24,8 @@ Object.assign(VOL, { 'boss-down': 1, 'alarm-rule': 0.8, 'boss-aggro': 0.8, 'boss
 // 도적 · 사냥꾼 · 마법사는 2026-10-22 Lim 「소리가 너무 작다」로 다시 만들며 조금 더 크게
 // 전사 3안 「너무 작다」, 검사 (아까 저음) 「조금만 더 크게」도 함께
 Object.assign(VOL, { 'atk-rogue': 0.6, 'atk-archer': 0.55, 'atk-mage': 0.45, 'atk-hunter': 0.6, 'atk-warrior': 0.7, 'atk-swordsman': 0.5 }); // 마법사 3안은 「너무 크다, 조금 줄이자」 (2026-10-22)
-// 드루이드는 「소리가 잘 안 들린다」 (2026-10-22): 다시 만들며 다른 직업보다 크게
-Object.assign(VOL, { 'heal-druid': 0.75, 'renew-druid': 0.85, 'hymn-druid': 1 });
-for (const n of ['growth', 'wildflower', 'nature-cleanse', 'bark', 'rebirth', 'spring-rain', 'forest-memory', 'old-tree', 'crit']) VOL[`druid-${n}`] = 0.85;
+// 6직업 기술 소리: 재사용 시간이 길수록 크게, 소리마다 잰 값 (class-vol.ts)
+Object.assign(VOL, CLASS_VOL);
 /** 보스 기술 특성 착탄 (boss-<특성>-<hit|wave|ground>, scripts/sfx/boss.mjs) */
 const BOSS_THEME = /^boss-[a-z]+-(hit|wave|ground|cast)$/;
 /** 6직업 기술 소리 (class-sound, 2026-10-22): 사제 소리처럼 */
