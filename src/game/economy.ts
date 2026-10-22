@@ -140,15 +140,18 @@ function give(save: SaveData, g: Gain): Gain {
   return g;
 }
 
-/** 임무 보상 받기 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81). 91: v16의 강화석 → #172 전 골드 */
+/** 임무 하나 보상 골드 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81). 받기와 임무 화면 표시가 함께 씀 */
+export function missionGold(save: SaveData, kind: 'daily' | 'weekly'): number {
+  const gold = runGold(topLevel(save));
+  return Math.round(gold * (kind === 'daily' ? MISSION_REWARD.goldShare : WEEKLY_REWARD.runs));
+}
+
+/** 임무 보상 받기. 91: v16의 강화석 → #172 전 골드 */
 export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
   if (!s || !missionReady(s)) return '아직 못 채움';
   s.got = true;
-  const gold = runGold(topLevel(save));
-  return kind === 'daily'
-    ? give(save, { gold: Math.round(gold * MISSION_REWARD.goldShare) })
-    : give(save, { gold: gold * WEEKLY_REWARD.runs });
+  return give(save, { gold: missionGold(save, kind) });
 }
 
 /** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1), 등급대는 내 레벨 (86) */

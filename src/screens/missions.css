@@ -1,4 +1,4 @@
-/* Mission board: live data over the selected wood, brass and courtyard artwork. */
+/* 임무 화면 (2026-10-22 Lim 임무 시안): 일일 · 주간 탭, 완료 상자 그림, 짙은 목재 · 황동 줄. 숫자 · 글은 실제 임무 값 */
 #s-missions.ns { background: #25251d url('../art/village-base.webp') center / cover no-repeat; }
 #s-missions.ns .missions { padding: 10px 10px 24px; container-type: inline-size; gap: 0; background: #14110b66; }
 #s-missions.ns [role=tabpanel][hidden] { display: none; }
@@ -7,14 +7,14 @@
 #s-missions.ns .mission-tabs button[aria-selected=true] { color: #fff2c9; background-color: #125b7b; background-blend-mode: normal, luminosity; }
 #s-missions.ns .mission-tabs button:focus-visible { outline: 2px solid #ffe29a; outline-offset: 2px; }
 #s-missions.ns .mission-chest { margin-bottom: 12px; }
-#s-missions.ns .mission-chest-art { min-height: 140px; background: url('../art/ui-mission-reward-v1.png') center / 100% 100% no-repeat; padding: 15px 12px; display: flex; align-items: center; }
+#s-missions.ns .mission-chest-art { min-height: 140px; background: url('../art/ui-mission-reward-v1.webp') center / 100% 100% no-repeat; padding: 15px 12px; display: flex; align-items: center; }
 #s-missions.ns .mission-chest-copy { width: 60%; min-width: 0; color: #fff0cd; text-shadow: 0 1px 2px #130b03; }
 #s-missions.ns .mission-chest-copy h2 { margin: 0 0 8px; font: 800 clamp(22px, 7cqw, 29px)/1.2 var(--font-display); color: #fff0cd; }
 #s-missions.ns .mission-chest-copy p { margin: 0 0 8px; font-size: 11px; line-height: 1.45; word-break: keep-all; }
 #s-missions.ns .mission-chest-rewards { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; font-weight: 700; }
 #s-missions.ns .mission-chest-rewards > span { display: inline-flex; align-items: center; gap: 3px; }
 #s-missions.ns .mission-chest-rewards img { width: 22px; height: 22px; object-fit: contain; }
-#s-missions.ns .mission-collection { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 15px; min-height: 48px; background: url('../art/ui-sunforged-panel-frame.webp') center / 100% 100% no-repeat, #302016 var(--a2-wood) center / cover; color: #fff0cd; font: 700 13px/1.3 var(--font-body); }
+#s-missions.ns .mission-collection { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 26px; min-height: 48px; background: url('../art/ui-sunforged-panel-frame.webp') center / 100% 100% no-repeat, #302016 var(--a2-wood) center / cover; color: #fff0cd; font: 700 13px/1.3 var(--font-body); }
 #s-missions.ns .mission-collection b { margin-left: 4px; font-variant-numeric: tabular-nums; }
 #s-missions.ns .mission-shields { display: flex; justify-content: flex-end; gap: clamp(3px, 1.3cqw, 7px); }
 #s-missions.ns .mission-shields img { width: clamp(23px, 7.5cqw, 30px); height: 32px; object-fit: contain; }

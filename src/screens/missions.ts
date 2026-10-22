@@ -4,11 +4,11 @@
  */
 import { AD_LIMIT } from '../data/economy';
 import { adsFree } from '../game/stamina';
-import { CHEST_REWARD, GUILD_GOAL, MISSION_REWARD, WEEKLY_LV, WEEKLY_REWARD } from '../data/missions';
+import { CHEST_REWARD, GUILD_GOAL, WEEKLY_LV } from '../data/missions';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
 import { hhmm, untilReset, weekRemaining } from '../game/clock';
-import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionReady, runGold, swapMission } from '../game/economy';
+import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionGold, missionReady, runGold, swapMission } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { showRewarded } from '../platform/ads';
@@ -22,7 +22,7 @@ import { sfx } from '../sfx';
 const st = { msg: '', tab: 'daily' as 'daily' | 'weekly' };
 const s = screen('s-missions', '임무', { enter() { refreshDay(); st.msg = ''; st.tab = 'daily'; render(); } });
 
-/** Existing asset families, with names, rewards and progress rendered from live mission data. */
+/** 임무 그림 (2026-10-22 Lim 임무 시안): 있는 그림을 빌려 씀. 이름 · 보상 · 진행은 그림이 아니라 실제 임무 값 */
 const MISSION_ART: Record<string, string> = {
   clear3: 'icon-a2-swords', pub2: 'icon-guild-members', dispel10: 'skill-purify',
   overheal: 'skill-renew', nodeath: 'skill-guardian', mana20: 'spec-mana',
@@ -35,7 +35,7 @@ const missionImage = (key: string) => art(MISSION_ART[key] ?? 'icon-mission') ||
 function row(kind: 'daily' | 'weekly', i: number): string {
   const m = (kind === 'daily' ? G.save.daily : G.save.weekly).missions[i], d = missionDef(m.key);
   const value = Math.min(m.n, d.need), pct = Math.min(100, (m.n / d.need) * 100);
-  const reward = kind === 'daily' ? Math.round(runGold(topLevel(G.save)) * MISSION_REWARD.goldShare) : runGold(topLevel(G.save)) * WEEKLY_REWARD.runs;
+  const reward = missionGold(G.save, kind);
   const act = m.got ? '<span class="done">받음</span>'
     : missionReady(m) ? `<button class="btn mini primary" type="button" data-claim="${kind}" data-i="${i}" aria-label="${esc(d.text)} 보상 받기">받기</button>`
       : kind === 'daily' && !G.save.daily.swapped ? `<button class="btn mini ghost" type="button" data-swap="${i}" aria-label="${esc(d.text)} 교체">교체</button>` : '<span class="mission-pending">진행 중</span>';
