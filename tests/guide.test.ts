@@ -40,10 +40,10 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
   const ADV = RECOMMENDED['어려움']!.score, RARE = RECOMMENDED['악몽']!.score, EPIC = presetScore('영웅', 1.4, 1);
   const four = (x: ContentDef, lv: number, g: number) => ALL_DIFFS.map(d => fitOf(x, d, lv, g));
 
-  it('난이도 몫: 클리어율 목표 (쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%)대로 −2 · −1 · 0 · +2, 순차 구간 Lv 10~20 장소 악몽은 길이라 0', () => {
-    expect(ALL_DIFFS.map(d => diffStep(c, d))).toEqual([-2, -1, 0, 2]);
+  it('난이도 몫: 순차 구간 장소는 −2 · −1 · 0 · +2 (Lv 10~20 장소 악몽은 길이라 0), Lv 21~100 장소는 어려움도 +2 (#382 중간 등급 장비로 빠듯한 칸, 2026-10-22)', () => {
+    expect(ALL_DIFFS.map(d => diffStep(c, d))).toEqual([-2, -1, 2, 2]);
+    expect(ALL_DIFFS.map(d => diffStep(contentOf('rustfort'), d))).toEqual([-2, -1, 0, 2]); // 장소 Lv 1~9 악몽은 길이 아님
     expect(diffStep(contentOf('greenhouse'), '악몽')).toBe(0);
-    expect(diffStep(contentOf('rustfort'), '악몽')).toBe(2); // 장소 Lv 1~9 악몽은 길이 아님
   });
   it('레벨 몫: 모자라면 2레벨마다 +1, 앞서면 레벨 힘이 12% 늘 때마다 −1 (Lv 20 넘으면 1~3레벨 앞서도 클리어율이 거의 같음)', () => {
     expect([30, 31, 32, 34, 36].map(r => lvStep(r, 30))).toEqual([0, 0, 1, 2, 3]);
@@ -51,27 +51,29 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
     expect(lvStep(30, 35)).toBe(-1); // 힘 +14%
     expect(lvStep(2, 4)).toBe(-2); // 낮은 레벨은 한 레벨 차이도 큼 (+28%)
   });
-  it('어려움 · 권장 장비면 내 레벨 칸이 적정, 악몽은 권장 장비여도 도전 (예전엔 적정이라 75% 칸을 추천)', () => {
-    expect(four(c, 34, ADV)).toEqual(['여유', '여유', '적정', '위험']); // 악몽은 장비 미달 (+2)
+  it('Lv 21~100 장소 (#382): 중간 등급 장비면 보통이 적정 · 어려움은 도전, 한 단계 위 (영웅)면 어려움 적정 · 보통 여유, 악몽은 권장 장비여도 도전', () => {
+    const EPIC1 = presetScore('영웅', 1);
+    expect(four(c, 34, ADV)).toEqual(['여유', '적정', '도전', '위험']); // ADV = 중간 등급 희귀 (권장), 악몽은 장비 미달 (+2)
+    expect(four(c, 34, EPIC1)).toEqual(['여유', '여유', '적정', '도전']); // 한 단계 위 장비 (영웅 ×1은 악몽 권장 희귀 ×1.4를 넘어 도전)
     expect(fitOf(c, '악몽', 36, RARE)).toBe('도전');
     expect(fitOf(c, '악몽', 36, EPIC)).toBe('적정'); // 한 단계 위 장비 (시뮬 영웅 92%)
     expect(fitOf(c, '악몽', 41, RARE)).toBe('적정'); // 힘 +12% 앞섬
-    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('도전'); // 권장 장비 미달은 적어도 도전
+    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('위험'); // 권장 장비 미달은 +2 더 (중간 등급 아래로 어려움은 위험)
     expect(fitOf(c, '악몽', 39, 0)).toBe('위험');
     expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // 레벨이 한참 앞서도 장비가 모자라면 도전 (88)
     expect(four(c, 28, 0)).toEqual(['적정', '적정', '위험', '위험']);
   });
   it('레이드도 던전처럼 레벨 몫 (2026-10-21 Lim: 적이 장소 레벨에 고정, 예전엔 내 레벨이라 장비 몫만)', () => {
     const r = contentOf('cathedral1'); // 쉬움 ~ 어려움 Lv 70 · 악몽 80
-    // 그 레이드 레벨에서는 예전 (적 = 내 레벨)과 같음
-    expect(four(r, 70, 0).slice(0, 3)).toEqual(['여유', '적정', '도전']);
-    expect(four(r, 70, ADV).slice(0, 3)).toEqual(['여유', '여유', '적정']);
+    // 그 레이드 레벨에서: 장비 없으면 어려움 위험, 중간 등급 장비면 도전 (#382)
+    expect(four(r, 70, 0).slice(0, 3)).toEqual(['여유', '적정', '위험']);
+    expect(four(r, 70, ADV).slice(0, 3)).toEqual(['여유', '적정', '도전']);
     expect([fitOf(r, '악몽', 80, RARE), fitOf(r, '악몽', 80, EPIC)]).toEqual(['도전', '적정']);
     // 내가 높으면 쉬워짐 (힐러만 셈), 낮으면 (개발 잠금 해제) 어려워짐. 장비 미달은 그대로 적어도 도전
     expect(four(contentOf('abyss1'), 100, RARE)).toEqual(['여유', '여유', '여유', '여유']);
     expect(fitOf(r, '보통', 85, ADV)).toBe('여유');
     expect(fitOf(r, '어려움', 100, 0)).toBe('도전');
-    expect(four(r, 60, ADV)).toEqual(['도전', '도전', '위험', '위험']);
+    expect(four(r, 60, ADV)).toEqual(['도전', '위험', '위험', '위험']);
   });
   it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 몫 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
@@ -139,7 +141,7 @@ describe('모험 길잡이 (guide)', () => {
     G.save.settings.devUnlock = true; // 개발 빌드로 들어갈 수 있어도 실제 레벨로는 못 들어감
     expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual([null, null, null, null]);
     G.save.player.level = 45;
-    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual(['여유', '적정', '도전', null]); // 장비 없음, 악몽은 Lv 60
+    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual(['여유', '적정', '위험', null]); // 장비 없음 (어려움은 중간 등급 미달 → 위험), 악몽은 Lv 60
     G.save.player.level = 60;
     expect(fitShown(raid, '악몽')).toBe('위험');
     // 탐험 · 던전: 앞 난이도를 못 깬 칸 · 레벨이 모자란 장소도 없음

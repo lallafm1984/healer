@@ -5,8 +5,8 @@
  *
  * 적합도 (fitOf, 92: 2026-10-17 Lim 「적정의 난이도가 너무 힘겹게 클리어된다」): 칸마다 빠듯함 점수 = 난이도 + 레벨 + 장비.
  *   −2 이하 여유 · −1 ~ +1 적정 · +2 ~ +3 도전 · +4 이상 위험. 적정 = 그 장소 레벨의 어려움 목표 클리어율 (sim/balance 레벨 곡선 CURVE, 103 「난이도 곡선」).
- *   - 난이도 (diffStep): −2 · −1 · 0 · +2 (예전 평평한 목표 쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%에 맞춰 정한 값. 지금 목표는 레벨 곡선 #304, 걸음은 그대로).
- *     순차 구간 Lv 10~20 장소 악몽은 예전 길이라 어려움 목표로 맞춰 둠 (92) → 0.
+ *   - 난이도 (diffStep): 순차 구간 장소 −2 · −1 · 0 · +2 (예전 평평한 목표 쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%에 맞춰 정한 값), Lv 10~20 장소 악몽은 예전 길이라 어려움 목표로 맞춰 둠 (92) → 0.
+ *     Lv 21 ~ 100 장소 (#382 레벨 디자인: 중간 등급 장비로 보통 85 → 80 · 어려움 60 → 45%)는 −2 · −1 · +2 · +2: 어려움은 한 단계 위 장비 (영웅)라야 적정 (2026-10-22).
  *   - 레벨 (lvStep): 기준 레벨 (적 레벨, 순차 구간 장소는 그 난이도에 들어가는 레벨) − 내 레벨. 모자라면 2레벨마다 +1 (힘은 적 레벨 아래로 안 내려가서
  *     특성 · 장비 아이템 레벨만 모자람), 앞서면 레벨 힘이 12% 늘 때마다 −1 (시뮬: Lv 20 넘은 장소에서 1~3레벨 앞서거나 뒤져도 클리어율이 거의 같음).
  *   - 장비: 권장 장비 (어려움 희귀 (중간 등급, #382) · 악몽 희귀 × 1.4)에 못 미치면 +2 (적어도 도전), 한 단계 위 (보통 희귀 · 어려움 영웅 · 악몽 영웅 × 1.4) 이상이면 −1
@@ -19,7 +19,7 @@
  */
 import { ALL_DIFFS, CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { avgScore, presetScore, RECOMMENDED, recommendedFor } from '../data/equipment';
+import { avgScore, presetScore, recommendedFor } from '../data/equipment';
 import { FAME_LOW_GAP } from '../data/guild';
 import { lvPower, RAMP_LV, rampDiffs, rampFour, rampPlace, rampRefLevel, rampXp } from '../data/progression';
 import { G, lockOf } from './state';
@@ -44,20 +44,25 @@ export const refLevel = (c: ContentDef, d: DiffName) => (isLeveling(c) && rampRe
  */
 export const recLevel = (c: ContentDef, d: DiffName) => Math.min(stageOf(c, d), (isLeveling(c) && rampRefLevel(c, d)) || Infinity);
 
-/** 난이도 몫: 클리어율 목표 쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%. 순차 구간 Lv 10~20 장소 악몽은 길이라 85%로 맞춤 (92) */
+/**
+ * 난이도 몫. 순차 구간 장소 (Lv 20까지): 클리어율 목표 쉬움 99 · 보통 97 · 어려움 85 · 악몽 75% (STEP), Lv 10~20 장소 악몽은 길이라 85%로 맞춤 (92).
+ * 그 밖 (Lv 21 ~ 100, #382 레벨 디자인: 그 레벨 사람 · 중간 등급 장비로 보통 85 → 80 · 어려움 60 → 45 · 악몽 45 → 30%): 어려움은 중간 등급 장비로 빠듯한 칸 (도전, +2),
+ * 한 단계 위 장비 (영웅)면 적정. 2026-10-22 가상 사용자 QA: #382 뒤 어려움을 적정으로 추천하니 Lv 41 ~ 100 판의 19 ~ 58%를 졌음 (보통은 1.0 · 어려움 1.3 경험치라 보통 반복이 낫다)
+ */
 const STEP: Record<DiffName, number> = { '쉬움': -2, '보통': -1, '어려움': 0, '악몽': 2 };
-export const diffStep = (c: ContentDef, d: DiffName) => (d === '악몽' && rampFour(c) ? 0 : STEP[d]);
+const STEP_DESIGN: Record<DiffName, number> = { '쉬움': -2, '보통': -1, '어려움': 2, '악몽': 2 };
+export const diffStep = (c: ContentDef, d: DiffName) => (rampPlace(c) ? (d === '악몽' && rampFour(c) ? 0 : STEP[d]) : STEP_DESIGN[d]);
 /** 레벨 몫. gap = 기준 레벨 − 내 레벨: 모자라면 2레벨마다 +1, 앞서면 레벨 힘 (lvPower)이 12% 늘 때마다 −1 */
 export function lvStep(ref: number, level: number): number {
   if (ref >= level) return Math.floor((ref - level) / 2);
   return -Math.floor((lvPower(level) / lvPower(ref) - 1) / 0.12 + 1e-9) || 0;
 }
 /**
- * 한 단계 위 장비 (이 점수 이상이면 −1): 보통 희귀 (중간 등급) · 어려움 영웅 · 악몽 영웅 × 1.4 (특수능력 1줄).
+ * 한 단계 위 장비 (이 점수 이상이면 −1): 보통 · 어려움 영웅 (중간 등급 희귀의 한 단계 위, #382) · 악몽 영웅 × 1.4 (특수능력 1줄).
  * 2026-10-22 #382 (장비 기준 = 중간 등급 희귀): 어려움 권장이 고급 → 희귀로 오르며 한 단계 위도 희귀 × 1.4 → 영웅 (점수 6.18 → 6.22, 거의 같음)
  */
 const OVER: Partial<Record<DiffName, number>> = {
-  '보통': RECOMMENDED['어려움']!.score,
+  '보통': presetScore('영웅', 1),
   '어려움': presetScore('영웅', 1),
   '악몽': presetScore('영웅', 1.4, 1),
 };
@@ -129,7 +134,7 @@ export function rankStages(ctx: GuideCtx): Stage[] {
 const uniq = (xs: Cand[]): Stage[] => [...new Set(xs)].map(stage);
 /**
  * 순차 구간 뒤: 안 깬 칸 (여유 · 적정, 내 레벨 − FAME_LOW_GAP 밑 빼고)을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (같은 장소 레벨이면 경험치 큰 던전 먼저),
- * 그다음 적정 어려움 (다 깬 뒤 반복) 가운데 적 레벨 높은 곳 → 장소 레벨 높은 곳, 그다음에야 안 깬 도전 칸 (장소 레벨 순).
+ * 그다음 적정 어려움 · 보통 (다 깬 뒤 반복, 어려움 먼저) 가운데 적 레벨 높은 곳 → 장소 레벨 높은 곳, 그다음에야 안 깬 도전 칸 (장소 레벨 순).
  * 안 깬 도전 칸 (적 레벨이 내 레벨보다 4쯤 높음)을 적정 반복보다 뒤에 두는 것은 2026-10-22 가상 사용자 QA: Lv 21~32 길잡이 1순위가 도전이었고
  * 그 칸은 63%만 깸 (적정 첫 클리어 83%). 2레벨 오르면 적정이 되어 차례로 추천됨.
  * 반복은 마지막으로 한 칸을 뒤로 (같은 날 QA: Lv 70 뒤 한 레벨에 한 칸만 50~70판 돌았음. 경험치는 내 레벨로 셈 (clearXp)이라 적정 어려움끼리 번갈아도 손해 없음)
@@ -137,9 +142,10 @@ const uniq = (xs: Cand[]): Stage[] => [...new Set(xs)].map(stage);
 const rest = (xs: Cand[], level: number, last?: Stage | null) => {
   const fresh = xs.filter(x => x.first && x.fit !== '위험' && x.st >= level - FAME_LOW_GAP).sort((a, b) => a.c.stageLv - b.c.stageLv || di(a.d) - di(b.d) || Number(b.c.kind === 'dungeon') - Number(a.c.kind === 'dungeon'));
   const isLast = (x: Cand) => Number(!!last && x.c.key === last.content && x.d === last.diff);
+  // 반복: 적정인 어려움 (한 단계 위 장비) 또는 보통 (중간 등급 장비, #382) 가운데 어려움 먼저 (경험치 1.3배), 적 레벨 높은 곳
   return [
     ...fresh.filter(x => x.fit !== '도전'),
-    ...xs.filter(x => x.fit === '적정' && x.d === '어려움' && !x.first).sort((a, b) => isLast(a) - isLast(b) || b.st - a.st || b.c.stageLv - a.c.stageLv),
+    ...xs.filter(x => x.fit === '적정' && (x.d === '어려움' || x.d === '보통') && !x.first).sort((a, b) => isLast(a) - isLast(b) || di(b.d) - di(a.d) || b.st - a.st || b.c.stageLv - a.c.stageLv),
     ...fresh.filter(x => x.fit === '도전'),
   ];
 };
