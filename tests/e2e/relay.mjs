@@ -38,12 +38,12 @@ export default async function relay(url, shots) {
         const tk = F.party.find(u => u.role === 'tank' && u.alive);
         tk.debuffs = deb ? [{ id: 9001, name: '독 화살', type: '독', left: 12, dot: 0 }] : [];
         tk.hot = hot ? 9 : 0;
-        F.relay = { id: tk.id, left: 5, until: F.t + 999, flyUntil: flying ? F.t + 999 : F.t };
+        F.relays = [{ id: tk.id, left: 5, until: F.t + 999, flyUntil: flying ? F.t + 999 : F.t }];
       }, [deb, hot, flying]);
       await page.clock.runFor(300);
       return page.evaluate(() => {
         const F = window.__proto.F, cv = document.querySelector('#board'), d = cv.dataset;
-        const bounds = JSON.parse(d.decorationBounds || '[]'), id = F.relay?.id;
+        const bounds = JSON.parse(d.decorationBounds || '[]'), id = F.relays[0]?.id;
         const mark = bounds.find(b => b.key === `relay${id}`);
         const safe = { left: Number(d.boardSafeLeft), right: Number(d.boardSafeRight), top: Number(d.boardSafeTop), bottom: Number(d.boardSafeBottom) };
         const sep = (a, b) => a.right <= b.left + 0.05 || b.right <= a.left + 0.05 || a.bottom <= b.top + 0.05 || b.bottom <= a.top + 0.05;

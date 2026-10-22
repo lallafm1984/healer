@@ -360,7 +360,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.hero === 'astrologer') logDmg(f, u, amt); // 별의 기억 (79 4-2): 보호막 · 피해 감소 뒤 실제로 받은 피해
   if (u.ps) persHurt(f, u, amt); // 몰입형 · 완벽주의자 (75)
   if (f.sp) afterHurt(f, u, u.hp + amt);
-  if (amt > 0 && f.relay && f.relay.id === u.id) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)
+  if (amt > 0 && f.relays.length && f.relays.some(d => d.id === u.id)) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)
   if (amt > u.max * 0.15) u.flash = 0.35;
   if (u.hp > 0 && u.wob != null && !u.me && !dripping && amt >= STAT_ACT.bigHit * u.max) bigHit(f, u); // 99 맷집: 휘청 · 버팀
   if (u.hp <= 0) {

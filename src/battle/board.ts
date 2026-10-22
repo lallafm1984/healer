@@ -1975,7 +1975,7 @@ export function render(now: number): void {
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
     // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
-    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), relayLeft = relayTimerOf(F.relay, u, F.t), buffs = u.me ? talentBuffTimers(F.tx.act) : [], objs = objTimers.filter(o => o.cell === u.cell);
+    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), relayLeft = relayTimerOf(F.relays, u, F.t), buffs = u.me ? talentBuffTimers(F.tx.act) : [], objs = objTimers.filter(o => o.cell === u.cell);
     const leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0) + (relayLeft != null ? 1 : 0) + buffs.length + objs.length;
     const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)

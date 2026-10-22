@@ -792,7 +792,8 @@ export interface Fight {
   /** 성기사 빛의 성역: 칸과 끝나는 시각 · 가운데 칸 · 연 시각 (판 위 그림 board-sanctuary 자리) */
   sanctuary: { cells: Set<number>; end: number; hps?: number; cell?: number; at?: number } | null;
   /** 사제 빛의 전이 (8번째 칸): 빛이 깃든 사람 id · 남은 회복 · 사라지는 시각 · 이 시각까지 옮겨 가는 중 (아직 안 깃듦). 하나만 */
-  relay: { id: number; left: number; until: number; flyUntil: number } | null;
+  /** 사제 빛의 전이 (깃든 빛마다 하나, 2026-10-22부터 여럿: 다시 걸어도 앞의 빛은 남음) */
+  relays: Relay[];
   /** 판 위 물건 (주술사 토템 · 수도사 안개 샘 · 결계사 성채 · 점성술사 초신성, 79 6-1) */
   totems: Totem[];
   /** 주술사 상태 (비구름 · 물웅덩이 · 대지 충전 · 특성 재발동, engine/shaman) */
@@ -975,3 +976,6 @@ export interface ActionResult {
   queued?: boolean;
   u?: Unit;
 }
+
+/** 빛의 전이 하나: 깃든 사람 · 남은 회복 · 끝나는 때 · 옮겨 가는 중 끝나는 때 */
+export interface Relay { id: number; left: number; until: number; flyUntil: number }

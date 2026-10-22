@@ -519,7 +519,7 @@ export function autoHealer(f: Fight): void {
   // 너프 (3번 · 바로 옆 칸, 2026-10-11) 뒤 168곳 × 20판: 너프 전 보통 95.9 · 어려움 73.8% → 95.9 · 72.9% (빛의 전이 없음 95.8 · 72.8).
   // 마나 50% 아래에선 안 씀: 긴 보스전 (얼음 서고 대학자)에서 마나가 바닥나 힐러가 쓰러지던 판이 있었음. 프로토타입에 없던 스킬이라 일치 테스트 (proto)에선 안 씀
   const tk = bossTarget(f); // 보스가 때리는 사람 (어그로를 뺏은 사람 포함, 96)
-  if (!f.cfg.proto && tk && !off(f, tk) && pct(tk) < 0.95 && pct(low) >= topUp(f, g, 0.85) && !g.save && can('relay') && (f.cd.relay ?? 0) <= 0 && f.mana >= 50 && (!f.relay || f.relay.left <= Math.floor(RELAY.hops / 2))) {
+  if (!f.cfg.proto && tk && !off(f, tk) && pct(tk) < 0.95 && pct(low) >= topUp(f, g, 0.85) && !g.save && can('relay') && (f.cd.relay ?? 0) <= 0 && f.mana >= 50 && (!f.relays.length || f.relays[f.relays.length - 1].left <= Math.floor(RELAY.hops / 2))) {
     if (use(f, 'relay', cellIdx(tk)).ok) return;
   }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) {
