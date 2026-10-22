@@ -311,6 +311,8 @@ export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: Da
  * 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사).
  * aim = 수치를 누구 기준으로 적었나 (data/armor.ts). 직업군 방어력은 둘 다 줄이고, fixed는 무시 (34 9-3)
  */
+/** 영웅이 대신 맞는 피해를 주는 중 (그 피해는 또 다른 영웅에게 떠넘기지 않음) */
+let covering = false;
 export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
   if (u.lift && !sharing && !lingering) return; // 띄워 올리기 (P-LIFT): 보스 기술 · 장판은 안 닿고 지속 피해 · 나눔 사슬 몫만
@@ -333,9 +335,9 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     amt -= part;
     damage(f, f.me, (part * (pray ? 0.8 : 1)) / f.dmgMult, magic, 'fixed');
   }
-  if (u.coverBy) { // 영웅이 대신 맞아 줌 (75)
+  if (u.coverBy && !covering) { // 영웅이 대신 맞아 줌 (75). 대신 맞는 피해는 다시 떠넘기지 않음 (두 영웅이 서로 맡으면 끝없이 주고받아 스택이 넘쳤음, 2026-10-22)
     const c = coverPart(f, u, amt);
-    if (c) { amt -= c.part; damage(f, c.by, c.part / f.dmgMult, magic, 'fixed'); }
+    if (c) { amt -= c.part; covering = true; try { damage(f, c.by, c.part / f.dmgMult, magic, 'fixed'); } finally { covering = false; } }
   }
   // 은혜 갚기 (06 6장): 내가 죽을 피해를 이번 전투에서 내 치유가 크게 도운 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
