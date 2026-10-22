@@ -5,6 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { AFFIXES, type AffixKey } from '../data/affixes';
+import { art } from '../art';
 import { G } from '../game/state';
 import { battle, esc } from './kit';
 
@@ -58,8 +59,14 @@ export function afxRows(keys: AffixKey[], label = ''): string {
   if (!keys.length) return '';
   return `<div class="afxlist">${keys.map(k => {
     const a = AFFIXES[k];
-    return `<div class="f-afr"><span class="f-afx${a.good ? ' good' : ''}">${a.name}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(a.desc)}<small>${esc(a.tip)}</small></span></div>`;
+    return `<div class="f-afr">${afxIcon(k)}<span class="f-afx${a.good ? ' good' : ''}">${a.name}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(a.desc)}<small>${esc(a.tip)}</small></span></div>`;
   }).join('')}</div>`;
+}
+
+/** 어픽스 그림 (110, Codex `icon-afx-<키>`): 없으면 빈칸 */
+export function afxIcon(k: AffixKey): string {
+  const img = art(`icon-afx-${k}`);
+  return img ? `<span class="f-afi" aria-hidden="true"><img src="${img}" alt="" decoding="async" draggable="false"></span>` : '';
 }
 
 /** 어픽스 이름 칸만 (관문·편성 머리) */

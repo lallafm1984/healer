@@ -20,6 +20,7 @@ import { specKeysOf } from '../data/equipment';
 import { art } from '../art';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
+import { CHAL, chalReward } from '../data/challenge';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
@@ -190,9 +191,12 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false
   const gb = x.restBonus?.gold ?? 0;
   const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur${add ? ' rb' : ''}"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
+  // 주간 도전 단계 보너스 · 풍요 주간 (110): 받은 판만 머리 옆에 작게
+  const bonus = r.chal && x.gold ? chalReward(r.chal) - 1 : 0, rich = x.gold && r.affixes?.includes('bounty');
+  const tags = [x.pubBonus ? pubBonusText(x.pubBonus) : '', bonus > 0 ? `${r.chal}단계 +${Math.round(bonus * 100)}%` : '', rich ? `풍요 골드 +${Math.round((CHAL.bountyGold - 1) * 100)}%` : ''].filter(Boolean);
   const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
-      <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>
+      <h2 class="r-lh" tabindex="-1">획득 보상${tags.length ? ` <small>${tags.join(' · ')}</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x, !!r.affixes?.includes('festival'), anim)}

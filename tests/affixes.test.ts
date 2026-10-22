@@ -1,14 +1,15 @@
 /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전)·적 레벨 = 내 레벨 (32)·주간 도전 「모래시계 시련」 (13 3-2)·광고 이어하기 (15) */
 import { describe, expect, it } from 'vitest';
-import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
-import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
+import { diffAffixes, GOOD_AFFIXES, WEEKLY_AFFIXES } from '../src/data/affixes';
+import { CHAL, CHAL_ROTA, chalLimit, chalMult, chalReward } from '../src/data/challenge';
 import { ALL_DIFFS, contentOf, stageOf } from '../src/data/content';
 import { clearGold, clearXp, EXPLORE_REWARD, restRun } from '../src/data/progression';
 import * as E from '../src/engine';
-import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
+import { affCast, affDebuffEnd, affixTick, affHeal, affMobDown, affNecrotic, affRegen, AFX } from '../src/engine/affixes';
+import { castOf } from '../src/engine/talents';
 import { heal } from '../src/engine/core';
 import { rollover } from '../src/game/economy';
-import { runMode, weekAffixes } from '../src/game/runmode';
+import { nextWeekAffixes, runMode, weekAffixes } from '../src/game/runmode';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -145,6 +146,93 @@ describe('어픽스 전투 효과', () => {
   });
 });
 
+describe('새 어픽스 8개 (110, 2026-10-22 Lim 「다양한 어픽스를 추가」)', () => {
+  const mk = (k: Parameters<typeof E.create>[0]['affixes'], encounter: 'warden' | 'gate' = 'warden') => E.create({ encounter, diff: '보통', seed: 1, affixes: k });
+
+  it('깊은 상처: 90% 아래면 못 지우는 상처 (2초마다 중첩, 최대 3), 90% 넘으면 사라짐', () => {
+    const f = mk(['grievous']), u = f.party.find(x => !x.me)!;
+    u.hp = u.max * 0.5; affixTick(f);
+    const d = u.debuffs.find(x => x.name === '깊은 상처')!;
+    expect(d.lock).toBe(true); expect(d.cureAt).toBe(AFX.grievous.below); expect(d.grow!.max).toBe(3);
+    affixTick(f);
+    expect(u.debuffs.filter(x => x.name === '깊은 상처').length).toBe(1);
+    expect(f.party.filter(x => x !== u && x.hp >= x.max * 0.9).every(x => !x.debuffs.some(y => y.name === '깊은 상처'))).toBe(true);
+  });
+
+  it('파동: 15초부터 25초마다 파티 전체 피해', () => {
+    const f = mk(['pulse']);
+    const before = f.party.map(u => u.hp);
+    f.t = 14.9; affixTick(f);
+    expect(f.party.map(u => u.hp)).toEqual(before);
+    f.t = 15; affixTick(f);
+    expect(f.party.every((u, i) => u.hp < before[i])).toBe(true);
+    expect(f.aff!.pulseAt).toBe(40);
+  });
+
+  it('괴저: 보스 평타를 맞으면 받는 치유 −4% 중첩 (최대 5), 5초', () => {
+    const f = mk(['necrotic']), tk = f.party.find(u => u.role === 'tank')!;
+    for (let i = 0; i < 7; i++) affNecrotic(f, tk);
+    const d = tk.debuffs.find(x => x.name === '괴저')!;
+    expect(d.stack).toBe(5); expect(d.healCut).toBe(0.04); expect(d.left).toBe(5); expect(d.lock).toBe(true);
+    tk.hp = 1;
+    expect(heal(f, tk, 100, false, true)).toBeCloseTo(80);
+  });
+
+  it('고갈 · 한기: 내 마나 회복 −50%, 내 시전 시간 +15%', () => {
+    expect(affRegen(mk(['drain']))).toBe(0.5);
+    expect(affCast(mk(['chill']))).toBe(1.15);
+    const a = mk([]), b = mk(['chill']);
+    expect(castOf(b, 'heal')).toBeCloseTo(castOf(a, 'heal') * 1.15);
+  });
+
+  it('폭군: 보스 구간만 보스 체력 +15% · 피해 +10%, 졸개 구간은 그대로', () => {
+    const a = mk([]), b = mk(['tyrant']);
+    expect(b.bossMax).toBeCloseTo(a.bossMax * 1.15);
+    expect(b.dmgMult).toBeCloseTo(a.dmgMult * 1.1);
+    const c = mk([], 'gate'), d = mk(['tyrant'], 'gate');
+    expect(d.bossMax).toBeCloseTo(c.bossMax);
+  });
+
+  it('지진: 10초부터 2명에게 표시, 끝나면 그 사람과 옆 칸 피해', () => {
+    const f = mk(['quake']);
+    f.t = 10; affixTick(f);
+    const hit = f.party.filter(u => u.debuffs.some(d => d.name === '지진'));
+    expect(hit.length).toBe(2);
+    const u = hit[0], d = u.debuffs.find(x => x.name === '지진')!, hp = u.hp;
+    affDebuffEnd(f, u, d, false);
+    expect(hp - u.hp).toBeGreaterThan(0);
+  });
+
+  it('복수심: 보스가 아닌 적이 쓰러질 때마다 파티 전체 4초 지속 피해, 겹치면 중첩', () => {
+    const f = mk(['spite'], 'gate');
+    affMobDown(f, false);
+    const live = f.party.filter(u => u.alive);
+    for (const u of live) {
+      const d = u.debuffs.find(x => x.name === '복수심')!;
+      expect(d.left).toBe(AFX.spite.sec); expect(d.lock).toBe(true); expect(d.stack).toBe(1); expect(d.dot).toBeGreaterThan(0);
+    }
+    const u = live[0], d = u.debuffs.find(x => x.name === '복수심')!;
+    d.left = 1; affMobDown(f, false); affMobDown(f, true);
+    expect(d.stack).toBe(2); expect(d.left).toBe(AFX.spite.sec);
+    expect(u.debuffs.filter(x => x.name === '복수심').length).toBe(1);
+  });
+
+  it('주간 도전 단계 보너스: 골드 · 경험치 × (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%', () => {
+    expect(chalReward(1)).toBe(1);
+    expect(chalReward(11)).toBeCloseTo(1.3);
+    expect(chalReward(20)).toBeCloseTo(1.57);
+    const s1 = save(), s2 = save(), s3 = save();
+    const one = settle(s1, result({ stage: 30, chal: 1, limit: chalLimit(1), time: 300 }), rng, [], T0);
+    const ten = settle(s2, result({ stage: 30, chal: 11, limit: chalLimit(11), time: 300 }), rng, [], T0);
+    expect(ten.gold).toBe(restRun(clearGold(30, '보통', 'S') * chalReward(11)));
+    expect(ten.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * chalReward(11)));
+    expect(ten.gold).toBeGreaterThan(one.gold);
+    const b = settle(s3, result({ stage: 30, chal: 1, limit: chalLimit(1), time: 300, affixes: ['bounty', 'haste'] }), rng, [], T0);
+    expect(b.gold).toBe(restRun(clearGold(30, '보통', 'S') * CHAL.bountyGold));
+    expect(b.xp).toBe(one.xp);
+  });
+});
+
 describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)', () => {
   it('쉬움·보통 없음. 어려움·악몽 Lv 30부터 격노, 악몽 Lv 50부터 역병. 불안정은 주간 도전으로', () => {
     for (const lv of [1, 29, 30, 50, 100]) {
@@ -240,24 +328,32 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
 });
 
 describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
-  it('주간 어픽스: 8주 순환, 같은 조합이 이어서 안 나오고 4주마다 축제, 메마름+서두름·불안정+서두름은 같이 안 나옴', () => {
+  it('주간 어픽스: 16주 순환 (110), 같은 조합이 이어서 안 나오고 4주마다 좋은 주 (축제 · 풍요 번갈아), 16종 모두 나옴, 센 것끼리 · 메마름+서두름 · 불안정+서두름은 같이 안 나옴', () => {
+    const heavy = ['tyrant', 'quake', 'frenzy', 'chaos'];
     for (let i = 0; i < CHAL_ROTA.length; i++) {
       expect(CHAL_ROTA[i].join()).not.toBe(CHAL_ROTA[(i + 1) % CHAL_ROTA.length].join());
-      expect(CHAL_ROTA[i].includes('festival')).toBe(i % 4 === 3);
+      expect(CHAL_ROTA[i].some(k => GOOD_AFFIXES.includes(k))).toBe(i % 4 === 3);
+      if (i % 4 === 3) expect(CHAL_ROTA[i][0]).toBe(i % 8 === 3 ? 'festival' : 'bounty');
       expect(CHAL_ROTA[i].includes('dry') && CHAL_ROTA[i].includes('haste')).toBe(false);
       expect(CHAL_ROTA[i].includes('unstable') && CHAL_ROTA[i].includes('haste')).toBe(false);
-      for (const k of CHAL_ROTA[i]) expect(k === 'festival' || WEEKLY_AFFIXES.includes(k)).toBe(true);
+      expect(CHAL_ROTA[i].filter(k => heavy.includes(k)).length).toBeLessThan(2);
+      for (const k of CHAL_ROTA[i]) expect(GOOD_AFFIXES.includes(k) || WEEKLY_AFFIXES.includes(k)).toBe(true);
     }
+    for (const k of WEEKLY_AFFIXES) expect(CHAL_ROTA.some(w => w.includes(k)), k).toBe(true);
+    // 바꾸는 주 (2026-10-19 주)는 예전 순서 그대로 (주 중간에 안 바뀜)
+    expect(weekAffixes(new Date(2026, 9, 22, 12).getTime())).toEqual(['chaos', 'panic']);
     expect(weekAffixes(T0)).toEqual(CHAL_ROTA[0]);
     expect(weekAffixes(new Date(2026, 9, 12, 5).getTime())).toEqual(CHAL_ROTA[0]);
     expect(weekAffixes(new Date(2026, 9, 12, 6).getTime())).toEqual(CHAL_ROTA[1]);
-    expect(weekAffixes(new Date(2026, 9, 5 + 7 * 8, 12).getTime())).toEqual(CHAL_ROTA[0]);
+    expect(weekAffixes(new Date(2026, 9, 5 + 7 * 16, 12).getTime())).toEqual(CHAL_ROTA[0]);
+    expect(nextWeekAffixes(T0)).toEqual(CHAL_ROTA[1]);
   });
 
-  it('단계마다 보스 체력 +2% · 피해 +4%, 제한시간 7분 + 단계마다 8초, 단계 레벨 = 내 레벨 (최소 20)', () => {
+  it('단계마다 보스 체력 +2% · 피해 +10%, 제한시간 8분 + 단계마다 10초 (110), 단계 레벨 = 내 레벨 (최소 20)', () => {
     expect(chalMult(1)).toEqual({ hp: 1, dmg: 1 });
-    expect(chalMult(11).dmg).toBeCloseTo(1.4);
-    expect(chalLimit(1)).toBe(420);
+    expect(chalMult(11).dmg).toBeCloseTo(2);
+    expect(chalLimit(1)).toBe(480);
+    expect(chalLimit(20)).toBe(670);
     const m = runMode(save(45), contentOf(CHAL.content), CHAL.diff, { chal: 6 }, T0);
     expect(m).toMatchObject({ stage: 45, chal: 6, limit: chalLimit(6), affixes: CHAL_ROTA[0] });
     expect(runMode(save(5), contentOf(CHAL.content), CHAL.diff, { chal: 1 }, T0).stage).toBe(20);

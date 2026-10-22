@@ -6,7 +6,7 @@ import { HEROES } from '../data/heroes';
 import { SANCTUARY } from '../data/heroConst';
 import { hexDist } from './board';
 import { abHurt, abLethal, addMod, blocksDebuff, dmgMods, healMods } from './abilities';
-import { affDebuffEnd, affHeal } from './affixes';
+import { affDebuffEnd, affHeal, affMobDown } from './affixes';
 import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
 import { posTaken } from './position';
@@ -639,6 +639,7 @@ export function damageMob(f: Fight, m: Mob, x: number): void {
   if (m.hp <= 1e-9) {
     m.hp = 0; m.alive = false;
     f.tels = f.tels.filter(t => t.skill.mob !== m.id);
+    if (f.aff) affMobDown(f, !!m.boss); // 복수심 (110)
     emit(f, { type: 'mobDown', id: m.id, name: m.name });
   }
   if (f.bodyHp) f.bossHp = f.mobs.reduce((s, q) => s + (q.add ? 0 : q.hp), 0);
