@@ -154,19 +154,23 @@ describe('모험 길잡이 (guide)', () => {
     expect(guide()).toEqual({ content: 'rustfort', diff: '쉬움' });
   });
 
-  it('악몽은 장비와 상관없이 추천 안 함, 순차 구간 뒤는 안 깬 칸을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (적 Lv < 내 Lv − 10 · 위험은 건너뜀), 다 깨면 적정 어려움 가운데 적 레벨 높은 곳 (2026-10-20 Lim)', () => {
+  it('악몽은 장비와 상관없이 추천 안 함, 순차 구간 뒤는 안 깬 여유 · 적정 칸을 장소 레벨 순 · 쉬움 → 보통 → 어려움 (적 Lv < 내 Lv − 10 · 위험은 건너뜀), 다 깨면 적정 어려움 가운데 적 레벨 높은 곳 (2026-10-20 Lim), 안 깬 도전 칸은 그 뒤 (2026-10-22 가상 사용자 QA)', () => {
     const open = (c: ContentDef, d: DiffName) => !lockOf(c).locked && !lockOf(c, d).locked;
     G.save.player.level = 40;
     for (const gear of [0, presetScore('고급', 1), presetScore('희귀', 1.4), presetScore('영웅', 1.4, 1)]) {
       const list = rankStages({ level: 40, gear, clears: {}, open });
       expect(list.some(x => x.diff === '악몽'), `장비 ${gear}`).toBe(false);
-      // 앞쪽 = 안 깬 칸 (적 Lv 30 이상 · 위험 아님)을 장소 레벨 순 · 쉬운 난이도부터 (같은 장소는 쉬움 → 보통 → 어려움)
-      const ok = (x: { content: string; diff: DiffName }) => { const c = contentOf(x.content as never); return stageOf(c, x.diff) >= 30 && fitOf(c, x.diff, 40, gear) !== '위험'; };
+      // 앞쪽 = 안 깬 칸 (적 Lv 30 이상 · 여유 · 적정)을 장소 레벨 순 · 쉬운 난이도부터 (같은 장소는 쉬움 → 보통 → 어려움)
+      const fit = (x: { content: string; diff: DiffName }) => fitOf(contentOf(x.content as never), x.diff, 40, gear);
+      const ok = (x: { content: string; diff: DiffName }) => stageOf(contentOf(x.content as never), x.diff) >= 30 && (fit(x) === '여유' || fit(x) === '적정');
       const cut = list.findIndex(x => !ok(x)), head = (cut < 0 ? list : list.slice(0, cut)).map(x => ({ lv: contentOf(x.content).stageLv, i: ALL_DIFFS.indexOf(x.diff) }));
       expect(head.length, `장비 ${gear}`).toBeGreaterThan(3);
       for (let i = 1; i < head.length; i++) expect(head[i].lv > head[i - 1].lv || (head[i].lv === head[i - 1].lv && head[i].i > head[i - 1].i), `${i}`).toBe(true);
       const want = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.ready).flatMap(c => (['쉬움', '보통', '어려움'] as DiffName[]).filter(d => open(c, d) && ok({ content: c.key, diff: d })).map(() => c.stageLv));
       expect(head[0].lv).toBe(Math.min(...want));
+      // 안 깬 도전 칸 (적 레벨이 4쯤 높은 어려움)은 여유 · 적정 칸을 다 지나고 나서야 (2레벨 오르면 적정이 되어 차례로)
+      const lastOk = list.map(ok).lastIndexOf(true), firstHard = list.findIndex(x => fit(x) === '도전');
+      expect(firstHard, `장비 ${gear}`).toBeGreaterThan(lastOk);
     }
     // 다 깬 뒤: 적정 어려움 (적 레벨 높은 곳)
     const gear = presetScore('희귀', 1.4), all: Record<string, Partial<Record<DiffName, unknown>>> = {};
@@ -177,6 +181,12 @@ describe('모험 길잡이 (guide)', () => {
     expect(fitOf(contentOf(rep[0].content), '어려움', 40, gear)).toBe('적정');
     const hard = rep.filter(x => x.diff === '어려움' && fitOf(contentOf(x.content), '어려움', 40, gear) === '적정').map(x => stageOf(contentOf(x.content), '어려움'));
     expect(hard[0]).toBe(Math.max(...hard));
+    // 반복은 번갈아 (2026-10-22): 마지막으로 한 칸은 다른 적정 어려움 뒤로, 그 칸을 또 하면 원래 1순위로 돌아옴
+    const rep2 = rankStages({ level: 40, gear, clears: all, open, last: rep[0] });
+    expect(rep2[0]).not.toEqual(rep[0]);
+    expect(rep2[0].diff).toBe('어려움');
+    expect(fitOf(contentOf(rep2[0].content), '어려움', 40, gear)).toBe('적정');
+    expect(rankStages({ level: 40, gear, clears: all, open, last: rep2[0] })[0]).toEqual(rep[0]);
   });
 
   it('추천은 길 첫 클리어 (순차 구간, 들어가는 레벨이 내 레벨 ±1이면 쉬움 (여유)도) · 안 깬 칸 (위험 · 한참 아래 빼고) · 적정 칸, 악몽은 없음. 탐험 · 던전만', () => {
@@ -192,7 +202,7 @@ describe('모험 길잡이 (guide)', () => {
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 73판, 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 80판. 길 밖 어려움을 추천하던 때 73판 · 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
     G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
@@ -201,15 +211,17 @@ describe('모험 길잡이 (guide)', () => {
       const g = guide();
       expect(g, `Lv ${G.save.player.level} ${runs}판째 추천 없음`).not.toBeNull();
       expect(rampPlace(contentOf(g!.content)), `${g!.content} ${g!.diff}`).toBe(true);
+      expect(rampDiffs(contentOf(g!.content)).includes(g!.diff), `${g!.content} ${g!.diff}: 길 밖 칸`).toBe(true); // 2026-10-22: Lv 20까지는 길 칸만 (장소 Lv 1~9 어려움은 처음 하는 사람이 11~19%만 깸)
       if (G.save.clears[g!.content]?.[g!.diff]) repeats++;
       const xp = settle(G.save, { content: g!.content, diff: g!.diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 1,
         healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(runs)).xp;
       expect(xp).toBeGreaterThan(0);
       runs++;
     }
-    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 다시 하기 (19판) · 지나온 장소 어려움이 낌 (2026-10-20 악몽은 추천 안 함)
+    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 깬 길 칸 다시 하기 (33판)가 낌
+    // (2026-10-20 악몽은 추천 안 함, 2026-10-22 지나온 장소 어려움도 추천 안 함: 다시 하기 19 → 33판)
     expect(G.save.player.level).toBe(21);
-    expect(runs).toBe(73);
-    expect(repeats).toBe(19);
+    expect(runs).toBe(80);
+    expect(repeats).toBe(33);
   });
 });

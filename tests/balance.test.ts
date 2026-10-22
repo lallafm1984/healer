@@ -144,7 +144,9 @@ describe('초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안)', (
   it('보는 칸 = 장소 Lv 20까지 쉬움 · 보통 (녹슨 고원 쉬움은 튜토리얼 판)', () => {
     expect(noviceCellOf(contentOf('plateau'), '쉬움')).toMatchObject({ d: '쉬움', tut: true });
     expect(noviceCellOf(contentOf('rustfort'), '보통')).toMatchObject({ d: '보통', tut: false });
-    expect(noviceCellOf(contentOf('rustfort'), '어려움')).toBeNull();
+    expect(noviceCellOf(contentOf('rustfort'), '어려움')).toMatchObject({ d: '어려움', off: true }); // 장소 Lv 1~9 어려움은 길 밖이지만 초보 하한 (2026-10-22)
+    expect(noviceCellOf(contentOf('rustfort'), '악몽')).toBeNull();
+    expect(noviceCellOf(contentOf('greenhouse'), '어려움')).toMatchObject({ d: '어려움', tut: false }); // 장소 Lv 10~20 어려움은 길
     expect(noviceCellOf(contentOf('mossroot'), '보통')).toBeNull();
   });
 });

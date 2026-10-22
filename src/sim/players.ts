@@ -52,8 +52,8 @@ export interface PlayerType {
   ads: number;
   /** 어디로 가나: 길잡이 1순위 · 제멋대로 (열린 칸 가운데 적 레벨이 가장 높은 곳, 악몽 포함) */
   route: 'guide' | 'greedy';
-  /** 장비: 부위마다 가장 좋은 것 · 새 장비가 더 좋을 때만 바꿈 · 가방이 lazyBag개 차야 한 번 정리 */
-  gear: 'best' | 'peek' | 'lazy';
+  /** 장비: 부위마다 가장 좋은 것 · 새 장비가 더 좋을 때만 바꿈 · 가방이 lazyBag개 차야 한 번 정리 · 안 바꿈 (튜토리얼 끝 장비 그대로, 장비 차이를 보는 기준) */
+  gear: 'best' | 'peek' | 'lazy' | 'none';
   /** 남는 장비를 팜 (정리할 때) */
   sell: boolean;
   /** 임무 · 일일 상자 보상을 받음 */
@@ -98,7 +98,11 @@ export const PLAYER_TYPES: PlayerType[] = [
   { key: 'switcher', name: '직업 바꾸기', note: `하루 1.5시간, 기본 손, 길잡이대로, Lv 20 드루이드 · Lv 30 성기사로 바꿈 (바꾼 뒤 ${RELEARN_RUNS}판은 손이 다시 서툼), 가장 좋은 장비 · 판매, 임무`,
     hand: [10, 20, 60], sessions: [H(12, 30), H(20, 60)], ads: 0, route: 'guide', gear: 'best', sell: true, missions: true, chal: false, merchant: 'none', guild: false, raids: false, jobs: [{ lv: 20, hero: 'druid' }, { lv: 30, hero: 'paladin' }] },
 ];
-export const playerType = (key: string) => PLAYER_TYPES.find(t => t.key === key);
+/** 견주기용 (기본 묶음엔 없음, --types로): 장비를 한 번도 안 바꾸는 보통 사람 = 장비 차이가 진행에 얼마나 드는지 */
+export const EXTRA_TYPES: PlayerType[] = [
+  { ...PLAYER_TYPES[1], key: 'nogear', name: '장비 안 바꿈', note: '보통 사람과 같은데 장비를 한 번도 안 바꿈 (튜토리얼 끝 장비 그대로). 장비 차이가 진행에 얼마나 드는지 보는 기준', gear: 'none', sell: false, merchant: 'none' },
+];
+export const playerType = (key: string) => [...PLAYER_TYPES, ...EXTRA_TYPES].find(t => t.key === key);
 
 /** 판 기록 하나 (보고서 · 신호) */
 export interface RunLog {
@@ -281,7 +285,8 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
           pickTalents(save, hero, build);
           const job = t.jobs.filter(x => lv >= x.lv).pop();
           if (job && save.hero !== job.hero && switchHero(job.hero, now)) { sinceSwitch = 0; open(`${HEROES[job.hero].name}로 바꿈`, day); pickTalents(save, job.hero, build); }
-          if (t.gear === 'best') { equipBest(save); if (t.sell) gold(() => sellAll(save)); }
+          if (t.gear === 'none') { /* 장비 안 바꿈 */ }
+          else if (t.gear === 'best') { equipBest(save); if (t.sell) gold(() => sellAll(save)); }
           else if (t.gear === 'peek') { for (const it of [...save.gear.bag]) { const cur = save.gear.equipped[it.slot]; if (!cur || itemScore(it, lv) > itemScore(cur, lv)) equip(it.id); } }
           else if (save.gear.bag.length >= LAZY_BAG || emptySlots(save) && save.gear.bag.some(it => !save.gear.equipped[it.slot])) {
             if (save.gear.bag.length >= LAZY_BAG) { equipBest(save); if (t.sell) gold(() => sellAll(save)); }
@@ -290,9 +295,9 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
           if (t.missions) gold(() => {
             for (const kind of ['daily', 'weekly'] as const) (kind === 'daily' ? save.daily : save.weekly).missions.forEach((m, i) => { if (missionReady(m) && typeof claimMission(save, kind, i) !== 'string') claimed++; });
             const cs = chestState(save);
-            if ((cs.today || cs.banked) && typeof claimChest(save, rng) !== 'string') { chest = true; if (t.gear !== 'lazy') equipBest(save); }
-            if (save.chalChest && typeof claimChalChest(save, rng) !== 'string' && t.gear !== 'lazy') equipBest(save);
-            if (save.guild.founded) { claimGuildGoal(save); if (typeof claimExped(save, rng) !== 'string' && t.gear !== 'lazy') equipBest(save); }
+            if ((cs.today || cs.banked) && typeof claimChest(save, rng) !== 'string') { chest = true; if (t.gear === 'best' || t.gear === 'peek') equipBest(save); }
+            if (save.chalChest && typeof claimChalChest(save, rng) !== 'string' && (t.gear === 'best' || t.gear === 'peek')) equipBest(save);
+            if (save.guild.founded) { claimGuildGoal(save); if (typeof claimExped(save, rng) !== 'string' && (t.gear === 'best' || t.gear === 'peek')) equipBest(save); }
           });
           if (lv >= MERCHANT.lv) {
             open('행상인', day);

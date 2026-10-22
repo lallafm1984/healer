@@ -219,7 +219,7 @@ export interface Row {
 
 /** 초보 하한 판 수 (사제, 시드 1 ~ n: npm run sim:novice 기본과 같음) */
 export const NOVICE_N = 40;
-/** 초보 하한을 보는 칸 (순차 레벨링 구간 길의 난이도: 쉬움 · 보통, Lv 10 ~ 20은 어려움도, sim/novice 칸) */
+/** 초보 하한을 보는 칸 (순차 레벨링 구간 길의 난이도: 쉬움 · 보통, Lv 10 ~ 20은 어려움도, 장소 Lv 1 ~ 9 어려움은 길 밖이지만 2026-10-22부터, sim/novice 칸) */
 export const noviceCellOf = (c: ContentDef, d: DiffName): NoviceCell | null => noviceCells([d]).find(x => x.c.key === c.key && x.d === d) ?? null;
 /** 배율 → 처음 하는 사람 클리어율 (잰 값은 기억) */
 function noviceProbe(x: NoviceCell, base: Tune, n: number): FloorProbe {
