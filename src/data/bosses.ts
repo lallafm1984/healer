@@ -552,6 +552,24 @@ export type FlowStep =
   /** 노래: 살아 있는 몸통(앞 bodies개)이 맡은 열 (몸통마다 per열)에 선 사람 초당 dps (마법) */
   | { p: 'song'; phase: number; bodies: number; per: number; dps: number };
 
+/** 어려움 변화 (111 공통 ②): 어려움 · 악몽에서 기술 하나의 양이 늘어남. n = 인원 +n (효과 · 예고 대상 모두, 악몽 인원도), period = 주기 × period. 악몽 변화 (when.mythic = 질)와 따로 */
+export interface HardStep { skill: string; n?: number; period?: number }
+/** 어려움 변화가 켜지는 난이도 */
+export const hardOn = (diff: string) => diff === '어려움' || diff === '악몽';
+/** 어려움 변화를 기술 하나에 (엔진 initBoss · 공략 시트가 같이 씀) */
+export function hardDef(d: SkillDef, h: HardStep | undefined): SkillDef {
+  if (!h || d.key !== h.skill) return d;
+  const out: SkillDef = { ...d };
+  if (h.period) out.period = Math.round(d.period * h.period * 2) / 2;
+  if (h.n) {
+    const e = d.effect as (SkillEffect & { n?: number | 'all'; nMythic?: number }) | undefined;
+    if (e && typeof e.n === 'number') out.effect = { ...e, n: e.n + h.n, ...(e.nMythic != null ? { nMythic: e.nMythic + h.n } : {}) } as SkillEffect;
+    else if (e?.p === 'hunt' && e.n == null) out.effect = { ...e, n: 1 + h.n };
+    if (typeof d.target === 'object') out.target = { ...d.target, n: d.target.n + h.n, ...(d.target.nMythic != null ? { nMythic: d.target.nMythic + h.n } : {}) };
+  }
+  return out;
+}
+
 export interface BossDef {
   /** 시작 페이즈 [번호, 이름]. 이름 '' = 페이즈 표시 없음 */
   phase: [number, string];
@@ -569,6 +587,8 @@ export interface BossDef {
    * from = 이 페이즈가 되어야 게이지가 생김 (심연의 군주 3페이즈)
    */
   watch?: { cap: number; sec: number; tauntSec?: number; every: number; dmg: number; mythicRate?: number; from?: number };
+  /** 어려움 변화 (111 공통 ②, HardStep) */
+  hard?: HardStep;
 }
 
 const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, period: 2, cast: 0, effect: { p: 'auto', dmg } });
@@ -903,6 +923,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'tray', name: '쟁반 던지기', icon: '쟁반', kind: 'buster', first: 12, period: 20, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, // 111 2-B
         how: '탱커 아닌 한 명에게 쟁반. 예고된 사람을 미리 채우기', effect: { p: 'strike', dmg: 220 } },
     ],
+    hard: { skill: 'tray', period: 0.85 }, // 111 어려움 변화: 쟁반 던지기 더 자주
     enrage: { name: '접대 끝', period: 2, dmg: 160 },
   },
   // 뼈다귀 수집가 (35 4-1 ①, 던전 ② 역병 지하묘지): 끌어당김 처음 · 자루 쏟기 (되살아난 뼈, 쓰러지면 맡던 사람에게 부패). 목표 2:00 · 광폭화 2:45
@@ -949,6 +970,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '탱커가 12초 동안 받는 치유 −20% (마법). 지우거나, 룬 주먹 전에 더 일찍 채우기',
         effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '서리 손길', type: '마법', left: 12, healCut: 0.2 } } },
     ],
+    hard: { skill: 'quake', period: 0.85 }, // 111 어려움 변화: 룬 진동 더 자주
     enrage: { name: '룬 폭주', period: 2, dmg: 170 },
   },
   // 신전 수호상 탐험판 (35 4-8, 탐험 ⑥ 해바라기 언덕길 Lv 23): 던전 ⑥ 보스 (35 4-5 ①)의 평타 · 돌가루 · 우르릉 힘 모으기만. 무력화 예습 (게이지는 파티 딜에 맞춰 3인으로)
@@ -963,6 +985,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'stagger', sec: 10, need: 7, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 275, lock: 3 } } },
       BUSTER('돌 주먹', '주먹', 8, 18, 340), // 111 2-B (던전 깨진 신전에서 빌림)
     ],
+    hard: { skill: 'dust', period: 0.85 }, // 111 어려움 변화: 돌가루 더 자주
     enrage: { name: '돌 폭주', period: 2, dmg: 180 },
   },
   // 늪 주술사 (35 4-2 ①, 던전 ③ 독안개 늪): 완치 표식 처음 (늪 거머리, 악몽 2명) · 진흙 토템 (독 오라). 목표 2:00 · 광폭화 2:45
@@ -1032,6 +1055,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'glove', name: '얼룩진 장갑', icon: '장갑', kind: 'instant', first: 8, period: 18, cast: 0, cut: true,
         effect: { p: 'debuff', n: 1, debuff: { name: '얼룩진 장갑', type: '저주', left: 12, healCut: 0.5 } } },
     ],
+    hard: { skill: 'glove', n: 1 }, // 111 어려움 변화: 얼룩진 장갑 인원 +1
     enrage: { name: '접대 끝', period: 2, dmg: 220 },
   },
   // 초상화 속 귀부인 (35 4-3 ②): 매혹 (힐하면 길어짐, 악몽 2명) · 저주 실 (균형형) · 초상화의 눈 ✋ · 50%에 액자로 (12초 무적, 빈 액자 2개). 목표 2:30 · 광폭화 3:15
@@ -1056,6 +1080,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
       { p: 'when', if: { phase: 0, interOver: true }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'interEnd' }] },
     ],
+    hard: { skill: 'frames', n: 1 }, // 111 어려움 변화: 빈 액자 인원 +1
     enrage: { name: '그림 밖으로', period: 2, dmg: 220 },
   },
   // 장원 주인 벨모어 경 (35 4-3 ③, 최종): 뒤집힌 축복 (받는 치유가 피해로) · 가문의 반지 ⚠ (지우면 이웃 칸 폭발) · 젊음의 갈망 ✋ (가장 낮은 사람에게서 흡수 → 보스 회복). 30%부터 축복 2명. 목표 3:00 · 광폭화 4:00
@@ -1078,6 +1103,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       drip('drip', '장원의 한기', '한기', '저주', 'all', 16, 22, U.dps(0.012)), // 111 2-B 계속 아픈 것
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'invert2', in: 2 }, { p: 'text', text: '무너지는 젊음: 뒤집힌 축복 2명' }] }],
+    hard: { skill: 'invert2', n: 1 }, // 111 어려움 변화: 뒤집힌 축복 인원 +1
     enrage: { name: '젊음의 폭주', period: 2, dmg: 240 },
   },
   // 마력 골렘 (35 4-4 ①, 던전 ⑤ 서리 마탑): 진동 처음 (악몽 2초 간격 두 번) · 얼음 룬 감옥 ✋ · 수정 핵 과열 (쓸 때마다 커짐). 목표 2:15 · 광폭화 3:00
@@ -1094,6 +1120,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '얼음 룬 감옥', type: '마법', left: 6, noDps: true, noMove: true } } },
       { key: 'core', name: '수정 핵 과열', icon: '과열', kind: 'aoe', first: 34, period: 60, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.35), grow: U.dps(0.1) } },
     ],
+    hard: { skill: 'jail', period: 0.85 }, // 111 어려움 변화: 얼음 룬 감옥 더 자주
     enrage: { name: '룬 폭주', period: 2, dmg: 220 },
   },
   // 불안정한 마법사 (35 4-4 ②): 역류 처음 (내 스킬마다 중첩, 지우면 그때까지 터짐) · 불안정한 마력 ⚠ (두든 지우든 이웃 칸) · 얼음 파편 연사 (사냥) · 50% 폭주. 목표 2:30 · 광폭화 3:15
@@ -1119,6 +1146,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'start', skill: 'storm', in: 2 }, { p: 'start', skill: 'storm2', in: 2.5 }, { p: 'period', skill: 'recoil', sec: 22 }, { p: 'period', skill: 'recoil2', sec: 22 },
       { p: 'text', text: '폭주: 서리 장판 두 곳, 역류가 잦아짐' },
     ] }],
+    hard: { skill: 'shards', n: 1 }, // 111 어려움 변화: 얼음 파편 연사 인원 +1
     enrage: { name: '마력 폭발', period: 2, dmg: 220 },
   },
   // 탑주의 그림자 (35 4-4 ③, 최종): 주시 처음 (내 치유량으로 눈 게이지, 악몽 1.3배) · 서리 손길 (탱커 받는 치유 −10% 중첩, 숨 고르기에 사라짐) · 얼어붙는 바닥 → 얼음 기둥 · 침묵의 서리 / 서리 표식. 목표 3:00 · 광폭화 4:00
@@ -1140,6 +1168,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       drip('drip', '얼어붙은 공기', '공기', '마법', 'all', 18, 22, U.dps(0.012)), // 111 2-B
     ],
     watch: { cap: 1.5, sec: 6, tauntSec: 3, every: 1.5, dmg: U.me(0.15), mythicRate: 1.3 },
+    hard: { skill: 'mark', n: 1 }, // 111 어려움 변화: 서리 표식 인원 +1
     enrage: { name: '서리 폭풍', period: 2, dmg: 240 },
   },
   // 신전지기 유령 탐험판 (35 4-8 ⑦, 탐험 ⑦ 무너진 순례길): 평타 · 제단 발판 1곳 · 네 가지 청소약 (받침 · 해제 4유형 예습). 수치는 던전판의 70%
@@ -1154,6 +1183,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '금빛 발판에 들어간 사람이 맞고, 빈 발판이면 전원이 맞음. 들어간 사람을 바로 채우기',
         effect: { p: 'tower', n: 1, dmg: U.dps(0.28), empty: U.dps(0.14) } },
     ],
+    hard: { skill: 'soap', period: 0.85 }, // 111 어려움 변화: 네 가지 청소약 더 자주
     enrage: { name: '대청소', period: 2, dmg: 180 },
   },
   // 신전 수호상 (35 4-5 ①, 던전 ⑥ 깨진 신전): 무력화 (전원 70% 위, 악몽 80%) · 반격 틈 ✋ 처음 · 돌가루 (무력화 4초 전에 꼭). 목표 2:45 · 광폭화 3:45
@@ -1171,6 +1201,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '반격 틈. 끊기 ✋ 능력자가 끊으면 보스가 기절, 못 끊으면 앞줄이 맞음. 끊기 담당의 침묵 · 기절부터 지우기',
         effect: { p: 'counter', stun: 4, dmg: U.dps(0.45) } },
     ],
+    hard: { skill: 'dust', period: 0.85 }, // 111 어려움 변화: 돌가루 더 자주
     enrage: { name: '돌 폭주', period: 2, dmg: 240 },
   },
   // 신전지기 유령 (35 4-5 ②, 깨진 신전 최종): 받침 처음 (발판 2곳) · 네 가지 청소약 · 먼지 범벅 (천장 무너짐 뒤 사라짐) · 천장 무너짐 (가운데 피난처 + 탱커 칸, 악몽 1칸 줄임)
@@ -1198,6 +1229,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
           fail: { text: '투덜투덜 먼지바람', dmg: U.dps(0.15) } } },
     ],
     flow: [{ p: 'when', if: { idle: 'otto', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'otto', in: 2 }, { p: 'text', text: '꼬마 오토의 기억: 영혼을 채우면 유령이 잠시 누그러짐' }] }],
+    hard: { skill: 'soap', n: 1 }, // 111 어려움 변화: 네 가지 청소약 인원 +1
     enrage: { name: '대청소', period: 2, dmg: 260 },
   },
   // 역병 군주 탐험판 (35 4-8 ⑧, 탐험 ⑧ 심연 가장자리): 평타 · 썩은 숨결 (질병) · 독침 · 전염 (함정: 떨어진 칸이 안전). 10인 1층 예습
@@ -1213,6 +1245,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '함정. 끝나거나 지우면 이웃 칸 사람에게 퍼짐. 떨어져 서 있을 때 지우거나 끝날 때까지 채우기',
         effect: { p: 'debuff', n: 1, debuff: { name: '전염', type: '질병', left: 8, trap: true, end: { p: 'spread' } } } },
     ],
+    hard: { skill: 'breath', period: 0.85 }, // 111 어려움 변화: 썩은 숨결 더 자주
     enrage: { name: '역병 폭발', period: 2, dmg: 190 },
   },
   // 망루 파수꾼 (39 3-1, 던전 ⑦ 무너진 망루): 끌어당김 × 받침 (끌려온 사람이 받침을 맡음, 겁쟁이가 도망치면 빈 받침 = 전원 피해) · 경고 함성 ✋.
@@ -1228,6 +1261,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'shout', name: '경고 함성', icon: '함성', kind: 'aoe', first: 24, period: 30, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.25) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'chain', sec: 20 }, { p: 'text', text: '망루가 기운다: 갈고리 사슬이 잦아짐' }] }],
+    hard: { skill: 'chain', period: 0.85 }, // 111 어려움 변화: 갈고리 사슬 더 자주
     enrage: { name: '망루 붕괴', period: 2, dmg: 260 },
   },
   // 금 간 공명 수정 (39 3-2, 무너진 망루 최종): 진동 × 옮겨붙음 약한 판 (메아리는 진동 때 이웃 1명에게 옮겨붙고 +50%, 해제하면 사라짐) · 어긋난 공명 ✋.
@@ -1249,6 +1283,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'quake', sec: 11 }, { p: 'start', skill: 'echo2', in: 2 }, { p: 'text', text: '마지막 울림: 진동이 잦아지고 메아리 2명' },
     ] }],
+    hard: { skill: 'echo', n: 1 }, // 111 어려움 변화: 메아리 인원 +1
     enrage: { name: '공명 폭주', period: 2, dmg: 260 },
   },
   // ---------- 묶음 B 옛 세력 (46 3장 · 1-1): 던전 ⑧~⑩ 보스 6 · 탐험 ⑩ ⑫ 빌림 2 ----------
@@ -1310,6 +1345,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '쉿!', type: '마법', left: 6, noDps: true } } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '마감 시간: 마나 먹는 책 3권' }] }],
+    hard: { skill: 'books', n: 1 }, // 111 어려움 변화: 마나 먹는 책 인원 +1
     enrage: { name: '서고 폐관', period: 2, dmg: 270 },
   },
   // 얼어붙은 대학자 (46 3-2 ②, 얼음 서고 최종): 역류 × 무너지는 바닥 · 내게 걸린 마법 둘 (역류 · 마나 얼음). 35% 아래 역류 20초. 악몽은 바닥 2곳. 목표 3:20 · 광폭화 4:30
@@ -1333,6 +1369,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       drip('drip', '찬 바람', '찬바', '마법', 'all', 20, 22, U.dps(0.012)), // 111 2-B
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'recoil', sec: 20 }, { p: 'text', text: '마지막 강의: 역류가 잦아짐' }] }],
+    hard: { skill: 'ice', n: 1 }, // 111 어려움 변화: 마나 얼음 인원 +1
     enrage: { name: '강의 폭주', period: 2, dmg: 280 },
   },
   // 백합 여사제 (46 3-3 ①, 던전 ⑩ 백합 납골당): 넘치는 빛 그릇형 (일부러 넘치게 → 전원 보호막) · 시든 백합 (받는 치유 −50%). 40% 아래 꽃잎 폭풍 38%.
@@ -1352,6 +1389,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, debuff: { name: '시든 백합', type: '저주', left: 12, healCut: 0.5 } } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '만개: 꽃잎 폭풍이 세짐' }] }],
+    hard: { skill: 'wilt', n: 1 }, // 111 어려움 변화: 시든 백합 인원 +1
     enrage: { name: '꽃잎 폭주', period: 2, dmg: 280 },
   },
   // 잠든 가주 (46 3-3 ②, 백합 납골당 최종): 사슬 나눔형 (한쪽만 힐해도 둘 다 참) × 뒤집힌 축복 (사슬 짝이 뒤집히면 짝에게 하는 힐도 절반이 피해).
@@ -1372,6 +1410,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '뒤척임', icon: '뒤척', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.24) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '깨어남: 백 년 서약 2쌍' }] }],
+    hard: { skill: 'murmur', n: 1 }, // 111 어려움 변화: 잠꼬대 저주 인원 +1
     enrage: { name: '기상', period: 2, dmg: 290 },
   },
   // 서고 사서 탐험판 (46 1-1, 탐험 ⑩ 책갈피 설원 Lv 40): 평타 · 두꺼운 사전 · 마나 먹는 책 1권. 마나 갈취 예습 (던전 ⑨). 수치는 던전판의 70%
@@ -1384,6 +1423,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '책이 살아 있는 동안 내 마나가 샘. 딜러가 잡을 때까지 마나를 아끼기',
         effect: { p: 'adds', n: 1, add: { name: '마나 먹는 책', short: '책', art: 'mob-drain-book', hp: 0.03, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.3 } } } },
     ],
+    hard: { skill: 'books', period: 0.85 }, // 111 어려움 변화: 마나 먹는 책 더 자주
     enrage: { name: '서고 폐관', period: 2, dmg: 190 },
   },
   // 백합 여사제 탐험판 (46 1-1, 탐험 ⑫ 장미 울타리 미로 Lv 48): 평타 · 백합 꽃병 (3인 맞춤) · 꽃잎 폭풍. 넘치는 빛 예습 (던전 ⑩)
@@ -1399,6 +1439,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '받는 치유 −35% (저주). 지우면 꽃병을 채우기 쉬움, 못 지우면 걸린 사람은 더 오래 힐',
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '시든 백합', type: '저주', left: 10, healCut: 0.35 } } },
     ],
+    hard: { skill: 'wilt', period: 0.85 }, // 111 어려움 변화: 시든 백합 더 자주
     enrage: { name: '꽃잎 폭주', period: 2, dmg: 195 },
   },
   // ---------- 묶음 B 짠물 해적단 (46 4장, 해제 독 + 저주: 사제는 힐로, 성기사는 독, 드루이드는 둘 다) ----------
@@ -1413,6 +1454,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'wave', name: '거품 파도', icon: '파도', kind: 'aoe', first: null, period: 25, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: 85 } },
     ],
     flow: [half('껍데기 벗기: 거품 파도', { start: ['wave'] })],
+    hard: { skill: 'bubble', period: 0.85 }, // 111 어려움 변화: 독 거품 더 자주
     enrage: { name: '갑판 청소 끝', period: 2, dmg: 190 },
   },
   // 해적 선장 금빛수염 탐험판 (46 1-1, 탐험 ⑪ 난파선 모래톱 Lv 44): 평타 · 금도끼 · 동전 뒤집기 1명. 뒤집힘 저주 예습 (10인 ④)
@@ -1426,6 +1468,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'roar', name: '해적의 함성', icon: '함성', kind: 'aoe', first: null, period: 25, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: 90 } },
     ],
     flow: [half('선원들, 덤벼!: 해적의 함성', { start: ['roar'] })],
+    hard: { skill: 'coin', period: 0.85 }, // 111 어려움 변화: 동전 뒤집기 더 자주
     enrage: { name: '보물 사수', period: 2, dmg: 195 },
   },
   // 집게발 갑판장 (46 4-1 부두, 10인 ② 갈매기 항구): 부풀기 × 탱커 교대. 50% 아래 독 거품 3명 · 집게 10초. 악몽은 거품 5중첩 (20초). 목표 4:30 · 광폭화 6:00
@@ -1438,6 +1481,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'wave', name: '거품 파도', icon: '파도', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'buster', sec: 10 }, { p: 'text', text: '껍데기 벗기: 독 거품 3명, 집게가 잦아짐' }] }],
+    hard: { skill: 'bubble1', n: 1 }, // 111 어려움 변화: 독 거품 인원 +1
     enrage: { name: '갑판 청소 끝', period: 3, dmg: 180 },
   },
   // 해적 요리사 왕솥 (46 4-1 주방): 등대지기 구하기 (사람 칸) × 큰 쫄 (주방 보조 바다코끼리). 30% 아래 보조 2마리. 악몽은 등대지기 20초. 목표 5:00 · 광폭화 6:30
@@ -1463,6 +1507,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 3, debuff: { name: '매운 고추 가루', type: '독', left: 10, dot: U.dps(0.02) } } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '마지막 요리: 주방 보조 2마리' }] }],
+    hard: { skill: 'pepper', n: 1 }, // 111 어려움 변화: 매운 고추 가루 인원 +1
     enrage: { name: '수프 폭발', period: 3, dmg: 180 },
   },
   // 부선장 갈고리 모렐 (46 4-1 등대, 10인 ② 최종): 피난처 × 부풀기 (큰 파도에 모이기 전에 거품을 터뜨림) · 갈고리 낚기. 30% 아래 큰 파도 30초.
@@ -1482,6 +1527,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'song', name: '해적의 노래', icon: '노래', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'wave', sec: 30 }, { p: 'text', text: '「선장님 오신다!」: 큰 파도가 잦아짐' }] }],
+    hard: { skill: 'bubble', n: 1 }, // 111 어려움 변화: 독 거품 인원 +1
     enrage: { name: '허세 폭발', period: 3, dmg: 190 },
   },
   // 포수장 쾅쾅 (46 4-2 갑판, 10인 ③ 짠물 여왕호): 줄 피해 (못 피함) × 자폭 쫄 (화약통) · 폭탄. 40% 아래 포격 두 줄. 악몽은 화약통 2개. 목표 4:45 · 광폭화 6:15
@@ -1501,6 +1547,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '안 들려!', type: '저주', left: 8, noDps: true } } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '일제 사격: 옆구리 포격 두 줄' }] }],
+    hard: { skill: 'deaf', n: 1 }, // 111 어려움 변화: 안 들려! 인원 +1
     enrage: { name: '전 포문 발사', period: 3, dmg: 180 },
   },
   // 문어 꾸물이 (46 4-2 창고): 치유 상한 (먹물) × 감옥 (꼭 껴안기) · 꿈틀 촉수. 40% 아래 먹물 4명 · 상한 50%. 악몽은 꼭 껴안기 2명. 목표 5:00 · 광폭화 6:30
@@ -1521,6 +1568,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'wave', name: '먹물 파도', icon: '파도', kind: 'aoe', first: 24, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '신난 문어: 먹물 4명, 상한 50%' }] }],
+    hard: { skill: 'ink', n: 1 }, // 111 어려움 변화: 먹물 뿜기 인원 +1
     enrage: { name: '먹물 폭풍', period: 3, dmg: 180 },
   },
   // 바다 마녀 미역 할멈 (46 4-2 뱃머리, 10인 ③ 최종): 사슬 균형 × 치유 상한 (소금물 저주가 사슬 짝에게 먼저). 35% 아래 사슬 3쌍.
@@ -1541,6 +1589,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'foam', name: '거품 점괘', icon: '점괘', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.24) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '큰 물때: 미역 사슬 3쌍' }] }],
+    hard: { skill: 'brine', n: 1 }, // 111 어려움 변화: 소금물 저주 인원 +1
     enrage: { name: '대해일', period: 3, dmg: 190 },
   },
   // 보물 상자 덥석이 (46 4-3 동굴, 10인 ④ 보물섬 요새): 삼키기 × 마나 갈취 (금화 더미). 40% 아래 덥석 2명. 악몽은 금화 더미 3. 목표 4:45 · 광폭화 6:15
@@ -1562,6 +1611,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'thorns', sec: 8, dmg: U.dps(0.04), tank: 0.5 } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '배고픈 상자: 덥석 2명' }] }],
+    hard: { skill: 'gulp', n: 1 }, // 111 어려움 변화: 덥석! 인원 +1
     enrage: { name: '금화 폭식', period: 3, dmg: 180 },
   },
   // 앵무새 대장 깍깍 (46 4-3 망루): 차례 × 느린 시전 (깃털 회오리가 차례 1초 앞). 40% 아래 차례 5명. 악몽은 회오리 시전 ×2.5. 목표 5:00 · 광폭화 6:30
@@ -1584,6 +1634,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'flap', name: '날갯짓', icon: '날개', kind: 'aoe', first: 15, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '「깍깍깍!」: 차례 5명' }] }],
+    hard: { skill: 'mimicry', n: 1 }, // 111 어려움 변화: 앵무새 흉내 인원 +1
     enrage: { name: '깃털 폭풍', period: 3, dmg: 180 },
   },
   // 해적 선장 금빛수염 (46 4-3 꼭대기, 10인 ④ 최종 · 해적단 수장): 뒤집힘 저주. 60% 「선원들, 덤벼!」 (갑판 청소부 · 금화 비) → 30% 「내 보물!」 (10초마다 보스 +5%,
@@ -1618,6 +1669,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '내 보물!: 10초마다 보스 피해 +5%, 동전 뒤집기가 잦아짐' },
       ] },
     ],
+    hard: { skill: 'coin', n: 1 }, // 111 어려움 변화: 동전 뒤집기 인원 +1
     enrage: { name: '보물 사수', period: 3, dmg: 200 },
   },
   // ---------- 묶음 C (48 3장 · 1-1): 버섯 요정단 (질병 + 마법: 드루이드는 질병을 힐로) · 늪의 부족 (독) · 붉은 용 일가 첫 얼굴 ----------
@@ -1633,6 +1685,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '체력 비율이 가장 낮은 사람 (탱커 빼고)이 맞음. 모두를 고르게 유지', effect: { p: 'hunt', dmg: 145 } },
     ],
     flow: [half('리필: 한 잔 더! (가장 낮은 사람)', { start: ['hunt'] })],
+    hard: { skill: 'hunt', period: 0.85 }, // 111 어려움 변화: 한 잔 더! 더 자주
     enrage: { name: '찻잔 폭주', period: 2, dmg: 190 },
   },
   // 찻잔 요정 홀짝이 (48 3-1 ①, 던전 ⑪ 끝없는 다과회): 넘어가는 포자 × 사냥 (막이 붙어 낮아진 사람을 문다 → 지워서 건강한 사람에게 넘김).
@@ -1650,6 +1703,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '각설탕 비', icon: '설탕', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '리필: 포자 솜뭉치 2명' }] }],
+    hard: { skill: 'hunt', n: 1 }, // 111 어려움 변화: 한 잔 더! 인원 +1
     enrage: { name: '찻잔 폭주', period: 2, dmg: 270 },
   },
   // 모자 장수 해롱 (48 3-1 ②, 끝없는 다과회 최종): 모자 뽑기 (뒤집힘 · 상한 · 완치 중 하나) × 진동 (완치 모자를 채우는 시전이 끊김).
@@ -1670,6 +1724,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'hats2', in: 2 }, { p: 'start', skill: 'hats2m', in: 2 }, { p: 'period', skill: 'quake', sec: 15 },
       { p: 'text', text: '티타임은 끝나지 않아: 모자 2명, 진동이 잦아짐' },
     ] }],
+    hard: { skill: 'hats', n: 1 }, // 111 어려움 변화: 모자 씌우기 인원 +1
     enrage: { name: '티타임 폭주', period: 2, dmg: 270 },
   },
   // 버섯 가면 주술사 우가 (48 3-2 ①, 던전 ⑫ 이끼 뿌리 사원): 요정 고리 × 완치 표식 (거머리가 고리 안 사람에게 붙으면 걸어 나올 때까지 기다릴지).
@@ -1689,6 +1744,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '북소리', icon: '북', kind: 'aoe', first: 20, period: 24, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'ring2', in: 2 }, { p: 'text', text: '신나는 춤: 독버섯 고리 2개' }] }],
+    hard: { skill: 'ring', n: 1 }, // 111 어려움 변화: 독버섯 고리 인원 +1
     enrage: { name: '우가우가 축제', period: 2, dmg: 270 },
   },
   // 늪 거북 신 등딱지 (48 3-2 ②, 이끼 뿌리 사원 최종): 무력화 × 해제 못 하는 독 (사제는 독 걸린 사람을 힐로 70% 위에) · 등딱지 굴리기 (못 피하는 줄).
@@ -1710,6 +1766,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'spit2', in: 2 }, { p: 'period', skill: 'stagger', sec: 28 }, { p: 'text', text: '깊은 하품: 늪물 3명, 무력화가 잦아짐' },
     ] }],
+    hard: { skill: 'spit', n: 1 }, // 111 어려움 변화: 늪물 뿜기 인원 +1
     enrage: { name: '늪의 분노', period: 2, dmg: 280 },
   },
   // 코볼트 보물 지킴이 꼬질 탐험판 (48 1-1, 탐험 ⑮ 불꽃 봉우리 기슭 Lv 60): 평타 · 곡괭이 내려치기 · 불씨 꼬마 용 (자폭 쫄) · 독 연기 1명. 붉은 용 일가 첫 얼굴 (D 10인 ⑧로 키움)
@@ -1725,6 +1782,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '독 연기', type: '독', left: 10, dot: 14 } } },
     ],
     flow: [half('보물 지킴이 함성: 꼬마 용이 잦아짐', { period: [['whelp', 16]] })],
+    hard: { skill: 'smoke', period: 0.85 }, // 111 어려움 변화: 독 연기 더 자주
     enrage: { name: '보물 지킴이 화남', period: 2, dmg: 200 },
   },
   // 버섯 여왕 아마니타 탐험판 (48 1-1, 탐험 ⑭ 무지개 버섯밭 Lv 56): 평타 · 여왕의 홀 · 숲 할아버지 묘목 (작은 사람 칸). 10인 ⑦ 왕좌 예습
@@ -1741,6 +1799,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'ring', n: 1, sec: 20, dps: 20, every: 2, max: 2 } },
     ],
     flow: [half('쉿, 할아버지는 주무셔: 요정 고리', { start: ['ring'] })],
+    hard: { skill: 'ring', period: 0.85 }, // 111 어려움 변화: 요정 고리 더 자주
     enrage: { name: '여왕님 화남', period: 2, dmg: 190 },
   },
   // ---------- 묶음 C 10인 ⑤~⑦ (48 4장, 버섯 요정단 · 해제 질병 + 마법): 탱커 교대 자국은 모두 3중첩 ----------
@@ -1759,6 +1818,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'ticket', name: '입장권 검사', icon: '입장', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'ring2', in: 2 }, { p: 'text', text: '경비 교대!: 요정 고리 2개' }] }],
+    hard: { skill: 'ring', n: 1 }, // 111 어려움 변화: 요정 고리 인원 +1
     enrage: { name: '입장 마감', period: 3, dmg: 180 },
   },
   // 요정 악단장 삘릴리 (48 4-1 무대): 춤바람 × 쫄 (꽃가루 무용단). 춤바람 24초 · 무용수 체력 0.8% · 35초 (48은 20초 · 2% · 30초, 딜이 너무 빠져 광폭화까지 감). 50% 아래 춤바람 3명. 악몽은 무용수 4 · 춤바람 처음부터 3명. 목표 4:40 · 광폭화 6:15
@@ -1777,6 +1837,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'band', name: '신나는 합주', icon: '합주', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'dance2', in: 2 }, { p: 'text', text: '앙코르!: 춤바람 3명' }] }],
+    hard: { skill: 'dance', n: 1 }, // 111 어려움 변화: 춤바람 인원 +1
     enrage: { name: '끝없는 앙코르', period: 3, dmg: 180 },
   },
   // 축제 대장 퐁가 (48 4-1 모닥불, 10인 ⑤ 최종): 피난처 × 요정 고리 (고리 칸에는 안전 칸이 안 생김) · 폭탄 (폭죽 통). 30% 아래 폭죽 통 3 · 포자 구름 24초.
@@ -1799,6 +1860,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'keg3', in: 3 }, { p: 'period', skill: 'cloud', sec: 24 }, { p: 'text', text: '축제는 계속돼!: 폭죽 통 3, 포자 구름이 잦아짐' },
     ] }],
+    hard: { skill: 'ring', n: 1 }, // 111 어려움 변화: 요정 고리 인원 +1
     enrage: { name: '대폭죽', period: 3, dmg: 190 },
   },
   // 이끼 골렘 뭉게 (48 4-2 이끼 굴, 10인 ⑥ 포자 동굴 정원): 무력화 × 넘어가는 포자 (막이 붙은 사람은 70% 위로 올리기 어려움). 50% 아래 솜뭉치 3명.
@@ -1818,6 +1880,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'rain', name: '이끼 비', icon: '이끼', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'spore2', in: 2 }, { p: 'text', text: '이끼가 자란다: 솜뭉치 3명' }] }],
+    hard: { skill: 'spore', n: 1 }, // 111 어려움 변화: 포자 솜뭉치 인원 +1
     enrage: { name: '이끼 폭주', period: 3, dmg: 180 },
   },
   // 개구리 사공 개굴 (48 4-2 연못): 끌어당김 × 사슬 나눔형 (끌려온 사람과 탱커가 피해 · 치유를 반씩). 40% 아래 혀 2명 (둘째는 부탱커와 사슬).
@@ -1836,6 +1899,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'croak', name: '개굴개굴 합창', icon: '개굴', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tongue2', in: 3 }, { p: 'text', text: '큰 물결: 혀 낚아채기 2명' }] }],
+    hard: { skill: 'splash', period: 0.85 }, // 111 어려움 변화: 연잎 물보라 더 자주
     enrage: { name: '연못 범람', period: 3, dmg: 180 },
   },
   // 포자 정원사 모락 할멈 (48 4-2 뿌리 방, 10인 ⑥ 최종): 치유하는 쫄 (버섯 화분) × 요정 고리. 30% 아래 화분 3 · 회복 0.45% (48은 0.6 → 0.9%, 보스가 다시 차서 절반으로).
@@ -1857,6 +1921,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'storm', name: '포자 폭풍', icon: '폭풍', kind: 'aoe', first: 22, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'pots3', in: 3 }, { p: 'text', text: '다 자랐다!: 버섯 화분 3, 회복이 빨라짐' }] }],
+    hard: { skill: 'water', n: 1 }, // 111 어려움 변화: 물뿌리개 인원 +1
     enrage: { name: '정원 폭주', period: 3, dmg: 190 },
   },
   // 꿀벌 근위대장 붕붕 (48 4-3 정원, 10인 ⑦ 버섯 여왕의 궁전): 쇠약 × 쫄 떼 (꿀벌이 쏜 사람은 90% 아래인 동안 벌침이 쌓임). 40% 아래 꿀벌 7.
@@ -1877,6 +1942,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'swarm2', in: 3 }, { p: 'start', skill: 'swarm2m', in: 3 }, { p: 'text', text: '비상!: 근위 꿀벌 7마리' },
     ] }],
+    hard: { skill: 'swarm', n: 1 }, // 111 어려움 변화: 근위 꿀벌 떼 인원 +1
     enrage: { name: '벌집 비상', period: 3, dmg: 180 },
   },
   // 요정 마술사 뿅뿅 (48 4-3 연회장): 차례 × 뒤집힌 축복 (차례 번호 중 한 명에게 거꾸로 마술). 35% 아래 차례 4명 · 거꾸로 2명.
@@ -1902,6 +1968,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'clap2', in: 3 }, { p: 'start', skill: 'clap2m', in: 3 }, { p: 'start', skill: 'flip2', in: 3.5 },
       { p: 'text', text: '피날레: 차례 4명, 거꾸로 마술 2명' },
     ] }],
+    hard: { skill: 'clap', n: 1 }, // 111 어려움 변화: 순서대로 박수 인원 +1
     enrage: { name: '마술쇼 폭주', period: 3, dmg: 190 },
   },
   // 버섯 여왕 아마니타 (48 4-3 왕좌, 10인 ⑦ 최종 · 요정단 수장): 1페이즈 고리 · 포자 → 70% 「쉿, 할아버지는 주무셔」 (숲 할아버지 나무: 사람 칸 큰 판,
@@ -1937,6 +2004,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '영원한 축제: 10초마다 보스 피해 +5%, 춤바람' },
       ] },
     ],
+    hard: { skill: 'spore', n: 1 }, // 111 어려움 변화: 포자 솜뭉치 인원 +1
     enrage: { name: '축제 폭주', period: 3, dmg: 200 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
@@ -1953,6 +2021,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '연기 퐁퐁', type: '독', left: 10, dot: 14 } } },
     ],
     flow: [half('입장료!: 김 서린 수건이 잦아짐', { period: [['melt', 20], ['steam', 20]] })],
+    hard: { skill: 'smoke', period: 0.85 }, // 111 어려움 변화: 연기 퐁퐁 더 자주
     enrage: { name: '온천 폭주', period: 2, dmg: 200 },
   },
   // 온천지기 코볼트 뭉실 (51 3-1 ①, 던전 ⑬ 용암 온천장): 녹는 보호막 × 독. 김 서린 수건 끝 3초 전에 뜨거운 김 예고 (열기가 끝나는 순간 맞음).
@@ -1973,6 +2042,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'melt', sec: 20 }, { p: 'period', skill: 'meltm', sec: 20 }, { p: 'period', skill: 'steam', sec: 20 },
       { p: 'text', text: '입장료!: 김 서린 수건이 잦아짐' },
     ] }],
+    hard: { skill: 'smoke', n: 1 }, // 111 어려움 변화: 연기 퐁퐁 인원 +1
     enrage: { name: '온천 폭주', period: 2, dmg: 270 },
   },
   // 사춘기 용 불퉁이 (51 3-1 ②, 용암 온천장 최종): 녹는 보호막 × 보물 욕심 · 줄 불길 (불씨 = 받는 치유 −25%).
@@ -1990,6 +2060,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'greed2', in: 2 }, { p: 'start', skill: 'greed2m', in: 2 }, { p: 'period', skill: 'melt', sec: 20 },
       { p: 'text', text: '다 컸다고!: 반짝이 내놔! 2명, 뜨끈한 숨이 잦아짐' },
     ] }],
+    hard: { skill: 'greed1', n: 1 }, // 111 어려움 변화: 반짝이 내놔! 인원 +1
     enrage: { name: '사춘기 폭발', period: 2, dmg: 280 },
   },
   // 풀무 골렘 후끈이 (51 3-2 ①, 던전 ⑭ 용암 대장간): 녹는 보호막 × 탱커 교대 (5인은 4중첩이면 근접 딜러가 6초 대신 맞음, DebuffDef.sub).
@@ -2008,6 +2079,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'splash', name: '쇳물 튀김', icon: '쇳물', kind: 'instant', first: 10, period: 16, cast: 0,
         effect: { p: 'debuff', n: 2, debuff: { name: '쇳물', type: '물리', left: 4, lock: true, drop: U.dps(0.25), dot: U.dps(0.03) } } },
     ],
+    hard: { skill: 'iron', n: 1 }, // 111 어려움 변화: 달군 쇠 인원 +1
     enrage: { name: '화로 폭주', period: 2, dmg: 280 },
   },
   // 모루 골렘 땅땅 (51 3-2 ②, 용암 대장간 최종): 보물 욕심 × 무력화 · 진동. 30% 아래 판 가장자리 쇳물 바다 · 담금질 ↻ 30초.
@@ -2030,6 +2102,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'sea', in: 2 }, { p: 'period', skill: 'stagger', sec: 30 }, { p: 'period', skill: 'staggerm', sec: 30 },
       { p: 'text', text: '쇳물 바다: 가장자리가 끓고 담금질이 잦아짐' },
     ] }],
+    hard: { skill: 'greed', n: 1 }, // 111 어려움 변화: 반짝반짝 두드리기 인원 +1
     enrage: { name: '대장간 폭주', period: 2, dmg: 300 },
   },
   // ---------- 10인 ⑧ 코볼트 보물 굴 (51 4-1, Lv 63 · 악몽 78): 꼬질 (탐험 ⑮에서 키움) · 덜컹이 · 번쩍이 ----------
@@ -2053,6 +2126,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'whelp2', in: 3 }, { p: 'start', skill: 'whelp2m', in: 3 }, { p: 'text', text: '보물 지킴이 함성: 불씨 꼬마 용 3' },
     ] }],
+    hard: { skill: 'pick', n: 1 }, // 111 어려움 변화: 곡괭이 콕콕 인원 +1
     enrage: { name: '보물 지킴이 화남', period: 3, dmg: 180 },
   },
   // 코볼트 수레꾼 덜컹이 (수레길): 행진 (보물 수레가 세로 줄을 1초마다 한 줄씩 훑음, 못 피함) × 보물 욕심 (금화 던지기 + 무거운 주머니).
@@ -2069,6 +2143,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'wheel', name: '바퀴 자국', icon: '바퀴', kind: 'instant', first: 8, period: 18, cast: 0,
         effect: { p: 'debuff', n: 3, debuff: { name: '바퀴 자국', type: '마법', left: 8, healCut: 0.2, drop: U.dps(0.15) } } },
     ],
+    hard: { skill: 'coin', n: 1 }, // 111 어려움 변화: 금화 던지기 인원 +1
     enrage: { name: '수레 폭주', period: 3, dmg: 180 },
   },
   // 코볼트 대장 번쩍이 (보물방, 10인 ⑧ 최종): 보물 욕심 × 사냥 (모두를 가운데쯤) · 판 위 금화 더미 (15초 안에 못 깨면 보스 피해 +20%, 겹침).
@@ -2091,6 +2166,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'greed2', in: 2 }, { p: 'start', skill: 'greed2m', in: 2 }, { p: 'start', skill: 'rain', in: 5 },
       { p: 'text', text: '보물 비!: 내 거야! 3명' },
     ] }],
+    hard: { skill: 'hunt', n: 1 }, // 111 어려움 변화: 쫄쫄이 부하 인원 +1
     enrage: { name: '대장님 화남', period: 3, dmg: 190 },
   },
   // ---------- 10인 ⑨ 어미 용의 둥지 (51 4-2, Lv 67 · 악몽 82): 삼남매 · 단단이 · 루비나 ----------
@@ -2113,6 +2189,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'snort', name: '콧김 퉤', icon: '콧김', kind: 'instant', first: 8, period: 15, cast: 0,
         effect: { p: 'debuff', n: 3, debuff: { name: '콧김', type: '마법', left: 8, healCut: 0.25, drop: U.dps(0.15) } } },
     ],
+    hard: { skill: 'snort', n: 1 }, // 111 어려움 변화: 콧김 퉤 인원 +1
     enrage: { name: '삼남매 떼쓰기', period: 3, dmg: 180 },
   },
   // 용 비늘 경비대장 단단이 (다리): 탱커 교대 × 녹는 보호막 · 줄 불길 · 부탱커에게 비늘 방패 돌진. 악몽은 줄 불길 두 줄. 목표 4:50 · 광폭화 6:30
@@ -2127,6 +2204,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'charge', name: '비늘 방패 돌진', icon: '돌진', kind: 'buster', first: 20, period: 20, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'offtank',
         how: '보스를 안 맞는 탱커가 맞음. 교대 직전이면 그 탱커에게 미리 보호막', effect: { p: 'tank' } },
     ],
+    hard: { skill: 'spear', n: 1 }, // 111 어려움 변화: 비늘 창 인원 +1
     enrage: { name: '경비대장 화남', period: 3, dmg: 190 },
   },
   // 어미 용 루비나 (보물더미, 10인 ⑨ 최종 · 붉은 용 일가 수장): 1페이즈 보물 욕심 · 눈부심 → 70% 날아오름 (녹는 보호막 · 화산재 비 · 새끼 용) →
@@ -2165,6 +2243,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '보물 지키기: 보물 욕심 · 사냥 · 용의 숨결 두 줄이 함께' },
       ] },
     ],
+    hard: { skill: 'greed1', n: 1 }, // 111 어려움 변화: 내 보물 만지지 마! 인원 +1
     enrage: { name: '어미 용의 분노', period: 3, dmg: 200 },
   },
   // ---------- 20인 ① 가라앉은 대성당 2 · 3 · 4구역 (51 4-3, Lv 70 · 악몽 80 · 심연 · 모든 유형) ----------
@@ -2180,6 +2259,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '뒷줄 한 명이 끌려와 평타를 나눠 맞음. 사슬 짝이면 짝도 같이 채우기', effect: { p: 'pull', sec: 3, dmg: 30 } },
     ],
     flow: [half('셋이 하나로: 깊은 물로 끌어당김', { start: ['pull'] })],
+    hard: { skill: 'wave', period: 0.85 }, // 111 어려움 변화: 물결 베기 더 자주
     enrage: { name: '물그림자 폭주', period: 2, dmg: 200 },
   },
   // 물그림자 기사 셋 (회랑): 몸통 셋 (차례로 쓰러뜨림, 하나가 쓰러질 때마다 남은 기사 +15%) · 20인 생명 사슬 균형형 3쌍 × 끌어당김 · 물결 베기 (살아 있는 기사가 맡은 2열).
@@ -2200,6 +2280,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '기사가 쓰러질 때마다 남은 기사 피해 +15% (끝까지)', effect: { p: 'empower', boost: 0.15 } })),
     ],
     flow: KNIGHTS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `oath${i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `oath${i}`, in: 0 }] })),
+    hard: { skill: 'wave', period: 0.85 }, // 111 어려움 변화: 물결 베기 더 자주
     enrage: { name: '기사단 돌격', period: 3, dmg: 200 },
   },
   // 물오르간 정령 우웅이 (오르간): 진동 × 치유 상한 · 20인 무력화 (불협화음 게이지를 모두 함께). 파이프 소리 (종 · 방울 아님).
@@ -2219,6 +2300,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'drops', name: '음표 물방울', icon: '음표', kind: 'instant', first: 6, period: 14, cast: 0,
         effect: { p: 'debuff', n: 4, debuff: { name: '젖은 음표', type: '물리', left: 2, lock: true, drop: U.dps(0.2) } } },
     ],
+    hard: { skill: 'drops', n: 1 }, // 111 어려움 변화: 음표 물방울 인원 +1
     enrage: { name: '오르간 폭주', period: 3, dmg: 200 },
   },
   // 문지기 그림자 오르말 (성소, 20인 ① 최종): 1페이즈 조각 욕심 · 그림자 손길 (유형 무작위) → 65% 문 두드리기 (문에 박힌 탑 조각 셋 = 사람 칸, 못 채우면 문이 한 칸 열림 ·
@@ -2253,6 +2335,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '문 아래로: 조각 욕심 · 그림자 가시 · 심연의 물결' },
       ] },
     ],
+    hard: { skill: 'hunt', n: 1 }, // 111 어려움 변화: 그림자 가시 인원 +1
     enrage: { name: '심연의 문', period: 3, dmg: 220 },
   },
   // ---------- 묶음 E1 10인 ⑩ 노을 시장 (54 4-1, Lv 71 · 악몽 86 · 모래 왕국 · 질병 + 저주): 꾸벅 · 끄덕 · 혹돌이 · 냥크스 ----------
@@ -2271,6 +2354,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '하나가 먼저 쓰러지면 남은 병정 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
     ],
     flow: GUARDS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `wake${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `wake${1 - i}`, in: 0 }] })),
+    hard: { skill: 'cough', n: 1 }, // 111 어려움 변화: 모래 기침 인원 +1
     enrage: { name: '병정 형제 깜짝 기상', period: 3, dmg: 190 },
   },
   // 향신료 낙타 상인 혹돌이 (골목): 옮겨붙는 질병 (매운 재채기, 지우면 이웃 칸으로 +50%) × 신기루 짐더미 (장판 진짜 1 + 가짜 1) · 흥정 실패 (저주).
@@ -2287,6 +2371,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '두 곳 중 한 곳은 신기루 (끝 1초에 걷힘). 파티원이 알아서 피함. 못 피한 사람부터 채우기' },
       { key: 'haggle', name: '흥정 실패', icon: '흥정', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 2, debuff: { name: '흥정 실패', type: '저주', left: 8, healCut: 0.25 } } },
     ],
+    hard: { skill: 'sneeze', n: 1 }, // 111 어려움 변화: 매운 재채기 인원 +1
     enrage: { name: '낙타 떼 돌진', period: 3, dmg: 190 },
   },
   // 수수께끼 고양이 냥크스 (성문, 10인 ⑩ 최종): 차례 × 신기루 (숫자 하나는 신기루 숫자, 시작 5초 뒤 걷힘) · 신기루 꼬리 (광역 반은 신기루) · 천 년 졸음.
@@ -2308,6 +2393,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'riddle2', in: 4 }, { p: 'text', text: '마지막 수수께끼: 숫자 넷 + 신기루 숫자 하나' },
     ] }],
+    hard: { skill: 'sleepy', n: 1 }, // 111 어려움 변화: 천 년 졸음 인원 +1
     enrage: { name: '고양이 심술', period: 3, dmg: 200 },
   },
   // ---------- 묶음 E1 20인 ② 물밑 수도원 (54 4-4, Lv 73 · 악몽 83 · 심연 · 모든 유형): 흐물이 · 비추미 · 깊은잠 ----------
@@ -2323,6 +2409,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '촉수 자국', type: '마법', left: 6, healCut: 0.2, drop: 75 } } },
     ],
     flow: [half('촉수가 깨어남: 촉수 자국 (받는 치유 −20%)', { start: ['tentacle'] })],
+    hard: { skill: 'tentacle', period: 0.85 }, // 111 어려움 변화: 촉수 쓰다듬기 더 자주
     enrage: { name: '해파리 떼', period: 2, dmg: 200 },
   },
   // 해파리 정원사 흐물이 (연못): 20인 요정 고리 (3명, 악몽 5명) × 진동 · 촉수 쓰다듬기 (5명 · 마법 받는 치유 −20%). 목표 4:30 · 광폭화 6:00
@@ -2336,6 +2423,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'tentacle', name: '촉수 쓰다듬기', icon: '촉수', kind: 'instant', first: 5, period: 14, cast: 0,
         effect: { p: 'debuff', n: 5, debuff: { name: '촉수 자국', type: '마법', left: 6, healCut: 0.2, drop: U.dps(0.18) } } },
     ],
+    hard: { skill: 'tentacle', n: 1 }, // 111 어려움 변화: 촉수 쓰다듬기 인원 +1
     enrage: { name: '해파리 정원 폭주', period: 3, dmg: 200 },
   },
   // 거울 사서 비추미 (서고): 20인 신기루 (거울 책장 = 진짜 1 + 거울 둘) × 진동 (조용히! 는 걷히기 0.5초 전에 맞음) · 책 먼지 (질병) · 연체료 (저주).
@@ -2350,6 +2438,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dust', name: '책 먼지', icon: '먼지', kind: 'instant', first: 6, period: 16, cast: 0, effect: { p: 'debuff', n: 4, debuff: { name: '책 먼지', type: '질병', left: 12, dot: U.dps(0.02) } } },
       { key: 'fine', name: '연체료', icon: '연체', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 3, debuff: { name: '연체료', type: '저주', left: 8, healCut: 0.3 } } },
     ],
+    hard: { skill: 'dust', n: 1 }, // 111 어려움 변화: 책 먼지 인원 +1
     enrage: { name: '도서관 대소동', period: 3, dmg: 210 },
   },
   // 심연 수도원장 깊은잠 (제단, 20인 ② 최종): 1페이즈 잠의 기도 (잠의 표식 3명 · 그림자 손길) → 65% 무너지는 제단 (깊은 물 장판 3곳, 끝난 뒤 가장자리 구멍 · 표식 4명)
@@ -2385,6 +2474,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '깨어나는 심장: 심장 박동이 점점 세짐' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '심장이 깸', period: 3, dmg: 220 },
   },
   // ---------- 묶음 E1 던전 ⑮ 모래시계 궁전 (54 3-1, Lv 75 · 모래 왕국 · 질병 + 저주): 데굴이 · 둘둘이 ----------
@@ -2404,6 +2494,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       })),
       { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: 6, period: 15, cast: 0, effect: { p: 'debuff', n: 2, pick: 'others', debuff: SAND_COUGH } },
     ],
+    hard: { skill: 'cough', n: 1 }, // 111 어려움 변화: 모래 기침 인원 +1
     enrage: { name: '기상 시간 초과', period: 2, dmg: 270 },
   },
   // 붕대 집사 둘둘이 (최종): 모래시계 × 치유 흡수 (칭칭 붕대는 되돌림 뒤에도 남음) · 창 안 조용히! · 천 년 졸음 (저주). 40% 아래 붕대 3명 · 모래시계 24초마다.
@@ -2430,6 +2521,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'wrap2', in: 3 }, { p: 'period', skill: 'glass', sec: 24 }, { p: 'period', skill: 'glassm', sec: 24 },
       { p: 'text', text: '다림질 끝!: 붕대 3명, 모래시계가 잦아짐' },
     ] }],
+    hard: { skill: 'wrap', n: 1 }, // 111 어려움 변화: 칭칭 붕대 인원 +1
     enrage: { name: '집사의 잔소리', period: 2, dmg: 270 },
   },
   // ---------- 묶음 E2 10인 ⑪ 노을 궁전 (54 4-2, Lv 75 · 악몽 90 · 모래 왕국 · 질병 + 저주): 솔솔 · 살살 · 엉금이 · 사라샤 ----------
@@ -2452,6 +2544,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       })),
       { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 2, debuff: SAND_COUGH } },
     ],
+    hard: { skill: 'sting', n: 1 }, // 111 어려움 변화: 따끔 모래 인원 +1
     enrage: { name: '모래 분수 폭주', period: 3, dmg: 200 },
   },
   // 보물고 거북 엉금이 (보물고): 탱커 교대 (등껍질 4중첩) × 신기루 버스터 (두 탱커에게 예고, 하나는 신기루) · 모래 늪 (2곳) · 보물 셈 (저주).
@@ -2474,6 +2567,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       })),
       { key: 'count', name: '보물 셈', icon: '셈', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 2, debuff: { name: '보물 셈', type: '저주', left: 8, healCut: 0.3 } } },
     ],
+    hard: { skill: 'shell', n: 1 }, // 111 어려움 변화: 등껍질 쌓기 인원 +1
     enrage: { name: '보물고 문 닫기', period: 3, dmg: 200 },
   },
   // 노을 여왕 사라샤 (옥좌, 10인 ⑪ 최종): 1페이즈 여왕의 시험 (신기루 바람 · 노을 부채질) → 70% 거꾸로 궁전 (여왕의 모래시계 · 창 안 모래 회오리 두 번 · 붕대 시녀)
@@ -2510,6 +2604,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '노을 폭풍: 신기루 · 모래시계 함께 + 사막의 한숨' },
       ] },
     ],
+    hard: { skill: 'fan', n: 1 }, // 111 어려움 변화: 노을 부채질 인원 +1
     enrage: { name: '노을 폭풍', period: 3, dmg: 210 },
   },
   // 베개 골렘 폭신이 탐험판 (54 1-1, 탐험 ⑲ 낙타 대상로 Lv 76): 평타 · 신기루 베개 (두 곳 중 한 곳만 진짜) · 코골이 진동. 10인 낮잠 피라미드 복도 예습
@@ -2525,6 +2620,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'stagger', sec: 10, need: 7, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 275, lock: 3 } } },
     ],
     flow: [half('베개 싸움!: 체력 70% 위로', { start: ['fight'] })],
+    hard: { skill: 'pillow', period: 0.85 }, // 111 어려움 변화: 신기루 베개 더 자주
     enrage: { name: '베개 폭탄', period: 2, dmg: 200 },
   },
   // ---------- 묶음 E2 20인 ③ 빛뿌리 숲 (54 4-5, Lv 76 · 악몽 86 · 심연 · 모든 유형): 뚜벅이 · 톡톡 · 쿵쿵 ----------
@@ -2542,6 +2638,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         ...(i ? { hidden: true } : { how: '네 곳에서 뿌리가 솟음. 파티원이 알아서 비킴. 못 비킨 사람부터 채우기' }),
       })),
     ],
+    hard: { skill: 'press', n: 1 }, // 111 어려움 변화: 뿌리 짓누르기 인원 +1
     enrage: { name: '뿌리 거인 행진', period: 3, dmg: 200 },
   },
   // 씨앗 할머니 톡톡 (온실): 20인 쇠약 (가시 덩굴 6명, 90% 아래인 동안 중첩) × 자폭 쫄 (빛 씨앗 셋, 악몽 넷: 10초 뒤 펑) · 꽃가루 (질병). 목표 5:00 · 광폭화 6:30
@@ -2555,6 +2652,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 6, debuff: { name: '가시 덩굴', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max: 5 } } } },
       { key: 'pollen', name: '꽃가루', icon: '꽃가', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 4, debuff: { name: '꽃가루', type: '질병', left: 12, dot: U.dps(0.02) } } },
     ],
+    hard: { skill: 'pollen', n: 1 }, // 111 어려움 변화: 꽃가루 인원 +1
     enrage: { name: '온실 대폭발', period: 3, dmg: 210 },
   },
   // 심장의 뿌리 쿵쿵 (심장뿌리, 20인 ③ 최종): 1페이즈 뿌리 박동 (부푼 씨앗 4명) → 65% 뒤집힌 박동 (뒤집힘 저주 4명 · 뿌리 덩굴) → 35% 깨어나는 박동 (모두 + 심장 박동, 박동마다 +1.5%).
@@ -2585,6 +2683,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '깨어나는 박동: 심장 박동이 점점 세짐' },
       ] },
     ],
+    hard: { skill: 'swell', n: 1 }, // 111 어려움 변화: 부푼 씨앗 인원 +1
     enrage: { name: '심장의 고동', period: 3, dmg: 220 },
   },
   // ---------- 묶음 E3 10인 ⑫ 낮잠 피라미드 (54 4-3, Lv 79 · 악몽 94 · 모래 왕국 · 질병 + 저주): 폭신이 · 째깍이 · 하품호텝 ----------
@@ -2606,6 +2705,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '진동: 맞는 순간 시전 중인 힐이 끊기고 3초 잠김. 예고가 뜨면 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 } },
       { key: 'cough', name: '깃털 기침', icon: '기침', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 3, debuff: { ...SAND_COUGH, name: '깃털 기침' } } },
     ],
+    hard: { skill: 'cough', n: 1 }, // 111 어려움 변화: 깃털 기침 인원 +1
     enrage: { name: '베개 폭탄', period: 3, dmg: 210 },
   },
   // 모래시계 사제 째깍이 (시계방): 모래시계 둘 (큰 것 12초를 뒤집고 4초 뒤 작은 것 6초. 작은 것이 먼저, 큰 것이 한 번 더 되돌림) × 사냥 (늦잠 꾸러기 찾기) · 시간 재촉 (창 안 두 번) · 천 년 졸음.
@@ -2629,6 +2729,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '맞는 순간 체력 비율이 가장 낮은 사람. 창 안에서도 오니 가장 낮은 사람은 쓰러지지 않게', effect: { p: 'hunt', dmg: U.dps(0.35) } },
       { key: 'sleepy', name: '천 년 졸음', icon: '졸음', kind: 'instant', first: 9, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: SLEEPY } },
     ],
+    hard: { skill: 'hunt', n: 1 }, // 111 어려움 변화: 늦잠 꾸러기 찾기 인원 +1
     enrage: { name: '기상 시간', period: 3, dmg: 210 },
   },
   // 모래 왕 하품호텝 (침실, 10인 ⑫ 최종 · 모래 왕국 수장): 1페이즈 반쯤 깸 (하품: 저주 받는 치유 −30% + 딜 −20% · 늦잠 꾸러기 찾기)
@@ -2661,6 +2762,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '왕의 모래시계: 신기루 · 모래시계 함께 + 천 년 하품' },
       ] },
     ],
+    hard: { skill: 'hunt', n: 1 }, // 111 어려움 변화: 늦잠 꾸러기 찾기 인원 +1
     enrage: { name: '왕의 모래 폭풍', period: 3, dmg: 220 },
   },
   // ---------- 묶음 E3 20인 ④ 별빛 저수지 (54 4-6, Lv 79 · 악몽 89 · 심연 · 모든 유형): 딱딱이 · 찌릿 · 되울림 ----------
@@ -2680,6 +2782,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'bubble', name: '거품 뿜기', icon: '거품', kind: 'instant', first: 7, period: 13, cast: 0,
         effect: { p: 'debuff', n: 5, debuff: { name: '거품', type: '물리', left: 1, lock: true, drop: U.dps(0.18) } } },
     ],
+    hard: { skill: 'bubble', n: 1 }, // 111 어려움 변화: 거품 뿜기 인원 +1
     enrage: { name: '수문 열기', period: 3, dmg: 200 },
   },
   // 별빛 장어 찌릿 (다리): 나눔 사슬 3쌍 (악몽 4쌍, 피해 · 치유를 반씩) × 찌릿 역류 (힐러, 스킬마다 중첩, 끝날 때 중첩당 내 체력 6%) · 번개 꼬리 · 정전기 (마법).
@@ -2698,6 +2801,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 4, debuff: { name: '번개 꼬리', type: '물리', left: 1, lock: true, drop: U.dps(0.25) } } },
       { key: 'static', name: '정전기', icon: '정전', kind: 'instant', first: 13, period: 18, cast: 0, effect: { p: 'debuff', n: 3, debuff: { name: '정전기', type: '마법', left: 8, healCut: 0.25 } } },
     ],
+    hard: { skill: 'tail', n: 1 }, // 111 어려움 변화: 번개 꼬리 인원 +1
     enrage: { name: '번개 폭풍', period: 3, dmg: 210 },
   },
   // 심연의 메아리 되울림 (거울호수, 20인 ④ 최종): 1페이즈 비치는 물 (메아리 화살 4명 중 진짜 2 · 그림자 손길) → 65% 거꾸로 메아리 (모래시계 · 창 안 메아리 파도 두 번)
@@ -2730,6 +2834,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '물 아래로: 메아리 화살 · 거꾸로 메아리 함께 + 심연의 물결' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '메아리 폭풍', period: 3, dmg: 220 },
   },
   // ---------- 묶음 E3 탐험 ⑳ 바람개비 언덕 (54 1-1, Lv 80): 다음 지역 구름 위 섬 · 폭풍 깃털단 첫 등장 ----------
@@ -2746,6 +2851,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: `${LIFT_HOW}. 회오리가 뜨면 깃털 간지럼이 먼저 붙으니 드루이드는 지우고, 아니면 지속 힐`, effect: { p: 'lift', sec: 5, fall: 85, pre: FEATHER } },
     ],
     flow: [half('속달!: 띄워 올리기', { start: ['express'] })],
+    hard: { skill: 'curse', period: 0.85 }, // 111 어려움 변화: 깃털 저주 더 자주
     enrage: { name: '속달 폭풍', period: 2, dmg: 200 },
   },
   // ---------- 묶음 E3 던전 ⑯ 해시계 천문대 (54 3-2, Lv 80 · 해바라기 언덕 · 모든 유형): 별바라기 · 그늘지기 ----------
@@ -2766,6 +2872,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dust', name: '돌가루', icon: '돌가', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: STONE_DUST } },
     ],
+    hard: { skill: 'dust', n: 1 }, // 111 어려움 변화: 돌가루 인원 +1
     enrage: { name: '별똥 폭풍', period: 2, dmg: 240 },
   },
   // 해시계 관리인 유령 그늘지기 (최종): 모래시계 × 완치 표식 (뒤집는 순간 2명에게 해 질 녘 표식, 10초 안에 100%가 안 되면 크게 아픔. 창 안에서는 표식 대상만 채울 가치가 있음)
@@ -2793,6 +2900,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '한밤의 해시계: 표식 3명 · 거꾸로 해시계가 더 자주' },
       ] },
     ],
+    hard: { skill: 'dust', n: 1 }, // 111 어려움 변화: 돌가루 인원 +1
     enrage: { name: '한밤의 그림자', period: 2, dmg: 240 },
   },
   // ---------- 묶음 F1 20인 ⑤ 숨결 우물 (56 4-3, Lv 82 · 악몽 92 · 심연 · 모든 유형): 출렁이 · 푸석이 · 후우 ----------
@@ -2810,6 +2918,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '진동: 맞는 순간 시전 중인 힐이 끊기고 3초 잠김. 두레박 순서 4초 뒤에 오니 그 앞뒤로는 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.1), lock: 3 } },
       ...spots('splash', '물보라', '물보', 4, 10, 16, U.dps(0.25)),
     ],
+    hard: { skill: 'order', n: 1 }, // 111 어려움 변화: 두레박 순서 인원 +1
     enrage: { name: '우물 범람', period: 3, dmg: 200 },
   },
   // 이끼 수호자 푸석이 (이끼벽): 치유 상한 × 완치 표식 (이끼 덮기 5명이 70%까지만 참, 2초 뒤 이끼 표식이 그 사람들에게 먼저 → 상한부터 지우기) · 포자 기침 (질병).
@@ -2830,6 +2939,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'cough', name: '포자 기침', icon: '기침', kind: 'instant', first: 6, period: 16, cast: 0,
         effect: { p: 'debuff', n: 3, debuff: { name: '포자 기침', type: '질병', left: 12, dot: U.dps(0.02) } } },
     ],
+    hard: { skill: 'cough', n: 1 }, // 111 어려움 변화: 포자 기침 인원 +1
     enrage: { name: '이끼 뒤덮기', period: 3, dmg: 210 },
   },
   // 심장의 숨 후우 (바닥, 20인 ⑤ 최종): 1페이즈 들숨 (깊은 들숨: 뒷줄 3명 끌어옴 · 그림자 손길) → 65% 날숨 (20인 넘치는 빛 그릇: 숨결 그릇이 차면 전원 보호막 → 큰 날숨)
@@ -2864,6 +2974,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '심장의 고동: 들숨 · 날숨 함께 + 심장 박동' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '심장의 한숨', period: 3, dmg: 220 },
   },
   // ---------- 묶음 F1 10인 ⑬ 구름 우체국 (56 4-1, Lv 83 · 악몽 98 · 폭풍 깃털단 · 저주 + 마법): 휘리릭 · 꽁꽁이 · 부리부리 ----------
@@ -2881,6 +2992,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'letter', name: '바람 편지', icon: '편지', kind: 'instant', first: 11, period: 20, cast: 0,
         effect: { p: 'debuff', n: 2, debuff: { name: '바람 편지', type: '마법', left: 8, healCut: 0.25 } } },
     ],
+    hard: { skill: 'tickle', n: 1 }, // 111 어려움 변화: 깃털 간지럼 인원 +1
     enrage: { name: '속달 폭풍', period: 3, dmg: 200 },
   },
   // 소포 요정 꽁꽁이 (분류실): 띄워 올리기 × 나눔 사슬 (리본 묶기 2쌍, 3초 뒤 쌍마다 한 사람을 띄움 → 떠 있는 사람은 땅에 남은 짝을 힐해서 채움) · 바람 포장지 3곳 · 깃털 간지럼.
@@ -2899,6 +3011,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ...spots('wrap', '바람 포장지', '포장', 3, 16, 16, U.dps(0.25)),
       { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 7, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: FEATHER } },
     ],
+    hard: { skill: 'tickle', n: 1 }, // 111 어려움 변화: 깃털 간지럼 인원 +1
     enrage: { name: '꽁꽁 포장', period: 3, dmg: 200 },
   },
   // 우체국장 하피 부리부리 (옥상, 10인 ⑬ 최종): 1페이즈 접수 마감 (반송 돌풍 3명 · 깃털 간지럼 2명) → 70% 우편함 정리 (받침 × 띄워 올리기: 우편함 받침 3칸에
@@ -2930,6 +3043,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '편지 폭풍: 반송 돌풍 · 우편함 받침 함께 + 편지 폭풍' },
       ] },
     ],
+    hard: { skill: 'tickle', n: 1 }, // 111 어려움 변화: 깃털 간지럼 인원 +1
     enrage: { name: '규정 위반 폭풍', period: 3, dmg: 220 },
   },
   // ---------- 묶음 F1 탐험 ㉑ 구름 양 목장 (56 1-1, Lv 84): 연쇄 번개 쉬운 판 (던전 ⑰ 예습) ----------
@@ -2946,6 +3060,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('머리 박치기', '박치', 8, 14, 350), first: null, when: { phase: [2] } },
     ],
     flow: [half('성난 양: 머리 박치기', { start: ['buster'] })],
+    hard: { skill: 'fluff', period: 0.85 }, // 111 어려움 변화: 구름 털 뭉치 더 자주
     enrage: { name: '털 폭발', period: 2, dmg: 200 },
   },
   // ---------- 묶음 F1 던전 ⑰ 천둥 풍차 (56 3-1, Lv 85 · 폭풍 깃털단 · 저주 + 마법): 복슬이 · 돌개 ----------
@@ -2962,6 +3077,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '정전기 털', type: '마법', left: 10, healCut: 0.25 } } },
       { key: 'fluff', name: '구름 털 뭉치', icon: '털뭉', kind: 'aoe', first: 15, period: 20, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.15) } },
     ],
+    hard: { skill: 'static', n: 1 }, // 111 어려움 변화: 정전기 털 인원 +1
     enrage: { name: '정전기 폭발', period: 2, dmg: 240 },
   },
   // 풍차지기 하피 돌개 (최종): 연쇄 번개 × 띄워 올리기 (돌개바람으로 띄운 사람이 내려오는 순간 그 사람에게서 연쇄 번개 → 떠 있는 동안 내려올 자리 이웃을 채움)
@@ -2987,6 +3103,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'gust2', in: 4 }, { p: 'period', skill: 'mill', sec: 14 },
       { p: 'text', text: '바람 거세짐: 돌개바람 2명 · 방아 번개가 더 자주' },
     ] }],
+    hard: { skill: 'tickle', n: 1 }, // 111 어려움 변화: 깃털 간지럼 인원 +1
     enrage: { name: '풍차 폭주', period: 2, dmg: 240 },
   },
   // ---------- 묶음 F2 20인 ⑥ 수정 뿌리굴 (56 4-4, Lv 85 · 악몽 95 · 심연 · 모든 유형): 굴굴이 · 핑핑이 · 빛갈래 ----------
@@ -3003,6 +3120,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 16, period: 16, cast: 0,
         how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: CRYSTAL_DUST } },
     ],
+    hard: { skill: 'dust', n: 1 }, // 111 어려움 변화: 수정 가루 인원 +1
     enrage: { name: '굴 무너뜨리기', period: 3, dmg: 210 },
   },
   // 바람개비 정령 핑핑이 (수정밭): 띄워 올리기 × 쇠약 (수정 가시가 90% 아래인 동안 쌓임 → 떠오른 사람은 힐을 못 받아 하늘에서도 쌓임) · 바람 칼날 (4곳). 악몽은 회오리 5명. 목표 5:00 · 광폭화 6:30
@@ -3018,6 +3136,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: `${LIFT_HOW}. 수정 가시가 붙은 채 90% 아래로 떠오르면 하늘에서 중첩이 계속 쌓이니 회오리가 뜬 사람을 먼저 90% 위로`, effect: { p: 'lift', sec: 6, fall: U.dps(0.2) } },
       ...spots('blade', '바람 칼날', '칼날', 4, 9, 15, U.dps(0.2)),
     ],
+    hard: { skill: 'whirl', n: 1 }, // 111 어려움 변화: 회오리 인원 +1
     enrage: { name: '수정 돌개바람', period: 3, dmg: 210 },
   },
   // 수정 마녀 빛갈래 (거울방, 최종 3페이즈): 연쇄 번개 × 보물 욕심 (2페이즈부터 수정 욕심이 체력 비율 높은 3명을, 갈래 번개는 90% 아래 이웃을 → 모두 85~95%로 고르게)
@@ -3046,6 +3165,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '깨지는 거울: 그림자 손길 · 수정 욕심 함께 + 프리즘 폭발' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '프리즘 폭주', period: 3, dmg: 220 },
   },
   // ---------- 묶음 F2 10인 ⑭ 폭풍 성채 (56 4-2, Lv 87 · 악몽 100 · 폭풍 깃털단 · 저주 + 마법): 둥둥이 · 쌩쌩이 · 우르릉 ----------
@@ -3066,6 +3186,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'charge', name: '천둥 충전', icon: '충전', kind: 'instant', first: 10, period: 24, cast: 0, how: CHARGE_HOW, // 111 충전 (P-CHARGE) 10인
         effect: { p: 'debuff', n: 3, nMythic: 4, pick: 'others', debuff: chargeOf('천둥 충전') } },
     ],
+    hard: { skill: 'static', n: 1 }, // 111 어려움 변화: 정전기 인원 +1
     enrage: { name: '천둥 북 연타', period: 3, dmg: 200 },
   },
   // 하피 기사 쌩쌩이 (무기고): 탱커 띄우기 (하늘 던지기가 보스를 맞는 탱커를 4초 띄움 → 그동안 보스는 창 찌르기 중첩이 남은 다른 탱커를 침) · 깃털 화살 비 (3곳) · 바람 저주.
@@ -3084,6 +3205,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'curse', name: '바람 저주', icon: '바람', kind: 'instant', first: 12, period: 20, cast: 0,
         effect: { p: 'debuff', n: 2, debuff: { name: '바람 저주', type: '저주', left: 8, healCut: 0.3 } } },
     ],
+    hard: { skill: 'jab', n: 1 }, // 111 어려움 변화: 번개 창 찌르기 인원 +1
     enrage: { name: '하늘 창 돌격', period: 3, dmg: 200 },
   },
   // 폭풍 거인 우르릉 (꼭대기, 수장 3페이즈): 1 천둥 (번개 구름 · 폭풍 저주) → 2 섬 흔들기 (기우는 섬: 낮은 쪽 칸이 큰 피해, 그 직전 섬 돌풍이 3명을 띄워 무작위 빈 칸에 내려앉힘 → 낮은 쪽이면 늦게 옮김)
@@ -3119,6 +3241,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '폭풍의 눈: 모든 기술 + 하늘 던지기 · 폭풍 함성' },
       ] },
     ],
+    hard: { skill: 'curse', n: 1 }, // 111 어려움 변화: 폭풍 저주 인원 +1
     enrage: { name: '천둥 웃음', period: 3, dmg: 220 },
   },
   // ---------- 묶음 F3 탐험 ㉒ 빗자루 정류장 (56 1-1, Lv 88 · 폭주한 마도사 · 마법): 넘치는 빛 × 연쇄 번개 쉬운 판 (던전 ⑱ 예습) ----------
@@ -3136,6 +3259,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('플라스크 던지기', '플라', 8, 14, 350), first: null, when: { phase: [2] } },
     ],
     flow: [half('실험 2단계: 플라스크 던지기', { start: ['buster'] })],
+    hard: { skill: 'twist', period: 0.85 }, // 111 어려움 변화: 꼬인 주문 더 자주
     enrage: { name: '거품 폭발', period: 2, dmg: 200 },
   },
   // ---------- 묶음 F3 던전 ⑱ 구름 마법학교 (56 3-2, Lv 90 · 폭주한 마도사 · 마법): 퐁퐁이 · 뒤죽박죽 ----------
@@ -3156,6 +3280,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'twist', name: '꼬인 주문', icon: '꼬임', kind: 'instant', first: 6, period: 16, cast: 0,
         effect: { p: 'debuff', n: 2, debuff: { name: '꼬인 주문', type: '마법', left: 8, dot: U.dps(0.025) } } },
     ],
+    hard: { skill: 'twist', n: 1 }, // 111 어려움 변화: 꼬인 주문 인원 +1
     enrage: { name: '거품 폭발', period: 2, dmg: 240 },
   },
   // 엉뚱 교장 뒤죽박죽 (최종): 띄워 올리기 × 뒤집힘 (거꾸로 주문이 걸린 사람을 끝나기 직전에 띄움 → 떠 있는 동안 뒤집히니 띄우기 전에 40~60%로) · 분필 폭풍.
@@ -3182,6 +3307,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'flip2', in: 3 }, { p: 'start', skill: 'levit2', in: 9 },
       { p: 'text', text: '전교생 공중 부양: 거꾸로 주문 · 공중 부양 3명' },
     ] }],
+    hard: { skill: 'flip', n: 1 }, // 111 어려움 변화: 거꾸로 주문 인원 +1
     enrage: { name: '대혼란 수업', period: 2, dmg: 240 },
   },
   // ---------- 묶음 F3 20인 ⑦ 그림자 성벽 (56 4-5, Lv 88 · 악몽 98 · 심연 · 모든 유형): 쾅쾅이 · 슝슝이 · 어둑이 ----------
@@ -3201,6 +3327,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'shell', name: '그림자 껍질', icon: '껍질', kind: 'instant', first: 10, period: 24, cast: 0, how: HARD_SHELL_HOW, // 111 단단한 껍질 (P-SHELL) 20인
         effect: { p: 'debuff', n: 4, nMythic: 5, pick: 'others', debuff: shellOf('그림자 껍질', 0.45) } },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '성문 부수기', period: 3, dmg: 210 },
   },
   // 그림자 궁수대장 슝슝이 (성벽길): 띄워 올리기 × 균형 사슬 (그림자 사슬 짝 중 한 명을 화살 바람이 띄움 → 떠 있는 사람 체력은 멈추니 땅에 남은 짝을 너무 채우지도 비우지도 않게)
@@ -3217,6 +3344,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: `${LIFT_HOW}. 사슬 짝마다 한 명`, effect: { p: 'lift', sec: 6, fall: U.dps(0.15) } },
       ...spots('rain', '화살 비', '화살', 4, 9, 15, U.dps(0.25)),
     ],
+    hard: { skill: 'chain', period: 0.85 }, // 111 어려움 변화: 그림자 사슬 더 자주
     enrage: { name: '그림자 화살 폭풍', period: 3, dmg: 210 },
   },
   // 그림자 장군 어둑이 (망루, 최종 3페이즈): 1 그림자 번개 (신기루가 섞인 연쇄 번개: 구름 4개 중 진짜 2, 끝 1초에 걷힘) → 2 그림자 돌풍 (모래시계가 뒤집히는 순간 4명을 띄움,
@@ -3252,6 +3380,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '심연의 문: 그림자 번개 · 모래시계 함께 + 심연의 고동' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '그림자 대군', period: 3, dmg: 220 },
   },
   // ---------- 묶음 G1 10인 ⑮ 그림자 미궁 (59 4-1, Lv 91 · 악몽 100 · 심연의 정예 · 전 유형): 그믐 · 실타래 · 밤그늘 ----------
@@ -3269,6 +3398,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '3명에게 독 (초당 딜체 2%) 또는 봉인 (마법, 받는 치유 −25%) 무작위. 봉인이 빚진 사람에게 붙으면 갚기 어려우니 먼저 지우기',
         effect: { p: 'cycle', n: 3, random: true, debuffs: MAZE_SEAL } },
     ],
+    hard: { skill: 'venom', n: 1 }, // 111 어려움 변화: 미궁의 독 인원 +1
     enrage: { name: '닫히는 문', period: 3, dmg: 200 },
   },
   // 함정 거미 실타래 (회랑): 빌린 생명 × 나눔 사슬 (그물 사슬 쌍마다 한 명에게 사슬 대출 → 짝을 힐해도 반이 넘어가 넘친 몫이 빚을 갚음) · 거미알 (새끼 거미 2) · 거미 열병 · 저주 (질병 · 저주).
@@ -3290,6 +3420,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '3명에게 질병 (거미 열병) 또는 저주 (거미의 저주) 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
         effect: { p: 'cycle', n: 3, random: true, debuffs: SPIDER_FEVER } },
     ],
+    hard: { skill: 'fever', n: 1 }, // 111 어려움 변화: 거미 열병 인원 +1
     enrage: { name: '그물 조이기', period: 3, dmg: 200 },
   },
   // 미궁의 주인 밤그늘 (중심, 최종 3페이즈): 1 미로 (생명 대출 · 미로 덫: 덫이 빚진 사람에게 먼저 붙고, 터지면 (지워도) 남은 빚도 함께) → 2 갇힌 길 (그림자 감옥 2명: 갇힌 동안 빚이 멈춤 · 무너지는 길)
@@ -3324,6 +3455,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '미궁의 심장: 모든 기술 + 미궁 수축' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '미궁 붕괴', period: 3, dmg: 220 },
   },
   // ---------- 묶음 G1 20인 ⑧ 그림자 진영 (59 4-2, Lv 91 · 악몽 100 · 심연의 정예 · 전 유형): 질풍 · 우레발 · 칠흑 ----------
@@ -3341,6 +3473,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'plague', name: '군영 역병', icon: '역병', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '4명에게 독 (녹슨 창날) 또는 질병 (군영 역병) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 4, random: true, debuffs: CAMP_PLAGUE } },
     ],
+    hard: { skill: 'plague', n: 1 }, // 111 어려움 변화: 군영 역병 인원 +1
     enrage: { name: '기병대 총돌격', period: 3, dmg: 210 },
   },
   // 심연 거수 우레발 (훈련장): 진동 × 탱커 교대 (뿔 들이받기 3.5초 뒤 발 구르기 진동 → 탱커 힐이 끊기기 쉬움) · 쫄 떼 (등에서 떨어진 그림자 6마리, 범위 딜로 잡음, 무작위 물기)
@@ -3362,6 +3495,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'bind', name: '짐승의 저주', icon: '저주', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '4명에게 저주 (짐승의 저주) 또는 마법 (정신 지배 끈) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 4, random: true, debuffs: BEAST_BIND } },
     ],
+    hard: { skill: 'bind', n: 1 }, // 111 어려움 변화: 짐승의 저주 인원 +1
     enrage: { name: '거수 폭주', period: 3, dmg: 210 },
   },
   // 심연 기사단장 칠흑 (지휘소, 최종 3페이즈): 1 지휘 (신기루 번개: 번개 구름 셋 중 진짜 하나, 끝 1초에 걷힘 · 전군 돌격) → 2 모래 군기 (모래시계 · 기사단 해제 전 유형)
@@ -3395,6 +3529,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '마지막 진형: 차례대로 힐, 다음 번호에게 번개' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 기사단 해제 인원 +1
     enrage: { name: '기사단 총공격', period: 3, dmg: 220 },
   },
   // ---------- 묶음 G1 탐험 ㉓ 유령 마차길 (59 1-1, Lv 92 · 몰락한 귀족가 · 저주): 어둠물 밀물 쉬운 판 (던전 ⑲ 예습) ----------
@@ -3410,6 +3545,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('지휘봉 내려치기', '지휘', 8, 14, 350), first: null, when: { phase: [2] } },
     ],
     flow: [half('2악장: 지휘봉 내려치기', { start: ['buster'] })],
+    hard: { skill: 'discord', period: 0.85 }, // 111 어려움 변화: 불협화음 더 자주
     enrage: { name: '끝없는 앙코르', period: 2, dmg: 200 },
   },
   // ---------- 묶음 G1 던전 ⑲ 가라앉은 무도회장 (59 3-1, Lv 95 · 몰락한 귀족가 · 저주): 세레나 · 발렌 ----------
@@ -3426,6 +3562,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '불협화음', type: '저주', left: 10, dot: U.dps(0.02) } } },
       { key: 'cresc', name: '크레센도', icon: '크레', kind: 'aoe', first: 16, period: 22, cast: 2.5, warn: 'aoe', how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.18) } },
     ],
+    hard: { skill: 'discord', n: 1 }, // 111 어려움 변화: 불협화음 인원 +1
     enrage: { name: '끝없는 앙코르', period: 2, dmg: 240 },
   },
   // 몰락한 대공 발렌 (최종): 어둠물 × 뒤집힌 축복 (거꾸로 건배가 걸린 사람은 받는 치유가 피해, 잠기면 두 배 → 밀물 때 아래 줄에 광역 힐 조심) · 무도회 행진 (줄 피해).
@@ -3446,6 +3583,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 },
       { p: 'text', text: '끝나지 않는 왈츠: 어둠물이 아래 두 줄까지' },
     ] }],
+    hard: { skill: 'toast', n: 1 }, // 111 어려움 변화: 거꾸로 건배 인원 +1
     enrage: { name: '마지막 왈츠', period: 2, dmg: 240 },
   },
   // ---------- 묶음 G2 20인 ⑨ 어둠물 해안 (59 4-3, Lv 94 · 악몽 100 · 심연의 정예 · 전 유형): 잔물결 · 휘감이 · 검은물결 ----------
@@ -3464,6 +3602,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '4명에게 독 (물때 독, 초당 딜체 2%) 또는 마법 (젖은 봉인, 받는 치유 −25%) 무작위. 잠긴 사람의 봉인은 힐이 거의 안 드니 먼저 지우기',
         effect: { p: 'cycle', n: 4, random: true, debuffs: TIDE_SEAL } },
     ],
+    hard: { skill: 'venom', n: 1 }, // 111 어려움 변화: 물때 독 인원 +1
     enrage: { name: '검은 파도', period: 3, dmg: 210 },
   },
   // 심연 장어왕 휘감이 (물길): 어둠물 × 끌어당김 (휘감기: 밀물 동안 보스 가까운 3명을 잠긴 줄로 끌어내려 6초 묶음 → 예고 2.5초 동안 그 셋을 채우기) · 전기 비늘 (연쇄 번개)
@@ -3483,6 +3622,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '4명에게 질병 (물병) 또는 저주 (저주 비늘) 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
         effect: { p: 'cycle', n: 4, random: true, debuffs: EEL_SCALE } },
     ],
+    hard: { skill: 'scale', n: 1 }, // 111 어려움 변화: 저주 비늘 인원 +1
     enrage: { name: '소용돌이 조임', period: 3, dmg: 210 },
   },
   // 어둠물 여왕 검은물결 (소용돌이, 최종 3페이즈): 1 밀물 (소용돌이 밀물 · 달빛 그릇: 넘친 치유가 모이면 전원 보호막) → 2 대출 (생명 대출 4명: 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 · 검은 비)
@@ -3513,6 +3653,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '해일: 모래시계가 물이 빠질 때를 알려 줌. 해일 전에 빚을 갚기' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 심연 해제 인원 +1
     enrage: { name: '검은 해일', period: 3, dmg: 220 },
   },
   // ---------- 묶음 G2 탐험 ㉔ 어둠물 등불길 (59 1-1, Lv 96 · 심연의 정예): 빌린 생명 쉬운 판 · 빌린 생명 × 어둠물 (던전 ⑳ 예습) ----------
@@ -3529,6 +3670,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('저울추', '저울', 8, 14, 350), first: null, when: { phase: [2] } },
     ],
     flow: [half('저울이 기울었다: 저울추', { start: ['buster'] })],
+    hard: { skill: 'dun', period: 0.85 }, // 111 어려움 변화: 연체 독촉 더 자주
     enrage: { name: '빚 독촉', period: 2, dmg: 200 },
   },
   // ---------- 묶음 G3 20인 ⑩ 심연의 심장 (59 4-4, Lv 97 · 악몽 100 · 심연의 정예 · 전 유형, 최종 레이드): 얽힘 · 되살아난 군주 · 심연의 심장 ----------
@@ -3550,6 +3692,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '4명에게 저주 (엉킨 저주, 초당 딜체 2%) 또는 마법 (수액 봉인, 받는 치유 −25%) 무작위. 빚진 사람의 봉인부터 지우기',
         effect: { p: 'cycle', n: 4, random: true, debuffs: ROOT_SAP } },
     ],
+    hard: { skill: 'curse', n: 1 }, // 111 어려움 변화: 엉킨 저주 인원 +1
     enrage: { name: '뿌리 조이기', period: 3, dmg: 210 },
   },
   // 되살아난 심연의 군주 (심장문): 세력 기믹 다시 보기. 체력 20%마다 지나온 세력 수장 기믹을 하나씩 (B 금빛 바다 보물 욕심 → C 포자 축제 요정 고리 → D 붉은 보물 녹는 보물 더미
@@ -3582,6 +3725,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'when', if: { phase: 3, hpBelow: 0.4 }, do: [{ p: 'phase', n: 4, name: '모래 시간' }, ...startBoth('glass', 4), { p: 'text', text: '모래 시간: 뒤집히기 전에 모두 채우기' }] },
       { p: 'when', if: { phase: 4, hpBelow: 0.2 }, do: [{ p: 'phase', n: 5, name: '폭풍' }, ...startBoth('lift', 3), { p: 'text', text: '폭풍: 띄우기 전에 지속 힐, 내려올 자리 이웃을 채우기' }] },
     ],
+    hard: { skill: 'gold', n: 1 }, // 111 어려움 변화: 금빛 욕심 인원 +1
     enrage: { name: '끝나지 않는 연설', period: 3, dmg: 220 },
   },
   // 심연의 심장 (심실, 최종 3페이즈): 1 고동 (퍼지는 박동: 가운데 겹부터 바깥 겹으로 0.5초씩 3겹 · 어둠물 박자가 번갈아) → 2 빚진 고동 (생명 대출 2명 · 악몽 3명, 빚은 초마다 5%: 박동에 맞으면 빚 +20%
@@ -3627,6 +3771,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '번개 쐐기: 우르릉의 쐐기가 심장에 박힘! 번개 이웃을 채우기' },
       ] },
     ],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 심연 해제 인원 +1
     enrage: { name: '멈추지 않는 심장', period: 3, dmg: 230 },
   },
   // ---------- 묶음 G3 탐험 ㉕ 새벽 호숫길 (59 1-1, Lv 100 · 심연의 정예): 심장 기믹 다시 보기 (작은 판, Lv 100 반복용) ----------
@@ -3643,6 +3788,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: loan('빌린 생명') } },
     ],
     flow: [half('조각이 뛴다: 빌린 생명', { start: ['loan'] })],
+    hard: { skill: 'tide', period: 0.85 }, // 111 어려움 변화: 어둠물 박자 더 자주
     enrage: { name: '다시 뛰는 조각', period: 2, dmg: 200 },
   },
   // ---------- 묶음 G3 던전 ⑳ 멈춘 심장 속 (59 3-2, Lv 100 · 심연의 정예 · 전 유형): 녹슬음 · 마지막 그림자 ----------
@@ -3658,6 +3804,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dun', name: '연체 독촉', icon: '독촉', kind: 'instant', first: 5, period: 16, cast: 0, how: '2명에게 독 또는 질병 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
         effect: { p: 'cycle', n: 2, random: true, debuffs: DUN } },
     ],
+    hard: { skill: 'dun', n: 1 }, // 111 어려움 변화: 연체 독촉 인원 +1
     enrage: { name: '빚 독촉', period: 2, dmg: 240 },
   },
   // 마지막 그림자 (최종): 빌린 생명 × 어둠물 × 함정 디버프 (그림자 덫: 지우면 터지는 대신 이웃 칸 2명에게 빌린 생명, 두면 8초 뒤 그 사람 딜체 45%) · 그림자 칼날 · 흩어지는 의지 (저주 · 질병).
@@ -3683,6 +3830,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 }, { p: 'start', skill: 'loan2', in: 5 },
       { p: 'text', text: '다시 뛰어라: 어둠물이 아래 두 줄까지, 생명 대출 2명' },
     ] }],
+    hard: { skill: 'will', n: 1 }, // 111 어려움 변화: 흩어지는 의지 인원 +1
     enrage: { name: '마지막 의지', period: 2, dmg: 240 },
   },
   warden: {
@@ -3759,6 +3907,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '2페이즈 · 머리가 셋' }, { p: 'start', skill: 'heads2', in: 2 }, { p: 'start', skill: 'spew', in: 6 }, { p: 'start', skill: 'breath2', in: 1 },
       { p: 'text', text: '머리가 셋: 머리가 잦아지고 독안개 분출, 숨결이 두 겹' },
     ] }],
+    hard: { skill: 'drip', n: 1 }, // 111 어려움 변화: 늪 독기 인원 +1
     enrage: { name: '늪의 분노', period: 3, dmg: 180 },
   },
   // 쌍둥이 여군주 릴리안 · 로제 (05 4장, 10인 3층 백합 회랑): 몸통 둘 (고르게 깎음, 하나가 먼저 쓰러지면 상실의 분노 +30%) · 가시 중첩 → 4중첩 탱커 교대 ·
@@ -3796,6 +3945,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
       ...[0, 1].map((i): FlowStep => ({ p: 'when', if: { idle: 'grief', bodiesDead: [i] }, do: [{ p: 'start', skill: 'grief', in: 0 }] })),
     ],
+    hard: { skill: 'curse', n: 1 }, // 111 어려움 변화: 귀부인의 저주 인원 +1
     enrage: { name: '쌍둥이 광란', period: 3, dmg: 200 },
   },
   // 대마도사 오르벤 (05 5장, 10인 4층 서리 전망대): 서리 화살 · 얼음 족쇄 (지움) · 불안정한 마력 (지우면 안 됨, 같은 마법) · 서리 고리 · 서리 수정 3개 (35 3-I).
@@ -3846,6 +3996,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '2페이즈: 불안정한 마력 둘 · 얼어붙은 시간 (치유 흡수) · 마력 역류' },
       ] },
     ],
+    hard: { skill: 'shackle', n: 1 }, // 111 어려움 변화: 얼음 족쇄 인원 +1
     enrage: { name: '마력 폭주', period: 3, dmg: 200 },
   },
   // 심연의 군주 (05 6장, 10인 꼭대기 첨탑, 최종): 심연의 손길 + 공허 3중첩 교대 · 그림자 파동 · 네 가지 메아리. 65% 인터미션 (심연 감옥 둘 · 조각 흡수 = 나를 노림).
@@ -3899,6 +4050,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     watch: { cap: 1.5, sec: 6, tauntSec: 3, every: 1.5, dmg: U.me(0.15), mythicRate: 1.3, from: 3 },
+    hard: { skill: 'veil', n: 1 }, // 111 어려움 변화: 공허의 막 인원 +1
     enrage: { name: '영원한 밤', period: 3, dmg: 220 },
   },
   // 유령 성가대 (26 4-3): 20인 입문. 성가대원 셋이 맡은 2열에 노래, 다 잡으면 지휘자 2페이즈
@@ -3921,6 +4073,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         { p: 'text', text: '2페이즈: 지휘자가 직접 지휘' },
       ] },
     ],
+    hard: { skill: 'solo', n: 1 }, // 111 어려움 변화: 독창 인원 +1
     enrage: { name: '대합창', period: 3, dmg: 200 },
   },
   // ---------- 묶음 H1 (62 3-1, Lv 5~30): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
@@ -4065,6 +4218,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'bottle', name: '향수병 던지기', icon: '향수', kind: 'buster', first: 12, period: 18, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, effect: { p: 'strike', dmg: 300 } },
       { key: 'aoe', name: '꽃향기 바람', icon: '바람', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 170 } },
     ],
+    hard: { skill: 'scent', period: 0.85 }, // 111 어려움 변화: 어지러운 향기 더 자주
     enrage: { name: '향수 폭주', period: 2, dmg: 180 },
   },
   // ---------- 묶음 H1 던전 ㉔ 백합 향수 공방 (62 3-1, Lv 23 · 몰락한 귀족가 · 저주): 라벤더 · 마담 로즈 ----------
@@ -4081,6 +4235,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '탱커 아닌 3명이 맞음. 향기가 걸린 사람은 미리 채우기', effect: { p: 'strike', dmg: U.dps(0.16) } },
       ...spots('cloud', '향기 구름', '구름', 1, 20, 24, U.dps(0.15)),
     ],
+    hard: { skill: 'scent', n: 1 }, // 111 어려움 변화: 어지러운 향기 인원 +1
     enrage: { name: '향수 폭주', period: 2, dmg: 210 },
   },
   // 공방 주인 마담 로즈 (최종): 뒤집힌 향기 (뒤집힌 축복: 받는 치유가 피해, 무도회장 거꾸로 건배의 쉬운 판) · 꽃잎 폭풍 (광역) · 장미 가시 (탱커 + 물리 지속 피해).
@@ -4098,6 +4253,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '뒤집힌 향기', type: '저주', left: 8, invert: true } } },
       { key: 'aoe', name: '꽃잎 폭풍', icon: '꽃잎', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
+    hard: { skill: 'invert', n: 1 }, // 111 어려움 변화: 뒤집힌 향기 인원 +1
     enrage: { name: '장미 폭주', period: 2, dmg: 220 },
   },
   // 눈사람 조수 뽀득이 탐험판 (탐험 ㉚ 얼음 호수 낚시터 Lv 25): 던전 ㉕ ①의 평타 · 눈덩이 굴리기 · 실수한 얼음 마법만. 줄 피해 (못 피함 → 예고된 줄 미리 채우기)
@@ -4110,6 +4266,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'oops', name: '실수한 얼음 마법', icon: '실수', kind: 'instant', first: 6, period: 15, cast: 0,
         effect: { p: 'debuff', n: 1, debuff: { name: '실수한 얼음 마법', type: '마법', left: 8, vuln: 0.2, dot: 15 } } },
     ],
+    hard: { skill: 'oops', period: 0.85 }, // 111 어려움 변화: 실수한 얼음 마법 더 자주
     enrage: { name: '눈사람 폭주', period: 2, dmg: 180 },
   },
   // ---------- 묶음 H1 던전 ㉕ 눈꽃 연구소 (62 3-1, Lv 28 · 폭주한 마도사 · 마법): 뽀득이 · 아이시아 ----------
@@ -4124,6 +4281,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '2명 (악몽 3명)이 8초 동안 받는 피해 +20% (마법). 마법을 지우는 직업은 눈덩이 줄에 선 사람부터 지움',
         effect: { p: 'debuff', n: 2, nMythic: 3, debuff: { name: '실수한 얼음 마법', type: '마법', left: 8, vuln: 0.2, dot: U.dps(0.01) } } },
     ],
+    hard: { skill: 'oops', n: 1 }, // 111 어려움 변화: 실수한 얼음 마법 인원 +1
     enrage: { name: '눈사람 폭주', period: 2, dmg: 210 },
   },
   // 서리 연구원 아이시아 (최종): 얼음 갑옷 (치유 흡수 막: 들어오는 치유가 먼저 얼음을 녹임, 해제 안 됨) · 차가운 시선 (마법 1명) · 서리 폭발 (광역) · 얼음 송곳.
@@ -4140,6 +4298,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '차가운 시선', type: '마법', left: 10, dot: U.dps(0.025) } } },
       { key: 'aoe', name: '서리 폭발', icon: '서리', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
     ],
+    hard: { skill: 'gaze', n: 1 }, // 111 어려움 변화: 차가운 시선 인원 +1
     enrage: { name: '서리 폭주', period: 2, dmg: 230 },
   },
   // 허수아비 기사 짚단 탐험판 (탐험 ㉛ 해바라기 수확밭 Lv 30): 묶음 H2 던전 ㉖ ①의 평타 · 짚단 분신 · 까마귀 떼만. 판 위 적 (분신이 서 있으면 보스가 받는 피해 −40%) 예습
@@ -4155,6 +4314,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '까마귀 쪼기', type: '질병', left: 10, dot: 20 } } },
       { key: 'aoe', name: '짚단 회오리', icon: '회오', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 180 } },
     ],
+    hard: { skill: 'crows', period: 0.85 }, // 111 어려움 변화: 까마귀 떼 더 자주
     enrage: { name: '허수아비 폭주', period: 2, dmg: 190 },
   },
   // ---------- 묶음 H2 (62 3-2, Lv 33~58): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
@@ -4173,6 +4333,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '탱커 아닌 3명이 쪼이고 질병 (초당 딜체 1.5%). 질병을 지우는 직업은 지움',
         effect: { p: 'strike', dmg: U.dps(0.12), debuff: { name: '까마귀 쪼기', type: '질병', left: 10, dot: U.dps(0.015) } } },
     ],
+    hard: { skill: 'decoy', n: 1 }, // 111 어려움 변화: 짚단 분신 인원 +1
     enrage: { name: '허수아비 폭주', period: 2, dmg: 230 },
   },
   // 곡물창고 수호상 낟알 (최종): 낟알 쏟아짐 (장판 3곳) · 무거운 자루 (탱커에게 받는 피해 +10% 쌓임, 12초) · 네 가지 곡물 가루 (질병 · 독 · 저주 · 마법 차례로 2명, 깨진 신전 청소약).
@@ -4192,6 +4353,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '곡물창고 울림', icon: '울림', kind: 'aoe', first: 20, period: 26, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '낟알이 더 쏟아짐' }] }],
+    hard: { skill: 'flour', n: 1 }, // 111 어려움 변화: 네 가지 곡물 가루 인원 +1
     enrage: { name: '수호상 폭주', period: 2, dmg: 240 },
   },
   // 곡물창고 수호상 낟알 탐험판 (탐험 ㉜ 허수아비 들판 Lv 34): 던전 ㉖ ②의 평타 · 무거운 자루 · 낟알 쏟아짐 · 곡물 가루만
@@ -4204,6 +4366,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ...spots('grain', '낟알 쏟아짐', '낟알', 2, 12, 20, 140),
       { key: 'flour', name: '곡물 가루', icon: '가루', kind: 'instant', first: 6, period: 14, cast: 0, effect: { p: 'cycle', n: 1, debuffs: soaps(0.7) } },
     ],
+    hard: { skill: 'flour', period: 0.85 }, // 111 어려움 변화: 곡물 가루 더 자주
     enrage: { name: '수호상 폭주', period: 2, dmg: 190 },
   },
   // ---------- 묶음 H2 던전 ㉗ 산호 동굴 밀수굴 (62 3-2, Lv 38 · 짠물 해적단 · 독 · 저주): 외눈 페그 · 파도 ----------
@@ -4221,6 +4384,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'hook', name: '갈고리 당기기', icon: '갈고', kind: 'buster', first: 16, period: 24, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
         effect: { p: 'pull', sec: 6, dmg: U.dps(0.1) } },
     ],
+    hard: { skill: 'dagger', n: 1 }, // 111 어려움 변화: 독 단검 인원 +1
     enrage: { name: '화약 폭주', period: 2, dmg: 230 },
   },
   // 동굴 해마 기사 파도 (최종): 밀물 (아래 1줄이 8초 잠김, 잠긴 사람은 받는 치유 절반: 어둠물 밀물을 짠물 바다로) · 산호 창 · 소금물 저주 (받는 치유 −30%) · 소용돌이 (광역).
@@ -4236,6 +4400,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '소금물 저주', type: '저주', left: 10, healCut: 0.3 } } },
       { key: 'aoe', name: '소용돌이', icon: '소용', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
+    hard: { skill: 'brine', n: 1 }, // 111 어려움 변화: 소금물 저주 인원 +1
     enrage: { name: '해일', period: 2, dmg: 240 },
   },
   // 밀수꾼 두목 외눈 페그 탐험판 (탐험 ㉝ 산호초 얕은 물 Lv 38): 던전 ㉗ ①의 평타 · 화약통 · 독 단검만
@@ -4253,6 +4418,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '뒷줄 한 명이 끌려와 6초 동안 평타를 나눠 맞음. 끌려온 사람을 먼저', effect: { p: 'pull', sec: 6, dmg: 60 } },
     ],
     flow: [half('갈고리!: 뒷줄을 끌어옴', { start: ['hook'] })],
+    hard: { skill: 'dagger', period: 0.85 }, // 111 어려움 변화: 독 단검 더 자주
     enrage: { name: '화약 폭주', period: 2, dmg: 190 },
   },
   // 견습생 쌍둥이 지지 · 직직 탐험판 (탐험 ㉞ 서리 마탑 정원 Lv 42): 던전 ㉘ ①의 두 몸 · 마법 실수만. 두 몸을 고르게
@@ -4269,6 +4435,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
     ],
     flow: TWIN_MAGES.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    hard: { skill: 'oops', period: 0.85 }, // 111 어려움 변화: 마법 실수 더 자주
     enrage: { name: '쌍둥이 폭주', period: 3, dmg: 190 },
   },
   // ---------- 묶음 H2 던전 ㉘ 마도사 기숙사 (62 3-2, Lv 43 · 폭주한 마도사 · 마법): 지지 · 직직 · 엄격이 ----------
@@ -4288,6 +4455,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
     ],
     flow: TWIN_MAGES.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    hard: { skill: 'oops', n: 1 }, // 111 어려움 변화: 마법 실수 인원 +1
     enrage: { name: '쌍둥이 폭주', period: 3, dmg: 230 },
   },
   // 사감 마도사 엄격이 (최종): 조용히! (2초 동안 시전 스킬 못 씀, 심장의 크게 뛰기 쉬운 판) · 벌점 (마법 1명, 받는 피해 +15%) · 숙제 폭탄 (광역 예고) · 지휘봉.
@@ -4304,6 +4472,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '벌점', type: '마법', left: 10, vuln: 0.15, dot: U.dps(0.015) } } },
       { key: 'homework', name: '숙제 폭탄', icon: '숙제', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, how: '조용히 바로 뒤에 오면 미리 지속 힐', effect: { p: 'all', dmg: U.dps(0.24) } },
     ],
+    hard: { skill: 'demerit', n: 1 }, // 111 어려움 변화: 벌점 인원 +1
     enrage: { name: '사감 폭주', period: 2, dmg: 240 },
   },
   // 약품 수도사 거품이 탐험판 (탐험 ㉟ 교단 숲속 야영지 Lv 46): 던전 ㉙ ①의 평타 · 역겨운 물약 · 끓어오름만
@@ -4383,6 +4552,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'dark' }, { p: 'text', text: '밀가루 구름: 체력 숫자가 사라짐, 채움 색만 보고 힐' },
     ] }],
+    hard: { skill: 'sneeze', n: 1 }, // 111 어려움 변화: 재채기 가루 인원 +1
     enrage: { name: '밀가루 폭주', period: 2, dmg: 240 },
   },
   // 케이크 골렘 몽글이 (최종): 층 쌓기 (광역이 쓸 때마다 세짐) · 크림 폭발 (광역 + 마법 1명) · 설탕 장판 (남는 장판 2곳) · 케이크 덮치기.
@@ -4399,6 +4569,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'sugar', name: '설탕 장판', icon: '설탕', kind: 'zone', first: 10, period: 16, cast: 2, warn: 'zone', dps: U.dps(0.05), dur: 8, cells: { p: 'around' }, when: { mythic: false } },
       ...spots('sugarm', '설탕 장판', '설탕', 3, 10, 16, U.dps(0.15), { mythic: true }),
     ],
+    hard: { skill: 'cream', n: 1 }, // 111 어려움 변화: 크림 폭발 인원 +1
     enrage: { name: '케이크 폭주', period: 2, dmg: 250 },
   },
   // 밀가루 요정 폴폴 탐험판 (탐험 ㊲ 이슬 버섯 언덕 Lv 54): 던전 ㉚ ①의 평타 · 재채기 가루 · 반죽 던지기만
@@ -4412,6 +4583,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '밀가루 바람', icon: '바람', kind: 'aoe', first: null, period: 24, cast: 3, warn: 'aoe', cut: true, when: { phase: [2] }, effect: { p: 'all', dmg: 85 } },
     ],
     flow: [half('밀가루 구름: 체력 숫자가 사라짐, 채움 색만 보고 힐', { dark: true, start: ['aoe'] })],
+    hard: { skill: 'sneeze', period: 0.85 }, // 111 어려움 변화: 재채기 가루 더 자주
     enrage: { name: '밀가루 폭주', period: 2, dmg: 200 },
   },
   // 개구리 근위대장 폴짝 탐험판 (탐험 ㊳ 버섯숲 늪가 Lv 58): 던전 ㉛ ①의 평타 · 크게 뛰기 · 독 침만
@@ -4475,6 +4647,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '풀무 그을음', type: '독', left: 10, dot: 12 } } },
     ],
     flow: [half('풀무질!: 그을음 (독)', { start: ['soot'] })],
+    hard: { skill: 'soot', period: 0.85 }, // 111 어려움 변화: 풀무 그을음 더 자주
     enrage: { name: '땜질 폭주', period: 2, dmg: 190 },
   },
   // ---------- 묶음 H3 던전 ㉜ 코볼트 불꽃 공방 (62 3-3, Lv 63 · 붉은 용 일가 · 독 · 마법): 땜질이 · 활활 ----------
@@ -4492,6 +4665,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'soot', name: '풀무 그을음', icon: '그을', kind: 'instant', first: 6, period: 14, cast: 0,
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '풀무 그을음', type: '독', left: 10, dot: U.dps(0.02) } } },
     ],
+    hard: { skill: 'soot', n: 1 }, // 111 어려움 변화: 풀무 그을음 인원 +1
     enrage: { name: '땜질 폭주', period: 2, dmg: 240 },
   },
   // 불도마뱀 조련사 활활 (최종): 불도마뱀 풀기 (쫄 2, 한 사람씩 쫓아와 붙으면 터짐: 코볼트 보물 지킴이 꼬질 탐험판의 자폭 쫄) · 불 채찍 · 불꽃 숨 (못 피하는 줄 피해 + 불씨) · 조련사 호령 (광역).
@@ -4507,6 +4681,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ...rows('breath', '불꽃 숨', '숨', 18, 18, U.dps(0.3), false).map((d): SkillDef => ({ ...d, hitDebuff: EMBER, hitFx: 'dragon-breath' })),
       { key: 'aoe', name: '조련사 호령', icon: '호령', kind: 'aoe', first: 22, period: 26, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
+    hard: { skill: 'lizard', n: 1 }, // 111 어려움 변화: 불도마뱀 풀기 인원 +1
     enrage: { name: '불도마뱀 폭주', period: 2, dmg: 250 },
   },
   // 용암 거북 지글이 탐험판 (탐험 ㊵ 용암 강 나룻터 Lv 66): 던전 ㉝ ①의 박치기 · 등껍질 반격 (반격 틈만, 숨기 무적은 뺌) · 용암 구멍 (최대 2칸) · 유황 김만
@@ -4523,6 +4698,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '용암 분출', icon: '분출', kind: 'aoe', first: null, period: 24, cast: 3, warn: 'aoe', cut: true, when: { phase: [2] }, effect: { p: 'all', dmg: 85 } },
     ],
     flow: [half('등껍질이 달아오름: 용암 분출', { start: ['aoe'] })],
+    hard: { skill: 'fume', period: 0.85 }, // 111 어려움 변화: 유황 김 더 자주
     enrage: { name: '거북 폭주', period: 2, dmg: 195 },
   },
   // ---------- 묶음 H3 던전 ㉝ 용암 거북 동굴 (62 3-3, Lv 68 · 붉은 용 일가 · 독 · 마법): 지글이 · 가넷 ----------
@@ -4553,6 +4729,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'when', if: { phase: 0, interOver: true, idle: 'shell2' }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'interEnd' }] },
       { p: 'when', if: { phase: 0, interOver: true }, do: [{ p: 'phase', n: 3, name: '' }, { p: 'interEnd' }] },
     ],
+    hard: { skill: 'fume', n: 1 }, // 111 어려움 변화: 유황 김 인원 +1
     enrage: { name: '거북 폭주', period: 2, dmg: 240 },
   },
   // 붉은 용 큰언니 가넷 (최종): 날개 바람 (앞줄 2명이 날려 2초 뒤 아무 빈 칸에 떨어짐: 밀쳐내기 부품이 없어 띄워 올리기 land random으로) · 불꽃 숨결 (못 피하는 줄 피해 + 불씨, 루비나 용의 숨결)
@@ -4568,6 +4745,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ...rows('breath', '불꽃 숨결', '숨결', 18, 16, U.dps(0.32), { mythic: true }).map((d): SkillDef => ({ ...d, hitDebuff: EMBER, hitFx: 'dragon-breath' })),
       ...greeds('greed', '내 보석이야!', '보석', 10, 13, 2.5, [[1, 2]], U.dps(0.4), GEM_HAND),
     ],
+    hard: { skill: 'greed', n: 1 }, // 111 어려움 변화: 내 보석이야! 인원 +1
     enrage: { name: '큰언니 화남', period: 2, dmg: 250 },
   },
   // 산호 정원사 말미잘 탐험판 (탐험 ㊶ 물안개 광장 Lv 70): 던전 ㉞ ①의 갈퀴 · 산호 가시 (1명) · 영혼 꽃만. 감옥은 3인에 깰 딜러가 하나라 뺌
@@ -4583,6 +4761,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
           win: { text: '영혼 꽃이 핌: 독 하나씩 지움 · 받는 치유 +15%', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '영혼 꽃이 시듦', dmg: 120, near: true } } },
     ],
     flow: [half('정원이 성남: 산호 가시가 잦아짐', { period: [['spine', 12], ['flower', 26]] })],
+    hard: { skill: 'spine', period: 0.85 }, // 111 어려움 변화: 산호 가시 더 자주
     enrage: { name: '말미잘 폭주', period: 2, dmg: 195 },
   },
   // ---------- 묶음 H3 던전 ㉞ 물밑 산호 정원 (62 3-3, Lv 73 · 심연 · 4유형): 말미잘 · 찰랑 ----------
@@ -4603,6 +4782,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'soul', name: '영혼 꽃', short: '꽃', hp: 0.3, sec: 12, type: '독',
           win: { text: '영혼 꽃이 핌: 독 하나씩 지움 · 받는 치유 +15%', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '영혼 꽃이 시듦', dmg: U.dps(0.25), near: true } } },
     ],
+    hard: { skill: 'spine', period: 0.85 }, // 111 어려움 변화: 산호 가시 더 자주
     enrage: { name: '말미잘 폭주', period: 2, dmg: 240 },
   },
   // 해파리 기사 찰랑 (최종): 해파리 점괘 (점괘가 정한 두 곳이 4초 뒤 맞음, 못 피함: 해파리 점쟁이의 점괘를 칸으로) · 찌릿 쏘기 (연쇄 번개) · 물거품 감옥 (「방울 갇힘」 → 감옥 부품, 이름은 물거품)
@@ -4624,6 +4804,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'sting', name: '해파리 쏘임', icon: '쏘임', kind: 'instant', first: 6, period: 14, cast: 0,
         how: '질병 → 독 → 저주 → 마법 차례로 2명. 지울 수 있는 유형부터 지우고, 나머지는 힐로', effect: { p: 'cycle', n: 2, debuffs: JELLY_STING } },
     ],
+    hard: { skill: 'sting', n: 1 }, // 111 어려움 변화: 해파리 쏘임 인원 +1
     enrage: { name: '해파리 기사 폭주', period: 2, dmg: 250 },
   },
   // 두루마리 미라 사서 바스락 탐험판 (탐험 ㊷ 모래 언덕 오아시스 Lv 74): 던전 ㉟ ①의 두루마리 · 붕대 감기 (1명) · 먼지 바람 · 책장 무너짐 1곳만
@@ -4640,6 +4821,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...spots('shelf', '책장 무너짐', '책장', 2, 12, 16, 180)[1], first: null, when: { phase: [2] } },
     ],
     flow: [half('서고가 흔들림: 책장 두 곳', { start: ['shelf1'] })],
+    hard: { skill: 'wrap', period: 0.85 }, // 111 어려움 변화: 붕대 감기 더 자주
     enrage: { name: '사서 폭주', period: 2, dmg: 195 },
   },
   // ---------- 묶음 H3 던전 ㉟ 모래 서기관 도서관 (62 3-3, Lv 78 · 모래 왕국 · 질병 · 저주): 바스락 · 깃펜 ----------
@@ -4656,6 +4838,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'all', dmg: U.dps(0.18), debuff: { name: '책 먼지', type: '질병', left: 8, dot: U.dps(0.01) } } },
       ...spots('shelf', '책장 무너짐', '책장', 2, 12, 16, U.dps(0.25)),
     ],
+    hard: { skill: 'wrap', n: 1 }, // 111 어려움 변화: 붕대 감기 인원 +1
     enrage: { name: '사서 폭주', period: 2, dmg: 240 },
   },
   // 모래 서기관 깃펜 (최종): 신기루 깃펜 (신기루 부품: 모래시계 궁전 · 꾸벅 · 끄덕 신기루 창처럼 표시 둘 중 하나는 가짜) · 되감는 모래 (모래시계 부품 5초: 노을 여왕 사라샤, 창 안에 잉크 쏟기)
@@ -4674,6 +4857,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'sign', name: '저주받은 서명', icon: '서명', kind: 'instant', first: 12, period: 18, cast: 0, how: SIGN_HOW,
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: U.dps(0.015), end: { p: 'hit', dmg: U.dps(0.45) } } } },
     ],
+    hard: { skill: 'sign', n: 1 }, // 111 어려움 변화: 저주받은 서명 인원 +1
     enrage: { name: '서기관 폭주', period: 2, dmg: 250 },
   },
   // 모래 서기관 깃펜 탐험판 (탐험 ㊸ 노을 해시계 길 Lv 78): 던전 ㉟ ②의 깃펜 찌르기 · 신기루 (3인은 가짜로 고를 사람이 없어 장판 두 곳 중 하나) · 되감는 모래 · 저주받은 서명만
@@ -4692,6 +4876,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: 15, end: { p: 'hit', dmg: 280 } } } },
     ],
     flow: [half('모래가 빨라짐: 깃펜 · 서명이 잦아짐', { period: [['quill', 12], ['sign', 14]] })],
+    hard: { skill: 'quill', period: 0.85 }, // 111 어려움 변화: 신기루 깃펜 더 자주
     enrage: { name: '서기관 폭주', period: 2, dmg: 200 },
   },
   // ---------- 묶음 H4 (62 3-4, Lv 82~100): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
@@ -4710,6 +4895,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '2명에게 저주 (초당 딜체 2%). 드루이드만 지움. 띄워진 사람에게 걸리면 내려올 때까지 못 지움', effect: { p: 'debuff', n: 2, debuff: FEATHER } },
       ...rows('dive', '급강하', '강하', 18, 20, U.dps(0.22), false),
     ],
+    hard: { skill: 'curse', n: 1 }, // 111 어려움 변화: 깃털 저주 인원 +1
     enrage: { name: '비행 훈련 폭주', period: 2, dmg: 240 },
   },
   // 바람 정령 회오리 (최종): 회오리 (끌어당김: 뒷줄 둘을 보스 앞으로) × 연쇄 번개 (끌려와 붙어 선 사람 사이로 튐) · 바람 장벽 (피난처: 한쪽 끝 금빛 칸 밖은 모두 맞음) · 정전기 바람 (마법).
@@ -4730,6 +4916,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '2명이 받는 치유 −25% (마법). 연쇄 번개 전에 지워 90%까지 채우기',
         effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '정전기 바람', type: '마법', left: 10, healCut: 0.25 } } },
     ],
+    hard: { skill: 'static', n: 1 }, // 111 어려움 변화: 정전기 바람 인원 +1
     enrage: { name: '대회오리', period: 2, dmg: 240 },
   },
   // 하피 교관 휘파람 탐험판 (탐험 ㊹ 구름 다리 Lv 82): 던전 ㊱ ①의 평타 · 발톱 할퀴기 · 띄워 올리기 · 깃털 저주만 (급강하는 7칸 판이라 뺌)
@@ -4744,6 +4931,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, debuff: { ...FEATHER, dot: 22 } } },
     ],
     flow: [half('훈련 강도 올림: 띄우기 · 저주가 잦아짐', { period: [['lift', 15], ['curse', 10]] })],
+    hard: { skill: 'curse', period: 0.85 }, // 111 어려움 변화: 깃털 저주 더 자주
     enrage: { name: '비행 훈련 폭주', period: 2, dmg: 200 },
   },
   // 바람 정령 회오리 탐험판 (탐험 ㊺ 번개 구름 목초지 Lv 86): 던전 ㊱ ②의 평타 · 회오리 · 연쇄 번개 · 정전기 바람만 (바람 장벽은 7칸 판이라 뺌)
@@ -4762,6 +4950,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '한쪽 끝 바람 장벽 뒤 금빛 칸으로 피함. 그 밖은 모두 맞음. 늦는 사람을 미리 채우기' },
     ],
     flow: [half('바람 장벽: 금빛 칸으로', { start: ['wall'] })],
+    hard: { skill: 'static', period: 0.85 }, // 111 어려움 변화: 정전기 바람 더 자주
     enrage: { name: '대회오리', period: 2, dmg: 200 },
   },
   // ---------- 묶음 H4 던전 ㊲ 구름 도서관 탑 (62 3-4, Lv 88 · 폭주한 마도사 · 마법): 펄럭이 · 쉿 ----------
@@ -4781,6 +4970,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'paper', name: '종이 베기', icon: '종이', kind: 'buster', first: 18, period: 20, cast: 2, warn: 'buster', target: { p: 'random', n: 3 },
         how: '탱커 아닌 3명이 베임. 예고 동안 셋을 미리 채우기', effect: { p: 'strike', dmg: U.dps(0.2) } },
     ],
+    hard: { skill: 'page', n: 1 }, // 111 어려움 변화: 침묵 페이지 인원 +1
     enrage: { name: '서가 폭풍', period: 2, dmg: 240 },
   },
   // 사서 유령 쉿 (최종): 넘치는 빛 그릇 (12초 동안 넘친 치유를 모아 가득 차면 전원 보호막 → 곧 오는 장서 폭풍을 막음, 구름 마법학교 거품 플라스크)
@@ -4801,6 +4991,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'hush', name: '조용히', icon: '조용', kind: 'aoe', first: 22, period: 15, cast: 2, warn: 'aoe',
         how: '2초 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 그릇을 채울 때는 즉시 스킬 · 지속 힐로', effect: { p: 'beat', sec: 2 } },
     ],
+    hard: { skill: 'flip', n: 1 }, // 111 어려움 변화: 뒤집힌 페이지 인원 +1
     enrage: { name: '서고 대폐관', period: 2, dmg: 240 },
   },
   // 사서 유령 쉿 탐험판 (탐험 ㊻ 빗자루 경주로 Lv 90): 던전 ㊲ ②의 평타 · 넘치는 빛 그릇 + 장서 폭풍 · 뒤집힌 페이지 · 조용히만
@@ -4819,6 +5010,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('두꺼운 장부', '장부', 8, 15, 385), first: null, cast: 2.5, when: { phase: [2] } },
     ],
     flow: [half('대출 연체: 두꺼운 장부', { start: ['buster'] })],
+    hard: { skill: 'flip', period: 0.85 }, // 111 어려움 변화: 뒤집힌 페이지 더 자주
     enrage: { name: '서고 대폐관', period: 2, dmg: 200 },
   },
   // ---------- 묶음 H4 던전 ㊳ 가라앉은 장미 정원 (62 3-4, Lv 93 · 몰락한 귀족가 · 저주): 가위손 · 로살린 ----------
@@ -4837,6 +5029,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 2, pick: 'linked', debuff: { name: '장미 저주', type: '저주', left: 10, dot: U.dps(0.02) } } },
       ...rows('prune', '가지치기', '가지', 16, 20, U.dps(0.22), false),
     ],
+    hard: { skill: 'rose', n: 1 }, // 111 어려움 변화: 장미 저주 인원 +1
     enrage: { name: '정원 폭주', period: 2, dmg: 240 },
   },
   // 대공비 유령 로살린 (최종): 어둠물 밀물 (아래 1줄 → 40% 아래 2줄) × 거꾸로 꽃향기 (뒤집힌 축복: 받는 치유가 피해, 잠기면 두 배) · 꽃잎 회오리 (광역, 잠긴 줄에 선 사람은 한 번 더).
@@ -4864,6 +5057,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'start', skill: 'petal2', in: 5 }, { p: 'start', skill: 'petalw2', in: 5 }, { p: 'start', skill: 'petalw3', in: 5 },
       { p: 'text', text: '마지막 무도: 어둠물이 아래 두 줄까지, 꽃잎 회오리가 두 줄에' },
     ] }],
+    hard: { skill: 'scent', n: 1 }, // 111 어려움 변화: 거꾸로 꽃향기 인원 +1
     enrage: { name: '시든 장미의 왈츠', period: 2, dmg: 240 },
   },
   // 정원사 유령 가위손 탐험판 (탐험 ㊼ 호수 밑 연꽃길 Lv 94): 던전 ㊳ ①의 평타 · 큰 가위 · 가시 덩굴 · 장미 저주만 (가지치기는 7칸 판이라 뺌)
@@ -4878,6 +5072,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'linked', debuff: { name: '장미 저주', type: '저주', left: 10, dot: 22 } } },
     ],
     flow: [half('가위를 갈았다: 싹둑 · 장미 저주가 잦아짐', { period: [['buster', 12], ['rose', 12]] })],
+    hard: { skill: 'rose', period: 0.85 }, // 111 어려움 변화: 장미 저주 더 자주
     enrage: { name: '정원 폭주', period: 2, dmg: 200 },
   },
   // ---------- 묶음 H4 던전 ㊴ 심연 정예 병영 (62 3-4, Lv 98 · 심연의 정예 · 4유형): 칼날 · 흑 · 백 ----------
@@ -4898,6 +5093,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'plague', name: '군영 역병', icon: '역병', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '2명에게 독 (녹슨 창날) 또는 질병 (군영 역병) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 2, random: true, debuffs: CAMP_PLAGUE } },
     ],
+    hard: { skill: 'trap', n: 1 }, // 111 어려움 변화: 훈련 덫 인원 +1
     enrage: { name: '병영 총돌격', period: 2, dmg: 240 },
   },
   // 심연 쌍둥이 기사 흑 · 백 (최종): 두 몸 (고르게 깎아야, 먼저 하나가 쓰러지면 남은 쪽 +30%: 견습생 쌍둥이 지지 · 직직) · 빌린 생명 (빚 2명) · 퍼지는 박동 (심장 쉬운 판: 3겹, 빚진 사람이 맞으면 빚 +20%)
@@ -4919,6 +5115,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
     ],
     flow: H4_TWIN_KNIGHTS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '쌍둥이 돌격', period: 2, dmg: 240 },
   },
   // 그림자 훈련교관 칼날 탐험판 (탐험 ㊽ 그림자 초소 Lv 98): 던전 ㊴ ①의 평타 · 곧은 검 · 차례 (2명) · 훈련 덫만 (그림자 행진은 7칸 판이라 뺌)
@@ -4936,6 +5133,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '1명에게 독 (녹슨 창날) 또는 질병 (군영 역병) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 1, random: true, debuffs: CAMP_PLAGUE } },
     ],
     flow: [half('총돌격 준비: 군영 역병', { start: ['plague'] })],
+    hard: { skill: 'trap', period: 0.85 }, // 111 어려움 변화: 훈련 덫 더 자주
     enrage: { name: '병영 총돌격', period: 2, dmg: 200 },
   },
   // ---------- 묶음 H4 던전 ㊵ 별빛 수정 동굴 (62 3-4, Lv 99 · 심연의 정예 · 4유형, 이야기 뒤): 반짝돌 · 마지막 메아리 ----------
@@ -4956,6 +5154,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: CRYSTAL_DUST } },
     ],
+    hard: { skill: 'dust', n: 1 }, // 111 어려움 변화: 수정 가루 인원 +1
     enrage: { name: '수정 폭주', period: 2, dmg: 240 },
   },
   // 마지막 메아리 (최종): 메아리 (앞 기술을 4초 뒤 다시: 쌍검 · 퍼지는 박동을 4초 늦은 한 벌로 더 둠) · 어둠물 밀물 (40% 아래 2줄) · 빌린 생명 · 그림자 손길 (4유형).
@@ -4980,6 +5179,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 },
       { p: 'text', text: '끝나지 않는 메아리: 어둠물이 아래 두 줄까지' },
     ] }],
+    hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '마지막 울림', period: 2, dmg: 240 },
   },
   // 수정 거인 반짝돌 탐험판 (탐험 ㊾ 아침 햇살 언덕 Lv 99): 던전 ㊵ ①의 평타 · 수정 주먹 · 수정 갑옷 (1명) · 프리즘 빛 · 수정 가루만 (땅 울림은 뺌)
@@ -4995,6 +5195,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'chain', dmg: 120, jumps: 2 } },
       { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 6, period: 18, cast: 0, effect: { p: 'cycle', n: 1, random: true, debuffs: CRYSTAL_DUST } },
     ],
+    hard: { skill: 'prism', period: 0.85 }, // 111 어려움 변화: 프리즘 빛 더 자주
     enrage: { name: '수정 폭주', period: 2, dmg: 200 },
   },
   // 마지막 메아리 탐험판 (탐험 ㊿ 물빛 정원 Lv 97): 던전 ㊵ ②의 평타 · 퍼지는 박동 + 메아리 · 어둠물 밀물 (1줄) · 빌린 생명만
@@ -5010,6 +5211,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...BUSTER('빛 손바닥', '손바', 8, 15, 295), first: null, cast: 2.5, when: { phase: [2] } },
     ],
     flow: [half('마지막 울림이 커짐: 빛 손바닥', { start: ['buster'] })],
+    hard: { skill: 'loan', period: 0.85 }, // 111 어려움 변화: 빌린 생명 더 자주
     enrage: { name: '마지막 울림', period: 2, dmg: 200 },
   },
 };

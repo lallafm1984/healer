@@ -199,7 +199,7 @@ describe('10인 레이드 보스', () => {
     const m = quiet(E.create({ encounter: 'pililli', diff: '악몽', seed: 4 }));
     skillOn(m, 'dance'); skillOn(m, 'troupe');
     steps(m, 0.1);
-    expect(m.party.filter(u => u.debuffs.some(d => d.name === '춤바람'))).toHaveLength(3);
+    expect(m.party.filter(u => u.debuffs.some(d => d.name === '춤바람'))).toHaveLength(4); // 악몽 3명 + 어려움 변화 1 (111)
     expect(m.mobs.filter(x => x.alive && x.name === '꽃가루 무용수')).toHaveLength(4);
   });
   it('퐁가: 포자 구름 안전 칸에 요정 고리 칸은 없음, 30% 아래 폭죽 통 3 · 구름 24초', () => {

@@ -3,7 +3,7 @@
  * 기술이 하는 일은 부품(bossParts.ts). 일반·정예 구간은 encounters.ts의 적 목록 (23 2장).
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
-import { BOSSES, type SkillDef } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, type SkillDef } from '../data/bosses';
 import { busterDmg, zoneDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
@@ -136,7 +136,8 @@ export function initBoss(f: Fight): void {
     for (const b of def.bodies) f.mobs.push({ id: f.nextId++, name: b.name, elite: !!b.elite, boss: b.boss, hp: b.hp * scale, max: b.hp * scale, alive: true });
   }
   f.split = !!def.split;
-  for (const d of def.skills) fromDef(f, d);
+  const hard = !f.cfg.proto && hardOn(f.cfg.diff) ? def.hard : undefined; // 어려움 변화 (111 공통 ②)
+  for (const d of def.skills) fromDef(f, hardDef(d, hard));
   if (def.watch && !def.watch.from) watchInit(f, def.watch);
 }
 
