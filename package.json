@@ -21,6 +21,8 @@
     "sim:raids": "rolldown scripts/sim-raids.ts --platform node --format esm -o .sim/sim-raids.mjs && node .sim/sim-raids.mjs",
     "sim:novice": "rolldown scripts/sim-novice.ts --platform node --format esm -o .sim/sim-novice.mjs && node .sim/sim-novice.mjs",
     "sim:familiar": "rolldown scripts/sim-familiar.ts --platform node --format esm -o .sim/sim-familiar.mjs && node .sim/sim-familiar.mjs",
+    "sim:players": "rolldown scripts/sim-players.ts --platform node --format esm -o .sim/sim-players.mjs && node .sim/sim-players.mjs",
+    "players:report": "rolldown scripts/players-report.ts --platform node --format esm -o .sim/players-report.mjs && node .sim/players-report.mjs",
     "balance": "rolldown scripts/balance.ts --platform node --format esm -o .sim/balance.mjs && node .sim/balance.mjs",
     "gap": "rolldown scripts/gap.ts --platform node --format esm -o .sim/gap.mjs && node .sim/gap.mjs",
     "art:optimize": "node scripts/art-optimize.mjs"
