@@ -901,6 +901,17 @@ function frame(now: number): void {
   get F() { return B.F; }, center: (i: number) => screenCenter(i), guide: (enc: EncounterKey, diff: DiffName) => guideModel(enc, diff),
   run: () => (B.F ? runData(B.F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; },
   get renderer() { return boardRenderer(); },
+  /**
+   * 첫날 화면 봇 (가상 사용자 QA, scripts/qa-firstday.mjs): 그리지 않고 지금 전투를 sec초 넘김. 누르는 사람 = 초보 자동 힐러 (그 레벨 사람, engine/novice).
+   * 개발 빌드 자동 치유와 달리 판 기록은 사람이 한 판 그대로 (임무 · 기록에 셈). 시작 카운트다운 · 전투 안내 멈춤은 건너뜀
+   */
+  skip(sec: number): void {
+    const F = B.F;
+    if (!F || F.over || B.paused || $('battle').hidden) return;
+    ui.pullLeft = 0; $('pull').hidden = true; clearCoach();
+    const end = F.t + sec;
+    while (!F.over && F.t < end) { noviceHealer(F); step(F); F.events.length = 0; }
+  },
   /** 말풍선 띄우기 (화면 테스트: 판 크기마다 말하는 사람 칸에 붙는지) */
   say: (id: number, text: string, kind: BubbleKind = 'talk', life = 3000) => addBubble(id, text, performance.now(), life, kind),
   /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
