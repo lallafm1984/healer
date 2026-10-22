@@ -46,15 +46,27 @@ def presence(y: np.ndarray, rate: int, bright: bool = False, warm: bool = False)
     return out
 
 
+def soften(y: np.ndarray, rate: int, level: int) -> np.ndarray:
+    """덜 날카롭게 (2026-10-22 Lim 「도적 공격의 날카로운 소리가 계속 들리니까 거슬린다」): 3kHz 위를 단계마다 4dB씩 덜고 8kHz 위는 더 닫음"""
+    pad = int(0.2 * rate)
+    z = np.concatenate([np.zeros(pad), y.astype(np.float64), np.zeros(pad)])
+    f = np.maximum(np.fft.rfftfreq(len(z), 1 / rate), 1)
+    shelf = 10 ** ((-4.0 * level / (1 + (3000 / f) ** 2)) / 20)
+    top = 1 / np.sqrt(1 + (f / (9000 - 1500 * level)) ** 4)
+    return np.fft.irfft(np.fft.rfft(z) * shelf * top, len(z))[pad : pad + len(y)]
+
+
 PUNCH_DRIVE = 2.5  # 보스 기술 착탄: 부드럽게 눌러 첨두 대비 몸통을 키움 (같은 첨두에서 더 크게 들림)
 PUNCH_GAIN_DB = 4.0  # 보스 기술 착탄은 다른 효과음보다 이만큼 크게 맞춤 (첨두 -1 dBFS 제한은 그대로)
 
 
 def shape(x: np.ndarray, rate: int, keep: float, o: dict) -> np.ndarray:
-    """o = params.json 항목: presence (폰 대역 EQ) · bright (더 밝게) · punch (보스 착탄)"""
+    """o = params.json 항목: presence (폰 대역 EQ) · bright (더 밝게) · warm · soft (덜 날카롭게 1~3) · punch (보스 착탄)"""
     punch = bool(o.get("punch"))
     if o.get("presence") or o.get("bright") or o.get("warm"):
         x = presence(x, rate, bool(o.get("bright")), bool(o.get("warm")))
+    if o.get("soft"):
+        x = soften(x, rate, int(o["soft"]))
     if punch:
         # 2026-10-21 Lim 「보스 스킬 사용시 좀 더 강력한 효과음으로 잘 들리게」: 첨두 -1 dBFS 제한에 걸려 더 못 키우는 짧은 타격을 tanh로 눌러 몸통을 키움
         x = np.tanh(PUNCH_DRIVE * x / max(float(np.max(np.abs(x))), 1e-9)) / np.tanh(PUNCH_DRIVE)
