@@ -42,7 +42,7 @@ export default async function shop(url, shots) {
   const d0 = (await save()).player.gold;
   for (let i = 0; i < 5; i++) { await page.click('#s-missions [data-claim="daily"]'); await page.clock.runFor(30); }
   sv = await save();
-  ok(sv.daily.missions.every(m => m.got) && sv.player.gold === d0 + 5 * 99 && !('mats' in sv) && !('pass' in sv), `일일 5개 받기: 골드 +${sv.player.gold - d0} (Lv 40 클리어 골드 495의 20% × 5, 91), 패스 없음`);
+  ok(sv.daily.missions.every(m => m.got) && sv.player.gold === d0 + 5 * 173 && !('mats' in sv) && !('pass' in sv), `일일 5개 받기: 골드 +${sv.player.gold - d0} (Lv 40 클리어 골드 495의 35% × 5, 2026-10-22 B안), 패스 없음`);
   await page.click('#s-missions #chest'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.daily.chest && /완료 상자/.test(await text('#s-missions .warnbox')) && !/패스/.test(await text('#s-missions')), '완료 상자 열기 (임무 화면에 패스 글 없음)');
@@ -55,7 +55,7 @@ export default async function shop(url, shots) {
   await page.click('#mission-tab-weekly'); await page.clock.runFor(50);
   await page.click('#s-missions [data-claim="weekly"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.player.gold === w0.player.gold + 495 * 3 && !('wallet' in sv), '주간 임무 = 클리어 골드 3판 (91, 악몽 열쇠 · 공훈 없음)');
+  ok(sv.player.gold === w0.player.gold + 866 && !('wallet' in sv), '주간 임무 = 클리어 골드 1.75판 (495 × 1.75, 2026-10-22 B안, 악몽 열쇠 · 공훈 없음)');
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
   // ---- 상점: 골드 탭 (소비 아이템)은 2026-10-16 없앰. 첫 탭 = 상품 ----
