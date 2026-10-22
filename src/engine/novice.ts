@@ -82,10 +82,20 @@ export const FAMILIAR: NoviceOpts = {
 };
 /** 익숙함이 붙는 내 레벨: from까지 처음 하는 사람, to부터 익숙한 사람 */
 export const FAMILIAR_LV = { from: 10, to: 20 };
+/**
+ * 능숙한 사람 (2026-10-22 Lim 「고친다」, 익숙한 사람 검사 다음): 고르기 · 엄지 옮기기를 앞 시전 중에 끝내 한가해진 뒤 반응만 걸림.
+ * 내 Lv 20 (익숙) → MASTER_LV (능숙) 사이 직선 (noviceAt)
+ */
+export const MASTER: NoviceOpts = { ...FAMILIAR, pick: 0, tap: 0 };
+export const MASTER_LV = 60;
 /** 익숙함 0 (처음) ~ 1 (익숙) */
 export const familiarity = (lv: number) => Math.max(0, Math.min(1, (lv - FAMILIAR_LV.from) / (FAMILIAR_LV.to - FAMILIAR_LV.from)));
-/** 그 레벨 사람: 숫자는 처음 → 익숙 사이 직선, 대기열 · 기믹 공략은 사람마다 (seed) 익숙함 확률로 앎 */
+/** 그 레벨 사람: 숫자는 처음 → 익숙 (Lv 20) → 능숙 (Lv 60) 사이 직선, 대기열 · 기믹 공략은 사람마다 (seed) 익숙함 확률로 앎 */
 export function noviceAt(lv: number, seed = 1): NoviceOpts {
+  if (lv > FAMILIAR_LV.to) {
+    const m = Math.min(1, (lv - FAMILIAR_LV.to) / (MASTER_LV - FAMILIAR_LV.to)), F = FAMILIAR, M = MASTER;
+    return { ...F, pick: F.pick + (M.pick - F.pick) * m, tap: F.tap + (M.tap - F.tap) * m };
+  }
   const k = familiarity(lv), N = NOVICE, F = FAMILIAR, mix = (a: number, b: number) => a + (b - a) * k;
   const r = rngFrom(Math.imul(seed >>> 0, 0x5f356495) ^ 0x2545f491), q = r(), t = r();
   return {
