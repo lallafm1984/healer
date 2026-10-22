@@ -12,12 +12,14 @@ import { gearGradeOdds } from '../data/reward-preview';
 import { runMode } from '../game/runmode';
 import { restBase } from '../game/stamina';
 import { G } from '../game/state';
-import { esc, fmt, go, mmss, screen } from './kit';
+import { esc, fmt, go, mmss, previous, screen } from './kit';
 import { currencyIcon, gameIcon } from './art';
 import { sortie } from './stamina';
 import { afxRows, flowHead, timeline } from './brief';
 
-const s = screen('s-entry', '주간 도전', { enter() { render(); } });
+/** 「←」 갈 곳: 로비 주간 도전 소켓에서 바로 왔으면 로비 (2026-10-22 Lim 「주간 도전 선택시 바로 주간도전 화면으로」), 전투 탭 도전 카드에서 왔으면 전투 탭. 편성 · 결과에서 돌아오면 그대로 */
+let back = 's-content';
+const s = screen('s-entry', '주간 도전', { enter() { if (previous === 's-lobby' || previous === 's-content') back = previous; render(); } });
 
 function render(): void {
   // 주간 도전이 아니면 편성으로 (예전 경로)
@@ -34,7 +36,7 @@ function render(): void {
   // 장비 최고 등급 = 실제 확률 (영웅 · 전설 확률까지, 출전 확률 창과 같은 dropOdds)에서 나오는 가장 높은 등급 (103)
   const chalOdds = gearGradeOdds(chalDropDiff(Flow.chal), 0, G.save.player.level), chalTop = [...ITEM_GRADES].reverse().find(g => chalOdds[g] > 0) ?? ITEM_GRADES[0]; // 상자 등급은 내 레벨로 (Lv 45 전 영웅 없음, 103)
   const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `골드 ${box.goldRuns}판`].join(' · ') : '';
-  s.el.innerHTML = `${flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`)}
+  s.el.innerHTML = `${flowHead(back, CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`)}
     <div class="ns-body f-ebody">
       <section class="pn wc-overview" aria-label="도전 단계">
         <div class="wc-stage"><span class="wc-emblem" aria-hidden="true">${gameIcon('challenge', '')}</span><div class="wc-stage-controls"><span class="cap">도전 단계</span>

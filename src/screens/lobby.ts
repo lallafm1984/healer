@@ -18,6 +18,7 @@ import { guildPartyNeed, guildSeatCount } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
+import { Flow } from '../game/flow';
 import { guide } from '../game/guide';
 import { merchantOffer } from '../game/merchant';
 import { chalGate } from '../game/runmode';
@@ -150,9 +151,9 @@ function toAdventure(to: { content: ContentKey; diff: DiffName }): void {
 function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
   return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><span class="lb-caption"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>${extra}</div>`;
 }
-/** 나무 팻말 버튼: 그림 + 이름 + 상태 두 줄 */
+/** 나무 팻말 버튼: 그림 + 이름 (+ 상태 줄, 없으면 이름만) */
 const plate = (cls: string, attrs: string, icon: string, name: string, lines: string[], extra = '') =>
-  `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc(name)} · ${esc(lines.join(' · '))}">${icon}<span class="lb-pt"><b>${name}</b><span>${lines.map(line => `<span>${line}</span>`).join('')}</span></span>${chevron()}${extra}</button>`;
+  `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc([name, ...lines].join(' · '))}">${icon}<span class="lb-pt"><b>${name}</b>${lines.length ? `<span>${lines.map(line => `<span>${line}</span>`).join('')}</span>` : ''}</span>${chevron()}${extra}</button>`;
 
 /** 오늘 받을 것: 임무 (일일 · 주간) + 일일 상자 (임무 5개를 다 받으면, 놓친 날 2일까지) */
 function today() {
@@ -178,16 +179,17 @@ function chalSock(): string {
   const icon = gameIcon('challenge', uiIcon('hourglass'));
   return s.chalChest
     ? socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', icon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>')
-    : socket(`lb-chal${cg.ok ? '' : ' off'}`, ` data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
+    // 열렸으면 바로 주간 도전 화면 (2026-10-22 Lim 「주간 도전 선택시 바로 주간도전 화면으로 이동」), 잠겼으면 예전처럼 전투 탭 던전 분류 (잠긴 도전 카드)
+    : socket(`lb-chal${cg.ok ? '' : ' off'}`, `${cg.ok ? ' data-chal-go' : ' data-go="s-content" data-arg="dungeon"'} aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
       icon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
 }
 /**
- * 상점 (예전 「잡화점」, 2026-10-21 Lim 「잡화점은 상점으로」): 상품 한 쪽. 둘째 줄 = 광고 제거, 샀으면 「상품」.
- * 「새 직업 N」 줄은 같은 날 Lim 「새직업, 골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」로 뺐다 (글은 lobby-menu.css에서 가운데).
+ * 상점 (예전 「잡화점」, 2026-10-21 Lim 「잡화점은 상점으로」): 상품 한 쪽. 이름만 (가운데, lobby-menu.css).
+ * 「새 직업 N」 줄은 2026-10-21 Lim 「새직업, 골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」, 「광고 제거」 · 「상품」 줄은 2026-10-22 Lim 「상점 메뉴에서 "광고제거" 텍스트 제거」로 뺐다.
  * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」). 시즌 패스 (예전 빨간 숫자) · 공훈은 2026-10-20 Lim이 없앰
  */
 function shopPlate(): string {
-  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '상점', [adsFree(G.save) ? '상품' : '광고 제거'], '');
+  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '상점', [], '');
 }
 
 /**
@@ -198,7 +200,7 @@ function shopPlate(): string {
 function merchantPlate(): string {
   const o = merchantOffer(G.save);
   return plate(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', gameIcon('merchant', uiIcon('shop')), '행상인',
-    ['미확인 장비', ...(o.open ? [] : [`Lv ${MERCHANT.lv}부터`])]);
+    o.open ? [] : [`Lv ${MERCHANT.lv}부터`]); // 「미확인 장비」 줄은 2026-10-22 Lim 「행상인 메뉴에서 "미확인 장비" 제거」로 뺌, 잠겼을 때만 한 줄
 }
 
 /**
@@ -271,6 +273,11 @@ s.el.addEventListener('click', e => {
     }
     st.msg = got.length ? `받음: ${got.join(' · ')}` : '';
     commit(); render(); return;
+  }
+  if (t.closest('[data-chal-go]')) {
+    // 주간 도전 바로 가기: 전투 탭 도전 카드와 같은 길 (content.ts [data-chal])
+    Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
+    go('s-entry'); return;
   }
   if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });
