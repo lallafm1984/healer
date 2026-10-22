@@ -4,6 +4,21 @@
  * 소리 문장은 scripts/sfx/boss.mjs. 표에 없는 기술 (새로 더한 기술)은 공통 착탄 (battle/combat-sound.ts impactSound)
  */
 export const BOSS_SKILL_SOUND: Record<string, string> = {
+  "crab36:wave": 'boss-water-wave', // 집게발 갑판장 · 거품 파도 (111 탐험 50% 구간)
+  "peg38:hook": 'boss-metal-hit', // 밀수꾼 두목 외눈 페그 · 갈고리 당기기 (111 탐험 50% 구간)
+  "goldbeard44:roar": 'boss-sound-wave', // 해적 선장 금빛수염 · 해적의 함성 (111 탐험 50% 구간)
+  "polpol54:aoe": 'boss-wind-wave', // 밀가루 요정 폴폴 · 밀가루 바람 (111 탐험 50% 구간)
+  "jigeul66:aoe": 'boss-fire-wave', // 용암 거북 지글이 · 용암 분출 (111 탐험 50% 구간)
+  "knights68:pull": 'boss-water-hit', // 물그림자 기사 셋 · 깊은 물로 (111 탐험 50% 구간)
+  "baseurak74:shelf1": 'boss-earth-ground', // 두루마리 미라 사서 바스락 · 책장 무너짐 (111 탐험 50% 구간)
+  "hwirik:express": 'boss-wind-hit', // 하피 우체부 휘리릭 · 속달 돌풍 (111 탐험 50% 구간)
+  "hoeori86:wall": 'boss-wind-ground', // 바람 정령 회오리 · 바람 장벽 (111 탐험 50% 구간)
+  "boksul84:buster": 'boss-blunt-hit', // 번개 양 복슬이 · 머리 박치기 (111 탐험 50% 구간)
+  "pongpong88:buster": 'boss-projectile-hit', // 실험 조교 퐁퐁이 · 플라스크 던지기 (111 탐험 50% 구간)
+  "swit90:buster": 'boss-blunt-hit', // 사서 유령 쉿 · 두꺼운 장부 (111 탐험 50% 구간)
+  "serena92:buster": 'boss-blunt-hit', // 유령 악단장 세레나 · 지휘봉 내려치기 (111 탐험 50% 구간)
+  "nokseul96:buster": 'boss-metal-hit', // 그림자 대여상 녹슬음 · 저울추 (111 탐험 50% 구간)
+  "lastecho97:buster": 'boss-holy-hit', // 마지막 메아리 · 빛 손바닥 (111 탐험 50% 구간)
   "abyssheart:beat": 'boss-shadow-wave', // 심연의 심장 · 크게 뛰기
   "abyssheart:buster": 'boss-nature-hit', // 심연의 심장 · 뿌리 채찍
   "abyssheart:fast0": 'boss-shadow-ground', // 심연의 심장 · 빨라지는 박동
@@ -1139,6 +1154,13 @@ export const BOSS_SKILL_OWN: Record<string, string> = {
 
 /** 예고 없이 바로 쓰는 보스 기술 → 특성 시전 소리 (boss-<특성>-cast). 키 = <대본>:<기술 key> (scripts/sfx/boss.mjs) */
 export const BOSS_CAST_SOUND: Record<string, string> = {
+  "sippy52:hunt": 'boss-water-cast', // 111 탐험 50% 구간
+  "queen56:ring": 'boss-nature-cast', // 111 탐험 50% 구간
+  "ttemjil62:soot": 'boss-poison-cast', // 111 탐험 50% 구간
+  "heumul72:tentacle": 'boss-water-cast', // 111 탐험 50% 구간
+  "pokshin76:fight": 'boss-arcane-cast', // 111 탐험 50% 구간
+  "kalnal98:plague": 'boss-poison-cast', // 111 탐험 50% 구간
+  "heartshard100:loan": 'boss-shadow-cast', // 111 탐험 50% 구간
   "abyssheart:loan": 'boss-shadow-cast',
   "abyssheart:touch": 'boss-shadow-cast',
   "abysslord:echoes": 'boss-shadow-cast',
