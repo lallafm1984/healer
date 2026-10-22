@@ -30,14 +30,15 @@ def db(x: float) -> float:
     return 20 * np.log10(max(x, 1e-12))
 
 
-def presence(y: np.ndarray, rate: int, bright: bool = False) -> np.ndarray:
+def presence(y: np.ndarray, rate: int, bright: bool = False, warm: bool = False) -> np.ndarray:
     """폰 스피커에서도 들리게 (2026-10-21 Lim 「파티원 공격 효과음이 잘 안 들린다」): 150Hz 밑을 덜고 (작은 스피커가 못 내는 몫이
     헤드룸만 먹음) 2.8kHz 둘레를 +8dB, 5kHz 위를 +3dB. 짧은 소리라 앞뒤 0.2초 무음을 덧대 한 번에 주파수 영역에서 곱함.
-    bright (파티원 공격, 2026-10-21 Lim 「너무 저음역대, 경쾌하고 시원한 느낌」): 450Hz 밑을 덜고 3.5kHz 둘레 +6dB, 5kHz 위 +6dB"""
+    bright (파티원 공격, 2026-10-21 Lim 「너무 저음역대, 경쾌하고 시원한 느낌」): 450Hz 밑을 덜고 3.5kHz 둘레 +6dB, 5kHz 위 +6dB.
+    warm (마법사, 2026-10-22 Lim 「너무 날카롭다. 굵고 낮은 펑~」): 폰이 못 내는 180Hz 밑은 덜고 600Hz 둘레 몸통 +6dB, 5kHz 위는 -4dB"""
     pad = int(0.2 * rate)
     z = np.concatenate([np.zeros(pad), y.astype(np.float64), np.zeros(pad)])
     f = np.fft.rfftfreq(len(z), 1 / rate)
-    lo, mid, mid_db, air_db = (450, 3500, 6, 6) if bright else (150, 2800, 8, 3)
+    lo, mid, mid_db, air_db = (450, 3500, 6, 6) if bright else (180, 600, 6, -4) if warm else (150, 2800, 8, 3)
     hp = 1 / np.sqrt(1 + (lo / np.maximum(f, 1)) ** 4)
     bell = 10 ** ((mid_db * np.exp(-0.5 * (np.log2(np.maximum(f, 1) / mid) / 0.6) ** 2)) / 20)
     shelf = 10 ** ((air_db / (1 + (5000 / np.maximum(f, 1)) ** 4)) / 20)
@@ -52,8 +53,8 @@ PUNCH_GAIN_DB = 4.0  # 보스 기술 착탄은 다른 효과음보다 이만큼 
 def shape(x: np.ndarray, rate: int, keep: float, o: dict) -> np.ndarray:
     """o = params.json 항목: presence (폰 대역 EQ) · bright (더 밝게) · punch (보스 착탄)"""
     punch = bool(o.get("punch"))
-    if o.get("presence") or o.get("bright"):
-        x = presence(x, rate, bool(o.get("bright")))
+    if o.get("presence") or o.get("bright") or o.get("warm"):
+        x = presence(x, rate, bool(o.get("bright")), bool(o.get("warm")))
     if punch:
         # 2026-10-21 Lim 「보스 스킬 사용시 좀 더 강력한 효과음으로 잘 들리게」: 첨두 -1 dBFS 제한에 걸려 더 못 키우는 짧은 타격을 tanh로 눌러 몸통을 키움
         x = np.tanh(PUNCH_DRIVE * x / max(float(np.max(np.abs(x))), 1e-9)) / np.tanh(PUNCH_DRIVE)
