@@ -83,6 +83,7 @@ import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
 import { mountTapFx } from './screens/tap-fx';
 import { mountTapSlop } from './screens/tap-slop';
+import { mountBack } from './screens/back';
 import { mountUiSounds } from './screens/ui-sound';
 import { applyArtVars, warmArt } from './art';
 import { prepareVillage } from './screens/village';
@@ -91,6 +92,7 @@ applyArtVars();
 mountTabs(document.getElementById('tabs')!);
 mountTapFx(() => !!G.save.settings.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches); // 버튼 터치 연출 (2026-10-20 Lim)
 mountTapSlop(); // 손가락이 조금 움직인 탭도 누름 (2026-10-21 Lim)
+mountBack(); // 안드로이드 뒤로가기로 앱이 닫히지 않게 (2026-10-22 Lim)
 mountUiSounds();
 pushSettings();
 commit(); // 저장 형식 확인용 (첫 실행이면 새로 만듦, 옛 저장은 새 형식으로)

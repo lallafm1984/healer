@@ -956,6 +956,18 @@ function frame(now: number): void {
   tapKeys: TAP_KEYS,
   tapKeysOf: (hero: string) => tapKeysOf(HERO_KEYS.includes(hero as HeroKey) ? (hero as HeroKey) : 'priest'),
   sound: (k: string) => { Snd.init(); Snd.play(k); },
+  /**
+   * 안드로이드 뒤로가기 (2026-10-22 Lim 「뒤로가기시 앱이 닫히지 않게」, screens/back.ts): 전투 · 정비 화면이면 여기서 받고 true.
+   * 확인 창 → 취소, 정비 공략 시트 → 닫기 (정비 화면 자체는 그대로), 일시정지 창 → 계속, 싸우는 중 → 일시정지. 끝난 판 (결과로 넘어가는 중)은 아무것도 안 함
+   */
+  back(): boolean {
+    const inBattle = !$('battle').hidden, inRest = !$('rest').hidden;
+    if (!inBattle && !inRest) return false;
+    if (dialogs.cancel()) return true;
+    if (inRest) { restSheet(false); return true; }
+    if (B.F && !B.F.over) setPause(!!$('pause').hidden);
+    return true;
+  },
 };
 void initBoard().catch(err => console.error('전투 판 준비 실패', err));
 requestAnimationFrame(frame);

@@ -437,6 +437,6 @@ s.el.addEventListener('click', e => {
 // 누를 수 있는 줄 (role="button")은 Enter·Space로도, Esc = 시트 닫기
 s.el.addEventListener('keydown', e => {
   const t = e.target as HTMLElement;
-  if (e.key === 'Escape' && (st.sheet || postReplace)) { closeSheet(); return; }
+  if (e.key === 'Escape' && (st.sheet || postReplace)) { e.preventDefault(); closeSheet(); return; }
   if ((e.key === 'Enter' || e.key === ' ') && t.matches('[role="button"]:not(button)')) { e.preventDefault(); t.click(); }
 });

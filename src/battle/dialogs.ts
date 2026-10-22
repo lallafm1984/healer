@@ -12,6 +12,8 @@ export interface BattleDialogCallbacks {
 export interface BattleDialogs {
   confirm(kind: BattleConfirmKind): void;
   closeAll(): void;
+  /** 열린 확인 창이 있으면 취소로 닫고 true (안드로이드 뒤로가기) */
+  cancel(): boolean;
 }
 
 export function battleConfirmation(kind: BattleConfirmKind): { title: string; message: string; action: string; detail?: string } {
@@ -147,5 +149,6 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
       closeActive();
       if (confirmDialog.open) confirmDialog.close();
     },
+    cancel() { return !!closeActive(); },
   };
 }

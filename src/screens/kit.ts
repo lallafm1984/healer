@@ -184,5 +184,7 @@ export interface BattleApi {
   /** 그 직업의 칸 탭 후보 (스킬 이름 + 시전) */
   tapKeysOf(hero: string): Record<string, string>;
   sound(k: string): void;
+  /** 안드로이드 뒤로가기: 전투 · 정비 화면이면 처리하고 true */
+  back(): boolean;
 }
 export const battle = () => (window as unknown as { __battle: BattleApi }).__battle;

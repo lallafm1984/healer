@@ -235,7 +235,7 @@ s.el.addEventListener('click', e => {
 
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
 s.el.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && sheet) { shut(); return; }
+  if (e.key === 'Escape' && sheet) { e.preventDefault(); shut(); return; }
   // 공략 구간 탭: ← → 로 옆 구간
   const tab = (e.target as HTMLElement).closest<HTMLElement>('[data-gseg]');
   if (tab && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
