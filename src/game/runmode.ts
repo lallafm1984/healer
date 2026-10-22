@@ -19,6 +19,8 @@ export function weekAffixes(now = Date.now()): AffixKey[] {
   const n = CHAL_ROTA.length, w = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7);
   return CHAL_ROTA[((w % n) + n) % n].slice();
 }
+/** 다음 주 어픽스 (주간 도전 화면 「다음 주」) */
+export const nextWeekAffixes = (now = Date.now()): AffixKey[] => weekAffixes(now + 7 * 864e5);
 
 export interface RunMode {
   /** 적 레벨 (파티원·적 배율, 보상) */

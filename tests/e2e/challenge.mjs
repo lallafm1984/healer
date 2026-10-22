@@ -42,7 +42,7 @@ export default async function challenge(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   const card = await text('#s-content [data-chal]');
-  ok(/주간 도전/.test(card) && /모래시계 시련/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 분류의 주간 도전 버튼 (이번 주 메마름·전염병, 화면 읽기 글)');
+  ok(/주간 도전/.test(card) && /모래시계 시련/.test(card) && /깊은 상처/.test(card) && /전염병/.test(card), '던전 분류의 주간 도전 버튼 (이번 주 깊은 상처·전염병, 화면 읽기 글)');
   // ---- 적 레벨 = 장소 레벨 + 난이도 (61, 2026-10-11), 어픽스는 그 적 레벨 (32) ----
   await chooseContent(page, 'rustfort');
   ok(!/단계 Lv/.test(await text('#s-content .b-gate')) && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '녹슨 요새 (적 Lv 5~11) = 관문에 「단계 Lv」·어픽스 없음 (Lv 30이어도 격노 없음)');
@@ -84,7 +84,7 @@ export default async function challenge(url, shots) {
   await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
   const ent = await text('#s-entry');
-  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스, 하단 규칙 문구 없음');
+  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /8:00/.test(ent) && /깊은 상처/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 8:00 · 이번 주 어픽스, 하단 규칙 문구 없음');
   await page.screenshot({ path: `${shots}/challenge_entry.png`, fullPage: true });
   await page.click('#entryGo'); await page.clock.runFor(100); await entryGo(page);
   ok(/주간 도전 1단계/.test(await text('#s-party .topbar')) && (await page.locator('#reroll, #adReroll').count()) === 0, '주간 도전 편성: 다시 뽑기·광고 다시 뽑기 버튼 없음');
@@ -96,8 +96,8 @@ export default async function challenge(url, shots) {
   let sv = await save();
   ok(sv.daily.ads.reroll === ads0 && sv.player.gold === g0, '주간 도전 공략 확인 중 골드·광고 횟수 그대로');
   await departGo(page); await page.clock.runFor(3100 + 300);
-  const cf = await F(() => { const f = window.__proto.F; return { dry: !!f.aff?.on.dry, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv }; });
-  ok(cf.dry && cf.con && cf.stage === 30 && /\/ 7:00/.test(await text('#timer')), `도전 전투: 메마름·전염병, 단계 레벨 = 내 레벨, 타이머 / 7:00 (${JSON.stringify(cf)})`);
+  const cf = await F(() => { const f = window.__proto.F; return { grievous: !!f.aff?.on.grievous, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv }; });
+  ok(cf.grievous && cf.con && cf.stage === 30 && /\/ 8:00/.test(await text('#timer')), `도전 전투: 깊은 상처·전염병, 단계 레벨 = 내 레벨, 타이머 / 8:00 (${JSON.stringify(cf)})`);
   await lose();
   ok(!(await page.isVisible('.admodal')) && await page.isVisible('#s-settle') && /단계는 그대로/.test(await text('#s-settle')), '도전은 이어하기 없음 · 실패해도 단계 그대로');
   ok((await text('#again')) === '다시 도전', '실패: 다시 도전 (같은 단계)');

@@ -11,6 +11,7 @@ import { clumsy, sharp } from '../data/fm';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
+import { affNecrotic } from './affixes';
 import { hexDist } from './board';
 import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, regrouping, setMax, slip, spread, takenAmt, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
@@ -43,6 +44,7 @@ export function autoHit(f: Fight, tk: Unit, base: number): void {
   // 99 라: 방어가 15 넘으면 가끔 막아 반만 맞음 (15 이하는 예전 그대로)
   if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * sharp(tk.fmStats.armor); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
   damage(f, tk, amt, false, 'tank');
+  if (f.aff) affNecrotic(f, tk); // 괴저 (110)
 }
 
 /**

@@ -16,7 +16,7 @@ import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
 import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
-import { affixTick, initAffixes } from './affixes';
+import { affixTick, affMobDown, initAffixes } from './affixes';
 import { bark, damageMob, DT, emit, regrouping } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
@@ -378,6 +378,7 @@ function hitMobs(f: Fight, d: number, u?: Unit): void {
 function mobDown(f: Fight, m: Mob): void {
   m.hp = 0; m.alive = false;
   f.tels = f.tels.filter(t => t.skill.mob !== m.id);
+  if (f.aff) affMobDown(f, !!m.boss); // 복수심 (110)
   emit(f, { type: 'mobDown', id: m.id, name: m.name });
 }
 

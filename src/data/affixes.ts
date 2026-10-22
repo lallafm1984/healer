@@ -4,7 +4,9 @@
  */
 import type { DiffName } from './difficulty';
 
-export type AffixKey = 'rage' | 'plague' | 'unstable' | 'dry' | 'contagion' | 'haste' | 'chaos' | 'frenzy' | 'echo' | 'panic' | 'festival';
+export type AffixKey = 'rage' | 'plague' | 'unstable' | 'dry' | 'contagion' | 'haste' | 'chaos' | 'frenzy' | 'echo' | 'panic' | 'festival'
+  // 110 (2026-10-22 Lim 「다양한 어픽스를 추가」): 힐러가 바꿔야 할 것이 저마다 다른 8개 + 좋은 주 하나
+  | 'grievous' | 'pulse' | 'necrotic' | 'drain' | 'chill' | 'tyrant' | 'quake' | 'spite' | 'bounty';
 
 export interface AffixDef { name: string; desc: string; tip: string; good?: boolean }
 
@@ -20,6 +22,15 @@ export const AFFIXES: Record<AffixKey, AffixDef> = {
   echo: { name: '메아리', desc: '지운 디버프가 10% 확률로 옆 칸에 옮겨감', tip: '해제 타이밍' },
   panic: { name: '동요', desc: '파티원 체력 30% 아래가 되면 3초 패닉 (공격 안 함)', tip: '체력 30% 위로 유지' },
   festival: { name: '축제 주간', desc: '경험치 +20%', tip: '가볍게 즐기는 주', good: true },
+  grievous: { name: '깊은 상처', desc: '체력 90% 아래인 동안 2초마다 상처 1중첩 (최대 3, 지속 피해), 90%를 넘으면 사라짐', tip: '다친 사람을 끝까지 채움' },
+  pulse: { name: '파동', desc: '25초마다 파티 전체 피해 (마법)', tip: '파동 전에 체력을 올려 둠 · 광역 힐' },
+  necrotic: { name: '괴저', desc: '보스 평타를 맞은 탱커에게 괴저 1중첩 (받는 치유 −4%, 최대 5), 5초 안 맞으면 사라짐', tip: '탱커 치유가 줄어듦 · 보호막 · 생존기' },
+  drain: { name: '고갈', desc: '내 마나 회복 −50%', tip: '싼 힐 위주 · 넘치는 치유 줄이기' },
+  chill: { name: '한기', desc: '내 시전 시간 +15%', tip: '미리 시전 · 즉시 시전 기술' },
+  tyrant: { name: '폭군', desc: '보스 체력 +15% · 보스 구간 피해 +10%', tip: '제한시간 · 공대 쿨기를 보스에' },
+  quake: { name: '지진', desc: '20초마다 2명에게 지진 표시, 3초 뒤 그 사람과 옆 칸에 피해', tip: '표시가 뜬 사람과 옆 칸을 미리 채움' },
+  spite: { name: '복수심', desc: '보스가 아닌 적이 쓰러질 때마다 파티 전체 4초 지속 피해 (겹치면 중첩)', tip: '졸개가 한꺼번에 쓰러질 때 광역 힐 준비' },
+  bounty: { name: '풍요 주간', desc: '골드 +30%', tip: '골드를 모으기 좋은 주', good: true },
 };
 
 /** 던전 난이도 어픽스 (32 2장): 쉬움·보통 없음. Lv 30부터 어려움·악몽 격노, Lv 50부터 악몽 역병 추가 (lv = 내 레벨) */
@@ -32,5 +43,7 @@ export function diffAffixes(d: DiffName, lv: number): AffixKey[] {
   return out;
 }
 
-/** 주간 도전에 붙는 순환 어픽스 (13 3-3) + 축제. 불안정은 레벨 단계에서 옮겨 옴 (32) */
-export const WEEKLY_AFFIXES: AffixKey[] = ['dry', 'contagion', 'haste', 'chaos', 'frenzy', 'echo', 'panic', 'unstable'];
+/** 주간 도전에 붙는 순환 어픽스 (13 3-3 → 110) + 좋은 주 (축제 · 풍요). 불안정은 레벨 단계에서 옮겨 옴 (32) */
+export const WEEKLY_AFFIXES: AffixKey[] = ['dry', 'contagion', 'haste', 'chaos', 'frenzy', 'echo', 'panic', 'unstable', 'grievous', 'pulse', 'necrotic', 'drain', 'chill', 'tyrant', 'quake', 'spite'];
+/** 좋은 주 어픽스 (어픽스 하나와 함께, 순환에 4주마다 하나) */
+export const GOOD_AFFIXES: AffixKey[] = ['festival', 'bounty'];

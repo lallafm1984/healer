@@ -6,6 +6,7 @@ import { DRUID_BIG, HAND_GUARD, WAVE } from '../data/heroConst';
 import { TALENT_DEF, TALENT_TREES, talentKeys, TX, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
+import { affCast } from './affixes';
 import { cellOf, emit, heal, healFlow, living } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
@@ -116,7 +117,7 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
     : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : key === 'starHeal' && f.tx.on.brightStar ? TX.brightStar : CONSTELLATION.has(key) && f.tx.on.quickLink ? TX.quickLink : 0; // 빠른 잔물결 (79 2-7) · 밝은 별 (79 4-7) · 빠른 잇기 (83)
   const quick = key === 'holyLight' && f.tx.on.quickHand && u && u.hp <= u.max * TX.quickHand.hp ? TX.quickHand.cast : 1;
   const b = base - cut - (f.sp ? castCut(f, key) : 0);
-  return ((Math.max(0.5, b) * quick) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1) * (f.sp ? castMult(f) : 1); // 깨진 시간 (05 5-E) · 낙타 털실 반지
+  return ((Math.max(0.5, b) * quick) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1) * (f.sp ? castMult(f) : 1) * (f.aff ? affCast(f) : 1); // 깨진 시간 (05 5-E) · 낙타 털실 반지 · 한기 (110)
 }
 
 /** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초), 장비 특수능력 (42 쿨기 · 해제 · 직업 전용) */

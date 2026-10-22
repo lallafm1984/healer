@@ -1,6 +1,7 @@
 import { HEROES } from '../data/heroes';
 import { MONK } from '../data/heroConst';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
+import { affRegen } from './affixes';
 import { DT, cellOf, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { hexDist } from './board';
 import { relayTick, putRelay } from './relay';
@@ -262,6 +263,7 @@ export function healerTick(f: Fight): void {
   if (f.hero === 'warder' && f.tx.any) regen *= warderRegen(f); // 막의 숨 · 장막의 숨 (79 5-7)
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
+  if (f.aff) regen *= affRegen(f); // 고갈 (110)
   f.mana = Math.min(100, f.mana + regen * dt);
   if (f.symbol > 0) f.symbol -= dt;
   if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
