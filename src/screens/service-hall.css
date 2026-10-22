@@ -1,35 +1,35 @@
 /*
- * 임무 · 설정 · 상점 · 길드 (길드는 2026-10-18 Lim 「다른 컨텐츠와 일관성」) (2026-10-17 Lim 「추천으로」 = 시안 B): 나무결 → 길드 홀 돌색 (--gk-* 한 벌, 전투 탭 · 편성 · 결과 · 휴식 · 공략과 같음).
+ * 임무 · 설정 · 상점 · 길드 (길드는 2026-10-18 Lim 「다른 컨텐츠와 일관성」) · 주간 도전 (2026-10-22 Lim 「길드화면을 참조해서」) (2026-10-17 Lim 「추천으로」 = 시안 B): 나무결 → 길드 홀 돌색 (--gk-* 한 벌, 전투 탭 · 편성 · 결과 · 휴식 · 공략과 같음).
  * 바탕 = 평평한 어두운 돌, 판 · 줄 = 돌 카드 + 진한 금테, 제목 · 줄 이름 = 노란 글자, 보통 버튼 · 칩 = 돌 버튼 + 금테, 고른 칩 · 탭 = 밝은 돌 + 노란 글자.
  * 위 정보창 (나무 판) · 하단 탭 · 출전 그림 · 상점 그림 · 진행 막대 채움 · 효능 초록 · 받음 흐림은 그대로.
  * 설정은 묶음마다 카드. main.ts에서 departure-hall.css 다음에 읽음 (a2-theme의 .ns:not(#s-lobby) 나무결보다 뒤)
  */
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns {
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns {
   background: var(--gk-bg); background-color: #15120e; background-blend-mode: normal; color: var(--gk-ink);
   --ink: var(--gk-ink); --ink-2: var(--gk-ink2); --mute: var(--gk-mute); --dim: var(--gk-mute); --edge: var(--gk-card-bd); --edge-dim: var(--gk-card-bd);
 }
 
 /* ---------- 판 · 줄 ---------- */
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.panel, .mrow, .srow, .group) {
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.panel, .mrow, .srow, .group) {
   background: var(--gk-card); background-blend-mode: normal; border-width: 1px; border-color: var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
 }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b) { color: var(--gk-head); text-shadow: none; }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .group > p, .done) { color: var(--gk-mute); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b) { color: var(--gk-head); text-shadow: none; }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .group > p, .done) { color: var(--gk-mute); }
 :is(#s-missions, #s-shop, #s-guild) :is(.mrow, .g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
 
 /* ---------- 버튼 · 칩 (최신 공통 표면은 menu-buttons.css) ---------- */
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .btn2):not(.primary):not(.hot),
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns .chip {
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot),
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns .chip {
   background: var(--gk-btn); background-blend-mode: normal; border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none; color: var(--gk-ink); text-shadow: none;
 }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .btn2):not(.primary):not(.hot) small { color: var(--gk-ink2); }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .btn2):not(.primary):not(.hot):active,
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns .chip:active { background: var(--gk-btn-on); }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled,
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns .chip:disabled { background: #1a1612; border-color: var(--gk-card-bd); color: var(--gk-mute); filter: none; }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled small { color: var(--gk-mute); }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns .chip[aria-pressed="true"] { background: var(--gk-btn-on); border-color: var(--gk-accent); color: var(--gk-head); }
-:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant).ns :is(.btn, .chip, .subtabs button):focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot) small { color: var(--gk-ink2); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot):active,
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns .chip:active { background: var(--gk-btn-on); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled,
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns .chip:disabled { background: #1a1612; border-color: var(--gk-card-bd); color: var(--gk-mute); filter: none; }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled small { color: var(--gk-mute); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns .chip[aria-pressed="true"] { background: var(--gk-btn-on); border-color: var(--gk-accent); color: var(--gk-head); }
+:is(#s-shop, #s-missions, #s-settings, #s-guild, #s-merchant, #s-entry).ns :is(.btn, .chip, .subtabs button):focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 
 /* ---------- 상점 ---------- */
 /* 탭: 접힌 돌 탭, 고른 탭은 금테 + 노란 글자 (아래 줄과 이어짐) */

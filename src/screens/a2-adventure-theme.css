@@ -6,7 +6,7 @@
  */
 
 /* Adventure panels use the same dark wood and warm brass as the lobby. */
-:is(#s-content, #s-entry, #s-party, #s-settle) {
+:is(#s-content, #s-party, #s-settle) {
   color: var(--a2-ink);
   --ink: var(--a2-ink);
   --ink-2: #ecd7b4;
@@ -20,7 +20,7 @@
   --panel-2: #3d2918;
 }
 
-:is(#s-entry, #s-party, #s-settle) {
+:is(#s-party, #s-settle) {
   background-color: #35291d;
   background-image: var(--a2-wood);
   background-blend-mode: soft-light;
@@ -35,8 +35,8 @@
 #s-content .b-arw,
 #s-content .b-st,
 #s-content .b-tg:not(.rec),
-:is(#s-entry, #s-party) .pn,
-:is(#s-entry, #s-party) .f-gbtn,
+#s-party .pn,
+#s-party .f-gbtn,
 #s-party .f-det,
 #s-party .f-ps,
 #s-settle .r-loot,
@@ -58,8 +58,8 @@
 #s-content .b-gt,
 #s-content .b-arw,
 #s-content .b-st,
-:is(#s-entry, #s-party) .pn,
-:is(#s-entry, #s-party) .f-gbtn,
+#s-party .pn,
+#s-party .f-gbtn,
 #s-party .f-det,
 #s-settle .r-loot,
 #s-settle .r-prog,
@@ -119,14 +119,13 @@
 }
 
 /* Entry and party retain the original warning/affix and role swatches. */
-:is(#s-entry, #s-party) :is(.f-ttl, .f-cinfo b, .chalstep b) { color: var(--a2-ink); }
-:is(#s-entry, #s-party) :is(.f-hcap, .f-cinfo, .f-rules, .f-afd, .f-nl) { color: var(--a2-muted); }
-:is(#s-entry, #s-party) .f-afd small { color: #d9c19d; }
-:is(#s-entry, #s-party) .f-afr { border-top-color: #8a623577; }
-:is(#s-entry, #s-party) .f-warn { background-color: #463218; border-color: #b38a3f; }
-:is(#s-entry, #s-party) .f-warn .v { color: var(--a2-ink); }
-:is(#s-entry, #s-party) .f-warn .v .cap { color: #e3cdaa; }
-#s-entry .ns-foot.f-foot,
+#s-party .f-ttl { color: var(--a2-ink); }
+#s-party :is(.f-hcap, .f-rules, .f-afd, .f-nl) { color: var(--a2-muted); }
+#s-party .f-afd small { color: #d9c19d; }
+#s-party .f-afr { border-top-color: #8a623577; }
+#s-party .f-warn { background-color: #463218; border-color: #b38a3f; }
+#s-party .f-warn .v { color: var(--a2-ink); }
+#s-party .f-warn .v .cap { color: #e3cdaa; }
 #s-party .ns-foot.f-foot2 {
   background-color: #38291c;
   background-image: var(--a2-wood);
@@ -154,8 +153,8 @@
 #s-party .sheet .f-det p.pab i { color: var(--gc); }
 #s-party .sheet > .f-shut { box-shadow: 0 -9px 12px #2d1b12cc; }
 
-/* 편성으로 버튼의 배치. 표면은 menu-buttons.css, 출발은 departure-hall.css. */
-:is(#s-entry, #s-party) .f-go {
+/* 편성 버튼의 배치. 표면은 menu-buttons.css, 출발은 departure-hall.css. */
+#s-party .f-go {
   background-color: transparent;
   background-image: var(--menu-btn-gold);
   background-size: 101.295775% 107.891492%;
@@ -167,14 +166,14 @@
   color: var(--a2-ink);
 }
 #s-content .g-ct b,
-:is(#s-entry, #s-party) .f-go .f-gt {
+#s-party .f-go .f-gt {
   color: var(--a2-ink);
   text-shadow: 0 2px 2px #35100b;
 }
 #s-content .g-ct small,
-:is(#s-entry, #s-party) .f-go .cta2 small { color: #f3ddb8; }
-:is(#s-entry, #s-party) .f-go:disabled,
-:is(#s-entry, #s-party) .f-go[aria-disabled="true"] { filter: saturate(.4) brightness(.78); }
+#s-party .f-go .cta2 small { color: #f3ddb8; }
+#s-party .f-go:disabled,
+#s-party .f-go[aria-disabled="true"] { filter: saturate(.4) brightness(.78); }
 
 /* Results: leave rarity, success/failure and metric bars as data colours. */
 #s-settle .res-head {
