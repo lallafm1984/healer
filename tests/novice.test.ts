@@ -5,7 +5,7 @@ import { gearStatsOf, specsOf } from '../src/data/equipment';
 import { rampDiffs, rampPlace, rampRefLevel } from '../src/data/progression';
 import { TALENTS } from '../src/data/talents';
 import * as E from '../src/engine';
-import { bigButton } from '../src/engine/novice';
+import { bigButton, familiarity, FAMILIAR, NOVICE, noviceAt } from '../src/engine/novice';
 import { measureNovice, noviceCells, noviceTarget, runNovice, TUT_TARGET, type NoviceCell } from '../src/sim/novice';
 import { rampPlayer } from '../src/sim/ramp';
 
@@ -93,5 +93,31 @@ describe('초보 하한 지킴 (2026-10-22 Lim 「추천대로」, data/tune)', 
       const x = cell(key, '보통');
       expect(measureNovice(x, 'priest', 20).rate, x.c.name).toBeGreaterThanOrEqual(noviceTarget(x)! - 10);
     }
+  });
+});
+
+describe('익숙함 (2026-10-22 Lim 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」)', () => {
+  it('내 레벨 10까지 처음 하는 사람, 20부터 익숙한 사람, 사이는 직선', () => {
+    expect(familiarity(1)).toBe(0);
+    expect(familiarity(10)).toBe(0);
+    expect(familiarity(15)).toBeCloseTo(0.5);
+    expect(familiarity(20)).toBe(1);
+    expect(familiarity(60)).toBe(1);
+    expect(noviceAt(5, 3)).toEqual(NOVICE);
+    expect(noviceAt(25, 3)).toEqual(FAMILIAR);
+    expect(noviceAt(15, 3).pick).toBeCloseTo((NOVICE.pick + FAMILIAR.pick) / 2);
+  });
+  it('대기열 · 기믹 공략은 사람마다 익숙함 확률로 앎 (Lv 15면 절반쯤)', () => {
+    let q = 0, t = 0;
+    for (let s = 1; s <= 200; s++) { const o = noviceAt(15, s); if (o.queue) q++; if (o.tactics) t++; }
+    expect(q).toBeGreaterThan(70); expect(q).toBeLessThan(130);
+    expect(t).toBeGreaterThan(70); expect(t).toBeLessThan(130);
+  });
+  it('목표: 장소 Lv 10까지 A안 (쉬움 95 · 보통 85 · 어려움 60), 그 뒤 B안 (90 · 75 · 50)', () => {
+    expect(noviceTarget(cell('scrapheap', '쉬움'))).toBe(95);
+    expect(noviceTarget(cell('greenhouse', '보통'))).toBe(85);
+    expect(noviceTarget(cell('greenhouse', '어려움'))).toBe(60);
+    expect(noviceTarget(cell('sewer', '보통'))).toBe(75);
+    expect(noviceTarget(cell('lilypalace', '어려움'))).toBe(50);
   });
 });
