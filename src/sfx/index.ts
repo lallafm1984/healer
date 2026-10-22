@@ -19,7 +19,8 @@ Object.assign(VOL, { 'heal-priest': .75, 'renew-priest': .75, 'hymn-priest': .75
 Object.assign(VOL, { 'boss-impact': 1, 'boss-wave': 1, 'boss-zone': 1, 'warn-alert': 0.9, 'rest-loop': 0.6 });
 // 높고 가는 공격 소리 (도적 단검 · 궁수 화살)는 몸통이 작아 다른 직업 공격과 들리는 크기를 맞춤
 // 도적 · 사냥꾼 · 마법사는 2026-10-22 Lim 「소리가 너무 작다」로 다시 만들며 조금 더 크게
-Object.assign(VOL, { 'atk-rogue': 0.6, 'atk-archer': 0.55, 'atk-mage': 0.55, 'atk-hunter': 0.6 });
+// 전사 3안 「너무 작다」, 검사 (아까 저음) 「조금만 더 크게」도 함께
+Object.assign(VOL, { 'atk-rogue': 0.6, 'atk-archer': 0.55, 'atk-mage': 0.6, 'atk-hunter': 0.6, 'atk-warrior': 0.7, 'atk-swordsman': 0.5 });
 /** 보스 기술 특성 착탄 (boss-<특성>-<hit|wave|ground>, scripts/sfx/boss.mjs) */
 const BOSS_THEME = /^boss-[a-z]+-(hit|wave|ground)$/;
 const volOf = (n: string) => VOL[n] ?? (BOSS_THEME.test(n) ? 1 : n.startsWith('atk-') ? 0.42 : n.startsWith('priest-') ? 0.65 : n.startsWith('attack-') ? 0.5 : n.startsWith('ally-') ? 0.6 : n.startsWith('magic-') ? 0.65 : n.startsWith('heal-') ? 0.55 : n.startsWith('renew-') ? 0.7 : n.startsWith('debuff-') ? 0.6 : 0.85);
