@@ -73,7 +73,7 @@ describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에�
       picks: { '5': [1, 2, 4], '10': [3, 4, 2], '3': [1] }, storyWait: ['blade'], storyCard: 'isle',
       reqs: { day: '2026-10-21', list: [{ nick: '말없는탱', content: 'rustfort', diff: '보통', done: false }, { nick: rogue.nick, content: 'plateau', diff: '쉬움', done: true }] } } }));
     const d = migrate(old);
-    expect(d.v).toBe(30);
+    expect(d.v).toBeGreaterThanOrEqual(30);
     expect(d.guild.members.map(m => [m.id, m.nick])).toEqual([[2, rogue.nick], [4, mage.nick]]);
     expect(d.guild.members.every(m => !('story' in m))).toBe(true);
     expect(['storyWait', 'storyCard'].filter(k => k in d.guild)).toEqual([]);

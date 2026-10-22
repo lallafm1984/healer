@@ -9,10 +9,8 @@ import { NAMED, namedsFor, SPECS, specValue } from '../src/data/specials';
 import { CONTENT, contentOf, raidSize, type ContentKey } from '../src/data/content';
 import { FACTIONS, type FactionKey } from '../src/data/places';
 import { rngFrom } from '../src/engine/rng';
-import { migrate, newSave, noteDex } from '../src/platform/storage';
-import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, dexKeysOf, dexReward, dexTabOf } from '../src/data/dex';
+import { migrate, newSave } from '../src/platform/storage';
 import { gearIcon, KIND_ART } from '../src/screens/art';
-import { runGold } from '../src/game/economy';
 
 describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
   it('부위마다 5종, 키 · 이름이 겹치지 않고, 겹 옵션은 서로 다른 두 능력치', () => {
@@ -158,37 +156,6 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
     expect(back.gear.bag.find(x => x.id === 101)!.look).toBe(a.look);
     expect(back.gear.bag.find(x => x.id === 102)!.unique).toBe('guardianHelm');
     expect(back.gear.bag.find(x => x.id === 102)!.name).toBe('신전 수호상 투구');
-  });
-});
-
-describe('장비 도감 (34 6-10 ④)', () => {
-  it('칸 316 = 종류 30 + 세력 143 + 장신구 71 + 고유 72, 키가 겹치지 않음', () => {
-    const all = DEX_ALL();
-    expect(new Set(all).size).toBe(all.length);
-    expect(all.length).toBe(30 + 143 + NAMED.length + 72);
-    for (const t of DEX_TABS) for (const k of dexKeys(t.key)) expect(dexTabOf(k)).toBe(t.key);
-  });
-  it('새 장비가 칸을 채움: 종류는 늘, 세력은 그림 있는 생김새만, 장신구 · 고유는 그 칸', () => {
-    const s = newSave();
-    const a: GearItem = { id: 1, slot: 'ring', kind: 'jade', grade: '일반', name: '', lines: [], look: 'fairy' };
-    const b: GearItem = { id: 2, slot: 'weapon', kind: 'mace', grade: '일반', name: '', lines: [], look: 'fairy' };
-    const c: GearItem = { id: 3, slot: 'head', kind: 'helm', grade: '전설', name: '', lines: [], unique: 'guardianHelm' };
-    expect(dexKeysOf(a)).toEqual(['k:jade', 'l:fairy:jade']);
-    expect(dexKeysOf(b)).toEqual(['k:mace']);
-    expect(noteDex(s, [a, b, c])).toEqual(['k:jade', 'l:fairy:jade', 'k:mace', 'k:helm', 'u:guardianHelm']);
-    expect(noteDex(s, [a])).toEqual([]);
-  });
-  it('묶음을 다 채우면 칭호, 10칸마다 클리어 골드 1.5판 (다섯 번째는 2.5판 더, 103): Lv 30쯤 예전 600 · 1,000과 비슷', () => {
-    const s = newSave();
-    noteDex(s, KINDS.map((k, i) => ({ id: i, slot: k.slot, kind: k.key, grade: '일반', name: '', lines: [] })));
-    expect(s.decos).toContain('장비 감정사');
-    const run = 400;
-    expect(dexDue(9, 0, run).steps).toBe(0);
-    expect(dexDue(30, 0, run)).toEqual({ gold: 1800, steps: 3 });
-    expect(dexDue(52, 3, run)).toEqual({ gold: 600 + 1600, steps: 2 });
-    expect(dexReward(DEX_STEP / DEX_STEP, run)).toEqual({ gold: 600 });
-    expect(Math.abs(dexReward(1, runGold(30)).gold - 600)).toBeLessThan(60);
-    expect(Math.abs(dexReward(5, runGold(30)).gold - 1600)).toBeLessThan(160);
   });
 });
 

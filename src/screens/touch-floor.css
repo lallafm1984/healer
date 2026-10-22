@@ -10,7 +10,3 @@
 #s-char .c7-mode button::after { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 44px; transform: translateY(-50%); }
 /* 특성 프리셋 1 · 2 · 3 (34px 원): 터치만 44 */
 #s-char .c7-pre::after { inset: -5px; }
-/* 도감 시트 묶음 칩 (32px)과 아래 버튼 (40px) */
-#s-char .sheet .c7-fc { position: relative; }
-#s-char .sheet .c7-fc::after { content: ''; position: absolute; inset: -6px -2px; }
-#s-char .sheet .c7-bagf .btn2 { min-height: 44px; }

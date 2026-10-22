@@ -5,7 +5,7 @@
 import { MERCHANT } from '../data/economy';
 import { MAX_LEVEL } from '../data/progression';
 import { descending, dropTable, heroRamp, ITEM_GRADES, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
-import { noteSpecs, type SaveData } from '../platform/storage';
+import type { SaveData } from '../platform/storage';
 import { runGold } from './economy';
 import { resourceBalance, spendResource } from './resources';
 import { TUT } from './tutorial';
@@ -45,6 +45,5 @@ export function buyUnknown(save: SaveData, slot: SlotKey, r: () => number = Math
   spendResource(save, 'gold', o.gold);
   const it = makeItem(r, slot, rollGrade(r, merchantOdds(o.lv)), save.nextId++, undefined, { hero: save.hero, classLoot: true, lv: o.lv }); // 지금 직업 전용 70% (72)
   save.gear.bag.push(it);
-  noteSpecs(save, [it]);
   return it;
 }

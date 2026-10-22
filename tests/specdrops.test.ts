@@ -1,13 +1,13 @@
-/** 특수능력이 붙는 장비 (42 1장 · 3장): 등급별 줄 수 · 부위 · 최소 등급 · 직업 전용 · 자주 나오는 것 · 이름 있는 장신구 · 저장 · 도감 */
+/** 특수능력이 붙는 장비 (42 1장 · 3장): 등급별 줄 수 · 부위 · 최소 등급 · 직업 전용 · 자주 나오는 것 · 이름 있는 장신구 · 저장 */
 import { describe, expect, it } from 'vitest';
 import {
-  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, makeLegend, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_LINES, specKeysOf, specsOf,
+  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, makeLegend, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_LINES, specsOf,
   type GearItem, type ItemGrade, type SlotKey,
 } from '../src/data/equipment';
-import { codexKeys, FEATURED, NAMED, namedOf, namedsFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
+import { FEATURED, NAMED, namedOf, namedsFor, SPECS } from '../src/data/specials';
 import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
 import { rngFrom } from '../src/engine/rng';
-import { migrate, newSave, noteSpecs, SAVE_VERSION } from '../src/platform/storage';
+import { migrate, newSave, SAVE_VERSION } from '../src/platform/storage';
 import { GEAR_SPECS, GEARS, presetSpecs, type GearId } from '../src/data/gear';
 import { uniquesFor } from '../src/data/uniques';
 
@@ -198,15 +198,15 @@ describe('시뮬 프리셋 대표 특수능력 (42 1-7)', () => {
   });
 });
 
-describe('저장 · 도감 (42 1-6)', () => {
-  it('옛 장비(특수능력 줄 없음)는 id로 굴림: 몇 번 읽어도 같고, 도감에 들어감', () => {
+describe('저장 (42 1-6)', () => {
+  it('옛 장비(특수능력 줄 없음)는 id로 굴림: 몇 번 읽어도 같음', () => {
     const old = { v: 7, hero: 'priest', nextId: 9, gear: { equipped: { weapon: { id: 3, slot: 'weapon', kind: 'staff', grade: '전설', plus: 2, name: 'x', lines: [] } }, bag: [{ id: 5, slot: 'ring', kind: 'ring', grade: '희귀', plus: 0, name: 'y', lines: [] }], seen: 4 } };
     const a = migrate(JSON.parse(JSON.stringify(old))), b = migrate(JSON.parse(JSON.stringify(old)));
     expect(a.gear.equipped.weapon!.specs).toMatchObject([{ roll: 1, legend: true }]); // 전설은 고유 능력 한 줄
     expect(a.gear.bag[0].specs!.length).toBe(0); // 88: 희귀는 특수능력 없음
     expect(a.gear).toEqual(b.gear);
     expect(migrate(JSON.parse(JSON.stringify(a))).gear).toEqual(a.gear);
-    expect(a.gear.codex.sort()).toEqual([...new Set([...specKeysOf(a.gear.equipped.weapon!), ...specKeysOf(a.gear.bag[0])])].sort());
+    expect('codex' in a.gear).toBe(false); // v31: 도감 없앰
   });
   it('v9 (Lim 2026-10-11): 전설이 아닌 고유 장비 · 이름 있는 장신구는 보통 장비로, 전설은 고유 능력 한 줄, 몇 번 읽어도 같음', () => {
     const o = JSON.parse(JSON.stringify(newSave(1)));
@@ -230,30 +230,5 @@ describe('저장 · 도감 (42 1-6)', () => {
     expect(leg.specs).toEqual([{ key: 'warmTouch', roll: 1, legend: true }]);
     expect(leg.lines).toHaveLength(4); // 88: 전설 옵션 5줄 (반지 = 종류 1 + 무작위 4)
     expect(legNm).toMatchObject({ named: 'rustyCog', specs: [{ key: 'warmTouch', roll: 0.8 }], name: '녹슨 톱니' }); // 88: 고유 능력 + 특수능력 1줄
-  });
-  it('처음 얻은 특수능력만 새것으로 알려 줌', () => {
-    const s = newSave(1);
-    const it: GearItem = { id: 1, slot: 'neck', kind: 'neck', grade: '영웅', name: '', lines: [], specs: [{ key: 'warmTouch', roll: 1 }], named: 'rustyCog' };
-    expect(noteSpecs(s, [it]).sort()).toEqual(['rustyCog', 'warmTouch']);
-    expect(noteSpecs(s, [{ ...it, id: 2 }])).toEqual([]);
-    expect(s.gear.codex.sort()).toEqual(['rustyCog', 'warmTouch']);
-  });
-  it('도감 묶음은 특수능력 166종 + 이름 있는 장신구, 묶음마다 칭호 하나', () => {
-    const gs = [...Object.keys(SPEC_GROUPS), 'named'] as CodexGroup[];
-    expect(gs.flatMap(codexKeys).length).toBe(SPEC_KEYS.length + NAMED.length);
-    expect(new Set(gs.map(g => SPEC_TITLES[g])).size).toBe(gs.length);
-  });
-  it('묶음 하나를 다 모으면 칭호를 받음 (한 번만)', () => {
-    const s = newSave(1);
-    const keys = codexKeys('mana');
-    const it = (id: number, ks: string[]): GearItem => ({ id, slot: 'ring', kind: 'ring', grade: '영웅', name: '', lines: [], specs: ks.map(key => ({ key, roll: 1 })) });
-    noteSpecs(s, [it(1, keys.slice(0, -1))]);
-    expect(s.decos).not.toContain(SPEC_TITLES.mana);
-    noteSpecs(s, [it(2, keys.slice(-1))]);
-    expect(s.decos.filter(d => d === SPEC_TITLES.mana).length).toBe(1);
-    noteSpecs(s, [it(3, keys)]);
-    expect(s.decos.filter(d => d === SPEC_TITLES.mana).length).toBe(1);
-    noteSpecs(s, NAMED.map((n, i) => ({ ...it(10 + i, []), slot: n.slot, named: n.key })));
-    expect(s.decos).toContain(SPEC_TITLES.named);
   });
 });

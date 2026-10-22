@@ -187,11 +187,11 @@ describe('주간 (13 3장)', () => {
 });
 
 describe('재화 (12)', () => {
-  it('81: 크리스탈 · 악몽 열쇠 · 모집권 · 월정액이 저장에 없음, v28: 시즌 패스 · 공훈도 없음 (옛 저장은 버림, 받은 장식은 남음)', () => {
+  it('81: 크리스탈 · 악몽 열쇠 · 모집권 · 월정액이 저장에 없음, v28: 시즌 패스 · 공훈도 없음, v31: 도감 칭호 (decos)도 없음 (옛 저장은 버림)', () => {
     const d = migrate({ v: 13, createdAt: 1, wallet: { crystal: 500, shards: 3, merit: 40, ticket: 2 }, member: 9e15, firstBuy: ['c100'], pass: { season: 1, xp: 3000, premium: true, free: [1], prem: [1] }, weekly: { week: 'x', craft: 3, merit: { 10: 90, 20: 0 } }, decos: ['시즌 테두리'], heroes: { druid: { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0, merit: { n: 5, week: 'x', got: { 10: 0, 20: 0 } } } } });
     expect(['member', 'firstBuy', 'wallet', 'pass'].filter(k => k in d)).toEqual([]);
     expect(['merit' in d.weekly, 'merit' in (d.heroes.druid ?? {})]).toEqual([false, false]);
-    expect(d.decos).toEqual(['시즌 테두리']);
+    expect('decos' in d).toBe(false);
     expect(['wallet' in newSave(1), 'pass' in newSave(1), 'merit' in newSave(1).weekly]).toEqual([false, false, false]);
     expect('craft' in d.weekly).toBe(false);
     expect(d.bought).toEqual([]);

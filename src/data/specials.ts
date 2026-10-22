@@ -492,17 +492,6 @@ export const NAMED: NamedDef[] = [
   { key: 'shadowScale', name: '마지막 그림자의 저울', slot: 'neck', place: 'heart3', placeName: '심연의 심장 심실', text: '빌린 생명의 빚을 다 갚으면 그 아군에게 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
-/** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
-export type CodexGroup = SpecGroup | 'named';
-/** 도감 묶음 하나를 다 모으면 받는 칭호 (42 1-6) */
-export const SPEC_TITLES: Record<CodexGroup, string> = {
-  heal: '손끝이 따스한 자', proc: '행운의 손', guard: '든든한 방패막이', mana: '마나 살림꾼', dispel: '해독 박사',
-  cd: '때를 아는 자', ally: '모두의 응원단', gimmick: '기믹 박사', hero: '만능 힐러', named: '장신구 수집가',
-};
-/** 도감 묶음에 든 키 */
-export const codexKeys = (g: CodexGroup): string[] => (g === 'named' ? NAMED.map(n => n.key) : SPEC_KEYS.filter(k => SPECS[k].group === g));
-/** 키 → 도감 묶음 */
-export const codexGroupOf = (key: string): CodexGroup | undefined => (SPECS[key]?.group ?? (namedOf(key) ? 'named' : undefined));
 /** 그 장소 · 부위에서 나오는 이름 있는 장신구 (20인 구역, 같은 부위가 여럿이면 그중 하나가 고르게 나옴) */
 export const namedsFor = (place: string, slot: SlotKey) => NAMED.filter(n => n.place === place && n.slot === slot);
 

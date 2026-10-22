@@ -4,12 +4,10 @@
  */
 import type { DiffName } from '../data/difficulty';
 const DIFF_NAMES: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
-import { itemName, kindOf, LEGEND, lookOf, RANDOM_BASE, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
+import { itemName, kindOf, LEGEND, lookOf, RANDOM_BASE, randomLines, rollLines, takenStats, rollSpecs, specCount, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
 import { uniqueOf } from '../data/uniques';
 import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
-import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
-import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, LV_DOUBLE, SPONSOR, spendPoints, statPerLevel, type GuildMember } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { birthV25, lvAdds, profileOf, seedOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
@@ -26,7 +24,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 30; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림). v29: 명성 지원자 없앰 (Lim 10-20, guild.apps · appsDay 버림). v30: 스토리 동료 없앰 (Lim 10-21, story 표시 길드원 · storyWait · storyCard 버림, 편성 · 부탁에 남은 그 사람도)
+export const SAVE_VERSION = 31; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림). v29: 명성 지원자 없앰 (Lim 10-20, guild.apps · appsDay 버림). v30: 스토리 동료 없앰 (Lim 10-21, story 표시 길드원 · storyWait · storyCard 버림, 편성 · 부탁에 남은 그 사람도). v31: 도감 없앰 (Lim 10-22, gear.codex · dex · dexPaid · decos 버림)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -183,7 +181,7 @@ export interface StaminaSave { n: number; at: number; day: string; ads: number }
 export const newStamina = (now: number): StaminaSave => ({ n: STAMINA.max, at: now, day: '', ads: 0 });
 
 /**
- * 캐릭터 하나 (68, v11): 칸 하나에 캐릭터 하나, 직업은 만들 때 고정. 캐릭터마다 따로 계정처럼 (장비 · 도감 · 임무 · 기록 전부).
+ * 캐릭터 하나 (68, v11): 칸 하나에 캐릭터 하나, 직업은 만들 때 고정. 캐릭터마다 따로 계정처럼 (장비 · 임무 · 기록 전부).
  * 지금 캐릭터 저장은 SAVE_KEY, 쉬는 캐릭터는 charKey(id)에 통째로
  */
 export interface CharMeta {
@@ -212,9 +210,9 @@ export interface SaveData {
    * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
    * seen = 새것 점 기준 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
    * opened = seen보다 큰 id 가운데 상세를 열어 봤거나 장착한 장비 (2026-10-17 Lim, 새것 점은 장비마다 상세를 본 뒤 꺼짐). 새것이 다 꺼지면 seen을 올리고 지움.
-   * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
+   * 도감 (특수능력 도감 codex · 장비 도감 dex · dexPaid)은 v31에서 없앰 (2026-10-22 Lim 「도감 시스템 제거」).
    */
-  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; opened?: number[]; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
+  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; opened?: number[] };
   /** 콘텐츠 → 난이도 → 기록 */
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */
@@ -236,8 +234,6 @@ export interface SaveData {
   bought: string[];
   /** 주간 도전: 열린 단계 (실패해도 안 내려감, 13 7장) */
   chalOpen: number;
-  /** 받은 칭호·꾸미기 이름 (그림은 원화 작업 때) */
-  decos: string[];
   /** 지난주 주간 도전 최고 단계 → 월요일 상자 (0 = 없음) */
   chalChest: number;
   /** 주간 도전 상자를 받을 직업 (그 기록을 세운 직업, v10). 없으면 아무 직업이나 (옛 저장) */
@@ -267,10 +263,10 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, sfxVol: 1,
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     daily: newDaily(), weekly: newWeekly(),
-    stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
+    stamina: newStamina(now), bought: [], chalOpen: 1, chalChest: 0,
     roster: newRoster('priest', now),
   };
 }
@@ -311,13 +307,13 @@ export function migrate(raw: unknown): SaveData {
     stamina: staminaOf(o.stamina, base.stamina),
     bought: Array.isArray(o.bought) ? o.bought.filter((k): k is string => typeof k === 'string') : [],
     chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,
-    decos: Array.isArray(o.decos) ? o.decos : [],
     chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
     roster: rosterOf(o.roster, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.createdAt),
   };
   // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림.
-  // v28 (Lim 10-20 「시즌패스 시스템 제거」 · 「공훈 재화및 시스템도 제거하자」): 시즌 패스 (pass) · 공훈 (wallet · weekly.merit · 직업별 옛 공훈)도 버림 (받은 장식은 decos에 남음)
-  for (const k of ['member', 'firstBuy', 'items', 'bag', 'users', 'pass', 'wallet'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  // v28 (Lim 10-20 「시즌패스 시스템 제거」 · 「공훈 재화및 시스템도 제거하자」): 시즌 패스 (pass) · 공훈 (wallet · weekly.merit · 직업별 옛 공훈)도 버림
+  // v31 (Lim 10-22 「도감 시스템 제거」): 도감 칭호 (decos)도 버림 (gear.codex · dex · dexPaid는 gearOf가 버림)
+  for (const k of ['member', 'firstBuy', 'items', 'bag', 'users', 'pass', 'wallet', 'decos'] as const) delete (out as unknown as Record<string, unknown>)[k];
   delete (out.weekly as unknown as Record<string, unknown>).merit;
   for (const h of HERO_KEYS) if (out.heroes[h]) delete (out.heroes[h] as unknown as Record<string, unknown>).merit;
   // v17 (91): 골드 다시. 골드는 0부터 (v16이 버린 옛 골드는 되살리지 않음), 남은 강화석 · 정제 강화석을 골드로. 강화석 무제한 → 골드 무제한
@@ -372,7 +368,7 @@ export const charKey = (id: number) => `healer.char.${id}`;
 
 /**
  * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 휴식 (81 · 90) · 캐릭터 목록.
- * 나머지 (재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
+ * 나머지 (재료 · 장비 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
  */
 export function shareAccount(from: SaveData, to: SaveData): void {
   to.settings = { ...from.settings, layout: to.settings.layout, tapKey: to.settings.tapKey };
@@ -438,10 +434,10 @@ function splitChars(d: SaveData, now: number): void {
       hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId,
       settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
       player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
-      gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
+      gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1 },
       clears: mine ? d.clears : Object.fromEntries(Object.entries(d.clears).filter(([k]) => (CONTENT.find(x => x.key === k)?.unlockLv ?? 1) <= lv)),
       last: h === cur ? d.last : null,
-      guild: mine ? d.guild : c.guild, decos: mine ? d.decos : [], chalOpen: mine ? d.chalOpen : 1,
+      guild: mine ? d.guild : c.guild, chalOpen: mine ? d.chalOpen : 1,
       daily: mine ? d.daily : c.daily,
       weekly: {
         ...(mine ? d.weekly : newWeekly(week)),
@@ -451,9 +447,7 @@ function splitChars(d: SaveData, now: number): void {
       chalChest: chestOwner === h ? d.chalChest : 0, chalChestHero: chestOwner === h ? d.chalChestHero : undefined,
       stamina: d.stamina, bought: d.bought, createdAt: d.createdAt,
     } satisfies Partial<SaveData>);
-    const out = clone(c);
-    if (!mine) { const items = [...Object.values(out.gear.equipped), ...out.gear.bag]; noteSpecs(out, items); }
-    return out;
+    return clone(c);
   };
   let id = 1;
   const built = list.map(h => ({ h, id: id++, save: build(h) }));
@@ -542,46 +536,16 @@ function upgradeItem(it: GearItem, hero: HeroKey, level: number, v: number): Gea
   return c;
 }
 
-/** 장비 칸 (v8: 옛 장비 특수능력 굴림, 도감에 가진 장비의 특수능력을 채움) */
+/** 장비 칸 (v8: 옛 장비 특수능력 굴림. 도감 칸 codex · dex · dexPaid는 v31에서 버림) */
 function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['gear'] {
   const g = o.gear, lv = typeof o.player?.level === 'number' ? o.player.level : 1, v = o.v ?? 0;
   const equipped: Equipped = {};
   if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero, lv, v);
   const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero, lv, v)) : [];
-  // 가진 장비의 특수능력은 늘 도감에 (옛 저장 · migrate가 굴린 줄 포함)
-  const codex = Array.isArray(g?.codex) ? g!.codex.filter(k => typeof k === 'string') : [];
-  for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of specKeysOf(it)) if (!codex.includes(k)) codex.push(k);
-  // 장비 도감도 가진 장비로 채움 (34 6-10 ④)
-  const dex = Array.isArray(g?.dex) ? g!.dex.filter(k => typeof k === 'string') : [];
-  for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of dexKeysOf(it)) if (!dex.includes(k)) dex.push(k);
-  const dexPaid = typeof g?.dexPaid === 'number' ? g.dexPaid : 0;
   const seen = typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1;
   // 새것 점을 장비마다 끄기 (2026-10-17): 옛 저장엔 없음 = 아직 연 장비 없음. seen 아래 · 숫자 아닌 값은 버림
   const opened = Array.isArray(g?.opened) ? [...new Set(g!.opened.filter(n => typeof n === 'number' && n > seen))] : [];
-  return { equipped, bag, seen, ...(opened.length ? { opened } : {}), codex, dex, dexPaid };
-}
-
-/**
- * 새 장비의 특수능력을 도감에 적고, 처음 얻은 것만 돌려줌 (결과 화면 「새 특수능력!」, 42 1-6).
- * 그걸로 도감 묶음 하나를 다 모으면 칭호를 decos에 넣음
- */
-export function noteSpecs(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
-  noteDex(d, items);
-  const out: string[] = [];
-  for (const it of items) if (it) for (const k of specKeysOf(it)) if (!d.gear.codex.includes(k)) { d.gear.codex.push(k); out.push(k); }
-  for (const k of out) {
-    const g = codexGroupOf(k), t = g && SPEC_TITLES[g];
-    if (t && !d.decos.includes(t) && codexKeys(g).every(x => d.gear.codex.includes(x))) d.decos.push(t);
-  }
-  return out;
-}
-
-/** 새 장비를 장비 도감에 적고 처음 채운 칸을 돌려줌 (34 6-10 ④). 묶음 하나를 다 채우면 칭호를 decos에 넣음 */
-export function noteDex(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
-  const out: string[] = [];
-  for (const it of items) if (it) for (const k of dexKeysOf(it)) if (!d.gear.dex.includes(k)) { d.gear.dex.push(k); out.push(k); }
-  for (const t of DEX_TABS) if (out.some(k => dexTabOf(k) === t.key) && !d.decos.includes(t.title) && dexKeys(t.key).every(k => d.gear.dex.includes(k))) d.decos.push(t.title);
-  return out;
+  return { equipped, bag, seen, ...(opened.length ? { opened } : {}) };
 }
 
 /**

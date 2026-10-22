@@ -1,14 +1,13 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
-import { dexDue, type DexReward } from '../data/dex';
 import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
 import { sellGold, SLOTS, type GearItem } from '../data/equipment';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
-import { heroSaveOf, load, loadChar, newSave, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
+import { heroSaveOf, load, loadChar, newSave, parkChar, save, shareAccount, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
-import { onAct, rollover, runGold, type Rollover } from './economy';
+import { onAct, rollover, type Rollover } from './economy';
 import { adsFree } from './stamina';
 import { Flow } from './flow';
 import { jobProductId } from '../data/economy';
@@ -143,16 +142,6 @@ export function sell(ids: number[]): { n: number; gold: number } {
   return got;
 }
 
-/** 장비 도감 보상 받기 (34 6-10 ④): 채운 칸 DEX_STEP마다 쌓인 보상을 한 번에. 받을 게 없으면 steps 0 */
-export function claimDex(): DexReward & { steps: number } {
-  const g = G.save.gear, due = dexDue(g.dex.length, g.dexPaid, runGold(topLevel(G.save)));
-  if (!due.steps) return due;
-  g.dexPaid += due.steps;
-  G.save.player.gold += due.gold;
-  commit();
-  return due;
-}
-
 /** 장비 잠금 켜기·끄기 (27 4-3). 바뀐 뒤 잠김 여부 */
 export function toggleLock(id: number): boolean {
   const it = findItem(id);
@@ -257,7 +246,7 @@ export function pickChar(id: number, now = Date.now()): boolean {
 }
 
 /**
- * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 맨몸 · 빈 도감, 튜토리얼은 계정에 한 번이라 건너뜀.
+ * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 맨몸, 튜토리얼은 계정에 한 번이라 건너뜀.
  * 만들면 그 캐릭터로 바뀜. 성공 = 빈 문자열, 아니면 이유
  */
 export function makeChar(h: HeroKey, name = '', now = Date.now()): string {

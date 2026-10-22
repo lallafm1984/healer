@@ -13,8 +13,13 @@ describe('기기 저장', () => {
     expect(s.v).toBe(SAVE_VERSION);
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
     expect(s.player).toEqual({ level: 1, xp: 0, gold: 0 });
-    expect(s.gear).toEqual({ equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 });
-    expect('items' in s || 'mats' in s).toBe(false);
+    expect(s.gear).toEqual({ equipped: {}, bag: [], seen: 0 }); // v31: 도감 칸 없음
+    expect('items' in s || 'mats' in s || 'decos' in s).toBe(false);
+  });
+  it('v31: 옛 저장의 도감 칸 · 보상 단계 · 칭호는 버림 (2026-10-22 Lim 「도감 시스템 제거」)', () => {
+    const d = migrate({ v: 30, createdAt: 1, gear: { equipped: {}, bag: [], seen: 0, codex: ['warmTouch'], dex: ['k:ring'], dexPaid: 2 }, decos: ['장비 감정사'] });
+    expect(d.v).toBe(SAVE_VERSION);
+    expect(['codex' in d.gear, 'dex' in d.gear, 'dexPaid' in d.gear, 'decos' in d]).toEqual([false, false, false, false]);
   });
   it('저장 후 다시 읽으면 같음', () => {
     const kv = mem();
@@ -24,8 +29,6 @@ describe('기기 저장', () => {
     s.settings.reducedEffects = true;
     s.player.xp = 500;
     s.gear.bag.push({ id: 1, slot: 'ring', kind: 'ring', grade: '희귀', name: '축복받은 반지', lines: [{ stat: 'int', roll: 0.8 }, { stat: 'hp', roll: 0.7 }], specs: [{ key: 'warmTouch', roll: 0.9 }], lv: 1 });
-    s.gear.codex.push('warmTouch');
-    s.gear.dex.push('k:ring');
     expect(save(s, kv)).toBe(true);
     expect(load(kv)).toEqual(s);
   });

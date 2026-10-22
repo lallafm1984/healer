@@ -42,12 +42,12 @@ describe('장비는 캐릭터마다 (v10 직업마다 → v11 캐릭터마다, 6
     expect(pickChar(2)).toBe(true);
     expect(G.save.gear.bag.map(x => x.id)).toEqual([20]);
   });
-  it('도감 · 골드도 캐릭터마다 (67에선 계정이었음)', () => {
-    G.save.gear.codex = ['a']; G.save.gear.dex = ['b']; G.save.player.gold = 50;
+  it('골드도 캐릭터마다 (67에선 계정이었음)', () => {
+    G.save.player.gold = 50;
     makeChar('druid');
-    expect([G.save.gear.codex, G.save.gear.dex, G.save.player.gold]).toEqual([[], [], 0]);
+    expect(G.save.player.gold).toBe(0);
     pickChar(1);
-    expect([G.save.gear.codex, G.save.gear.dex, G.save.player.gold]).toEqual([['a'], ['b'], 50]);
+    expect(G.save.player.gold).toBe(50);
   });
   it('새 캐릭터는 장비 번호 · 새것 점 기준도 처음부터', () => {
     makeChar('druid');

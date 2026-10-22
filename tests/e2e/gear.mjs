@@ -71,11 +71,8 @@ export default async function gear(url, shots) {
   ok(await page.getAttribute('#s-char .c7-bag:first-child', 'data-gitem') === '203', '새것순 = 최근 장비 먼저');
   await page.click('#s-char [data-bsort]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/gear_list.png` });
-  // 도감 버튼 (34 6-10 ④): 누르면 장비 도감, 거기서 특수능력 도감으로 (QA 2026-10-17에 되살림)
-  ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 1, '인벤토리 도감 버튼');
-  await page.click('#s-char .c7-inventory [data-dex]'); await page.clock.runFor(80);
-  ok(await page.isVisible('#s-char .c7-dex') && await page.isVisible('#s-char .c7-dex [data-codex]'), '도감 버튼 → 장비 도감 (특수능력 도감 가는 버튼)');
-  await page.keyboard.press('Escape'); await page.clock.runFor(80);
+  // 도감은 없음 (2026-10-22 Lim 「도감 시스템 제거」)
+  ok((await page.locator('#s-char [data-dex], #s-char .c7-dex, #s-char .c7-codex').count()) === 0 && !/도감/.test(await page.textContent('#s-char .c7-inventory')), '인벤토리에 도감 버튼 없음');
 
   // 새것 점 (2026-10-17 Lim 「장비 상세보기 후 없어지게」): 장비 화면을 나가도 그대로, 그 장비 상세를 열어 봐야 그 하나만 꺼짐. 비교 화살표는 남는다.
   const pfLabel = () => page.getAttribute('#s-char .tb-pf', 'aria-label');

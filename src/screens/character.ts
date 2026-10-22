@@ -2,7 +2,7 @@
  * 캐릭터 탭 (27 4장 기능, 31 시안 CharGear31 · CharSkill31 · CharTalent31 · CharClass31 — 30 로비·전투·길드와 같은 테마). 캐릭터 그림 없음.
  * 위 = 공통 위 줄(topBar) + 하위 탭 4칸 [장비][스킬][특성][직업] (전투 탭 분류 칸 모양, 아이콘 + 이름).
  * 장비: 무기고(ui-char) · 좌우 장비 칸 6개 · 중앙 능력치 · 바로 펼친 인벤토리(필터·정렬·좋음/나쁨 화살표)
- *       + 아래 시트(아이템 탭 → 상세 (옵션마다 지금 장비와 차이 · 그 장비 범위) · 장착·잠금·판매 · 능력치 출처 · 도감). 91: 강화 없음 (디아2식)
+ *       + 아래 시트(아이템 탭 → 상세 (옵션마다 지금 장비와 차이 · 그 장비 범위) · 장착·잠금·판매 · 능력치 출처). 91: 강화 없음 (디아2식)
  * 스킬: [설명 보기 | 배치 바꾸기] · 마법진 위 휠 3×3 금테 메달 · 양피지 설명 · 칸 탭 기본 힐 · 스킬 줄 목록
  * 특성: 프리셋 · 특성 노드 · 고르기 시트 / 직업: 일곱 직업 비교 목록 · 상태 표시 · 소개와 스킬 카드 상세
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
@@ -15,20 +15,16 @@ import { JOB_PRICE, jobProductId } from '../data/economy';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { openTiers, TALENT_TREES, type TalentKey } from '../data/talents';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
-import { topLevel, type TapKey } from '../platform/storage';
-import { runGold } from '../game/economy';
+import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
-import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
-import { codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
-import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup, type SpecGroup } from '../data/specials';
+import { specRows, statParts, talentsLeft } from '../game/charinfo';
+import { SPEC_GROUPS, SPECS, type SpecGroup } from '../data/specials';
 import {
-  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickTalent, sell,
+  commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickTalent, sell,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock,
 } from '../game/state';
-import { Flow } from '../game/flow';
-import type { Settlement } from '../game/settle';
 import { art } from '../art';
-import { classEmblem, currencyAmount, fxArt, gameIcon, gearArt, gearIcon, LOCK, trinketArt, uiIcon } from './art';
+import { classEmblem, currencyAmount, gameIcon, gearArt, gearIcon, LOCK, uiIcon } from './art';
 import { battle, current, freshEntry, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
@@ -38,12 +34,8 @@ import { sfx } from '../sfx';
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
-/** 장비 상세는 인벤토리로 복귀, 특수능력 도감은 장비 도감으로 복귀한다. */
-type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'hero'; hero: HeroKey } | { k: 'talent'; i: number; j: number } | null;
-/** 도감에서 펼친 묶음 */
-let codexG: CodexGroup = 'heal';
-/** 장비 도감에서 펼친 묶음 */
-let dexT: DexTab = 'kind';
+/** 장비 상세는 인벤토리로 복귀한다. */
+type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'stats' } | { k: 'hero'; hero: HeroKey } | { k: 'talent'; i: number; j: number } | null;
 
 let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
@@ -95,7 +87,6 @@ export function layoutNow(): Record<string, string | null> {
 const hero = (): HeroKey => G.save.hero;
 /** 휠 칸 이름 → 지금 직업의 스킬. 빈 방향은 8번째 칸 (고유 스킬이 있는 직업) */
 const skillOfDir = (lay: Record<string, string | null>, d: string): SkillKey | null => skillAt(hero(), lay[d] || 'unique');
-const fill = '<span class="c7-fill"></span>';
 
 /** 선 아이콘 (24 칸, 테마 색을 따름) */
 const line = (d: string, w = 2) => `<svg class="c7-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -142,7 +133,7 @@ function render(keep = true, resetInventory = false): void {
   bagWatch?.disconnect();
   if (inventory) { fillBags(); bagWatch?.observe(inventory); inventory.scrollTop = inventoryTop; }
   const path = !sheet || sheet.k === 'talent' ? []
-    : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
+    : sheet.k === 'item' ? [`item:${sheet.id}`] : [sheet.k];
   if (pending) path.push(`confirm:${pending.kind}`);
   modal.sync(path.length ? s.el.querySelector<HTMLElement>(pending ? '.c7-confirm' : '.sheet') : null, path);
 }
@@ -163,8 +154,6 @@ function sheetHtml(): string {
   if (!sheet) return '';
   const g = sub === 'gear';
   if (sheet.k === 'item') return g ? itemSheet(sheet.id) : '';
-  if (sheet.k === 'codex') return g ? codexSheet() : '';
-  if (sheet.k === 'dex') return g ? dexSheet() : '';
   if (sheet.k === 'stats') return g ? statsSheet() : '';
   if (sheet.k === 'hero') return sub === 'hero' ? heroSheet(sheet.hero) : '';
   return sub === 'talent' ? talentSheet(sheet.i, sheet.j) : '';
@@ -240,12 +229,8 @@ const STAT_LINE = {
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
 /** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 빈칸은 가방 개수 (91: 강화 +n 없음). 더 좋은 장비 초록 ↑는 없음 (2026-10-17 Lim) */
-/** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
-const specBadge = (g: CodexGroup, label: string, trinket?: string) => {
-  if (g !== 'named') return gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec');
-  const u = trinketArt(trinket);
-  return u ? `<img class="g-ic" src="${u}" alt="" decoding="async" draggable="false">` : label;
-};
+/** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. 이름 있는 장신구는 글자 */
+const specBadge = (g: SpecGroup | 'named', label: string) => (g === 'named' ? label : gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec'));
 
 /** 특수능력 점 (34 10장): 한 줄 = 점 하나 (고유 효과 포함), 지금 직업에 안 맞는 직업 전용은 회색 */
 function specDots(it: GearItem): string {
@@ -315,10 +300,8 @@ function inventoryHtml(): string {
   // 가방이나 선택한 분류가 비어 있으면 안내 문구 없이 빈 칸만 표시.
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
-  // 장비 도감 · 특수능력 도감으로 가는 길 (34 6-10 ④ 「가방 → 도감」, 받을 보상이 있으면 「!」). 2026-10-13 장비 화면 정리에서 빠져 도감 보상 (골드)을 받을 길이 없었음 (QA 2026-10-17)
-  const due = dexDue(G.save.gear.dex.length, G.save.gear.dexPaid, runGold(topLevel(G.save))).steps;
   return `<section class="c7-inventory" aria-label="인벤토리">
-      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${goldHave()}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">${gameIcon('dex', '')}도감${due ? '<span class="g-badge" aria-hidden="true">!</span>' : ''}</button></header>
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${goldHave()}</span></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
@@ -336,66 +319,6 @@ function fillBags(): void {
   for (let i = empties.length - 1; i >= want; i--) empties[i].remove();
 }
 const bagWatch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fillBags);
-
-/** 묶음들에서 얻은 칸 수 */
-const codexHave = (gs: readonly CodexGroup[]) => gs.reduce((a, g) => a + codexKeys(g).filter(k => G.save.gear.codex.includes(k)).length, 0);
-const SPEC_GROUP_KEYS = Object.keys(SPEC_GROUPS) as SpecGroup[];
-
-/** 지난 판에 처음 얻은 칸: 칸 표식 위에서 그림이 칸마다 한 번 (판마다). 효과 줄이기면 없음 */
-function freshOnce(pick: (x: Settlement) => readonly string[] | undefined, fx: string, cls: string): (key: string) => string {
-  let shown: { of: object; keys: Set<string> } | null = null;
-  return key => {
-    const x = Flow.settle;
-    if (!x || !pick(x)?.includes(key) || G.save.settings.reducedEffects) return '';
-    if (shown?.of !== x) shown = { of: x, keys: new Set() };
-    if (shown.keys.has(key)) return '';
-    shown.keys.add(key);
-    return fxArt(fx, cls);
-  };
-}
-/** 특수능력 도감 (42 1-6): fx-spec-new 터짐 (36 4-6) */
-const freshFx = freshOnce(x => x.newSpecs, 'fx-spec-new', 'c7-spnew');
-/** 장비 도감 (34 6-10 ④): fx-dex-fill 도장 (50 E) */
-const dexFillFx = freshOnce(x => x.newDex, 'fx-dex-fill', 'c7-dexfill');
-/** 「보상 받기」를 누른 뒤 한 번: 보상 줄에서 fx-dex-reward가 위로 (50 E) */
-let dexPop = false;
-
-/** 특수능력 도감 시트 (42 1-6): 묶음 칩 (얻은 수/전체) · 칸 목록 (얻은 것 = 이름 · 효과, 아닌 것 = 「?」 + 나오는 곳) · 받은 칭호 */
-function codexSheet(): string {
-  const groups: CodexGroup[] = [...SPEC_GROUP_KEYS, 'named'];
-  const label = (g: CodexGroup) => (g === 'named' ? '고유' : SPEC_GROUPS[g].name);
-  const rows = codexRows(codexG);
-  const have = rows.filter(r => r.got).length, title = SPEC_TITLES[codexG], done = G.save.decos.includes(title);
-  const titles = groups.map(g => SPEC_TITLES[g]).filter(t => G.save.decos.includes(t));
-  return `${dim}<section class="sheet c7-bsheet c7-codex" role="dialog" aria-label="특수능력 도감">${grip}
-      <div class="c7-row"><h3 class="h-rule">특수능력 도감</h3><span class="cap">${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length} · 고유 ${codexHave(['named'])}/${NAMED.length}</span></div>
-      <div class="c7-fcs" role="group" aria-label="도감 묶음">${groups.map(g => `<button type="button" class="c7-fc" data-codexg="${g}" aria-pressed="${codexG === g}">${label(g)} <small>${codexHave([g])}/${codexKeys(g).length}</small></button>`).join('')}</div>
-      <p class="cap c7-ctitle">${done ? `칭호 「${esc(title)}」 받음` : `다 모으면 칭호 「${esc(title)}」 (${have}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${specBadge(codexG, label(codexG), r.key)}${r.got ? freshFx(r.key) : ''}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
-      <div class="c7-bagf">${titles.length ? `<span class="cap">받은 칭호 ${titles.map(t => `「${esc(t)}」`).join(' ')}</span>` : '<span class="cap">효과는 영웅 장비 최대값</span>'}${fill}<button type="button" class="btn2" data-dex>장비 도감</button><button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
-}
-
-/** 장비 도감 시트 (34 6-10 ④): 묶음 칩 (얻은 수/전체) · 보상 (10칸마다) · 칸 목록 (얻은 것 = 이름 · 설명, 아닌 것 = 「?」 + 나오는 곳) · 칭호 */
-function dexSheet(): string {
-  const have = G.save.gear.dex, all = DEX_ALL().length, due = dexDue(have.length, G.save.gear.dexPaid, runGold(topLevel(G.save)));
-  const tab = DEX_TABS.find(t => t.key === dexT)!, rows = dexRows(dexT), got = rows.filter(r => r.got).length, done = G.save.decos.includes(tab.title);
-  const next = (Math.floor(have.length / DEX_STEP) + 1) * DEX_STEP;
-  const reward = due.steps
-    ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 ${currencyAmount('gold', due.gold)}</button>`
-    : `<span class="cap">${next <= all ? `${next}칸을 채우면 골드 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
-  const count = (t: DexTab) => dexKeys(t).filter(k => have.includes(k)).length;
-  const pop = dexPop && !G.save.settings.reducedEffects ? fxArt('fx-dex-reward', 'c7-dexpop') : '';
-  dexPop = false;
-  // 도감 그림 (50 D icon-dex · icon-dex-<묶음> · icon-dex-reward): 없으면 글자만
-  return `${dim}<section class="sheet c7-bsheet c7-codex c7-dex" role="dialog" aria-label="장비 도감">${grip}
-      <div class="c7-row"><h3 class="h-rule">${gameIcon('dex', '')}장비 도감</h3><span class="cap">${have.length}/${all}</span></div>
-      <div class="c7-fcs" role="group" aria-label="도감 묶음">${DEX_TABS.map(t => `<button type="button" class="c7-fc" data-dext="${t.key}" aria-pressed="${dexT === t.key}">${gameIcon(`dex-${t.key}`, '')}${t.name} <small>${count(t.key)}/${dexKeys(t.key).length}</small></button>`).join('')}</div>
-      <div class="c7-dexr">${gameIcon('dex-reward', '')}${reward}${pop}</div>
-      ${msg ? `<p class="note c7-msg">${esc(msg)}</p>` : ''}
-      <p class="cap c7-ctitle">${done ? `칭호 「${esc(tab.title)}」 받음` : `다 모으면 칭호 「${esc(tab.title)}」 (${got}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec c7-dexc${r.got ? '' : ' unk'}"${r.look ? ` style="--look:${FACTIONS[r.look].color}"` : ''}><span class="c7-spg">${itemIc(r.got ? r : r.slot)}${r.got ? dexFillFx(r.key) : ''}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
-      <div class="c7-bagf"><span class="cap">처음 얻으면 칸이 채워짐 · 능력치 보너스 없음</span>${fill}<button type="button" class="btn2" data-codex>특수능력 ${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length}</button><button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
-}
 
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 그 장비 범위 · 잠금 · 판매 · 장착 */
 /** 가진 골드 (인벤토리 머리). 개발 빌드 골드 무제한이면 ∞ */
@@ -889,13 +812,13 @@ function heroSheet(k: HeroKey): string {
 }
 
 // ---------- 누르기 ----------
-/** 장비·능력치·도감 시트는 펼쳐진 인벤토리로 돌아가며 스크롤과 포커스를 유지한다. */
+/** 장비·능력치 시트는 펼쳐진 인벤토리로 돌아가며 스크롤과 포커스를 유지한다. */
 function closeSheet(): void {
   if (pending) { pending = null; render(); return; }
   const talentReturn = sheet?.k === 'talent' ? `${sheet.i}:${sheet.j}` : null;
   const closingItem = sheet?.k === 'item' ? sheet : null;
   const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
-  sheet = sheet?.k === 'codex' ? { k: 'dex' } : null;
+  sheet = null;
   msg = ''; render();
   if (talentReturn) focusTalentControl(`[data-tcell="${talentReturn}"]`);
   if (inventoryReturn !== undefined) {
@@ -952,20 +875,6 @@ function onClick(t: HTMLElement): boolean {
     render();
     return true;
   }
-  // 도감도 열 때마다 첫 묶음 (특수능력 도감에서 장비 도감으로 돌아갈 땐 보던 묶음, 2026-10-21 Lim 첫 탭)
-  if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; codexG = SPEC_GROUP_KEYS[0]; msg = ''; render(); return true; }
-  if (t.closest('[data-dex]')) { if (sheet?.k !== 'codex') dexT = DEX_TABS[0].key; sheet = { k: 'dex' }; msg = ''; render(); return true; }
-  const dt = t.closest<HTMLElement>('[data-dext]');
-  if (dt) { dexT = dt.dataset.dext as DexTab; render(); return true; }
-  if (t.closest('[data-dexclaim]')) {
-    const got = claimDex();
-    sfx(got.steps ? 'mission-claim' : 'deny');
-    msg = got.steps ? `도감 보상: 골드 ${fmt(got.gold)}` : '';
-    dexPop = got.steps > 0;
-    render(); return true;
-  }
-  const cg = t.closest<HTMLElement>('[data-codexg]');
-  if (cg) { codexG = cg.dataset.codexg as CodexGroup; render(); return true; }
   const bf = t.closest<HTMLElement>('[data-bfilter]');
   if (bf) { bagFilter = bf.dataset.bfilter as BagFilter; render(true, true); s.el.querySelector<HTMLElement>(`[data-bfilter="${bagFilter}"]`)?.focus({ preventScroll: true }); return true; }
   if (t.closest('[data-bsort]')) { bagSort = SORTS[bagSort].next; render(true, true); s.el.querySelector<HTMLElement>('[data-bsort]')?.focus({ preventScroll: true }); return true; }
