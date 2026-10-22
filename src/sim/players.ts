@@ -27,7 +27,8 @@ import { rngFrom } from '../engine/rng';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { chestState, claimChalChest, claimChest, claimExped, claimGuildGoal, claimMission, missionReady } from '../game/economy';
 import { fitNow, rankStages, guideCtx, realOpen, type Fit } from '../game/guide';
-import { autoPick, capOf, full, guildPartyFits, guildRoster, hire, postCost, postRecruit } from '../game/guild';
+import { capOf, full, guildPartyFits, guildRoster, hire, postCost, postRecruit } from '../game/guild';
+import { recommendPick } from '../game/recommend';
 import { refreshExped, refreshReqs } from '../game/guildjobs';
 import { buyUnknown, merchantGold } from '../game/merchant';
 import { runMode } from '../game/runmode';
@@ -185,7 +186,8 @@ function fightOnce(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number
   if (c.key === 'tutorial') roster = DUO_PARTY;
   else {
     const pub = recruitParty(segs[0], o.seed, { abilities: !tut, myLv: lv, stageLv: m.stage, exclude: new Set(save.guild.members.map(x => x.nick)) });
-    roster = o.guild && save.guild.founded && save.guild.members.length && guildPartyFits(save, enc) ? guildRoster(save, autoPick(save, enc), pub, enc, o.seed) : pub;
+    // 길드파티는 「추천 편성」 (game/recommend: 보스 특징에 맞는 능력 · 레벨)으로 (autoPick = 레벨 순은 끊기 · 쫄 처리가 빠져 Lv 86 뒤 특정 칸을 0%로 졌음, 2026-10-22)
+    roster = o.guild && save.guild.founded && save.guild.members.length && guildPartyFits(save, enc) ? guildRoster(save, recommendPick(save, enc, segs, m.stage).pick, pub, enc, o.seed) : pub;
   }
   const talents = tut ? undefined : heroSaveOf(save, hero).talents;
   const gearStats = gearStatsOf(save.gear.equipped, lv), specs = specsOf(save.gear.equipped, hero);
