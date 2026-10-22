@@ -5,7 +5,7 @@ import { gearStatsOf, specsOf } from '../src/data/equipment';
 import { rampDiffs, rampPlace, rampRefLevel } from '../src/data/progression';
 import { TALENTS } from '../src/data/talents';
 import * as E from '../src/engine';
-import { bigButton, familiarity, FAMILIAR, NOVICE, noviceAt } from '../src/engine/novice';
+import { bigButton, familiarity, FAMILIAR, MASTER, NOVICE, noviceAt } from '../src/engine/novice';
 import { measureNovice, noviceCells, noviceTarget, runNovice, TUT_TARGET, type NoviceCell } from '../src/sim/novice';
 import { rampPlayer } from '../src/sim/ramp';
 
@@ -104,7 +104,12 @@ describe('익숙함 (2026-10-22 Lim 「레벨 10까지 쉽게 하고 점점 익�
     expect(familiarity(20)).toBe(1);
     expect(familiarity(60)).toBe(1);
     expect(noviceAt(5, 3)).toEqual(NOVICE);
-    expect(noviceAt(25, 3)).toEqual(FAMILIAR);
+    expect(noviceAt(20, 3)).toEqual(FAMILIAR);
+    // Lv 20 뒤 (2026-10-22 Lim 「고친다」): Lv 60에 능숙 (고르기 · 엄지 옮기기를 앞 시전 중에), 사이는 직선
+    expect(noviceAt(60, 3)).toEqual(MASTER);
+    expect(noviceAt(100, 3)).toEqual(MASTER);
+    expect(noviceAt(40, 3).pick).toBeCloseTo((FAMILIAR.pick + MASTER.pick) / 2);
+    expect(noviceAt(40, 3).react).toBe(FAMILIAR.react);
     expect(noviceAt(15, 3).pick).toBeCloseTo((NOVICE.pick + FAMILIAR.pick) / 2);
   });
   it('대기열 · 기믹 공략은 사람마다 익숙함 확률로 앎 (Lv 15면 절반쯤)', () => {

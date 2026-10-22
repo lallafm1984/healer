@@ -28,8 +28,10 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
+import { rampPlace } from '../data/progression';
+import { familiarTarget, measureFamiliar } from './familiar';
 import { measureNovice, noviceCells, noviceTarget, type NoviceCell } from './novice';
-import { rampLevel, rampPlayer, usesRamp } from './ramp';
+import { rampLevel, rampPlayer, usesRamp, type RampPlayer } from './ramp';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
 export const TARGET: Record<DiffName, { min: number; max: number; aim: number }> = {
@@ -106,14 +108,14 @@ export interface Run {
 /** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
 export type SpecMode = 'common' | 'class';
 /** sim 손잡이 (기준 판에서 바꿔 보기, 96 어그로 레벨 차이 판): party = 뽑은 파티를 고침, heroUp = 내 레벨 + */
-export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number; /** 구간이 끝날 때마다 (시뮬레이션 관찰) */ onFight?: (f: Fight) => void; /** 누르는 사람 (없으면 자동 힐러, sim/familiar 익숙한 사람) */ healer?: (f: Fight) => void }
+export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number; /** 구간이 끝날 때마다 (시뮬레이션 관찰) */ onFight?: (f: Fight) => void; /** 누르는 사람 (없으면 자동 힐러, sim/familiar 익숙한 사람) */ healer?: (f: Fight) => void; /** 이 레벨 · 장비의 플레이어 (sim/familiar 길잡이 길 장비) */ player?: RampPlayer }
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common', tweak?: RunTweak): Run {
-  const segs = c.fights(d), s = standard(c, d);
-  const party = recruitParty(segs[0], seed, { abilities: true, myLv: s.heroLv ?? s.lv, stageLv: s.lv }); // 97 FM: 저마다 레벨 (칸 ±1)
+  const segs = c.fights(d), s = standard(c, d), own = tweak?.player;
+  const party = recruitParty(segs[0], seed, { abilities: true, myLv: own?.lv ?? s.heroLv ?? s.lv, stageLv: s.lv }); // 97 FM: 저마다 레벨 (칸 ±1)
   tweak?.party?.(party, s.lv);
-  // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
-  const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = (s.heroLv ?? s.lv) + (tweak?.heroUp ?? 0);
+  // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음), 플레이어를 주면 그 레벨 · 장비
+  const rp = own ?? (s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null), lv = own ? own.lv : (s.heroLv ?? s.lv) + (tweak?.heroUp ?? 0);
   const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) }
     : { gear: s.gear as GearId, specs: specs === 'class' ? classSpecs(s.gear as GearId, hero, seed) : presetSpecs(s.gear as GearId, hero) };
   let carry: Carry | undefined, time = 0, heals = 0, steals = 0, healerSteals = 0, thrRatio: Run['thrRatio'];
@@ -209,7 +211,7 @@ export interface Row {
   verdict: Verdict;
   /** 목표 밖 (또는 바쁨 하한 아래)이라 찾은 새 피해 배율과 그때 결과 */
   next?: { dmg: number; m: Measure };
-  /** 초보 하한 칸: 처음 하는 사람 클리어율 (지금 배율 · 쓴 배율), 목표, 초보 하한으로 내렸는지 */
+  /** 하한 칸 (초보 · 익숙한 사람): 클리어율 (지금 배율 · 쓴 배율), 목표, 하한으로 내렸는지 */
   novice?: { before: number; after: number; target: number; capped: boolean };
 }
 
@@ -218,9 +220,25 @@ export const NOVICE_N = 40;
 /** 초보 하한을 보는 칸 (순차 레벨링 구간 길의 난이도: 쉬움 · 보통, Lv 10 ~ 20은 어려움도, sim/novice 칸) */
 export const noviceCellOf = (c: ContentDef, d: DiffName): NoviceCell | null => noviceCells([d]).find(x => x.c.key === c.key && x.d === d) ?? null;
 /** 배율 → 처음 하는 사람 클리어율 (잰 값은 기억) */
-function noviceProbe(x: NoviceCell, base: Tune, n: number) {
+function noviceProbe(x: NoviceCell, base: Tune, n: number): FloorProbe {
   const seen = new Map<number, number>(), target = noviceTarget(x)!;
   const rate = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measureNovice(x, 'priest', n, 'novice', undefined, 1, { ...base, dmg }).rate); return seen.get(dmg)!; };
+  return { target, rate, ok: (dmg: number) => rate(dmg) >= target };
+}
+/** 익숙한 사람 하한 판 수 (기준 직업 셋 × n) */
+export const FAMILIAR_N = 20;
+/** 하한 재기: 목표 · 배율 → 클리어율 · 지킴 */
+export interface FloorProbe { target: number; rate: (dmg: number) => number; ok: (dmg: number) => boolean }
+/**
+ * 그 칸의 하한 (없으면 null): 순차 구간 길의 칸은 그 레벨 초보 (사제, sim/novice), 그 밖 장소 (Lv 21 ~ 100 · 레이드)는 2026-10-22 Lim 「고친다. 20레벨 이후는 장비를 감안해서」
+ * 그 레벨 사람 (Lv 20 익숙 → 60 능숙)이 길잡이 길 장비로 (sim/familiar, 기준 직업 셋 × FAMILIAR_N)
+ */
+export function floorProbe(c: ContentDef, d: DiffName, base: Tune): FloorProbe | null {
+  const nx = noviceCellOf(c, d);
+  if (nx) return noviceProbe(nx, base, NOVICE_N);
+  if (rampPlace(c) || !balanceable(c)) return null;
+  const x = { c, d }, seen = new Map<number, number>(), target = familiarTarget(x);
+  const rate = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, FAMILIAR_N, 'familiar', BASE_HEROES, { ...base, dmg }).rate); return seen.get(dmg)!; };
   return { target, rate, ok: (dmg: number) => rate(dmg) >= target };
 }
 /**
@@ -253,7 +271,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const base = cur ?? {};
   const seen = new Map<number, Measure>();
   const at = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measure(c, d, n, { ...base, dmg })); return seen.get(dmg)!.rate; };
-  const nx = noviceCellOf(c, d), nov = nx ? noviceProbe(nx, base, NOVICE_N) : null;
+  const nov = floorProbe(c, d, base);
   /** 초보 하한: 고른 배율이 처음 하는 사람에게 목표 아래면 지키는 가장 큰 배율로 내림 */
   const capped = (r: Row): Row => {
     if (!nov) return r;
