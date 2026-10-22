@@ -30,7 +30,7 @@ export const CLASS_VOL: Record<string, number> = {
   'druid-old-tree': 0.9,
   'druid-crit': 0.4,
   'paladin-beacon': 0.4,
-  'paladin-light-wave': 0.35,
+  'paladin-light-wave': 0.6,
   'paladin-hand-cleanse': 0.35,
   'paladin-sacrifice': 0.55,
   'paladin-hand-guard': 0.75,
