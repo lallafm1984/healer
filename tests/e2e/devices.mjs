@@ -53,11 +53,14 @@ export default async function devices(url, shots) {
     ok(await noOverflow('#s-party .f-pty') && r0.bottom <= foot2.top, `${tag}: 레이드 10인 편성 첫 파티원 줄이 첫 화면에`);
     await page.click('#s-party .tb-back'); await page.clock.runFor(80);
 
-    // 주간 도전 입장: 보상까지 스크롤 없이, 「편성으로」 화면 안
+    // 주간 도전 입장 (2026-10-22 길드 모양 A안): 도전 단계 판이 첫 화면, 「출전」 화면 안, 보상 판은 스크롤해서
     await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
     await page.click('#s-content [data-chal]'); await page.clock.runFor(150);
-    const rw = await box('#s-entry .f-rw'), eg = await box('#entryGo');
-    ok(rw.bottom <= eg.top && eg.bottom <= height + 1, `${tag}: 주간 도전 입장 보상까지 첫 화면, 편성으로 화면 안`);
+    const stg = await box('#s-entry .wc-overview'), eg = await box('#entryGo');
+    ok(stg.bottom <= eg.top && eg.bottom <= height + 1, `${tag}: 주간 도전 입장 도전 단계 판이 첫 화면, 출전 화면 안`);
+    await page.locator('#s-entry .ns-body').evaluate(el => { el.scrollTop = el.scrollHeight; }); await page.clock.runFor(50);
+    const rw = await box('#s-entry .f-rw');
+    ok(rw.bottom <= eg.top, `${tag}: 주간 도전 입장 스크롤하면 보상 판 끝까지 출전 위에`);
 
     // 결과 (정산 + 보상 한 화면): 등급·별 · 받은 것이 첫 화면에, 가로 넘침 없음
     await page.click('#s-entry .tb-back'); await page.clock.runFor(80);

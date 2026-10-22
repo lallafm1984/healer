@@ -21,7 +21,7 @@
 .f-go .cta2 small { overflow: hidden; max-width: 100%; white-space: nowrap; text-overflow: ellipsis; }
 
 /* 상단: ← (문양) 제목 / 아래 작은 글 (난이도 · 단계 · 어픽스) · 오른쪽 「공략」 */
-#s-entry .topbar.f-hd, #s-party .topbar.f-hd { gap: 6px; padding: 0 10px 0 2px; }
+#s-party .topbar.f-hd { gap: 6px; padding: 0 10px 0 2px; }
 .f-hd .tb-back { flex: none; width: 44px; min-width: 44px; height: 44px; margin: 0; padding: 0; display: grid; place-items: center; color: var(--ink-2); }
 .f-hd .tb-back svg { width: 22px; height: 22px; }
 .f-tb { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -52,20 +52,13 @@
 
 /* ---------- 주간 도전 입장 (S04) ---------- */
 /* 상단 뒤에 장소 그림 (어둡게) */
-#s-entry .f-ebody { padding: 10px 16px 16px; gap: 10px; }
-#s-entry .chalstep { gap: 18px; }
-#s-entry .chalstep .btn2 { width: 52px; min-height: 44px; font-size: 22px; }
-#s-entry .chalstep b { font: 800 30px var(--font-display); color: var(--gold-hi); }
 .f-cinfo { margin: -2px 0 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-2); }
 .f-cinfo b { color: var(--ink); }
-#s-entry .note.center { margin: 0; }
 .f-sec { padding: 10px 12px 4px; display: flex; flex-direction: column; }
 .f-sec > .h-rule { margin-bottom: 8px; }
 .f-rw { padding: 10px 12px; gap: 6px; }
 .f-rw > .h-rule { margin-bottom: 0; }
 .f-rw > .cap { line-height: 1.5; }
-/* 아래 고정 주 버튼 */
-#s-entry .ns-foot.f-foot { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(rgba(21, 18, 14, 0), var(--bg) 30%); border-top: 0; }
 
 /* ---------- 경고 줄 (준비 확인 대신, 미달·불가일 때만) ---------- */
 .f-warns { display: flex; flex-direction: column; gap: 6px; }
@@ -205,7 +198,7 @@
 #s-party .f-btns .f-go .f-gt { font-size: 21px; }
 
 @media (max-width: 359px) {
-  #s-entry .f-ebody, #s-party .f-pty { padding-left: 12px; padding-right: 12px; }
+  #s-party .f-pty { padding-left: 12px; padding-right: 12px; }
   #s-party .ns-foot.f-foot2 { padding-left: 12px; padding-right: 12px; }
   .f-gbtn { min-width: 44px; padding: 0 8px; }
   .f-gbtn span { font-size: 13px; }
