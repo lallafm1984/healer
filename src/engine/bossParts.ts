@@ -1039,11 +1039,12 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
       return old;
     }
   }
-  const d = addDebuff(f, u, { ...def, stack: def.stackMax || def.swell ? 1 : def.count ? 0 : undefined });
+  const d = addDebuff(f, u, { ...def, stack: def.stackMax || def.swell ? 1 : def.count || def.charge ? 0 : undefined });
   if (!u.debuffs.includes(d)) return null; // 주문 반사 등으로 안 걸림
   if (d.maxCut) setMax(u);
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
+  if (d.shell) { d.shellLeft = d.shell * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 단단한 껍질 (P-SHELL, 111 4-4)
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
   if (def.fx) emit(f, { type: 'fx', name: def.fx, on: u.id }); // 모자 · 춤바람 · 벌침 (그림 49 E)
   if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)

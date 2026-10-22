@@ -87,6 +87,12 @@ export interface Debuff {
   charmAt?: number;
   /** 넘치는 빛 과부하 (P-OVER): 이 사람에게 넘친 치유 × over만큼 이웃 칸 아군 피해 */
   over?: number;
+  /** 단단한 껍질 (P-SHELL, 111 4-4): 최대 체력 × shellMin (기본 0.25) 이상인 직접 힐만 막을 깎음, 작은 힐 · 지속 틱은 튕김. shellLeft = 남은 막 (체력 단위) */
+  shell?: number;
+  shellMin?: number;
+  shellLeft?: number;
+  /** 충전 (P-CHARGE, 111 4-4): 직접 힐이 들어올 때마다 1중첩 (stack), max면 방전 (본인 self · 이웃 칸 near, 마법) 뒤 0부터. 지속 힐 틱 · 광역은 안 셈 */
+  charge?: { max: number; self: number; near: number };
   /** 지속 피해 × feed만큼 보스 회복 (젊음의 갈망) */
   feed?: number;
   /** 생명 사슬 (P-LINK): 사슬 반대쪽 파티원 id. 실제 판정은 Fight.links */

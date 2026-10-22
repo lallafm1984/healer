@@ -1154,6 +1154,10 @@ export const BOSS_SKILL_OWN: Record<string, string> = {
 
 /** 예고 없이 바로 쓰는 보스 기술 → 특성 시전 소리 (boss-<특성>-cast). 키 = <대본>:<기술 key> (scripts/sfx/boss.mjs) */
 export const BOSS_CAST_SOUND: Record<string, string> = {
+  "dwijuk:shell": 'boss-frost-cast', // 111 단단한 껍질
+  "kwangkwang:shell": 'boss-shadow-cast', // 111 단단한 껍질
+  "dolgae:charge": 'boss-lightning-cast', // 111 충전
+  "dungdung:charge": 'boss-lightning-cast', // 111 충전
   "sippy52:hunt": 'boss-water-cast', // 111 탐험 50% 구간
   "queen56:ring": 'boss-nature-cast', // 111 탐험 50% 구간
   "ttemjil62:soot": 'boss-poison-cast', // 111 탐험 50% 구간

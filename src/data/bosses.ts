@@ -64,6 +64,8 @@ export type DebuffEnd =
   | { p: 'pop'; pop: number; self: number; near: number }
   /** 뒤집힘 저주 (P-FLIP, 46 5장): 지우지 않고 시간이 다 되면 체력 비율이 1 − 지금 비율로 (가장 낮아도 min, 기본 5%). 지우면 그냥 사라짐 */
   | { p: 'flip'; min?: number }
+  /** 단단한 껍질 (P-SHELL, 111 4-4): 지우지 않고 시간이 다 되면 남은 막만큼 피해 (마법, 파티 기준). 지우면 그냥 사라짐 */
+  | { p: 'crack' }
   /**
    * 넘어가는 포자 (P-PASS, 48 5장): absorb와 같이 적음. 지우면 남은 흡수 막이 체력 비율이 가장 높은 다른 아군에게 sec초로 넘어감
    * (넘어갈 사람이 없으면 사라짐). 지우지 않고 시간이 다 되면 남은 막만큼 그 사람 피해 (마법, 파티 기준)
@@ -132,6 +134,14 @@ export interface DebuffDef {
    * 막을 다 깎으면 바로 사라짐 (end 안 함), 남은 채로 시간이 다 되면 end
    */
   absorb?: number;
+  /**
+   * 단단한 껍질 (P-SHELL, 111 4-4): 치유 흡수 막인데 최대 체력 × shellMin (기본 0.25) 이상인 직접 힐만 막을 깎음. 작은 직접 힐 · 지속 힐 틱 · 광역 힐은 튕겨 아무것도 안 함.
+   * 막 = shell × 보스 피해 배율. 다 깎으면 바로 사라짐 (end 안 함), 남은 채로 시간이 다 되면 end crack (남은 막만큼 피해)
+   */
+  shell?: number;
+  shellMin?: number;
+  /** 충전 (P-CHARGE, 111 4-4): 직접 힐이 들어올 때마다 1중첩, max 중첩이면 방전 (본인 self · 이웃 칸 아군 near, 마법) 뒤 0부터. 지속 힐 틱 · 광역 힐은 안 셈 → 큰 힐 적게, 지속 힐로 */
+  charge?: { max: number; self: number; near: number };
   /** 걸릴 때 한 번 피해 (마법, 파티 기준): 완치 표식이 가득 찬 사람에게 걸려도 바로 풀리지 않게 체력을 떨어뜨림 (춤바람 · 완치 모자, 48) */
   drop?: number;
   /**
@@ -680,6 +690,12 @@ const GLASS_HOW = '뒤집는 순간의 체력으로 8초 뒤 모두 되돌아감
 const FEATHER: DebuffDef = { name: '깃털 간지럼', type: '저주', left: 10, dot: U.dps(0.02) };
 const CHAIN_HOW = '번개 구름 아래 사람에게 번개가 떨어지고, 이웃 칸 가운데 체력 비율이 가장 낮은 사람에게 튐 (튈 때마다 +25%). 튈 곳이 90% 이상이거나 보호막이면 피뢰침으로 절반만 받고 멈춤 → 예고 동안 구름 이웃을 90% 위로';
 const LIFT_HOW = '회오리가 뜬 사람이 하늘로 떠올라 그동안 새 힐 · 해제가 안 닿음 (미리 건 지속 힐 · 보호막만 남음). 예고 동안 지속 힐 · 해제, 내려오면 낙하 피해라 바로 채우기';
+/** 단단한 껍질 (P-SHELL, 111 4-4): 큰 직접 힐만 깎는 흡수 막. 공략 글과 디버프 */
+const HARD_SHELL_HOW = '최대 체력 25%를 넘는 직접 힐만 껍질을 깎음. 작은 힐 · 지속 힐 틱은 튕겨 헛됨. 큰 힐을 아꼈다 몰아서 깨기, 두면 끝날 때 남은 막만큼 피해. 마법을 지우는 직업은 지움';
+const shellOf = (name: string, x: number, left = 10): DebuffDef => ({ name, type: '마법', left, shell: U.dps(x), shellMin: 0.25, end: { p: 'crack' }, art: 'icon-gim-shell' });
+/** 충전 (P-CHARGE, 111 4-4): 직접 힐 횟수가 쌓여 방전. 공략 글과 디버프 */
+const CHARGE_HOW = '직접 힐이 들어올 때마다 1중첩, 4중첩이면 방전해 본인과 이웃 칸이 아픔. 지속 힐 · 광역 힐은 안 셈 → 큰 힐 적게 넣고 지속 힐로 버티기';
+const chargeOf = (name: string, left = 12): DebuffDef => ({ name, type: '마법', left, charge: { max: 4, self: U.dps(0.2), near: U.dps(0.1) }, art: 'icon-gim-charge' });
 /** 하늘 던지기 (탱커 띄우기, 56 4-2) 공략 글 */
 const TOSS_HOW = '보스를 맞는 탱커를 4초 하늘로. 그동안 보스는 다른 탱커를 침 (창 찌르기 중첩이 남아 있으면 아픔). 예고가 뜨면 다른 탱커를 미리 채우고, 내려온 탱커 (낙하 탱체 25%)를 바로';
 /** 쌩쌩이 번개 창 찌르기 (탱커 교대): 받는 피해 +15% 중첩 (최대 4), 4중첩이면 다른 탱커가 가져감 */
@@ -2932,6 +2948,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'chain', dmg: U.dps(0.3), jumps: 3 } },
       { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 6, period: 16, cast: 0,
         how: '2명에게 저주 (초당 피해). 드루이드만 지움. 띄워진 사람에게 걸리면 내려올 때까지 못 지움', effect: { p: 'debuff', n: 2, debuff: FEATHER } },
+      { key: 'charge', name: '충전 깃털', icon: '충전', kind: 'instant', first: 7, period: 20, cast: 0, how: CHARGE_HOW, // 111 충전 (P-CHARGE) 처음
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: chargeOf('충전 깃털') } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'gust2', in: 4 }, { p: 'period', skill: 'mill', sec: 14 },
@@ -3013,6 +3031,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'static', name: '정전기', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '3명이 받는 치유 −25% (마법). 걸린 사람은 90%까지 채우기 어려우니 번개 전에 지우기',
         effect: { p: 'debuff', n: 3, debuff: { name: '정전기', type: '마법', left: 10, healCut: 0.25 } } },
+      { key: 'charge', name: '천둥 충전', icon: '충전', kind: 'instant', first: 10, period: 24, cast: 0, how: CHARGE_HOW, // 111 충전 (P-CHARGE) 10인
+        effect: { p: 'debuff', n: 3, nMythic: 4, pick: 'others', debuff: chargeOf('천둥 충전') } },
     ],
     enrage: { name: '천둥 북 연타', period: 3, dmg: 200 },
   },
@@ -3123,6 +3143,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
           effect: { p: 'lift', sec: 5, fall: U.dps(0.15), fallMythic: U.dps(0.3) } },
       ]),
       { key: 'chalk', name: '분필 폭풍', icon: '분필', kind: 'aoe', first: 12, period: 20, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'shell', name: '얼음 껍질', icon: '껍질', kind: 'instant', first: 10, period: 24, cast: 0, how: HARD_SHELL_HOW, // 111 단단한 껍질 (P-SHELL) 처음
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: shellOf('얼음 껍질', 0.45) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'flip2', in: 3 }, { p: 'start', skill: 'levit2', in: 9 },
@@ -3144,6 +3166,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: `보스를 맞는 탱커에게서 시작. ${CHAIN_HOW}`, effect: { p: 'chain', dmg: U.dps(0.25), jumps: 5 } },
       { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 8, period: 16, cast: 0,
         how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'shell', name: '그림자 껍질', icon: '껍질', kind: 'instant', first: 10, period: 24, cast: 0, how: HARD_SHELL_HOW, // 111 단단한 껍질 (P-SHELL) 20인
+        effect: { p: 'debuff', n: 4, nMythic: 5, pick: 'others', debuff: shellOf('그림자 껍질', 0.45) } },
     ],
     enrage: { name: '성문 부수기', period: 3, dmg: 210 },
   },

@@ -286,6 +286,8 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.vuln ? `받는 피해 +${pctT(d.vuln)}${d.stackMax ? ' 중첩' : ''}` : '', d.swap ? `${d.swap}중첩이면 탱커 교대` : '',
     d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : '',
     d.swell ? `${secT(d.swell.every)}마다 1중첩 (최대 ${d.swell.max})` : '',
+    d.shell ? `단단한 껍질 <b>${n(d.shell)}</b>: 최대 체력 ${pctT(d.shellMin ?? 0.25)} 넘는 직접 힐만 깎임 (작은 힐 · 지속 틱은 튕김), 두면 끝날 때 남은 막만큼 피해` : '',
+    d.charge ? `직접 힐 ${d.charge.max}번째에 방전: 본인 <b>${n(d.charge.self)}</b> · 이웃 칸 <b>${n(d.charge.near)}</b> (지속 힐 · 광역은 안 셈)` : '',
     d.end?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(d.end.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(d.end.self)}</b> + 이웃 칸 중첩 × <b>${n(d.end.near)}</b>` : '',
     d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : '',
     d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
