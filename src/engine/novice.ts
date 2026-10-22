@@ -3,7 +3,9 @@
  * 자동 힐러 (auto.ts)는 거의 완벽하게 누른다: 시전 · GCD가 끝나는 틱에 바로 다음 스킬, 보스 기술 대기열을 읽고 강타 전에 미리 채움,
  * 기믹 공략을 다 알고, 큰 버튼을 한 번도 잊지 않는다. 처음 하는 사람은 그렇지 않다.
  * 그래서 판단 (무엇을 · 누구에게)은 자동 힐러 것을 그대로 쓰고, 그 위에 처음 하는 사람의 눈 · 머리 · 손 한계를 겹친다 (auto.ts noviceHealer).
- * 값은 NOVICE 한 곳. 근거가 있는 값과 가정값을 주석에 나눠 적었다
+ * 값은 NOVICE 한 곳. 근거가 있는 값과 가정값을 주석에 나눠 적었다.
+ * 익숙함 (2026-10-22 Lim 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」): 내 레벨 10까지는 처음 하는 사람 (NOVICE),
+ * Lv 20에서 익숙한 사람 (FAMILIAR), 사이는 직선 (noviceAt). noviceHealer는 판의 내 레벨로 그 사람을 씀
  */
 import { SKILLS, type SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
@@ -60,6 +62,40 @@ export const NOVICE: NoviceOpts = {
   tactics: false,
 };
 
+/**
+ * 익숙한 사람: 길잡이 길로 Lv 20쯤 (70 4장, 70판 남짓 · 8일째). 연습하면 고르는 기울기가 크게 준다 (Hick 기울기는 연습으로 수십 ms/bit까지),
+ * 엄지 길도 익는다 (가정값). 대기열 · 기믹 공략은 탐험 미리보기 · 일시정지 공략으로 안다. 그래도 숙련 자동 힐러 (시간 0 · 실수 0)보다는 느리다
+ */
+export const FAMILIAR: NoviceOpts = {
+  react: 0.2,
+  pick: 0.06,
+  tap: 0.2,
+  spread: 0.25,
+  lapse: { every: 60, min: 0.5, max: 1.5 },
+  see: 0.04,
+  misTap: 0.02,
+  notice: 0.8,
+  recall: 0.85,
+  recallWin: 4,
+  queue: true,
+  tactics: true,
+};
+/** 익숙함이 붙는 내 레벨: from까지 처음 하는 사람, to부터 익숙한 사람 */
+export const FAMILIAR_LV = { from: 10, to: 20 };
+/** 익숙함 0 (처음) ~ 1 (익숙) */
+export const familiarity = (lv: number) => Math.max(0, Math.min(1, (lv - FAMILIAR_LV.from) / (FAMILIAR_LV.to - FAMILIAR_LV.from)));
+/** 그 레벨 사람: 숫자는 처음 → 익숙 사이 직선, 대기열 · 기믹 공략은 사람마다 (seed) 익숙함 확률로 앎 */
+export function noviceAt(lv: number, seed = 1): NoviceOpts {
+  const k = familiarity(lv), N = NOVICE, F = FAMILIAR, mix = (a: number, b: number) => a + (b - a) * k;
+  const r = rngFrom(Math.imul(seed >>> 0, 0x5f356495) ^ 0x2545f491), q = r(), t = r();
+  return {
+    react: mix(N.react, F.react), pick: mix(N.pick, F.pick), tap: mix(N.tap, F.tap), spread: mix(N.spread, F.spread),
+    lapse: { every: mix(N.lapse.every, F.lapse.every), min: mix(N.lapse.min, F.lapse.min), max: mix(N.lapse.max, F.lapse.max) },
+    see: mix(N.see, F.see), misTap: mix(N.misTap, F.misTap), notice: mix(N.notice, F.notice), recall: mix(N.recall, F.recall), recallWin: N.recallWin,
+    queue: k > 0 && q < k, tactics: k > 0 && t < k,
+  };
+}
+
 /** 미뤄 둔 행동 (자동 힐러가 고른 첫 행동) */
 export type NoviceAct = { kind: 'skill'; k: SkillKey; cell: number } | { kind: 'talent'; k: TalentKey; cell?: number };
 
@@ -87,11 +123,11 @@ export interface Novice {
 }
 
 const states = new WeakMap<Fight, Novice>();
-/** 판마다 하나 (같은 시드면 같은 사람: 엔진 난수와 따로 굴림) */
+/** 판마다 하나 (같은 시드면 같은 사람: 엔진 난수와 따로 굴림). 기본은 판의 내 레벨 사람 (noviceAt) */
 export function noviceOf(f: Fight, opts?: Partial<NoviceOpts>): Novice {
   let n = states.get(f);
   if (n) return n;
-  const o = { ...NOVICE, ...opts };
+  const o = { ...noviceAt(f.level, f.cfg.seed || 1), ...opts };
   const rng = rngFrom(Math.imul((f.cfg.seed || 1) >>> 0, 0x2c1b3c6d) ^ 0x7f4a7c15);
   n = { o, rng, intent: null, due: 0, pick: null, awayUntil: 0, nextLapse: 0, seen: new Map(), recalled: new Map(), err: new Map(), last: null, stats: { presses: 0, misTaps: 0, lapses: 0, fails: 0, switches: 0 } };
   n.nextLapse = f.t + expo(n, o.lapse.every);

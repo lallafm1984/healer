@@ -10,8 +10,9 @@
  * 받는 피해가 치유 한 번 크기로 분당 BUSY번이 안 되면 피해 배율을 올림 (클리어율이 목표값 아래로 가지 않는 만큼만).
  * 순차 레벨링 구간 (70, 장소 Lv 20까지) 어려움 · 악몽은 권장 장비 대신 그 난이도가 처음 열린 플레이어의 레벨 · 드롭 장비 (sim/ramp, 2026-10-13 Lim
  * 「Lv 1 어려움이 자동 힐로 안 깨짐」: 권장 장비로는 녹슨 고원 어려움 80%, 실제 Lv 3 · 장비 1~2개로는 3%).
- * 초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안): 순차 레벨링 구간 쉬움 · 보통은 처음 하는 사람 (사제, 길의 레벨 · 드롭 장비)의 클리어율이
- * 초보 목표 (NOVICE_TARGET, 튜토리얼 판 TUT_TARGET) 아래로 가는 피해 배율을 쓰지 않는다. 숙련 목표 · 바쁨 하한보다 먼저 (그 배율보다 높으면 내림).
+ * 초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안 · 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」): 순차 레벨링 구간 길의 칸
+ * (쉬움 · 보통, Lv 10 ~ 20은 어려움도)은 그 레벨 사람 (사제, 길의 레벨 · 드롭 장비, Lv 10까지 처음 → Lv 20 익숙)의 클리어율이
+ * 초보 목표 (장소 Lv 10까지 A안 · 그 뒤 B안, 튜토리얼 판 TUT_TARGET) 아래로 가는 피해 배율을 쓰지 않는다. 숙련 목표 · 바쁨 하한보다 먼저 (그 배율보다 높으면 내림).
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
@@ -213,9 +214,8 @@ export interface Row {
 
 /** 초보 하한 판 수 (사제, 시드 1 ~ n: npm run sim:novice 기본과 같음) */
 export const NOVICE_N = 40;
-/** 초보 하한을 보는 칸 (순차 레벨링 구간 쉬움 · 보통, sim/novice 칸) */
-export const noviceCellOf = (c: ContentDef, d: DiffName): NoviceCell | null =>
-  d === '쉬움' || d === '보통' ? noviceCells([d]).find(x => x.c.key === c.key && x.d === d) ?? null : null;
+/** 초보 하한을 보는 칸 (순차 레벨링 구간 길의 난이도: 쉬움 · 보통, Lv 10 ~ 20은 어려움도, sim/novice 칸) */
+export const noviceCellOf = (c: ContentDef, d: DiffName): NoviceCell | null => noviceCells([d]).find(x => x.c.key === c.key && x.d === d) ?? null;
 /** 배율 → 처음 하는 사람 클리어율 (잰 값은 기억) */
 function noviceProbe(x: NoviceCell, base: Tune, n: number) {
   const seen = new Map<number, number>(), target = noviceTarget(x)!;

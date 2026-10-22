@@ -18,7 +18,7 @@ import type { Tune } from '../data/tune';
 import { autoHealer, noviceHealer } from '../engine/auto';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
-import { noviceOf, type NoviceOpts } from '../engine/novice';
+import { noviceAt, noviceOf, type NoviceOpts } from '../engine/novice';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { DUO_PARTY } from '../game/tutorial';
 import { rampPlayer } from './ramp';
@@ -27,10 +27,12 @@ import { rampPlayer } from './ramp';
 export type Pilot = 'novice' | 'expert';
 
 /**
- * 초보 목표 클리어율 (%): 이보다 낮으면 「초보에게 어려움」. 2026-10-22 첫 제안 (B안, Lim 확인 전).
- * 튜토리얼 판은 따로 (TUT_TARGET): 처음 두 판에서 지면 바로 그만둘 수 있음
+ * 초보 목표 클리어율 (%): 이보다 낮으면 「초보에게 어려움」. 2026-10-22 Lim 「추천대로」 (B안), 같은 날 「레벨 10까지 쉽게」로 장소 Lv EARLY_LV까지는 A안 (NOVICE_TARGET_EARLY).
+ * 튜토리얼 판은 따로 (TUT_TARGET): 처음 두 판에서 지면 바로 그만둘 수 있음. 재는 사람은 그 칸에 들어가는 내 레벨의 사람 (engine/novice noviceAt: Lv 10까지 처음, Lv 20 익숙)
  */
 export const NOVICE_TARGET: Partial<Record<DiffName, number>> = { '쉬움': 90, '보통': 75, '어려움': 50 };
+export const NOVICE_TARGET_EARLY: Partial<Record<DiffName, number>> = { '쉬움': 95, '보통': 85, '어려움': 60 };
+export const EARLY_LV = 10;
 export const TUT_TARGET = 95;
 
 /** 검사하는 칸 하나 (tutorial = 첫 전투, tut = 튜토리얼 판으로 하는 녹슨 고원 쉬움) */
@@ -74,7 +76,8 @@ export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pil
   const affixes = c.kind === 'dungeon' ? diffAffixes(d, stageLv) : [];
   const talents = TALENTS.map(t => (t.lv <= rp.lv ? seed % 3 : null));
   const out: NoviceRun = { win: false, time: 0, reason: '', lv: rp.lv, gear: Object.keys(rp.eq).length, presses: 0, misTaps: 0, lapses: 0, fails: 0 };
-  const healer = pilot === 'novice' ? (f: Fight) => noviceHealer(f, opts) : autoHealer;
+  const who = { ...noviceAt(rp.lv, seed), ...opts }; // 한 판 내내 같은 사람 (구간마다 시드가 달라도)
+  const healer = pilot === 'novice' ? (f: Fight) => noviceHealer(f, who) : autoHealer;
   let carry: Carry | undefined;
   for (let i = 0; i < segs.length; i++) {
     const f = create({
@@ -116,4 +119,4 @@ export function measureNovice(x: NoviceCell, hero: HeroKey, n: number, pilot: Pi
 }
 
 /** 이 칸의 초보 목표 (없으면 null = 검사 안 함) */
-export const noviceTarget = (x: NoviceCell): number | null => (x.c.key === 'tutorial' || x.tut ? TUT_TARGET : NOVICE_TARGET[x.d] ?? null);
+export const noviceTarget = (x: NoviceCell): number | null => (x.c.key === 'tutorial' || x.tut ? TUT_TARGET : (x.c.stageLv <= EARLY_LV ? NOVICE_TARGET_EARLY : NOVICE_TARGET)[x.d] ?? null);
