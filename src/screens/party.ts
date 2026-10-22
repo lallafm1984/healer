@@ -14,7 +14,7 @@ import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, guildNicks, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, savePick, slotsOf, togglePick } from '../game/guild';
+import { autoPick, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, recruitExclude, savePick, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -66,7 +66,7 @@ function roll(): void {
   openRow = -1;
   // 공개모집 파티원도 능력 1개 (17 3장). 튜토리얼 파티는 능력 없음
   // 97 FM: 칸 레벨 ±1인 모험가. 길드원은 공개모집에 안 나옴 (93 7-2)
-  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage, exclude: guildNicks(G.save) });
+  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage, exclude: recruitExclude(G.save) }); // 길드원 · 공고 지원자는 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」)
 }
 
 /** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */
