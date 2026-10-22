@@ -3,7 +3,7 @@
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
  *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 판매):
  *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
- *  오른쪽 나무 팻말 = 마을 건물: 상점 · 행상인 (106, 미확인 장비). 레이드 · 대장간 팻말은 2026-10-21 Lim 「로비 화면에서 우측에 레이드, 대장간 제거, 잡화점은 상점으로」로 뺐다
+ *  오른쪽 원형 문장 = 마을 건물: 상점 · 행상인 (2026-10-22 Lim 시안 1). 레이드 · 대장간 팻말은 2026-10-21 Lim 「로비 화면에서 우측에 레이드, 대장간 제거, 잡화점은 상점으로」로 뺐다
  *  (레이드는 전투 탭, 장비 정리 · 판매는 캐릭터 탭). 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
  *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
@@ -151,9 +151,9 @@ function toAdventure(to: { content: ContentKey; diff: DiffName }): void {
 function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
   return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><span class="lb-caption"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>${extra}</div>`;
 }
-/** 나무 팻말 버튼: 그림 + 이름 (+ 상태 줄, 없으면 이름만) */
-const plate = (cls: string, attrs: string, icon: string, name: string, lines: string[], extra = '') =>
-  `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc([name, ...lines].join(' · '))}">${icon}<span class="lb-pt"><b>${name}</b>${lines.length ? `<span>${lines.map(line => `<span>${line}</span>`).join('')}</span>` : ''}</span>${chevron()}${extra}</button>`;
+/** 원형 문장 + 짙은 목재 명패 (2026-10-22 Lim 시안 1). 이름·잠금 문구는 실제 UI 글자로 유지한다. */
+const commerceEmblem = (cls: string, attrs: string, image: string, name: string, lines: string[] = []) =>
+  `<button type="button" class="lb-plate lb-emblem ${cls}"${attrs} aria-label="${esc([name, ...lines].join(' · '))}"><img class="lb-emblem-art" src="${art(image)}" alt="" aria-hidden="true" decoding="async" draggable="false"><span class="lb-pt"><b>${name}</b>${lines.length ? `<span>${lines.map(line => `<span>${line}</span>`).join('')}</span>` : ''}</span></button>`;
 
 /** 오늘 받을 것: 임무 (일일 · 주간) + 일일 상자 (임무 5개를 다 받으면, 놓친 날 2일까지) */
 function today() {
@@ -189,7 +189,7 @@ function chalSock(): string {
  * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」). 시즌 패스 (예전 빨간 숫자) · 공훈은 2026-10-20 Lim이 없앰
  */
 function shopPlate(): string {
-  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '상점', [], '');
+  return commerceEmblem('lb-shop', ' data-go="s-shop" data-arg="cash"', 'lobby-shop-emblem-v1', '상점');
 }
 
 /**
@@ -199,7 +199,7 @@ function shopPlate(): string {
  */
 function merchantPlate(): string {
   const o = merchantOffer(G.save);
-  return plate(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', gameIcon('merchant', uiIcon('shop')), '행상인',
+  return commerceEmblem(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', 'lobby-merchant-emblem-v1', '행상인',
     o.open ? [] : [`Lv ${MERCHANT.lv}부터`]); // 「미확인 장비」 줄은 2026-10-22 Lim 「행상인 메뉴에서 "미확인 장비" 제거」로 뺌, 잠겼을 때만 한 줄
 }
 

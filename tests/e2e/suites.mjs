@@ -19,6 +19,7 @@ import gear from './gear.mjs';
 import guild from './guild.mjs';
 import guildExt from './guild-ext.mjs';
 import shop from './shop.mjs';
+import missionsUI from './missions-ui.mjs';
 import challenge from './challenge.mjs';
 import heroes from './heroes.mjs';
 import legacyUi from './legacy-ui.mjs';
@@ -92,6 +93,7 @@ export const SUITES = [
   ['길드', guild, 8], // 2026-10-18 길드를 다시 켬 (꺼 두면 guild-off.mjs)
   ['길드 업데이트 (시설 · 부탁 · 원정)', guildExt, 8], // 어림 (93 업데이트 묶음)
   ['재화·임무·상점', shop, 14],
+  ['임무 시안·탭·모바일', missionsUI, 70],
   ['성장·주간 도전·실패 정산', challenge, 29],
   ['자동 치유 (개발)', devauto, 13],
   ['장소마다 입장 → 결과', places, 996, 4],
