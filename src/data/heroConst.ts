@@ -118,23 +118,25 @@ export const WARDER = {
   circle: { sec: 10 },
   shieldCap: 0.6,
   /** 수호 결계 (82): 받는 피해 −40% → 대상 최대 체력 hp만큼 보호막 + 인장 */
-  guard: { hp: 0.3, sec: 8 },
+  guard: { hp: 0.5, sec: 8 }, // 보호막 30 → 50% (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」)
   /** 빛의 장막 (82): 범위 피해 감소 → 파티 전원 보호막 (SKILLS.lightVeil.amt) + 인장, sec초. 장막의 숨 · 함께 드는 짐은 쓴 뒤 after초 */
   veil: { sec: 12, after: 10 },
   /** 결계 굳히기 (빛의 창 대신, 84): 내 보호막 남은 시간 + 초 (두께는 SKILLS.wardHold.amt) */
   hold: { ext: 8 },
   judge: { n: 6 },
-  broken: 80,
+  broken: 120, // 깨진 막의 빛 80 → 120 (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」)
   price: { n: 4, mana: 2 },
   /** 20인 레이드 보정 (드루이드 들꽃 군락처럼): 심판 회복 인원 · 결계 원 범위 +칸 */
-  big: { judge: 6, circle: 0 }, // 결계 원 20인 +칸: 2026-10-19 Lim 「결계 원은 1칸까지」 1 → 0
+  big: { judge: 4, circle: 0 }, // 결계 원 20인 +칸: 2026-10-19 Lim 「결계 원은 1칸까지」 1 → 0. 심판 6 → 4명 (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 인장 치유 · 수호 결계를 올리며 20인만 넘쳐서)
   /** 레이드 보정: 심판 회복 인원 (10인) */
   raid: { judge: 4 },
   /** 5인 던전 보정: 심판 회복 인원 */
-  five: { judge: 3 },
+  five: { judge: 4 }, // 3 → 4 (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」)
 };
 
 /** 심판 회복 인원 문장 (스킬 · 직업 설명 공통, 84) */
-export const judgeText = (): string => WARDER.five.judge === WARDER.raid.judge
+export const judgeText = (): string => WARDER.five.judge === WARDER.raid.judge && WARDER.raid.judge === WARDER.big.judge
+  ? `${WARDER.five.judge}명`
+  : WARDER.five.judge === WARDER.raid.judge
   ? `${WARDER.five.judge}명 (20인 레이드 ${WARDER.big.judge}명)`
   : `${WARDER.five.judge}명 (10인 레이드 ${WARDER.raid.judge}명, 20인 레이드 ${WARDER.big.judge}명)`;

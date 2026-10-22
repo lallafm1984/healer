@@ -1075,6 +1075,8 @@ function autoWarder(f: Fight): void {
   // 탱커 버스터: 막이 없거나 얇으면 빛의 막
   if (c.busterOn && !melt && ready('lightBarrier') && shieldLow(c.busterOn) && tryUse(f, 'lightBarrier', c.busterOn, idx)) return;
   if (c.busterOn && !melt && ready('guardWard') && pct(c.busterOn) < 0.5 && tryUse(f, 'guardWard', c.busterOn, idx)) return;
+  // 3인 판 (탐험): 탱커가 반 밑이면 강타 예고가 없어도 수호 결계 (큰 보호막) — 빛의 막이 얇아진 뒤 탱커 한 방을 받을 즉시 막 (2026-10-22 Lim 「결계사 스킬을 끌어 올리자」)
+  { const tk = live.length <= 3 ? live.find(v => v.role === 'tank' && pct(v) < 0.5) : undefined; if (tk && !melt && ready('guardWard') && tryUse(f, 'guardWard', tk, idx)) return; }
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
   if (g.pre && ((!melt && ready('lightBarrier') && shieldLow(g.pre) && tryUse(f, 'lightBarrier', g.pre, idx)) || one(g.pre, false))) return;
   { const d = g.liftClean[0]; if (d && ready('wardCleanse') && tryUse(f, 'wardCleanse', d, idx)) return; }
