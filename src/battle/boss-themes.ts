@@ -4,6 +4,8 @@
  * 소리 문장은 scripts/sfx/boss.mjs. 표에 없는 기술 (새로 더한 기술)은 공통 착탄 (battle/combat-sound.ts impactSound)
  */
 export const BOSS_SKILL_SOUND: Record<string, string> = {
+  "baseurak74:scroll": 'boss-projectile-hit', // 두루마리 미라 사서 바스락 탐험판 · 신기루 두루마리 (111)
+  "hwiparam82:snatch": 'boss-wind-hit', // 하피 교관 휘파람 탐험판 · 발톱 낚아채기 (111)
   "baseurak:scroll": 'boss-projectile-hit', // 두루마리 미라 사서 바스락 · 신기루 두루마리 (111)
   "mimic:thorns": 'boss-metal-wave', // 보물 상자 덥석이 · 가시 돋친 상자 (111)
   "beonjjeok:thorns": 'boss-metal-wave', // 코볼트 대장 번쩍이 · 가시 금화 갑옷 (111)
