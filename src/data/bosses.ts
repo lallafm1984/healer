@@ -4890,6 +4890,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'all', dmg: 150, debuff: { name: '책 먼지', type: '질병', left: 8, dot: 8 } } },
       ...spots('shelf', '책장 무너짐', '책장', 1, 12, 16, 180),
       { ...spots('shelf', '책장 무너짐', '책장', 2, 12, 16, 180)[1], first: null, when: { phase: [2] } },
+      { key: 'scroll', name: '신기루 두루마리', icon: '두루', kind: 'buster', first: 14, period: 20, cast: 2.5, warn: 'buster', target: { p: 'random', n: 1 }, mirage: { n: 1 }, // 111 9장: 겹침 풀기 (던전판 예습)
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: 150 } },
     ],
     flow: [half('서고가 흔들림: 책장 두 곳', { start: ['shelf1'] })],
     hard: { skill: 'wrap', period: 0.85 }, // 111 어려움 변화: 붕대 감기 더 자주
@@ -5009,6 +5011,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'lift', sec: 5, fall: 160 } },
       { key: 'curse', name: '깃털 저주', icon: '깃털', kind: 'instant', first: 6, period: 14, cast: 0,
         effect: { p: 'debuff', n: 1, debuff: { ...FEATHER, dot: 22 } } },
+      { key: 'snatch', name: '발톱 낚아채기', icon: '낚아', kind: 'buster', first: 16, period: 22, cast: 2, warn: 'buster', target: { p: 'back', n: 1 }, // 111 9장: 겹침 풀기 (10인 휘리릭과 갈라짐)
+        how: '뒷줄 한 명을 낚아채 4초 동안 평타를 나눠 맞게 함. 끌려온 사람을 먼저', effect: { p: 'pull', sec: 4, dmg: 60 } },
     ],
     flow: [half('훈련 강도 올림: 띄우기 · 저주가 잦아짐', { period: [['lift', 15], ['curse', 10]] })],
     hard: { skill: 'curse', period: 0.85 }, // 111 어려움 변화: 깃털 저주 더 자주
