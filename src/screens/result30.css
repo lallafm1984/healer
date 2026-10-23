@@ -89,7 +89,6 @@
 .r-segs li + li::before { content: ''; position: absolute; right: 100%; top: 50%; width: 14px; height: 2px; margin-right: 2px; background: var(--edge-dim); }
 .r-segs li.ok { border-color: var(--heal); color: var(--heal); }
 .r-segs li.x { border-color: #E0402F; background: #3A1512; color: #FF8A80; }
-#s-settle .f-warn { animation: rup 0.3s ease-out both; }
 
 /* ---------- 알림 줄 (누르면 그 화면) ---------- */
 .r-notes { display: flex; flex-direction: column; gap: 6px; animation: rup 0.35s 0.45s ease-out both; }
