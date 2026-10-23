@@ -3355,7 +3355,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ]),
       { key: 'chalk', name: '분필 폭풍', icon: '분필', kind: 'aoe', first: 12, period: 20, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
       { key: 'shell', name: '얼음 껍질', icon: '껍질', kind: 'instant', first: 10, period: 24, cast: 0, how: HARD_SHELL_HOW, // 111 단단한 껍질 (P-SHELL) 처음
-        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: shellOf('얼음 껍질', 0.45) } },
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: shellOf('얼음 껍질', 0.35) } },
     ],
     flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'flip2', in: 3 }, { p: 'start', skill: 'levit2', in: 9 },
@@ -3379,7 +3379,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 8, period: 16, cast: 0,
         how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
       { key: 'shell', name: '그림자 껍질', icon: '껍질', kind: 'instant', first: 10, period: 24, cast: 0, how: HARD_SHELL_HOW, // 111 단단한 껍질 (P-SHELL) 20인
-        effect: { p: 'debuff', n: 4, nMythic: 5, pick: 'others', debuff: shellOf('그림자 껍질', 0.45) } },
+        effect: { p: 'debuff', n: 4, nMythic: 5, pick: 'others', debuff: shellOf('그림자 껍질', 0.35) } },
     ],
     hard: { skill: 'touch', n: 1 }, // 111 어려움 변화: 그림자 손길 인원 +1
     enrage: { name: '성문 부수기', period: 3, dmg: 210 },
