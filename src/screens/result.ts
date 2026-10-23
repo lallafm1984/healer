@@ -7,7 +7,7 @@ import { STAT_NAMES } from '../data/fm';
 import { EXPED, guildLvOf, REQ } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
-import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
+import { GRADE_STYLE, kindOf, qualityOf, slotName, type ItemGrade } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
 import { EXPLORE_DROP, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { levelUpMilestones } from '../data/milestones';
@@ -64,7 +64,7 @@ function render(): void {
     <div class="ns-body res">
       ${head(r, x, c.key, c.name)}
       ${tipHtml(r, x)}
-      ${won ? lootHtml(r, x, anim, fameAnim) : loseHtml(r, x)}
+      ${won ? lootHtml(r, x, anim, fameAnim) : loseHtml(r)}
       ${notesHtml(x)}
       ${recordHtml(r, !won)}
     </div>
@@ -297,25 +297,18 @@ function playGuildFame(root: HTMLElement, x: Settlement): void {
   }, FAME_FX.start);
 }
 
-/** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
-function loseHtml(r: BattleResult, x: Settlement): string {
+/**
+ * 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력)만. 진 판은 경험치 없음 (2026-10-13 Lim).
+ * 원인 줄 (해제 놓침 · 마나 바닥 · 장비가 권장보다 낮음)은 없다 (2026-10-23 Lim 「원인같은 항목 제거」). 다시 넣지 않는다
+ */
+function loseHtml(r: BattleResult): string {
   if (r.quit) return '';
   const names = r.segNames || [];
   // 구간 길: 점 (✓ 깸 · ✕ 여기서 짐) 아래 구간 이름
   const dots = r.segN > 1 ? `<ol class="r-segs" aria-hidden="true">${Array.from({ length: r.segN }, (_, i) => `<li class="${i < r.segIdx ? 'ok' : i === r.segIdx ? 'x' : ''}"><i>${i < r.segIdx ? '✓' : i === r.segIdx ? '✕' : i + 1}</i>${names[i] ? `<small>${esc(names[i])}</small>` : ''}</li>`).join('')}</ol>` : '';
   const where = r.segN > 1 ? `${r.segIdx + 1}구간${names[r.segIdx] ? ` ${esc(names[r.segIdx])}` : ''}` : esc(names[0] || '보스');
   const left = r.left ? ` · ${r.left.mobs ? '적' : '보스'} 체력 <b>${r.left.pct}%</b> 남음` : '';
-  const hints: string[] = [];
-  // 힌트는 걸린 것만 (편성 화면 경고 줄과 같은 모양)
-  const warn = (v: string, btn = '') => `<p class="f-warn"><i class="f-mark warn" aria-hidden="true">!</i><span class="v">${v}</span>${btn}</p>`;
-  if (r.dispellable && r.dispels < r.dispellable) hints.push(warn(`해제 놓침 <b class="f-g">${r.dispellable - r.dispels}</b> / ${r.dispellable}`));
-  if (r.minMana <= 10) hints.push(warn(`마나 바닥 <span class="cap">최저 ${r.minMana}%</span>`));
-  const rec = recommendedFor(contentOf(r.content), r.diff);
-  // 「장비」는 금빛 (2026-10-13 Lim 첨부1): 공통 메뉴 버튼 한 벌 (menu-buttons.css, 10-19)에서 금빛 = hot
-  if (rec && avgScore(G.save.gear.equipped, G.save.player.level) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2 hot" type="button" data-go="s-char" data-arg="gear">장비</button>'));
-  return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
-    ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}
-`;
+  return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>`;
 }
 
 /** 알림 줄 (누르면 그 화면): 길드원 · 직업 퀘스트 · 임무 */

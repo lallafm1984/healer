@@ -89,12 +89,10 @@ export default async function devices(url, shots) {
     ok(gu.parent === 'stage' && gu.edge <= 1 && gu.dy <= 1 && gu.straddles && gu.w >= 44 && gu.healAvailable && gu.hit && /ui-give-up-wall-sign/.test(gu.bg) && gu.hint && after.h === before.h && after.top === before.top,
       `${tag}: 탱커 전멸 포기 버튼 = 적 예고 하단 선에 중심 정렬 · 누르는 칸 44 · 치유 스킬 유지 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
     await page.screenshot({ path: `${shots}/device_giveup_${width}x${height}.png` });
-    // 포기 → 결과 (전멸): 「장비가 권장보다 낮음」 줄의 「장비」 버튼은 나무결 아닌 금빛 (2026-10-13 Lim 첨부1, 10-19부터 공통 메뉴 버튼 금빛 = .hot, 글자 #2a1d08)
+    // 포기 → 결과 (전멸): 원인 줄 (해제 놓침 · 마나 바닥 · 장비가 권장보다 낮음)은 없음 (2026-10-23 Lim 「원인같은 항목 제거」), 진 곳 줄은 그대로
     await page.click('#giveUp'); await page.click('#confirmApply'); await page.clock.runFor(300);
-    const gearBtn = page.locator('#s-settle .f-warn [data-arg="gear"]');
-    const gbg = await gearBtn.evaluate(el => { const st = getComputedStyle(el); return { bg: st.backgroundImage, color: st.color, h: el.getBoundingClientRect().height }; });
-    ok(/장비가 권장/.test(await page.textContent('#s-settle .f-warns')) && /gradient/.test(gbg.bg) && !/url\(/.test(gbg.bg) && gbg.color === 'rgb(42, 29, 8)' && gbg.h >= 44 - .1,
-      `${tag}: 전멸 결과 「장비」 버튼 금빛 (나무결 아님) ${JSON.stringify({ ...gbg, bg: gbg.bg.slice(0, 24) })}`);
+    ok((await page.locator('#s-settle .f-warn').count()) === 0 && !/해제 놓침|마나 바닥|장비가 권장/.test(await page.textContent('#s-settle')) && await page.isVisible('#s-settle .r-prog'),
+      `${tag}: 전멸 결과에 원인 줄 없음 · 진 곳 줄은 있음`);
     await page.screenshot({ path: `${shots}/device_lose_${width}x${height}.png` });
     await page.click('#again'); await entryGo(page); await page.clock.runFor(3100 + 300);
     ok(await page.isHidden('#giveUp'), `${tag}: 다시 도전하면 포기 버튼 없음`);
