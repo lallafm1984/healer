@@ -257,6 +257,11 @@ export function designMeasure(c: ContentDef, d: DiffName, base: Tune, n = FAMILI
  * 이 값 아래면 띠 아래 선을 넘지 않는 만큼 피해 배율을 올림. 기믹을 더해도 자동 밸런스가 피해를 내려 한가한 칸 (심연의 탑 · 판단 던전)이 그대로라서
  */
 export const DESIGN_BUSY: Partial<Record<DiffName, number>> = { '보통': 15 };
+/**
+ * 바쁨 하한에서 뺀 장소 (2026-10-23 Lim 「추천데로」, 111 8-4): 하한으로 올리자 가상 사용자 (길잡이를 따라 적보다 1 ~ 2레벨 낮게 · 장비도 덜 갖추고 들어감) 보통 진 판이
+ * 20% 넘게 올라 (장원 36 → 58%) 올리기 전과 뒤의 가운데 배율을 손으로 둠. 띠 안이면 그대로 두고, 띠 밖이면 예전처럼 띠만 맞춤
+ */
+export const DESIGN_BUSY_SKIP = new Set(['mossroot', 'archive', 'manor', 'frost', 'fountain', 'lily']);
 /** 바쁨 하한까지 올린 배율: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지), 띠 아래 선을 넘으면 그 사이를 좁힘 */
 export function designBusyDmg(m: (dmg: number) => FamiliarMeasure, floor: number, dmg: number, min: number): number {
   let ok = dmg;
@@ -281,7 +286,7 @@ export function designDmg(rate: (dmg: number) => number, d: DiffName, curDmg: nu
 }
 function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, cur: Tune | null): Row {
   const base = cur ?? {}, curDmg = base.dmg ?? 1, tg = designTarget({ c, d }), dm = designMeasure(c, d, base), rate = (x: number) => dm(x).rate;
-  const before = rate(curDmg), floor = DESIGN_BUSY[d];
+  const before = rate(curDmg), floor = DESIGN_BUSY_SKIP.has(c.key) ? undefined : DESIGN_BUSY[d];
   const idle = floor != null && before >= tg.min && before <= tg.max && dm(curDmg).busy < floor - 0.5; // 띠 안인데 바쁨 하한 아래
   const verdict: Verdict = before < tg.min ? 'hard' : before > tg.max ? 'easy' : idle ? 'idle' : 'ok';
   const busy = floor != null ? { before: dm(curDmg).busy, after: dm(curDmg).busy, floor } : undefined;
