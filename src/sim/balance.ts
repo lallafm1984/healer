@@ -29,7 +29,7 @@ import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
 import { rampPlace } from '../data/progression';
-import { designTarget, measureFamiliar } from './familiar';
+import { designTarget, measureFamiliar, type FamiliarMeasure } from './familiar';
 import { measureNovice, noviceCells, noviceTarget, type NoviceCell } from './novice';
 import { rampLevel, rampPlayer, usesRamp, type RampPlayer } from './ramp';
 
@@ -197,7 +197,7 @@ export function placeTune(t: TuneTable, c: ContentDef, d: DiffName): Tune | null
   return same ? { ...vals[0] } : null;
 }
 
-export type Verdict = 'ok' | 'easy' | 'hard';
+export type Verdict = 'ok' | 'easy' | 'hard' | 'idle';
 export const verdictOf = (d: DiffName, rate: number, c?: ContentDef): Verdict => { const t = targetOf(c, d); return rate < t.min ? 'hard' : rate > t.max ? 'easy' : 'ok'; };
 
 export interface Row {
@@ -214,7 +214,7 @@ export interface Row {
   /** 하한 칸 (초보 · 익숙한 사람): 클리어율 (지금 배율 · 쓴 배율), 목표, 하한으로 내렸는지 */
   novice?: { before: number; after: number; target: number; capped: boolean };
   /** 레벨 디자인 칸 (Lv 21 ~ 100 · 레이드): 그 레벨 사람 · 중간 등급 장비 클리어율 (지금 배율 · 쓴 배율)과 띠 */
-  design?: { before: number; after: number; min: number; max: number; aim: number };
+  design?: { before: number; after: number; min: number; max: number; aim: number; busy?: { before: number; after: number; floor: number } };
 }
 
 /** 초보 하한 판 수 (사제, 시드 1 ~ n: npm run sim:novice 기본과 같음) */
@@ -244,8 +244,32 @@ export function floorProbe(c: ContentDef, d: DiffName, base: Tune): FloorProbe |
 export const designCell = (c: ContentDef) => balanceable(c) && !rampPlace(c);
 /** 배율 → 그 레벨 사람 · 중간 등급 장비 클리어율 (잰 값은 기억) */
 export function designRate(c: ContentDef, d: DiffName, base: Tune, n = FAMILIAR_N): (dmg: number) => number {
-  const seen = new Map<number, number>(), x = { c, d };
-  return dmg => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, n, 'familiar', BASE_HEROES, { ...base, dmg }).rate); return seen.get(dmg)!; };
+  const m = designMeasure(c, d, base, n);
+  return dmg => m(dmg).rate;
+}
+/** 배율 → 그 레벨 사람 · 중간 등급 장비 측정 (클리어율 · 바쁨, 잰 값은 기억) */
+export function designMeasure(c: ContentDef, d: DiffName, base: Tune, n = FAMILIAR_N): (dmg: number) => FamiliarMeasure {
+  const seen = new Map<number, FamiliarMeasure>(), x = { c, d };
+  return dmg => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, n, 'familiar', BASE_HEROES, { ...base, dmg })); return seen.get(dmg)!; };
+}
+/**
+ * 레벨 디자인 바쁨 하한 (2026-10-23 Lim 「추천으로 작업」, 111 8장 공통 ④): 보통에서 그 레벨 사람 · 중간 등급 장비의 바쁨 (받는 피해 ÷ 치유 한 번, 분당)이
+ * 이 값 아래면 띠 아래 선을 넘지 않는 만큼 피해 배율을 올림. 기믹을 더해도 자동 밸런스가 피해를 내려 한가한 칸 (심연의 탑 · 판단 던전)이 그대로라서
+ */
+export const DESIGN_BUSY: Partial<Record<DiffName, number>> = { '보통': 15 };
+/** 바쁨 하한까지 올린 배율: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지), 띠 아래 선을 넘으면 그 사이를 좁힘 */
+export function designBusyDmg(m: (dmg: number) => FamiliarMeasure, floor: number, dmg: number, min: number): number {
+  let ok = dmg;
+  for (let i = 0; i < 3 && m(ok).busy < floor - 0.5; i++) {
+    const want = Math.ceil(ok * (floor / Math.max(1, m(ok).busy)) * 100) / 100;
+    if (want - ok < 0.015) break;
+    if (m(want).rate >= min) { ok = want; continue; }
+    let lo = ok, hi = want;
+    for (let j = 0; j < 5 && hi - lo > 0.015; j++) { const mid = Math.round(((lo + hi) / 2) * 100) / 100; if (mid <= lo || mid >= hi) break; if (m(mid).rate >= min) lo = mid; else hi = mid; }
+    ok = lo;
+    break;
+  }
+  return ok;
 }
 /** 레벨 디자인 배율 위 끝: 숙련 찾기 (HI 3)로는 늦은 탐험이 3배에서도 너무 쉬워서 (바람개비 언덕 · 물빛 정원 어려움 92%) 더 열어 둠 */
 export const DESIGN_HI = 6;
@@ -256,12 +280,16 @@ export function designDmg(rate: (dmg: number) => number, d: DiffName, curDmg: nu
   return findDmg(rate, tg.aim, LO, d === '쉬움' ? curDmg : DESIGN_HI).dmg;
 }
 function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, cur: Tune | null): Row {
-  const base = cur ?? {}, curDmg = base.dmg ?? 1, tg = designTarget({ c, d }), rate = designRate(c, d, base);
-  const before = rate(curDmg), verdict: Verdict = before < tg.min ? 'hard' : before > tg.max ? 'easy' : 'ok';
-  const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now: measure(c, d, n, cur ?? undefined), verdict, design: { before, after: before, ...tg } };
+  const base = cur ?? {}, curDmg = base.dmg ?? 1, tg = designTarget({ c, d }), dm = designMeasure(c, d, base), rate = (x: number) => dm(x).rate;
+  const before = rate(curDmg), floor = DESIGN_BUSY[d];
+  const idle = floor != null && before >= tg.min && before <= tg.max && dm(curDmg).busy < floor - 0.5; // 띠 안인데 바쁨 하한 아래
+  const verdict: Verdict = before < tg.min ? 'hard' : before > tg.max ? 'easy' : idle ? 'idle' : 'ok';
+  const busy = floor != null ? { before: dm(curDmg).busy, after: dm(curDmg).busy, floor } : undefined;
+  const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now: measure(c, d, n, cur ?? undefined), verdict, design: { before, after: before, ...tg, busy } };
   if (!search || verdict === 'ok') return row;
-  const dmg = designDmg(rate, d, curDmg, tg);
-  if (dmg !== curDmg) { row.next = { dmg, m: measure(c, d, n, { ...base, dmg }) }; row.design!.after = rate(dmg); }
+  let dmg = verdict === 'idle' ? curDmg : designDmg(rate, d, curDmg, tg);
+  if (floor != null) dmg = designBusyDmg(dm, floor, dmg, tg.min); // 바쁨 하한 (띠 아래 선 아래로는 안 감)
+  if (dmg !== curDmg) { row.next = { dmg, m: measure(c, d, n, { ...base, dmg }) }; row.design!.after = rate(dmg); if (row.design!.busy) row.design!.busy.after = dm(dmg).busy; }
   return row;
 }
 /**
