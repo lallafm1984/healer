@@ -75,14 +75,18 @@ export interface FamiliarCell { c: ContentDef; d: DiffName }
 export const familiarCells = (diffs: DiffName[]): FamiliarCell[] =>
   CONTENT.filter(c => balanceable(c) && !rampPlace(c)).flatMap(c => diffs.map(d => ({ c, d }))).sort((a, b) => stageOf(a.c, a.d) - stageOf(b.c, b.d) || a.c.stageLv - b.c.stageLv);
 
-export interface FamiliarMeasure { rate: number; byHero: Partial<Record<HeroKey, number>>; fails: Record<string, number>; time: number }
+export interface FamiliarMeasure {
+  rate: number; byHero: Partial<Record<HeroKey, number>>; fails: Record<string, number>; time: number;
+  /** 바쁨: 받는 피해 ÷ 치유 한 번, 분당 (모든 판, balance measure와 같은 셈) */
+  busy: number;
+}
 /**
  * 직업마다 시드 1 ~ n. familiar = 그 레벨 사람 (noviceAt)이 basis 장비로 (기본 중간 등급), expert = 지금 자동 힐러가 자동 밸런스 기준 조건 (balance measure와 같은 시드 · 조건).
  * opts = 사람 값 바꿔 보기
  */
 export function measureFamiliar(x: FamiliarCell, n: number, pilot: 'familiar' | 'expert' = 'familiar', heroes: HeroKey[] = BASE_HEROES, tune?: Tune, opts?: Partial<NoviceOpts>, basis: GearBasis = 'mid'): FamiliarMeasure {
   const byHero: Partial<Record<HeroKey, number>> = {}, fails: Record<string, number> = {};
-  let wins = 0, time = 0;
+  let wins = 0, time = 0, all = 0, heals = 0;
   for (const h of heroes) {
     let w = 0;
     for (let s = 1; s <= n; s++) {
@@ -90,12 +94,13 @@ export function measureFamiliar(x: FamiliarCell, n: number, pilot: 'familiar' | 
       const who = { ...noviceAt(Math.min(100, stageOf(x.c, x.d)), s), ...opts };
       const tweak = pilot === 'familiar' ? { healer: (f: Parameters<typeof noviceHealer>[0]) => noviceHealer(f, who), player } : undefined;
       const r = runOnce(x.c, x.d, h, s, tune, 'common', tweak);
+      all += r.time; heals += r.heals;
       if (r.win) { w++; time += r.time; } else fails[r.reason] = (fails[r.reason] || 0) + 1;
     }
     byHero[h] = Math.round((100 * w) / n);
     wins += w;
   }
-  return { rate: (100 * wins) / (n * heroes.length), byHero, fails, time: wins ? time / wins : 0 };
+  return { rate: (100 * wins) / (n * heroes.length), byHero, fails, time: wins ? time / wins : 0, busy: all ? heals / (all / 60) : 0 };
 }
 
 /** 레벨 디자인 기준 한 판을 숙련 자동 힐러로: 자동 밸런스 기준 조건에서 장비만 중간 등급 (장소 테스트 「보통이면 거의 다 깸」) */
