@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { BOSSES, type AddDef, type DebuffDef, type SkillDef, type SkillEffect } from '../src/data/bosses';
+import { BOSSES, hardDef, hardOn, mythicDef, type AddDef, type DebuffDef, type SkillDef, type SkillEffect } from '../src/data/bosses';
 import { CONTENT, ALL_DIFFS } from '../src/data/content';
 import { ENCOUNTERS, type MobAttack } from '../src/data/encounters';
 import type { DiffName } from '../src/data/difficulty';
@@ -152,7 +152,7 @@ function mobParts(a: MobAttack): Hit[] {
 const active = (s: SkillDef, mythic: boolean) => s.when?.mythic == null || s.when.mythic === mythic;
 
 interface FightRow { enc: string; name: string; boss: boolean; script?: string; skills: number; perMin: number; phases: number; inter: boolean; bodies: number; hits: Hit[] }
-function fightRow(key: string, mythic: boolean): FightRow {
+function fightRow(key: string, mythic: boolean, diff: DiffName): FightRow {
   const e = ENCOUNTERS[key as keyof typeof ENCOUNTERS];
   if (e.mobs) {
     const hits = e.mobs.flatMap(m => [...m.attacks.flatMap(mobParts), ...(m.down ? (m.down.p === 'burst' ? [{ part: '파열', task: 'aoe' as Task, skill: m.name }] : debuffParts(m.down.debuff, m.name)) : [])]);
@@ -160,7 +160,8 @@ function fightRow(key: string, mythic: boolean): FightRow {
     return { enc: key, name: e.name, boss: false, skills: e.mobs.reduce((n, m) => n + m.attacks.filter(a => a.kind).length, 0), perMin: Math.round(e.mobs.reduce((n, m) => n + m.count * m.attacks.filter(a => a.kind).reduce((x, a) => x + 60 / a.period, 0), 0) * 10) / 10, phases: 1, inter: false, bodies: e.mobs.length, hits };
   }
   const b = BOSSES[e.script as keyof typeof BOSSES];
-  const skills = b.skills.filter(s => active(s, mythic));
+  // 어려움 변화 · 악몽 변화 (111 공통 ② ③): 그 난이도에서 실제로 쓰는 기술 값
+  const skills = b.skills.filter(s => active(s, mythic)).map(s => mythicDef(hardDef(s, hardOn(diff) ? b.hard : undefined), mythic ? b.mythicStep : undefined));
   const hits = skills.flatMap(skillParts);
   const flowDo = (b.flow ?? []).flatMap(st => (st.p === 'when' && (st.if.mythic == null || st.if.mythic === mythic) ? st.do : []));
   const phaseNums = new Set([b.phase[0], ...flowDo.filter(d => d.p === 'phase').map(d => (d as { n: number }).n)]);
@@ -175,7 +176,8 @@ function fightRow(key: string, mythic: boolean): FightRow {
   for (const st of b.flow ?? []) if (st.p === 'song') hits.push({ part: '노래 열', task: 'dodge', skill: '흐름' });
   if (b.watch) hits.push({ part: '주시', task: 'cast', skill: '주시' });
   if (phaseNums.size > 1 || inter) hits.push({ part: `구간 ${phaseNums.size}${inter ? ' + 인터미션' : ''}`, task: 'phase', skill: '흐름' });
-  if (mythic && b.skills.some(s => s.when?.mythic === true)) hits.push({ part: '악몽 변화', task: 'phase', skill: '악몽' });
+  if (mythic && (b.skills.some(s => s.when?.mythic === true) || b.mythicStep)) hits.push({ part: '악몽 변화', task: 'phase', skill: '악몽' });
+  if (hardOn(diff) && b.hard) hits.push({ part: '어려움 변화', task: 'phase', skill: b.hard.skill });
   // 분당 기술 수 (평타 빼고, 흐름이 여는 기술은 period로 셈): 밀도
   const perMin = Math.round(skills.filter(s => !s.hidden && s.period > 0 && s.period < 1e9).reduce((x, s) => x + 60 / s.period, 0) * 10) / 10;
   return { enc: key, name: e.name, boss: true, script: e.script, skills: skills.filter(s => !s.hidden).length, perMin, phases: phaseNums.size, inter, bodies: b.bodies?.length ?? 1, hits };
@@ -184,7 +186,7 @@ function fightRow(key: string, mythic: boolean): FightRow {
 const kindName = { explore: '탐험', dungeon: '던전', raid: '레이드' } as const;
 const cells = CONTENT.filter(c => !c.hidden && c.ready).flatMap(c => ALL_DIFFS.map((d: DiffName) => {
   const mythic = d === '악몽';
-  const fights = c.fights(d).map(k => fightRow(k, mythic));
+  const fights = c.fights(d).map(k => fightRow(k, mythic, d));
   const hits = fights.flatMap(f => f.hits.map(h => ({ ...h, enc: f.enc, boss: f.boss })));
   const tasks = [...new Set(hits.map(h => h.task))];
   const parts = [...new Set(hits.map(h => h.part))];
