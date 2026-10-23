@@ -4,6 +4,7 @@
  * 소리 문장은 scripts/sfx/boss.mjs. 표에 없는 기술 (새로 더한 기술)은 공통 착탄 (battle/combat-sound.ts impactSound)
  */
 export const BOSS_SKILL_SOUND: Record<string, string> = {
+  "baseurak:scroll": 'boss-projectile-hit', // 두루마리 미라 사서 바스락 · 신기루 두루마리 (111)
   "mimic:thorns": 'boss-metal-wave', // 보물 상자 덥석이 · 가시 돋친 상자 (111)
   "beonjjeok:thorns": 'boss-metal-wave', // 코볼트 대장 번쩍이 · 가시 금화 갑옷 (111)
   "orben:drip": 'boss-frost-wave', // 대마도사 오르벤 · 서리 바람 (111)
@@ -1160,6 +1161,7 @@ export const BOSS_SKILL_OWN: Record<string, string> = {
 
 /** 예고 없이 바로 쓰는 보스 기술 → 특성 시전 소리 (boss-<특성>-cast). 키 = <대본>:<기술 key> (scripts/sfx/boss.mjs) */
 export const BOSS_CAST_SOUND: Record<string, string> = {
+  "pado:bubble": 'boss-poison-cast', // 111
   "hydra:drip": 'boss-poison-cast', // 111
   "twins:drip": 'boss-shadow-cast', // 111
   "belmore:drip": 'boss-shadow-cast', // 111

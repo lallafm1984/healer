@@ -4460,6 +4460,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'brine', name: '소금물 저주', icon: '소금', kind: 'instant', first: 6, period: 16, cast: 0,
         how: '탱커 아닌 1명이 10초 동안 받는 치유 −30%. 잠긴 줄이면 더 힘듦: 저주를 지우는 직업은 그 사람부터',
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '소금물 저주', type: '저주', left: 10, healCut: 0.3 } } },
+      { key: 'bubble', name: '독 거품', icon: '거품', kind: 'instant', first: 12, period: 20, cast: 0, how: BUBBLE_HOW, // 111 8장: 겹침 풀기 (해적 부풀기)
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: bubble(14, 3, 0.9) } },
       { key: 'aoe', name: '소용돌이', icon: '소용', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.2) } },
     ],
     hard: { skill: 'brine', n: 1 }, // 111 어려움 변화: 소금물 저주 인원 +1
@@ -4907,6 +4909,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'dust', name: '먼지 바람', icon: '먼지', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true,
         effect: { p: 'all', dmg: U.dps(0.18), debuff: { name: '책 먼지', type: '질병', left: 8, dot: U.dps(0.01) } } },
       ...spots('shelf', '책장 무너짐', '책장', 2, 12, 16, U.dps(0.25)),
+      { key: 'scroll', name: '신기루 두루마리', icon: '두루', kind: 'buster', first: 14, period: 18, cast: 2.5, warn: 'buster', target: { p: 'random', n: 1 }, mirage: { n: 1 }, // 111 8장: 겹침 풀기 (모래 왕국 신기루)
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: U.dps(0.35) } },
     ],
     hard: { skill: 'wrap', n: 1 }, // 111 어려움 변화: 붕대 감기 인원 +1
     enrage: { name: '사서 폭주', period: 2, dmg: 240 },
@@ -4927,6 +4931,10 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'sign', name: '저주받은 서명', icon: '서명', kind: 'instant', first: 12, period: 18, cast: 0, how: SIGN_HOW,
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: U.dps(0.015), end: { p: 'hit', dmg: U.dps(0.45) } } } },
     ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [ // 111 8장: 2구간 (가장 많이 도는 던전)
+      { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'sign', sec: 12 }, { p: 'period', skill: 'rewind', sec: 22 },
+      { p: 'text', text: '마감 직전: 서명 · 되감는 모래가 잦아짐' },
+    ] }],
     hard: { skill: 'sign', n: 1 }, // 111 어려움 변화: 저주받은 서명 인원 +1
     enrage: { name: '서기관 폭주', period: 2, dmg: 250 },
   },
