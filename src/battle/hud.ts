@@ -17,9 +17,9 @@ import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
-import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Unit } from '../engine';
+import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Mob, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
-import { skillMark } from './art';
+import { encArt, mobArt, skillMark } from './art';
 import { L, screenCenter } from './board';
 import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
@@ -46,7 +46,43 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 /** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
-  return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>` : `<span class="boss-title-text">${F.enc.name}</span>`;
+  const pack = trashPack(F), order = m && pack.length > 1 ? `<span class="vh">, ${pack.length}마리 중 ${pack.filter(x => !x.alive).length + 1}번째</span>` : '';
+  return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>${order}` : `<span class="boss-title-text">${F.enc.name}</span>`;
+}
+
+/**
+ * 일반 · 정예 구간 초상 교대 (2026-10-25 Lim C안): 초상 · 체력 막대 = 지금 맞는 적 한 마리, 초상 오른쪽 아래에 기다리는 적 얼굴 (셋까지), 왼쪽 위에 「2 / 4」.
+ * 쓰러지면 금빛이 번지고 다음 적 그림 · 새 막대로 바뀜. 엔진 (딜이 순서대로 한 마리에)은 그대로, 보이는 것만
+ */
+const trashPack = (F: Fight): Mob[] => (F.enc.script === 'trash' ? F.mobs.filter(m => !m.add) : []);
+/** 지금 맞는 적 (bossTitle과 같은 적, 엔진 hitMobs 차례) */
+const trashTarget = (F: Fight): Mob | undefined => trashPack(F).find(m => m.alive);
+const DECK_MAX = 3;
+let mobShown: number | null = null;
+function updatePack(F: Fight, swap: boolean): void {
+  const pack = trashPack(F), m = trashTarget(F), host = $('bossArt');
+  const deck = host.querySelector<HTMLElement>(':scope > .mob-deck'), count = host.querySelector<HTMLElement>(':scope > .mob-count');
+  if (!m || pack.length < 2) { deck?.remove(); count?.remove(); if (!m) return; }
+  const src = mobArt(m.name), img = host.querySelector<HTMLImageElement>(':scope > img.boss-illustration');
+  if (src && img && !img.src.endsWith(src)) img.src = src;
+  else if (src && !img) host.querySelector(':scope > svg')?.replaceWith(Object.assign(document.createElement('img'), { className: 'boss-illustration', src, alt: '', decoding: 'async', draggable: false }));
+  if (pack.length >= 2) {
+    // 다음 적이 맨 위 · 맨 오른쪽, 그 뒤 적은 왼쪽 아래로 겹침 (시간 줄을 덮지 않게)
+    const wait = pack.filter(x => x.alive && x !== m).slice(0, DECK_MAX);
+    const d = deck ?? host.appendChild(Object.assign(document.createElement('div'), { className: 'mob-deck' }));
+    d.replaceChildren(...wait.reverse().map(x => { const i = document.createElement('i'); i.style.backgroundImage = cssUrl(mobArt(x.name) || encArt(F.enc.key, F.enc.script)); return i; }));
+    const c = count ?? host.appendChild(Object.assign(document.createElement('b'), { className: 'mob-count' }));
+    c.textContent = `${pack.filter(x => !x.alive).length + 1} / ${pack.length}`;
+  }
+  if (!swap) return;
+  // 새 막대는 줄던 몫 (bossLag) 없이 가득에서 시작, 왼쪽부터 쓸어 채움 (회복처럼 안 보이게)
+  const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
+  if (S.reducedEffects) return;
+  bossFx('mob-down');
+  for (const el of [host.querySelector<HTMLElement>(':scope > img.boss-illustration'), $('bossFill'), host.querySelector<HTMLElement>(':scope > .mob-deck')]) {
+    if (!el) continue;
+    el.classList.remove('mob-in'); void el.offsetWidth; el.classList.add('mob-in');
+  }
 }
 
 /** 긴 이름만 실제 남은 너비에 맞춰 축소한다. 등급 배지 크기와 이름 줄 높이는 유지한다. */
@@ -436,6 +472,7 @@ export function buildStage(): void {
   const total = F.mobs.reduce((a, m) => a + m.max, 0), boss = F.mobs.filter(m => m.boss).reduce((a, m) => a + m.max, 0);
   if (total > 0 && boss > 0 && boss < total) ticks.add(boss / total);
   $('bossTicks').innerHTML = [...ticks].map(v => `<i style="left:${(v * 100).toFixed(1)}%"></i>`).join('');
+  mobShown = null; // 초상 교대 (일반 · 정예 구간): 첫 적은 연출 없이
   const dots = $('segDots'), n = R.segs.length;
   dots.hidden = n < 2;
   dots.setAttribute('role', 'img');
@@ -446,12 +483,14 @@ export function buildStage(): void {
 export function updateStage(now: number): void {
   const F = fight(), R = S.run!;
   $('battle').classList.toggle('reduced-effects', S.reducedEffects);
-  const pct = F.bossHp / F.bossMax;
+  const tm = trashTarget(F), hpNow = tm ? tm.hp : F.bossHp, pct = tm ? tm.hp / tm.max : F.bossHp / F.bossMax;
+  if (tm && tm.id !== mobShown) { updatePack(F, mobShown != null); mobShown = tm.id; }
+  else if (!tm && mobShown != null) { mobShown = null; updatePack(F, false); }
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
   bossAura(F);
   if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), '처치');
-  else setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
+  else setText($('bossHpText'), `${Math.ceil(hpNow).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
   bossGauge(F);
   // 위치 줄 (2026-10-16 Lim 「전체적으로 통일되게 장소명과 난이도만, 잘리지 않게」): 모든 전투 「장소 · 난이도」, 주간 도전은 「장소 · 도전 n단계」.
   // 구간 진행은 시간 줄 점, 페이즈는 큰 알림, 적 이름은 이름 줄이 보여 줌

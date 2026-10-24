@@ -16,6 +16,7 @@ import './screens/result30.css';
 import './battle/hud27.css';
 import './battle/compact.css';
 import './battle/sunforged-stage.css';
+import './battle/mob-deck.css';
 import './battle/sunforged-controls.css';
 import './screens/sunforged-ui.css';
 import './screens/lobby-a2.css';

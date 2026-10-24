@@ -396,6 +396,34 @@ export function encArt(key: string, script = key): string {
   const name = (ENC_ART[key] || ENC_ART[script] || []).find(n => art(n));
   return name ? art(name) : '';
 }
+/**
+ * 일반 · 정예 구간 적 이름 → 그림 (2026-10-25 Lim 「여러 마리가 따로 안 보임」): 지금 맞는 적 초상 · 무리 막대 얼굴.
+ * 앞에서부터 있는 그림. 자기 그림이 없는 5종은 올 때까지 비슷한 그림을 빌림 (65 2장 선택)
+ */
+const MOB_ART: Record<string, string[]> = {
+  '고철 졸개': ['mob-scrap-minion'], '잔해 투척병': ['mob-debris-thrower'], '보일러 골렘': ['mob-boiler-golem'], '광차 골렘': ['mob-minecart-golem', 'mob-boiler-golem'],
+  '되살아난 뼈': ['mob-risen-bones'], '교단 신도': ['mob-cult-acolyte'], '묘지 쥐떼': ['mob-crypt-rats'], '부리 가면 집행자': ['mob-beak-enforcer'],
+  '늪 창병': ['mob-swamp-spearman'], '진흙 투석꾼': ['mob-mud-slinger'], '독침 사냥꾼': ['mob-dart-hunter'], '독 혹 두꺼비': ['mob-wart-toad'],
+  '빈 갑옷 시종': ['mob-empty-armor'], '검은 베일 조문객': ['mob-veiled-mourner'], '유령 하녀': ['mob-ghost-maid'], '유령 사냥개': ['mob-ghost-hound'],
+  '물에 젖은 갑옷 시종': ['mob-wet-armor', 'mob-empty-armor'], '물에 젖은 조문객': ['mob-wet-mourner', 'mob-veiled-mourner'],
+  '가라앉은 유령 하녀': ['mob-sunken-maid', 'mob-ghost-maid'], '가라앉은 사냥개': ['mob-sunken-hound', 'mob-ghost-hound'],
+  '먼지 유령': ['mob-dust-ghost'], '납골당 관리인': ['mob-ossuary-keeper'],
+  '얼음 룬 인형': ['mob-rune-doll'], '구름 룬 인형': ['mob-cloud-rune-doll', 'mob-rune-doll'], '떠도는 주술서': ['mob-drifting-tome'], '견습 마법사': ['mob-apprentice-mage'],
+  '빗자루 견습생': ['mob-broom-apprentice', 'mob-apprentice-mage'], '서리 정령': ['mob-frost-sprite'], '번개 실험 정령': ['mob-bolt-sprite', 'mob-frost-sprite'],
+  '돌 수도사': ['mob-stone-monk'], '다락 박쥐 떼': ['mob-attic-bats'], '길 잃은 순례자': ['mob-lost-pilgrim'], '신전 돌거인': ['mob-stone-giant'],
+  '공허의 종복': ['mob-void-servant'], '검은 눈': ['mob-black-eye'], '심연 전령': ['mob-abyss-herald'], '탑 감시자': ['mob-tower-watcher'],
+  '그림자 기사': ['mob-shadow-knight'], '함정 술사': ['mob-trap-caster'], '심연 거수': ['mob-abyss-brute'], '그림자 석궁수': ['mob-shadow-crossbow'],
+  '갑판 청소부': ['mob-deck-swab'], '해파리 점쟁이': ['mob-jelly-seer'], '새총 꼬마 해적': ['mob-slingshot-pirate'], '화약 창고지기': ['mob-powder-keeper', 'mob-deck-swab'],
+  '버섯 꼬마 경비': ['mob-cap-guard'], '재채기 버섯': ['mob-sneeze-shroom'], '꽃가루 요정': ['mob-pollen-fairy'], '큰 갓 버섯 거인': ['mob-big-cap'],
+  '코볼트 곡괭이꾼': ['mob-kobold-miner'], '코볼트 연기 주술사': ['mob-kobold-smoker'], '불씨 꼬마 용': ['mob-ember-whelp'], '용 비늘 경비병': ['mob-dragon-scale-guard'],
+  '모래 병정': ['mob-sand-soldier'], '풍뎅이 투석병': ['mob-scarab-slinger'], '붕대 시종': ['mob-bandage-servant'], '스핑크스 석상': ['mob-sphinx-statue'],
+  '깃털 창병 하피': ['mob-harpy-spear'], '폭풍 점술사': ['mob-storm-seer'], '바람 요정': ['mob-wind-sprite'], '천둥 숫양': ['mob-thunder-ram'],
+};
+/** 그 적 이름의 그림 주소 (없으면 '') */
+export function mobArt(name: string): string {
+  const n = (MOB_ART[name] || []).find(x => art(x));
+  return n ? art(n) : '';
+}
 /** 역병 군주 인터미션 쥐떼 (보스 무대 작은 그림, 없으면 '') */
 export const ratsArt = (): string => art('mob-crypt-rats');
 
