@@ -57,10 +57,6 @@
   font: 900 78px/1.1 var(--font-display); color: #ffe5a0;
   text-shadow: 0 1px 0 #fff7d0, 0 3px 0 #9b6622, 0 5px 0 #5c3b17, 0 9px 8px #0009, 0 0 28px #ffc35d66;
 }
-#app #s-settle .r-level-card .r-level-before {
-  display: block; margin-top: 10px; color: #bda982; font: 600 13px/1.4 var(--font-body);
-  animation: levelTitleReveal .45s .7s ease-out both;
-}
 #app #s-settle .r-level-card .r-level-unlock-title {
   margin: 0; padding-top: 12px; border-top: 1px solid #b28c4d66; text-align: left;
   font: 700 14px/1.5 var(--font-body); color: #e6d4ae;
@@ -127,7 +123,6 @@
   #app #s-settle .r-level-card h3 { font-size: 27px; }
   #app #s-settle .r-level-card .lvnum b { font-size: 61px; }
   #app #s-settle .r-level-number > span { font-size: 14px; }
-  #app #s-settle .r-level-card .r-level-before { font-size: 11px; margin-top: 6px; }
   #app #s-settle .r-level-card .r-level-unlocks li { grid-template-columns: 28px minmax(0, 1fr) 32px; gap: 6px; }
   #app #s-settle .r-level-card .r-level-unlocks li b { font-size: 12px; }
 }

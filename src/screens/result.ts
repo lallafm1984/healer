@@ -492,7 +492,7 @@ export function showLevelUp(host: HTMLElement, ups: number[], hero: HeroKey = he
       <div class="r-level-banner" aria-hidden="true"></div>
       <div class="r-level-flightfield" aria-hidden="true">${flights}</div>
       <div class="r-level-heading"><h3 id="levelUpTitle">레벨 업!</h3></div>
-      <p class="lvnum" aria-label="Lv ${ups[0] - 1}에서 ${ups[ups.length - 1]}로 레벨 업"><span class="r-level-number"><span>Lv</span><b>${ups[ups.length - 1]}</b></span><span class="r-level-before">이전 레벨 ${ups[0] - 1}</span></p>
+      <p class="lvnum" aria-label="Lv ${ups[0] - 1}에서 ${ups[ups.length - 1]}로 레벨 업"><span class="r-level-number"><span>Lv</span><b>${ups[ups.length - 1]}</b></span></p>
     </div>
     <h4 class="r-level-unlock-title">새로 열린 기능</h4>
     <ul class="r-level-unlocks" aria-label="새로 열린 기능">${items.map(m => `<li><span class="r-level-unlock-icon" aria-hidden="true">${icon(m.text)}</span><b>${esc(m.text)}</b><small>Lv ${m.lv}</small></li>`).join('')}</ul>
