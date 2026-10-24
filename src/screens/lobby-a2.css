@@ -39,8 +39,6 @@
 #s-lobby .lb-caption > small { font: 600 10px/1.15 var(--font-body); white-space: nowrap; color: var(--a2-ink); letter-spacing: -.03em; }
 #s-lobby .lb-sc.hot .lb-sock { outline: 0; }
 #s-lobby .lb-sc .g-badge { top: 0; right: 0; }
-/* 보상 받기는 임무 버튼과 겹치지 않는 별도 44px 표적. */
-#s-lobby .lb-claim { top: 3px; left: calc(100% + 8px); }
 
 /* 상점 · 행상인 팻말 (레이드 · 대장간 팻말은 2026-10-21 뺌, 글 가운데 정렬은 lobby-menu.css) */
 #s-lobby .lb-plate {

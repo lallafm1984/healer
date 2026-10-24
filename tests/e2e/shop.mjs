@@ -34,7 +34,7 @@ export default async function shop(url, shots) {
   // 임무를 다 채운 상태로 만들고 받기
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.daily.missions.forEach(m => { m.n = 99; }); s.weekly.missions[0].n = 99; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  ok(await page.isVisible('#s-lobby .lb-missions .g-qm') && await page.isVisible('#lbClaim') && (await text('#s-lobby .lb-missions .g-badge')) === '6', '로비 게시판: 받을 것 있음 = 노란 「!」 + 빨간 숫자 6');
+  ok(await page.locator('#s-lobby .lb-missions .g-qm, #lbClaim').count() === 0 && (await text('#s-lobby .lb-missions .g-badge')) === '6', '로비 게시판: 받을 것 있음 = 빨간 숫자 6 (노란 「!」 없음, 2026-10-24 Lim)');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok((await page.locator('#s-missions [data-claim]').count()) === 6, '받을 임무 6개 (일일 5 + 주간 1)');
   const d0 = (await save()).player.gold;

@@ -124,21 +124,20 @@ export default async function portrait(url, shots) {
     if (width === 390) {
       const h0 = await villageTime(); await page.clock.runFor(1500); const h1 = await villageTime();
       ok(await page.locator('#s-lobby').evaluate(el => el.hidden) && h0 === h1, `390: 캐릭터 탭으로 가면 숨은 로비 마을 멈춤 (${h0} → ${h1})`);
-      // 임무 받기로 로비를 다시 그려도 같은 캔버스를 옮겨 붙여 움직임이 이어짐 (처음 장면으로 점프 없음)
+      // 주간 도전 상자 받기로 로비를 다시 그려도 같은 캔버스를 옮겨 붙여 움직임이 이어짐 (처음 장면으로 점프 없음)
       await page.evaluate(() => {
         const save = JSON.parse(localStorage.getItem('healer.save'));
-        save.daily.missions[0].n = 999;
-        save.daily.missions[0].got = false;
+        save.chalChest = 1;
         localStorage.setItem('healer.save', JSON.stringify(save));
       });
       await page.reload(); await page.clock.runFor(300); await pastTitle(page);
       await villageReady(); await page.clock.runFor(2000);
       await page.locator('#s-lobby .lb-village canvas').evaluate(c => { window.__villageCanvas = c; });
       const before = await villageTime();
-      await page.click('#lbClaim'); await page.clock.runFor(200);
+      await page.click('#lbChal'); await page.clock.runFor(200);
       const same = await page.locator('#s-lobby .lb-village canvas').evaluate(c => c === window.__villageCanvas);
       const after = await villageTime();
-      ok(same && after >= before, `390: 임무 보상 수령 후 같은 마을 캔버스, 장면 시간 이어짐 (${before} → ${after})`);
+      ok(same && after >= before, `390: 주간 도전 상자 수령 후 같은 마을 캔버스, 장면 시간 이어짐 (${before} → ${after})`);
       await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(80);
     }
     ok(await page.locator('#s-char .c7-mid .c7-stat').count() === 6 && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 장비 중앙 능력치 6줄 화면 안`);
