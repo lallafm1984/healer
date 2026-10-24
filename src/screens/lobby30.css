@@ -36,8 +36,6 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 .lb-sock > svg { width: 24px; height: 24px; color: var(--sf-accent); }
 .lb-sc .lb-main > b { white-space: nowrap; }
 .lb-sc .lb-main > small { margin-top: -2px; font: 500 11px/1.2 var(--font-body); color: var(--sf-ink-2); white-space: nowrap; }
-.lb-sc.off .lb-sock { filter: brightness(0.62) saturate(0.45) drop-shadow(0 2px 3px #0006); }
-.lb-sc.off .lb-main > b { color: var(--sf-mute); }
 .lb-sc.hot .lb-sock { outline: 2px solid var(--sf-pick); outline-offset: -3px; border-radius: 50%; }
 .lb-sc .g-badge { top: -2px; right: 2px; z-index: 2; font-style: normal; pointer-events: none; }
 /* 임무 「!」 = 한 번에 받기: 소켓 왼쪽 위, 터치 44px */
@@ -56,9 +54,6 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 .lb-plate > svg { width: 22px; height: 22px; color: var(--sf-accent); }
 .lb-pt { display: flex; flex-direction: column; min-width: 0; }
 .lb-pt > b { font: 700 14px/1.25 var(--font-display); color: var(--sf-ink); text-shadow: 0 1px 2px #000; }
-.lb-pt > span { overflow: hidden; font: 500 11px/1.3 var(--font-body); color: var(--sf-ink-2); white-space: nowrap; text-overflow: ellipsis; }
-.lb-plate.lock > .g-ic { filter: grayscale(0.7) brightness(0.65); }
-.lb-plate.lock .lb-pt > b { color: var(--sf-mute); }
 .lb-plate .g-badge { top: -9px; right: -8px; font-style: normal; }
 
 /* ---------- 아래 패널: 다음 목표 + 출전 ---------- */
