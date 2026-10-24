@@ -10,12 +10,12 @@ import { adsFree } from '../game/stamina';
 import { CHEST_REWARD, GUILD_GOAL, WEEKLY_LV } from '../data/missions';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
-import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionGold, missionReady, runGold } from '../game/economy';
+import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionGold, missionReady, runGold, type Gain } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { showRewarded } from '../platform/ads';
 import { esc, screen, topBar } from './kit';
-import { gainText } from './shop';
+import { showReward } from './reward-pop';
 import { currencyAmount, gameIcon } from './art';
 import { art } from '../art';
 import './missions.css';
@@ -103,14 +103,20 @@ s.el.addEventListener('keydown', e => {
 
 /** 받기 소리 (107): 받았으면 그 소리, 못 받았으면 (글자 = 까닭) deny */
 const got = (r: unknown, name: string) => sfx(typeof r === 'string' ? 'deny' : name);
+/** 받기 결과: 못 받았으면 까닭 띠, 받았으면 보상 창 (reward-pop, 2026-10-24 Lim 시안 A). 화면을 다시 그린 뒤 띄움 */
+function award(r: Gain | string, title: string): void {
+  st.msg = typeof r === 'string' ? r : '';
+  commit(); render();
+  if (typeof r !== 'string') showReward({ title, gold: r.gold, items: r.items });
+}
 
 s.el.addEventListener('click', async e => {
   const t = e.target as HTMLElement, save = G.save;
   const tab = t.closest<HTMLElement>('[data-mission-tab]');
   if (tab) { st.tab = tab.dataset.missionTab as 'daily' | 'weekly'; render(); s.el.querySelector<HTMLElement>(`#mission-tab-${st.tab}`)?.focus(); return; }
   const c = t.closest<HTMLElement>('[data-claim]');
-  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
-  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : gainText(r, '완료 상자'); commit(); render(); return; }
+  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); award(r, '임무 보상'); return; }
+  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); award(r, '완료 상자'); return; }
   if (t.closest('#chest2')) {
     const mem = adsFree(save);
     if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
@@ -118,8 +124,12 @@ s.el.addEventListener('click', async e => {
     if (!mem) save.daily.ads.chest++;
     const r = claimChest(save, Math.random, true);
     got(r, 'chest-open');
-    st.msg = typeof r === 'string' ? r : gainText(r, '한 번 더'); commit(); render(); return;
+    award(r, '완료 상자 · 한 번 더'); return;
   }
-  if (t.closest('#guildGoal')) { const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); st.msg = err || `길드 주간 목표 · 명성 +${GUILD_GOAL.fame}`; commit(); render(); return; }
-  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : gainText(r, '주간 도전 상자'); commit(); render(); }
+  if (t.closest('#guildGoal')) {
+    const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); st.msg = err; commit(); render();
+    if (!err) showReward({ title: '길드 주간 목표', fame: GUILD_GOAL.fame });
+    return;
+  }
+  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); award(r, '주간 도전 상자'); }
 });

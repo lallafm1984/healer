@@ -8,7 +8,7 @@
  */
 import { NOADS, PAID_HEROES, REST_BONUS, STAMINA, jobProductId } from '../data/economy';
 import { HEROES } from '../data/heroes';
-import { grantProduct, products, type Gain } from '../game/economy';
+import { grantProduct, products } from '../game/economy';
 import { commit, G, refreshDay, syncAds } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { esc, fmt, previous, screen, topBar } from './kit';
@@ -29,15 +29,6 @@ const s = screen('s-shop', '상점', {
     if (st.focus) s.el.querySelector<HTMLElement>(`[data-prod="${CSS.escape(st.focus)}"]`)?.scrollIntoView({ block: 'center' });
   },
 });
-
-/**
- * 받은 장비 한 줄 (알림 문장 = 텍스트), label이 있으면 「label: 이름」. 장비가 없으면 빈 글 = 띠 없음.
- * 골드는 띠에 쓰지 않는다 (2026-10-24 Lim 「골드 +」 띠 제거): 받은 골드는 위 정보창 · 그 줄 알약에 보인다
- */
-export function gainText(g: Gain, label = ''): string {
-  const names = g.items?.map(i => i.name).join(', ') ?? '';
-  return names && label ? `${label}: ${names}` : names;
-}
 
 function render(): void {
   s.el.innerHTML = `${topBar({ back: st.from, title: '상점' })}

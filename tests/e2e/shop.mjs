@@ -43,7 +43,7 @@ export default async function shop(url, shots) {
   ok(sv.daily.missions.every(m => m.got) && sv.player.gold === d0 + 5 * 173 && !('mats' in sv) && !('pass' in sv), `일일 5개 받기: 골드 +${sv.player.gold - d0} (Lv 40 클리어 골드 495의 35% × 5, 2026-10-22 B안), 패스 없음`);
   await page.click('#s-missions #chest'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.daily.chest && /완료 상자/.test(await text('#s-missions .warnbox')) && !/패스/.test(await text('#s-missions')), '완료 상자 열기 (임무 화면에 패스 글 없음)');
+  ok(sv.daily.chest && !(await page.locator('#s-missions .warnbox').count()) && !/패스/.test(await text('#s-missions')), '완료 상자 열기: 띠 없음 (받은 것은 보상 창, 화면 검사에서는 끔) · 패스 글 없음');
   await page.click('#s-missions #chest2'); await page.clock.runFor(50);
   ok(await page.isVisible('.admodal') && /광고 자리/.test(await text('.admodal')), '광고 보고 한 번 더 = 광고 자리 창');
   await page.click('.admodal [data-ad="ok"]'); await page.clock.runFor(50);
