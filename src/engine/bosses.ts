@@ -4,7 +4,7 @@
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { BOSSES, hardDef, hardOn, mythicDef, type SkillDef } from '../data/bosses';
-import { busterDmg, zoneDps, zoneHit } from '../data/rules';
+import { busterDmg, lingerDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
 import { persCast, persZoneImpact } from './persona';
@@ -32,7 +32,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
   const s = skill(f, {
     key: d.key, name: d.name, icon: d.icon, kind: d.kind, hidden: d.hidden, next: d.first ?? Infinity, period: d.period, cast: d.cast,
     warn: d.warn, cut: d.cut || e?.p === 'counter', dmg: d.dmg != null && d.kind === 'buster' ? busterDmg(f.R, d.dmg) : d.dmg,
-    dps: d.dps != null ? (dodge ? zoneDps(f.R, d.dps) : d.dps) * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
+    dps: d.dps != null ? (dodge ? lingerDps(f.R, d.dps) : d.dps) * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
     active: whenFn(d.when),
     target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
       : d.target === 'offtank' ? g => { const tk = aggroTarget(g), off = living(g).find(u => u.role === 'tank' && u !== tk) ?? tk; return off ? [off.id] : []; }

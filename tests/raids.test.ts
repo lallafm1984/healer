@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { armorFactor } from '../src/data/armor';
 import { ALL_DIFFS, contentOf, raidSize } from '../src/data/content';
 import { MYTHIC } from '../src/data/difficulty';
-import { RULES, zoneDps } from '../src/data/rules';
+import { lingerDps, RULES } from '../src/data/rules';
 import * as E from '../src/engine';
 import { bossSkill, CHOIR, type SkillEffect } from '../src/data/bosses';
 import { addDebuff } from '../src/engine/core';
@@ -92,7 +92,7 @@ describe('20인 유령 성가대 (26 4-3)', () => {
     expect(new Set([...b].map(i => f.cells[i].col))).toEqual(new Set([2, 3]));
     const m = fight('악몽'), mc = m.skills.find(s => s.key === 'crescendo')!;
     expect(mc.cellsFor!(m).size).toBe(24);
-    expect(mc.dps).toBeCloseTo(zoneDps(RULES, CHOIR.crescDps) * CHOIR.discord, 5); // 장판 배율 (data/rules HAZARD)
+    expect(mc.dps).toBeCloseTo(lingerDps(RULES, CHOIR.crescDps) * CHOIR.discord, 5); // 남는 장판 배율 (data/rules HAZARD)
   });
   it('성가대원을 다 잡으면 2페이즈 (포르테·독창)', () => {
     const f = fight();
