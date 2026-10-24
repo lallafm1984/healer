@@ -63,6 +63,7 @@ import './screens/touch-floor.css';
 import './screens/type-polish.css';
 import './screens/menu-buttons.css';
 import './screens/tap-fx.css';
+import './screens/transition.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';
@@ -82,6 +83,7 @@ import { go } from './screens/kit';
 import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
 import { mountTapFx } from './screens/tap-fx';
+import { mountScreenFx } from './screens/transition';
 import { mountTapSlop } from './screens/tap-slop';
 import { mountBack } from './screens/back';
 import { mountUiSounds } from './screens/ui-sound';
@@ -90,7 +92,9 @@ import { prepareVillage } from './screens/village';
 
 applyArtVars();
 mountTabs(document.getElementById('tabs')!);
-mountTapFx(() => !!G.save.settings.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches); // 버튼 터치 연출 (2026-10-20 Lim)
+const calmFx = () => !!G.save.settings.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
+mountTapFx(calmFx); // 버튼 터치 연출 (2026-10-20 Lim)
+mountScreenFx(calmFx); // 화면 전환 연출 (2026-10-24 Lim A안)
 mountTapSlop(); // 손가락이 조금 움직인 탭도 누름 (2026-10-21 Lim)
 mountBack(); // 안드로이드 뒤로가기로 앱이 닫히지 않게 (2026-10-22 Lim)
 mountUiSounds();
