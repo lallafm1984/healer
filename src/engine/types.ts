@@ -504,9 +504,9 @@ export type FightEvent =
   | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
-  | { type: 'hit'; uid: number; amt: number; crit?: boolean }
+  | { type: 'hit'; uid: number; amt: number; crit?: boolean; /** 쫄 (P-ADD)을 친 한 방이면 맞은 쫄 id (화면은 보스 그림이 아니라 그 쫄 자리에 숫자) */ add?: number }
   /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
-  | { type: 'miss'; uid: number }
+  | { type: 'miss'; uid: number; /** 쫄을 치다 빗나감 */ add?: number }
   | { type: 'daze'; id: number }
   | { type: 'offGuard'; id: number }
   | { type: 'clump'; id: number }

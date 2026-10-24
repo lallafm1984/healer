@@ -224,13 +224,22 @@ describe('쫄 (P-ADD) · 쓰러질 때 (P-BURST)', () => {
     run(f, { p: 'adds', n: 1, add: BONES });
     const m = f.mobs.find(x => x.add)!;
     const u = f.party.find(x => x.id === m.add!.on)!;
-    let bossDealt = 0, tankHits = 0;
+    let bossDealt = 0, tankHits = 0, addHits = 0, wrong = 0;
     // 쫄이 살아 있는 동안 보스는 탱커 딜만 맞음. 쫄을 쓰러뜨린 한 방의 남는 딜도 보스로 안 넘어감 (2026-10-24 Lim 「보스의 쫄을 공격시엔 보스를 공격하면 안된다」)
     for (let i = 0; i < 400 && m.alive; i++) {
       const b = f.bossHp; E.step(f);
-      bossDealt += b - f.bossHp; for (const ev of f.events) if (ev.type === 'hit' && f.party.find(x => x.id === ev.uid)?.role === 'tank') tankHits += ev.amt;
+      bossDealt += b - f.bossHp;
+      for (const ev of f.events) {
+        if (ev.type !== 'hit' && ev.type !== 'miss') continue;
+        const tank = f.party.find(x => x.id === ev.uid)?.role === 'tank';
+        if (ev.type === 'hit' && tank) tankHits += ev.amt;
+        // 화면 숫자 자리 (2026-10-24 Lim): 쫄을 친 한 방 · 빗나감은 그 쫄 id를 달고 옴 (보스 그림 옆 아님), 탱커 한 방은 보스
+        if (tank ? ev.add != null : ev.add !== m.id) wrong++; else if (!tank) addHits++;
+      }
       f.events.length = 0;
     }
+    expect(addHits).toBeGreaterThan(0);
+    expect(wrong).toBe(0);
     expect(m.alive).toBe(false);
     expect(tankHits).toBeGreaterThan(0);
     expect(bossDealt).toBeCloseTo(tankHits, 0);

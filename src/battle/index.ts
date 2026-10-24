@@ -24,7 +24,7 @@ import { autoHealer, create, DT, noviceHealer, hexDist, knowsPassive, restCarry,
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfBetween, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAddHit, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfBetween, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -560,13 +560,14 @@ function handleEvents(now: number): void {
       case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
       case 'hit': {
         const v = F.party.find(x => x.id === ev.uid);
-        dmgNum(v, ev.amt, now, !!ev.crit);
+        if (ev.add != null) fxAddHit(ev.add, String(Math.max(1, Math.round(ev.amt))), now, !!ev.crit); // 쫄을 친 한 방은 그 쫄 자리에 (보스 그림 옆 아님)
+        else dmgNum(v, ev.amt, now, !!ev.crit);
         // 한 프레임엔 가장 센 한 방만 소리 (치명타는 두 배로 셈)
         const w = ev.amt * (ev.crit ? 2 : 1);
         if (v?.cls && (!atk || w > atk.w)) atk = { cls: v.cls, w, crit: !!ev.crit };
         break;
       }
-      case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
+      case 'miss': if (ev.add != null) fxAddHit(ev.add, '빗나감', now, false, true); else missNum(F.party.find(x => x.id === ev.uid)); break;
       case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
       case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
       case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
