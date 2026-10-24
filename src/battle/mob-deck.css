@@ -1,0 +1,27 @@
+/* 일반 · 정예 구간 초상 교대 (2026-10-25 Lim C안, hud.ts updatePack): 기다리는 적 얼굴 (셋까지) · 「2 / 4」 · 쓰러지면 금빛 + 다음 적 */
+#battle #bossArt .mob-deck { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+/* 다음 적 (마지막 자식)이 맨 위, 뒤 적은 오른쪽으로 조금씩 (시간 줄 모래시계를 덮지 않게) */
+#battle #bossArt .mob-deck i {
+  position: absolute; left: 62px; top: 56px; width: 26px; height: 26px; border-radius: 50%;
+  background: #151310 center / 118% no-repeat; border: 2px solid #b78339;
+  box-shadow: 0 0 0 1px #0e0c0a, 0 2px 3px rgba(0, 0, 0, .7);
+}
+#battle #bossArt .mob-deck i:nth-last-child(2) { left: 53px; top: 54px; }
+#battle #bossArt .mob-deck i:last-child { left: 44px; top: 52px; }
+#battle #bossArt .mob-count {
+  position: absolute; z-index: 3; left: -7px; top: -6px; min-width: 30px; height: 19px; padding: 0 6px;
+  border-radius: 10px; border: 1.5px solid #f8d478; background: #2a1a0c; color: #fff1cb;
+  font: 800 11.5px/16px var(--font-body); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px #0e0c0a, 0 2px 3px rgba(0, 0, 0, .6); pointer-events: none;
+}
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* 쓰러짐: 초상에 금빛 (bossFx 'mob-down') → 다음 적 그림이 옆에서 들어옴, 새 막대는 왼쪽부터 채움, 얼굴 줄이 한 칸 당겨짐. 위치 · 투명도만 */
+.bfx-mob-down { --c: #FFE7A0; }
+#battle #bossArt img.boss-illustration.mob-in { animation: mobIn .38s ease-out; }
+#battle #bossFill.mob-in { transform-origin: left center; animation: mobBar .3s ease-out; }
+#battle #bossArt .mob-deck.mob-in i { animation: mobDeck .3s ease-out; }
+@keyframes mobIn { from { opacity: 0; transform: translateX(14px) scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes mobBar { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes mobDeck { from { opacity: .3; transform: translateX(-9px); } to { opacity: 1; transform: none; } }
+#battle.reduced-effects :is(#bossArt img.boss-illustration, #bossFill, #bossArt .mob-deck i) { animation: none; }
+@media (prefers-reduced-motion: reduce) { #battle :is(#bossArt img.boss-illustration, #bossFill, #bossArt .mob-deck i) { animation: none; } }
