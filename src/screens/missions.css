@@ -1,6 +1,6 @@
 /*
  * 임무 화면 (2026-10-22 Lim 「주간이 끝나면 임무 화면도 동일하게 시안을 만들어서 디자인 하자」 → 「b시안으로 해줘」 · 「상점과 행상인과 비슷한 느낌으로」).
- * 바탕 · 돌 버튼은 service-hall.css 목록, 판 · 줄 · 알약 · ⓘ는 guild-hall.css를 길드 · 주간 도전과 같이 쓴다.
+ * 바탕 · 돌 버튼은 service-hall.css 목록, 판 · 줄 · 알약은 guild-hall.css를 길드 · 주간 도전과 같이 쓴다 (임무에는 ⓘ 없음, 2026-10-24 Lim).
  * 여기는 임무에만 있는 것: 그림 머리 (상점 · 행상인과 같은 결, ui-mission) · 임무 줄의 막대 · 숫자 · 오른쪽 알약 + 버튼.
  * guild-hall.css가 이 파일 뒤에 읽혀서 공통 부품을 고칠 때는 .missions를 붙여 더 세게 쓴다.
  */
@@ -11,13 +11,14 @@
 #s-missions.ns .missions .warnbox { margin: 10px 0 0; }
 #s-missions.ns .missions .g-card { flex: none; }
 
-/* ---------- 그림 머리: 상점 · 행상인 머리와 같은 결 (임무 게시판 그림, 오른쪽 알약 = 행상인 보유 골드 자리) ---------- */
+/* ---------- 그림 머리: 상점 · 행상인 머리와 같은 결 (임무 게시판 그림, 「새 임무」 알약은 2026-10-24 Lim이 뺌) ---------- */
 #s-missions.ns .m-hero { --hero-art: var(--art-ui-mission, none); flex: none; min-height: 96px; margin: 0 -12px; align-items: flex-end; justify-content: space-between; border-bottom-color: var(--gk-edge); }
 #s-missions.ns .m-hero::before { background-position: center 55%; }
 #s-missions.ns .m-hero .ah-copy { min-width: 0; }
-#s-missions.ns .m-left { flex: none; display: inline-flex; align-items: baseline; gap: 6px; margin: 0; padding: 4px 10px; border-radius: 999px; background: #0d0b08cc; border: 1px solid var(--gk-card-bd); color: var(--gk-ink); }
-#s-missions.ns .m-left small { color: var(--gk-mute); font-size: 11px; }
-#s-missions.ns .m-left b { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* ⓘ가 빠진 판 머리: 숫자를 오른쪽 끝에서 조금 띄움 */
+#s-missions.ns .missions .g-meta { margin-right: 8px; }
+/* 「주간 임무는 Lv 10부터」: 길드 빈 줄 (.g-empty0)처럼 가운데 (2026-10-24 Lim 「가운데 정렬」) */
+#s-missions.ns .missions .g-empty0 { margin: 0; padding: 18px 12px; text-align: center; font-size: 13px; color: var(--gk-mute); }
 
 /* ---------- 줄: 길드 줄 + 막대 · 숫자, 오른쪽 알약 위 · 버튼 아래 ---------- */
 /* .mrow는 screens.css · service-hall.css의 예전 임무 줄 모양을 받아서 여기서 길드 줄로 되돌린다 */

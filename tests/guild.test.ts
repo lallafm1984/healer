@@ -80,7 +80,6 @@ describe('길드를 빼 두면', () => {
     expect(keys).not.toContain('guild2');
     expect(new Set(keys).size).toBe(5);
     expect(keys.every(k => DAILY.find(d => d.key === k)!.lv <= 30)).toBe(true);
-    expect(s.daily.swapped).toBe(false);
   });
 });
 
@@ -97,7 +96,6 @@ describe('길드원이 없으면 (2026-10-22 가상 사용자 QA: 결성 뒤 영
     s.daily.missions[4] = { key: 'guild2', n: 1, got: false };
     expect(rollover(s, T, rng).fixed).toBe(1);
     expect(s.daily.missions.map(m => m.key)).not.toContain('guild2');
-    expect(s.daily.swapped).toBe(false);
   });
   it('길드원이 한 명이라도 있으면 뽑힘', () => {
     let seen = false;

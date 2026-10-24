@@ -29,10 +29,8 @@ export default async function shop(url, shots) {
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
-  const keys0 = (await save()).daily.missions.map(m => m.key).join();
-  await page.click('#s-missions [data-swap="0"]'); await page.clock.runFor(50);
-  let sv = await save();
-  ok(sv.daily.swapped && sv.daily.missions.map(m => m.key).join() !== keys0 && (await page.locator('#s-missions [data-swap]').count()) === 0, '하루 1번 무료 교체');
+  ok((await page.locator('#s-missions [data-swap], #s-missions .g-info, #s-missions .m-left').count()) === 0, '임무: 교체 버튼 · ⓘ · 「새 임무」 알약 없음 (2026-10-24 Lim)');
+  let sv;
   // 임무를 다 채운 상태로 만들고 받기
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.daily.missions.forEach(m => { m.n = 99; }); s.weekly.missions[0].n = 99; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
