@@ -22,10 +22,6 @@
 /* ---------- 빨간 숫자 ---------- */
 .g-badge { position: absolute; top: -9px; right: -9px; z-index: 1; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #C8281E; border: 1.5px solid #FFE7A8; display: flex; align-items: center; justify-content: center; font: 900 11px/1 var(--font-body); color: #FFFFFF; pointer-events: none; }
 
-/* ---------- 노란 「!」 (받을 것 있음) · 빛 ---------- */
-.g-qm { position: absolute; z-index: 3; font: 800 32px/1 var(--font-display); color: var(--gold-hi); -webkit-text-stroke: 1.5px #3A2410; text-shadow: 0 0 12px rgba(255, 211, 77, 0.95), 0 2px 0 #080605; pointer-events: none; animation: g-bob 1.6s ease-in-out infinite; }
-@keyframes g-bob { 50% { transform: translateY(-4px); } }
-
 /* ---------- 화려한 출전 버튼 (진홍 + 금테 두 줄 + 양끝 마름모 + 세력 문양) ---------- */
 .g-cta { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 64px; margin: 0; padding: 0 18px 0 10px; box-sizing: border-box; border-radius: 8px; background: linear-gradient(#C8402F, #86201A 52%, #5C100C); border: 2px solid #E2BE6E; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), inset 0 1px 0 rgba(255, 226, 170, 0.5), inset 0 -4px 0 rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.65), 0 0 26px rgba(255, 150, 70, 0.28); color: #FFE7A8; font: inherit; text-decoration: none; cursor: pointer; }
 .g-cta::before, .g-cta::after { content: ''; position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -7px; background: #E2BE6E; border: 1px solid var(--line); transform: rotate(45deg); }
