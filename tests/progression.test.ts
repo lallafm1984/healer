@@ -221,7 +221,7 @@ describe('정산 (09 S08·S09)', () => {
     let drops = 0;
     for (let i = 0; i < 40; i++) {
       const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
-      expect(e.items.length).toBe(e.noDrop ? 0 : 1);
+      expect(e.items.length).toBeLessThanOrEqual(1);
       if (!e.items.length) continue;
       drops++;
       expect(['일반', '고급', '희귀']).toContain(e.items[0].grade); // 88: 첫 등급대 악몽 일반 · 고급 · 희귀 (초반은 희귀까지)

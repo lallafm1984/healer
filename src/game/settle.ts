@@ -91,8 +91,6 @@ export interface Settlement {
   jobs: JobsDone | null;
   /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
   raidLoot: 'first' | 'again' | null;
-  /** 탐험을 이겼는데 이번 판은 장비가 안 나옴 (판마다 EXPLORE_DROP, 103) */
-  noDrop: boolean;
   /** 공개모집 일일 보너스 판 (13 2-2): 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
   pubBonus: number;
   /** 이 판으로 다 채운 임무 */
@@ -234,6 +232,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, gold, first, best, guild, guildFame, raidLoot, noDrop, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, jobs,
+    xp, levelBefore, levelUps, items, gold, first, best, guild, guildFame, raidLoot, pubBonus, missions, chal, tutEnd, tutReplay: replay, rest, restBonus, founded, jobs,
   };
 }
