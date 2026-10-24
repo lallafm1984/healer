@@ -310,33 +310,36 @@ function loseHtml(r: BattleResult): string {
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>`;
 }
 
-/** 알림 줄 (누르면 그 화면): 길드원 · 직업 퀘스트 · 임무 */
+/**
+ * 알림 줄: 길드원 · 부탁 · 원정 · 임무. 끝났다는 것만 알리고 누를 수 없다 (2026-10-24 Lim 「다른 곳으로 이동되지 않고 완료됐다는 것만 알려주자. 다른 것도」).
+ * 「보상 받기」 · 「모집 공고로 영입」 같은 할 일 글 · › 화살표 · 눌러서 화면 이동은 다시 넣지 않는다
+ */
 function notesHtml(x: Settlement): string {
   const out: string[] = [];
   const gd = x.guild;
   // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜)
   // 업데이트 묶음 (93 8장): 부탁 쪽지 · 주간 원정
-  if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></button>`);
-  if (x.jobs?.exped.length) out.push(`<button class="r-note${x.jobs.expedAll ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></button>`);
-  if (x.founded) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b> · 모집 공고로 영입</span></button>`);
+  if (x.jobs?.reqs.length) out.push(`<div class="r-note">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></div>`);
+  if (x.jobs?.exped.length) out.push(`<div class="r-note${x.jobs.expedAll ? ' hi' : ''}">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></div>`);
+  if (x.founded) out.push(`<div class="r-note hi">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b></span></div>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    out.push(`<div class="r-note">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></div>`);
     // 레벨업 두 배 (LV_DOUBLE, 103 Lim 「레벨업시 20프로 확률로 2업」 · 「각각 다른 능력치」): 한 줄로 따로 (길드원 줄은 길어 잘림).
     // 한 사람이면 오른 두 칸 (「이름 공격 +1 · 회피 +1」), 여럿이거나 길면 이름만 (한 판에 두 번이면 ×2)
     const dbl = gd.members.filter(m => m.dbl);
     if (dbl.length) {
       const one = dbl.length === 1 && (dbl[0].dblStats?.length ?? 0) >= 2 ? `${dbl[0].nick} ${dbl[0].dblStats!.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : '';
       const body = one && one.length <= 24 ? esc(one) : dbl.map(m => `${esc(m.nick)}${(m.dbl ?? 0) > 1 ? ` ×${m.dbl}` : ''}`).join(' · ');
-      out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">레벨업 두 배</i> · ${body}</span></button>`);
+      out.push(`<div class="r-note">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">레벨업 두 배</i> · ${body}</span></div>`);
     }
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
-    if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
+    if (st.length) out.push(`<div class="r-note">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></div>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람
-    if (gd.boosted.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></button>`);
+    if (gd.boosted.length) out.push(`<div class="r-note">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></div>`);
   }
-  if (x.missions.length) out.push(`<button class="r-note" type="button" data-go="s-missions" aria-label="임무 완료: ${x.missions.map(esc).join(', ')}">${gameIcon('mission', uiIcon('quest'))}<span>임무 완료 <b>${x.missions.length}</b> · 보상 받기</span></button>`);
+  if (x.missions.length) out.push(`<div class="r-note">${gameIcon('mission', uiIcon('quest'))}<span>임무 완료 <b>${x.missions.length}</b></span></div>`);
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';
 }
 
@@ -380,7 +383,7 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
 }
 
 /**
- * 전면 광고 (90): 클리어한 판의 결과 화면에서 나가는 버튼 (다음 · 다시 도전 · 나가기 · 위 정보창 · 알림 줄)을 누를 때,
+ * 전면 광고 (90): 클리어한 판의 결과 화면에서 나가는 버튼 (다음 · 다시 도전 · 나가기 · 위 정보창)을 누를 때,
  * 마지막 광고 뒤 화면에 떠 있던 시간이 10분을 넘었으면 한 번 띄우고, 닫히면 원래 누른 버튼대로 감.
  * Lv 10 전 · 튜토리얼 · 진 판 · 포기 · 광고 제거 패키지면 없음. 못 불러오면 그냥 감 (시계 그대로)
  */
