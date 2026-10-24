@@ -329,6 +329,7 @@ function land(f: Fight, u: Unit, amt: number): void {
 
 /**
  * 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음.
+ * 쫄을 친 한 방은 보스에게 넘어가지 않음 (2026-10-24 Lim 「보스의 쫄을 공격시엔 보스를 공격하면 안된다」 → 「예」): 마지막 쫄을 잡고 남은 몫은 버림
  * 95: 쫄 사냥꾼은 쫄에게 ×add · 보스에게 ×boss, 쫄 모으기 탱커에게 쫄이 모여 있으면 쫄에게 ×aoe
  */
 /** 길드원 버릇 (97 · 93 13-1): 침착 · 판단이 높으면 성격 단점 (느린 반응 · 회피 −)이 줄어듦. 성격 표 (PERS)는 그대로, 그 유닛 사본만 */
@@ -343,6 +344,7 @@ function habitPers(p: Partial<Personality>, h = 1): Partial<Personality> {
 function hitAdds(f: Fight, d: number, u: Unit): void {
   const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1); // 예전 쫄 처리 (97 FM)는 협동으로 바뀌며 뺌 (99)
   if (u.did) u.did.adds += d;
+  const onAdds = f.mobs.some(m => m.alive && m.add);
   let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
     if (left <= 1e-9) break;
@@ -356,7 +358,7 @@ function hitAdds(f: Fight, d: number, u: Unit): void {
     left -= x / boost;
     damageMob(f, m, x);
   }
-  if (left > 1e-9 && !f.invuln) f.bossHp -= left * bossTaken(f) * (hunt?.boss ?? 1);
+  if (left > 1e-9 && !f.invuln && !onAdds) f.bossHp -= left * bossTaken(f) * (hunt?.boss ?? 1); // 쫄을 친 한 방의 남은 몫은 보스로 안 넘김
 }
 
 /**
