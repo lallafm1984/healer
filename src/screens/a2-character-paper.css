@@ -101,8 +101,6 @@
   box-shadow: inset 0 0 0 2px #20140c99, inset 0 0 0 3px #d2ad5b33, 0 4px 12px #08080788;
 }
 #s-char[data-sub="gear"] .c7-inventory-head h3 { color: #fff1d0; font-size: 18px; }
-#s-char[data-sub="gear"] .c7-inventory-count { color: #e2d0ad; }
-#s-char[data-sub="gear"] .c7-inventory-head .gmats { color: #eee0c2; gap: 0; }
 #s-char[data-sub="gear"] .c7-inventory :is(.c7-sort, .c7-fc, [data-dex]) {
   background: var(--c7-button-bg);
   border: 1px solid var(--c7-button-line); color: #fff0cf; border-radius: 7px;

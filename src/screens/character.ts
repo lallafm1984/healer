@@ -7,7 +7,6 @@
  * 특성: 프리셋 · 특성 노드 · 고르기 시트 / 직업: 일곱 직업 비교 목록 · 상태 표시 · 소개와 스킬 카드 상세
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { resourceBalance } from '../game/resources';
 import { GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, optionsOf, qualityOf, sellGold, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
@@ -289,7 +288,7 @@ const updn = (v: number, unit = '') => (v > 0 ? `<span class="c7-up">▲${v}${un
 
 /**
  * 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·판매한다.
- * 위쪽(착용 장비·능력치)은 움직이지 않고 이 목록만 스크롤 (Lim 2026-10-12): 머리 두 줄 = [인벤토리 · 개수 · 재료] [분류 4칸 · 정렬],
+ * 위쪽(착용 장비·능력치)은 움직이지 않고 이 목록만 스크롤 (Lim 2026-10-12): 머리 두 줄 = [인벤토리] [분류 4칸 · 정렬] (개수 · 골드는 2026-10-24 Lim이 뺌, 골드는 위 정보창),
  * 목록은 하단 메뉴 바로 위까지 남은 높이를 다 씀 (최소 3줄). 빈칸은 보이는 줄까지 fillBags가 채움
  */
 const EMPTY_CELL = '<span class="c7-bag-empty" aria-hidden="true"></span>';
@@ -301,7 +300,7 @@ function inventoryHtml(): string {
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   return `<section class="c7-inventory" aria-label="인벤토리">
-      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${goldHave()}</span></header>
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
@@ -321,11 +320,6 @@ function fillBags(): void {
 const bagWatch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fillBags);
 
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 그 장비 범위 · 잠금 · 판매 · 장착 */
-/** 가진 골드 (인벤토리 머리). 개발 빌드 골드 무제한이면 ∞ */
-function goldHave(): string {
-  const have = resourceBalance(G.save, 'gold');
-  return currencyAmount('gold', isFinite(have) ? have : '∞');
-}
 function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
