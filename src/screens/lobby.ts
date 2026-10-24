@@ -12,7 +12,7 @@ import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content'
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { MERCHANT, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
+import { REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildPartyNeed, guildSeatCount } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
@@ -151,9 +151,9 @@ function toAdventure(to: { content: ContentKey; diff: DiffName }): void {
 function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
   return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><span class="lb-caption"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>${extra}</div>`;
 }
-/** 원형 문장 + 짙은 목재 명패 (2026-10-22 Lim 시안 1). 이름·잠금 문구는 실제 UI 글자로 유지한다. */
-const commerceEmblem = (cls: string, attrs: string, image: string, name: string, lines: string[] = []) =>
-  `<button type="button" class="lb-plate lb-emblem ${cls}"${attrs} aria-label="${esc([name, ...lines].join(' · '))}"><img class="lb-emblem-art" src="${art(image)}" alt="" aria-hidden="true" decoding="async" draggable="false"><span class="lb-pt"><b>${name}</b>${lines.length ? `<span>${lines.map(line => `<span>${line}</span>`).join('')}</span>` : ''}</span></button>`;
+/** 원형 문장 + 짙은 목재 명패 (2026-10-22 Lim 시안 1). 이름은 실제 UI 글자로 유지한다. */
+const commerceEmblem = (cls: string, attrs: string, image: string, name: string) =>
+  `<button type="button" class="lb-plate lb-emblem ${cls}"${attrs} aria-label="${esc(name)}"><img class="lb-emblem-art" src="${art(image)}" alt="" aria-hidden="true" decoding="async" draggable="false"><span class="lb-pt"><b>${name}</b></span></button>`;
 
 /** 오늘 받을 것: 임무 (일일 · 주간) + 일일 상자 (임무 5개를 다 받으면, 놓친 날 2일까지) */
 function today() {
@@ -173,15 +173,17 @@ function missionSock(): string {
     gameIcon('mission', uiIcon('quest')), '임무', sub,
     n ? `<i class="g-badge" aria-hidden="true">${n}</i><button type="button" class="lb-claim" id="lbClaim" aria-label="임무 보상 · 일일 상자 ${n}개 받기"><span class="g-qm" aria-hidden="true">!</span></button>` : '');
 }
-/** 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 소켓 = 받기 */
+/**
+ * 주간 도전: 이번 주 남은 날. 도전 상자가 있으면 소켓 = 받기.
+ * 레벨이 모자라 잠겼으면 소켓을 두지 않는다 (2026-10-24 Lim 「레벨 제한으로 잠긴 팻말은 로비에서 숨기기」, 예전 어두운 소켓 + 「Lv 20」 → 전투 탭)
+ */
 function chalSock(): string {
-  const s = G.save, cg = chalGate(s), left = weekRemaining();
-  const icon = gameIcon('challenge', uiIcon('hourglass'));
-  return s.chalChest
-    ? socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', icon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>')
-    // 열렸으면 바로 주간 도전 화면 (2026-10-22 Lim 「주간 도전 선택시 바로 주간도전 화면으로 이동」), 잠겼으면 예전처럼 전투 탭 던전 분류 (잠긴 도전 카드)
-    : socket(`lb-chal${cg.ok ? '' : ' off'}`, `${cg.ok ? ' data-chal-go' : ' data-go="s-content" data-arg="dungeon"'} aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
-      icon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
+  const s = G.save, cg = chalGate(s), icon = gameIcon('challenge', uiIcon('hourglass'));
+  if (s.chalChest) return socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', icon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>');
+  if (!cg.ok) return '';
+  // 바로 주간 도전 화면 (2026-10-22 Lim 「주간 도전 선택시 바로 주간도전 화면으로 이동」)
+  const left = weekRemaining();
+  return socket('lb-chal', ` data-chal-go aria-label="주간 도전 · ${esc(CHAL.name)} · ${left} 남음"`, icon, '주간 도전', `${left} 남음`);
 }
 /**
  * 상점 (예전 「잡화점」, 2026-10-21 Lim 「잡화점은 상점으로」): 상품 한 쪽. 이름만 (가운데, lobby-menu.css).
@@ -193,14 +195,12 @@ function shopPlate(): string {
 }
 
 /**
- * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위를 골라 골드로 사는 미확인 장비 (종류 무작위). Lv 10 (MERCHANT.lv) 전엔 잠금 글.
- * 이름은 세 글자 (「떠돌이 상인」은 팻말에서 두 줄로 꺾였음). 둘째 줄 = 「미확인 장비」 (값은 상인 화면에), 잠겼으면 셋째 줄 「Lv 10부터」
- * (「Lv 10에 열림」은 S25에서 「Lv 10에 …」로 잘렸음). 「골드로 사기」 줄은 2026-10-21 Lim 「…골드로사기 텍스트 제거하고 가운데 맞춤으로 정렬」로 뺐다
+ * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 … 골드소비처」): 부위를 골라 골드로 사는 미확인 장비 (종류 무작위).
+ * 이름만 (「미확인 장비」 줄은 2026-10-22 Lim 「행상인 메뉴에서 "미확인 장비" 제거」로 뺌).
+ * Lv 10 (MERCHANT.lv) 전엔 팻말을 두지 않는다 (2026-10-24 Lim 「레벨 제한으로 잠긴 팻말은 로비에서 숨기기」, 예전 어두운 팻말 + 「Lv 10부터」)
  */
 function merchantPlate(): string {
-  const o = merchantOffer(G.save);
-  return commerceEmblem(`lb-merchant${o.open ? '' : ' lock'}`, ' data-go="s-merchant"', 'lobby-merchant-emblem-v1', '행상인',
-    o.open ? [] : [`Lv ${MERCHANT.lv}부터`]); // 「미확인 장비」 줄은 2026-10-22 Lim 「행상인 메뉴에서 "미확인 장비" 제거」로 뺌, 잠겼을 때만 한 줄
+  return merchantOffer(G.save).open ? commerceEmblem('lb-merchant', ' data-go="s-merchant"', 'lobby-merchant-emblem-v1', '행상인') : '';
 }
 
 /**
@@ -214,7 +214,10 @@ function restSock(): string {
     `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
-/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (상점 · 행상인, 2026-10-21). 길드는 하단 탭 (2026-10-18) */
+/**
+ * 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (상점 · 행상인, 2026-10-21). 길드는 하단 탭 (2026-10-18).
+ * 잠긴 주간 도전 · 행상인은 빠지고 남은 것이 위에서부터 붙는다 (빈 칸을 두지 않음)
+ */
 const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
   <nav class="lb-side lb-right" aria-label="마을 건물">${shopPlate()}${merchantPlate()}</nav>`;
 

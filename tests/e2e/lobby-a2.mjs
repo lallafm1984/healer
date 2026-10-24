@@ -175,6 +175,9 @@ export default async function lobbyA2(url, shots) {
             'Lv 8 첫 던전 안내: 출전은 녹슨 요새 우선, 안내 문구 유지');
           checkLayout(await layout(page), '390 첫 던전 안내');
           await page.screenshot({ path: `${shots}/lobby_a2_first_dungeon.png` });
+          // 레벨이 모자라 잠긴 주간 도전 (Lv 20) · 행상인 (Lv 10)은 로비에 없음 (2026-10-24 Lim 「레벨 제한으로 잠긴 팻말은 로비에서 숨기기」)
+          const shown = () => page.evaluate(() => ({ chal: document.querySelectorAll('#s-lobby .lb-chal').length, merchant: document.querySelectorAll('#s-lobby .lb-merchant').length, shop: document.querySelectorAll('#s-lobby .lb-shop').length }));
+          { const v = await shown(); ok(!v.chal && !v.merchant && v.shop === 1, 'Lv 8: 잠긴 주간 도전 · 행상인 숨김, 상점은 그대로', v); }
           await patch(page, () => {
             const s = JSON.parse(localStorage.getItem('healer.save'));
             s.player.level = 12; localStorage.setItem('healer.save', JSON.stringify(s));
@@ -185,6 +188,7 @@ export default async function lobbyA2(url, shots) {
             '지난 판 있음: 다음 목표 · 출전 = 길잡이 추천 (지난 판 잿빛 공동묘지가 아님)');
           checkLayout(await layout(page), '390 지난 판 있음');
           await page.screenshot({ path: `${shots}/lobby_a2_last_run.png` });
+          { const v = await shown(); ok(!v.chal && v.merchant === 1, 'Lv 12: 행상인 나옴, 주간 도전 (Lv 20)은 아직 숨김', v); }
           // 「다시」 소켓은 뺐다 (Lim 2026-10-12): 지난 판이 있어도 없음 (같은 곳 다시는 결과 화면 「다시 도전」)
           ok(await page.locator('#lbAgain, #s-lobby .lb-again').count() === 0, '지난 판 있어도 「다시」 소켓 없음');
           for (const [level, title, target] of [[40, '심연의 탑', '45'], [60, '가라앉은 대성당', '70']]) {
@@ -197,6 +201,7 @@ export default async function lobbyA2(url, shots) {
             const gate = await page.textContent(`${lobby} .lb-trk.gate`);
             ok(gate.includes(title) && gate.includes(`레벨 ${target}`) && /0 \/ 6 부위/.test(gate), `Lv ${level}: 레이드 목표 실시간 조건 목록 유지`, gate);
             const g = await layout(page); checkLayout(g, `390 Lv ${level} 목표`);
+            { const v = await shown(); ok(v.chal === 1 && v.merchant === 1, `Lv ${level}: 주간 도전 · 행상인 모두 나옴`, v); }
             await page.screenshot({ path: `${shots}/lobby_a2_gate_${level}.png` });
             await page.locator(`${lobby} .lb-trk.gate`).tap(); await tick(page);
             // 길드를 켠 뒤 (2026-10-18) 첫 미완료 줄 = 길드원 → 길드 탭
