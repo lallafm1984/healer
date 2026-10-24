@@ -55,11 +55,11 @@ export default async function gear(url, shots) {
   const t101 = await text('#s-char .gtile[data-gitem="101"]');
   ok((await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile .c7-gl').count()) === 0 && /희귀/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && /머리/.test(t101) && /두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && (await page.locator('#s-char .c7-slot > small').count()) === 0, '장비 칸 6개: 그림·부위 이름, 등급은 칸 바탕 색 (글자 칩 없음)과 접근 가능한 이름, 종류도 접근 가능한 이름에 유지하고 보조문구 없음');
   ok(/가방에 1개/.test(await page.getAttribute('#s-char .gtile[data-gslot="hands"]', 'aria-label')) && (await page.locator('#s-char .c7-better').count()) === 0 && !/더 좋은/.test(await page.locator('#s-char .gtile').evaluateAll(els => els.map(e => e.getAttribute('aria-label')).join('|'))) && await page.isVisible('#s-char [data-csub="gear"] .rdot'), '빈칸: 가방 개수는 접근 가능한 이름, 초록 ↑ 없음 (2026-10-17 Lim) · 장비 탭 빨간 점 유지');
-  ok(/3개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-acts, #s-char [data-bag], #s-char [data-rec], #s-char [data-salvbag]').count()) === 0, '인벤토리 개수 3개, 별도 가방·추천·분해 버튼 없음');
+  ok((await page.locator('#s-char .c7-acts, #s-char [data-bag], #s-char [data-rec], #s-char [data-salvbag]').count()) === 0, '별도 가방·추천·분해 버튼 없음');
 
   // ---- 장비 아래 인벤토리 ----
-  ok((await page.locator('#s-char .gmats .currency-icon img').count()) === 1 && !/골드|강화석/.test(await text('#s-char .gmats')), '골드는 실제 아이콘과 수량만 표시, 이름은 접근성 정보로 유지 (91: 강화석 없음)');
-  ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 800', '장비 진입 즉시 인벤토리·골드 표시, 가방 모달 없음');
+  ok((await page.locator('#s-char .c7-inventory-head').innerText()).trim() === '인벤토리' && (await page.locator('#s-char .c7-inventory-head .currency-icon, #s-char .c7-inventory-count, #s-char .gmats').count()) === 0, '인벤토리 머리는 이름만: 개수 · 골드 없음 (2026-10-24 Lim, 골드는 위 정보창)');
+  ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && (await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 800', '장비 진입 즉시 인벤토리 표시 · 골드는 위 정보창, 가방 모달 없음');
   ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag :is(.up, .dn)').count()) === 0 && !/[▲▼]|지금 장비보다/.test((await text('#s-char .c7-bags')) + await page.getAttribute('#s-char .c7-bag[data-gitem="201"]', 'aria-label')), '인벤토리 5열 격자: 새것 점, 강함 비교 ▲▼ 없음 (2026-10-17 Lim)');
   await page.click('#s-char [data-bfilter="acc"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-bag').count()) === 2, '필터 「장신구」 = 반지·목걸이');
@@ -130,13 +130,13 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   let sv = await save();
   ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 810, '판매는 고른 일반 장비만 제거, 골드 +10');
-  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 810' && /판매: 골드 \+10/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 개수·골드·결과 안내 갱신');
+  ok(!(await page.locator('#s-char .sheet').count()) && (await page.locator('#s-char .c7-bag').count()) === 2 && (await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 810' && /판매: 골드 \+10/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 아이템·위 정보창 골드·결과 안내 갱신');
   await page.click('#s-char .c7-bag[data-gitem="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-sell1="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.player.gold === 840, `고급 장비 판매 뒤 잠긴 장비 유지, 골드 +30 (${sv.player.gold})`);
-  ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 840', '남은 인벤토리 1개·골드 840 표시');
+  ok((await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 840', '남은 인벤토리 1개·골드 840 표시');
 
   // ---- 인벤토리 상세에서 수동 장착 ----
   await page.click('#s-char .c7-bag[data-gitem="203"]'); await page.clock.runFor(50);
@@ -147,7 +147,7 @@ export default async function gear(url, shots) {
   ok(await page.isDisabled('#s-char [data-sell1="203"]'), '방금 장착한 장비도 판매 불가');
   await closeSheet();
   ok(await page.evaluate(() => document.activeElement?.id === 'gearInventoryTitle'), '마지막 아이템 장착 뒤 상세 닫기 → 빈 인벤토리 제목 포커스 복귀');
-  ok(/0개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 새 장비 빨간 점 사라짐');
+  ok((await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 새 장비 빨간 점 사라짐');
   const emptyRows = await page.evaluate(() => {
     const list = document.querySelector('#s-char .c7-bags'), note = list.querySelector('.c7-inventory-empty');
     return { note: note?.textContent, empties: list.querySelectorAll('.c7-bag-empty').length, rows: Math.round(list.clientHeight / 60 * 10) / 10 };
@@ -348,7 +348,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-settings .group.dev').screenshot({ path: `${shots}/resources_unlimited_settings.png` });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞') && (await page.locator('#s-char .topbar .currency-icon[data-currency="gold"]').count()) === 0, '새로 켜도 무한 설정 유지: 인벤토리 골드 ∞ (위 정보창에는 골드 없음, 2026-10-17)');
+  ok((await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 무제한', '새로 켜도 무한 설정 유지: 위 정보창 골드 무제한');
   await page.setViewportSize({ width: 360, height: 780 }); await page.clock.runFor(100); // S25
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
   ok(!/각성|강화/.test(await text('#s-char .c7-gsheet')) && !(await save()).gear.equipped.head.lines.some(l => 'up' in l), '이전 각성 추가값과 각성 · 강화 표시 제거');
@@ -360,7 +360,7 @@ export default async function gear(url, shots) {
   await page.locator('[data-tog="devGold"]').uncheck();
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '0'), '설정 해제 후 실제 골드 0 표시');
+  ok((await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 0', '설정 해제 후 실제 골드 0 표시');
 
   await ctx.close();
   await browser.close();

@@ -138,8 +138,6 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 /* 장비 상세·강화·분해 (09 S10·S11) */
 button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .gtile.sel, .bag li.sel { box-shadow: 0 0 0 2px var(--g); }
-.gmats { margin: 2px 0 0; font-size: 13px; color: var(--mute); }
-.gmats b { color: var(--ink); }
 .gbtns { display: flex; flex-wrap: wrap; gap: 6px; }
 .gbtns .btn { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .gbtns .btn small { font-family: var(--font-body); font-size: 11px; color: inherit; opacity: 0.8; }

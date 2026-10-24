@@ -14,7 +14,7 @@ export const equipmentLayout = page => page.evaluate(() => {
   }) && bodyEl.scrollWidth <= bodyEl.clientWidth + 1;
   const firstRow = q('.c7-bag') ?? q('.c7-inventory .c7-bag-empty');
   const inventoryFollows = inventory.top >= stage.bottom - 1 && inventory.top - stage.bottom <= 24;
-  const inventoryVisible = rect(q('.c7-inventory-count')).bottom <= tabs.top && (!firstRow || rect(firstRow).bottom <= tabs.top + 1);
+  const inventoryVisible = rect(q('.c7-inventory-head')).bottom <= tabs.top && (!firstRow || rect(firstRow).bottom <= tabs.top + 1);
   const issues = [];
   for (const row of document.querySelectorAll('#s-char .c7-stat')) {
     const parts = [...row.querySelectorAll(':scope > small, :scope > b, :scope > i')].filter(el => el.textContent.trim()).map(el => {
