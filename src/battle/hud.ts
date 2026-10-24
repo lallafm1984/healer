@@ -19,7 +19,7 @@ import { skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Mob, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
-import { encArt, mobArt, skillMark } from './art';
+import { encArt, mobLook, skillMark } from './art';
 import { L, screenCenter } from './board';
 import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
@@ -47,7 +47,7 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
   const pack = trashPack(F), order = m && pack.length > 1 ? `<span class="vh">, ${pack.length}마리 중 ${pack.filter(x => !x.alive).length + 1}번째</span>` : '';
-  return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>${order}` : `<span class="boss-title-text">${F.enc.name}</span>`;
+  return m ? `<span class="boss-title-text">${mobLook(F, m).name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>${order}` : `<span class="boss-title-text">${F.enc.name}</span>`;
 }
 
 /**
@@ -63,14 +63,14 @@ function updatePack(F: Fight, swap: boolean): void {
   const pack = trashPack(F), m = trashTarget(F), host = $('bossArt');
   const deck = host.querySelector<HTMLElement>(':scope > .mob-deck'), count = host.querySelector<HTMLElement>(':scope > .mob-count');
   if (!m || pack.length < 2) { deck?.remove(); count?.remove(); if (!m) return; }
-  const src = mobArt(m.name), img = host.querySelector<HTMLImageElement>(':scope > img.boss-illustration');
+  const src = mobLook(F, m).src, img = host.querySelector<HTMLImageElement>(':scope > img.boss-illustration');
   if (src && img && !img.src.endsWith(src)) img.src = src;
   else if (src && !img) host.querySelector(':scope > svg')?.replaceWith(Object.assign(document.createElement('img'), { className: 'boss-illustration', src, alt: '', decoding: 'async', draggable: false }));
   if (pack.length >= 2) {
     // 다음 적이 맨 위 · 맨 오른쪽, 그 뒤 적은 왼쪽 아래로 겹침 (시간 줄을 덮지 않게)
     const wait = pack.filter(x => x.alive && x !== m).slice(0, DECK_MAX);
     const d = deck ?? host.appendChild(Object.assign(document.createElement('div'), { className: 'mob-deck' }));
-    d.replaceChildren(...wait.reverse().map(x => { const i = document.createElement('i'); i.style.backgroundImage = cssUrl(mobArt(x.name) || encArt(F.enc.key, F.enc.script)); return i; }));
+    d.replaceChildren(...wait.reverse().map(x => { const i = document.createElement('i'); i.style.backgroundImage = cssUrl(mobLook(F, x).src || encArt(F.enc.key, F.enc.script)); return i; }));
     const c = count ?? host.appendChild(Object.assign(document.createElement('b'), { className: 'mob-count' }));
     c.textContent = `${pack.filter(x => !x.alive).length + 1} / ${pack.length}`;
   }

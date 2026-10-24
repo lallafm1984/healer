@@ -6,6 +6,7 @@
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
+import { mobLook } from './art';
 import type { BubbleKind } from './board';
 
 /** kind = 말풍선 테두리 (위기 · 기믹·신호 · 반응 · 쓰러진 사람) · emote = 왼쪽 감정 아이콘 emote-<이름> · cheer = 승리 이펙트 띠 */
@@ -187,7 +188,7 @@ export function createTalk(rand: () => number = Math.random) {
   const bossName = (f: Fight): string => {
     if (!f.bodyHp) return f.enc.name;
     const m = f.mobs.find(x => x.alive && !x.add && (x.boss || x.elite)) || f.mobs.find(x => x.alive && !x.add);
-    return m ? m.name : f.enc.name;
+    return m ? mobLook(f, m).name : f.enc.name; // 구간 적은 보이는 얼굴 이름 (data/mob-looks)
   };
 
   // ---------- 말하기 ----------

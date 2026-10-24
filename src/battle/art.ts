@@ -2,7 +2,8 @@
 import { art } from '../art';
 import { BOSSES, type BossDef } from '../data/bosses';
 import type { FactionKey } from '../data/places';
-import type { Mob, Unit } from '../engine/types';
+import type { Fight, Mob, Unit } from '../engine/types';
+import { mobLookOf } from '../data/mob-looks';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 
 /** 작은 스킬 칸에서도 구분되는 기능 문양. 원화·직업 색에 의존하지 않는 공통 실루엣. */
@@ -423,6 +424,12 @@ const MOB_ART: Record<string, string[]> = {
 export function mobArt(name: string): string {
   const n = (MOB_ART[name] || []).find(x => art(x));
   return n ? art(n) : '';
+}
+/** 구간 적 한 마리의 보이는 이름 · 그림 (같은 종류 몇 번째인지로 data/mob-looks 얼굴, 2026-10-25 Lim 「적얼굴과 이름을 다양화」) */
+export function mobLook(f: Pick<Fight, 'mobs'>, m: Mob): { name: string; src: string } {
+  if (m.add) return { name: m.name, src: '' };
+  const look = mobLookOf(m.name, f.mobs.filter(x => !x.add && x.name === m.name).indexOf(m));
+  return { name: look.name, src: (look.art && art(look.art)) || mobArt(m.name) };
 }
 /** 역병 군주 인터미션 쥐떼 (보스 무대 작은 그림, 없으면 '') */
 export const ratsArt = (): string => art('mob-crypt-rats');
