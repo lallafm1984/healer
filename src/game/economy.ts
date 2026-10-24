@@ -67,7 +67,7 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     save.daily = { ...newDaily(day), banked, missions: pick(save, DAILY, DAILY_N, lv, r, 2) };
     out.day = true;
   }
-  // 지금 못 채우는 임무 → 다른 임무로. 하루 교체 횟수는 안 씀
+  // 지금 못 채우는 임무 → 다른 임무로
   // (길드를 빼기 전에 뽑힌 길드 임무 · 길드원이 없어진 뒤의 길드 임무, 직업을 바꿔 아직 지울 디버프가 없는 「해제 성공」)
   const ms = save.daily.missions;
   ms.forEach((m, i) => {
@@ -186,18 +186,6 @@ export function claimExped(save: SaveData, r: () => number): Gain | string {
   const my = save.player.level;
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my });
   return give(save, { gold: runGold(my) * EXPED.chestGold, items: [it] });
-}
-
-/** 하루 1회 무료 교체 (13 2-1) */
-export function swapMission(save: SaveData, i: number, r: () => number): string {
-  const d = save.daily, s = d.missions[i];
-  if (!s || s.got) return '바꿀 수 없음';
-  if (d.swapped) return '오늘 교체를 이미 씀';
-  const basic = d.missions.filter((m, j) => j !== i && DAILY_BASIC.includes(m.key)).length;
-  const nw = pick(save, DAILY, 1, topLevel(save), r, 2 - basic, d.missions.map(m => m.key))[0];
-  if (!nw) return '바꿀 임무가 없음';
-  d.missions[i] = nw; d.swapped = true;
-  return '';
 }
 
 /** 길드 주간 목표 (93 6-1): 명성 보상 */

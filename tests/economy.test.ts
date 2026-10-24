@@ -7,7 +7,7 @@ import { clearGold } from '../src/data/progression';
 import { dayKey, daysBetween, weekKey } from '../src/game/clock';
 import {
   chalChestOf, chestState, claimChalChest, claimChest, claimMission,
-  missionReady, onAct, onRun, rollover, runGold, swapMission,
+  missionReady, onAct, onRun, rollover, runGold,
 } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -119,7 +119,7 @@ describe('일일 임무 (13 2-1)', () => {
     }).some(Boolean);
     expect([can('priest', 6), can('priest', 7), can('astrologer', 12), can('astrologer', 13), can('shaman', 21), can('shaman', 22)]).toEqual([false, true, false, true, false, true]);
   });
-  it('직업을 바꿔 못 채우게 된 「해제 성공」은 다음 화면 진입 때 다른 임무로 (교체 횟수는 안 씀)', () => {
+  it('직업을 바꿔 못 채우게 된 「해제 성공」은 다음 화면 진입 때 다른 임무로', () => {
     const s = save(15);
     s.daily.missions = [{ key: 'clear3', n: 0, got: false }, { key: 'nodeath', n: 0, got: false }, { key: 'sell2', n: 0, got: false }, { key: 'dispel10', n: 3, got: false }, { key: 'mana20', n: 0, got: false }];
     expect(rollover(s, T0, rng).fixed).toBe(0);
@@ -127,14 +127,6 @@ describe('일일 임무 (13 2-1)', () => {
     expect(rollover(s, T0, rng).fixed).toBe(1);
     expect(s.daily.missions.length).toBe(5);
     expect(s.daily.missions.map(m => m.key)).not.toContain('dispel10');
-    expect(s.daily.swapped).toBe(false);
-  });
-  it('하루 1번 무료 교체, 받은 임무는 못 바꿈', () => {
-    const s = save(20);
-    const before = s.daily.missions.map(m => m.key);
-    expect(swapMission(s, 0, rng)).toBe('');
-    expect(before).not.toContain(s.daily.missions[0].key);
-    expect(swapMission(s, 1, rng)).toMatch(/이미/);
   });
 });
 

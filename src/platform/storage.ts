@@ -148,8 +148,6 @@ export interface DailySave {
   /** 리셋 기준 날짜 (YYYY-MM-DD) */
   day: string;
   missions: MissionSave[];
-  /** 하루 1회 무료 교체를 씀 */
-  swapped: boolean;
   /** 오늘 완료 상자를 받음 */
   chest: boolean;
   /** 놓친 날 완료 상자 (최대 2, 13 7장) */
@@ -247,7 +245,7 @@ export interface SaveData {
   roster: Roster;
 }
 
-export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
+export const newDaily = (day = ''): DailySave => ({ day, missions: [], chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
 export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], loot: [], chalBest: 0, guild: { n: 0, got: false } });
 
 /** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸, 사제만 처음부터 해금) */

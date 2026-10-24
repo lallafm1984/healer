@@ -56,7 +56,7 @@ export default async function guildOff(url, shots) {
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok(!/길드/.test(await text('#s-missions')), '임무: 「길드파티로 클리어」·길드 주간 목표 없음');
   const sv = await page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));
-  ok(!sv.daily.missions.some(m => m.key === 'guild2') && !sv.daily.swapped, '옛 저장의 길드 임무는 교체 횟수 없이 다른 임무로 바뀜');
+  ok(!sv.daily.missions.some(m => m.key === 'guild2'), '옛 저장의 길드 임무는 다른 임무로 바뀜');
 
   // ---- 편성: 공개모집만 ----
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);

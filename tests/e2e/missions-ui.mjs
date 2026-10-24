@@ -30,7 +30,7 @@ export default async function missionsUI(url, shots) {
     ok((await page.locator('#mission-daily .mission-reward').allTextContents()).every(s=>s.trim()==='173'),`${width}: live level-40 reward 173 (495 × 0.35), no mockup amount`);
     await page.screenshot({path:`${shots}/mission-daily-${width}.png`});
     await page.locator('#mission-daily .mrow').last().scrollIntoViewIfNeeded();
-    ok(await page.locator('#mission-daily [data-swap="4"]').isVisible(),`${width}: bottom row reachable by scrolling`);
+    ok(await page.locator('#mission-daily .mrow').last().isVisible(),`${width}: bottom row reachable by scrolling`);
     await page.locator('#s-missions .ns-body').evaluate(e=>e.scrollTop=0);
     const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('healer.save')).player.gold);
     await page.click('#mission-daily [data-claim]');await page.clock.runFor(100);
@@ -38,7 +38,7 @@ export default async function missionsUI(url, shots) {
     ok(after.player.gold===before+173&&after.daily.missions[0].got,`${width}: claim uses existing economy`);
     await page.click('#mission-tab-weekly');await page.clock.runFor(100);
     ok(await page.isVisible('#mission-weekly')&&await page.isHidden('#mission-daily')&&await page.locator('#mission-weekly .mrow').count()===3,`${width}: weekly tab shows 3 actual missions`);
-    ok(await page.locator('#mission-weekly [data-swap]').count()===0,`${width}: no invented weekly swap`);
+    ok(await page.locator('#s-missions [data-swap], #s-missions .g-info, #s-missions .m-left').count()===0,`${width}: no swap button, ⓘ or 「새 임무」 pill (2026-10-24 Lim)`);
     await page.screenshot({path:`${shots}/mission-weekly-${width}.png`});
     await page.locator('#mission-tab-weekly').press('ArrowLeft');
     ok(await page.isVisible('#mission-daily'),`${width}: keyboard tabs`);
