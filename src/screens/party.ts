@@ -78,10 +78,12 @@ function compose(): void {
 /**
  * 시작 위치 미리보기 (시안 육각 칸): 첫 전투를 같은 시드로 만들어 칸 배치를 그림 (실제 전투도 이 시드로 시작).
  * 칸 = 역할 색 + 직업 아이콘 (이름은 줄에), 나는 금테 + 직업 문장. 상세 시트로 연 파티원 칸은 빛남.
+ * 칸은 원래 자리 (`home`)로 그림: 시작 자리를 못 찾는 탱커 (99 나)는 전투가 시작돼야 1열 뒤에 섬 (2026-10-24 Lim 「미리 표시되면 안된다」).
  */
 function boardHtml(): string {
   const segs = contentOf(Flow.content).fights(Flow.diff);
   const f = create({ encounter: segs[0], diff: Flow.diff, seed: Flow.seed, party: Flow.party! });
+  const homeOf = new Map(f.party.map(u => [u.home, u]));
   const R = 1, HW = Math.sqrt(3) / 2, K = 0.95;
   const xs = f.cells.map(c => c.px), ys = f.cells.map(c => c.py);
   const x0 = Math.min(...xs) - HW, y0 = Math.min(...ys) - R;
@@ -91,8 +93,8 @@ function boardHtml(): string {
   const hero = heroNow(), sel = sheet === 'mem' ? Flow.party![openRow]?.nick : undefined;
   const who: string[] = [];
   const cells = f.cells.map(c => {
-    const u = c.unit;
-    const pos = `left:${pc(c.px - HW * K - x0, W)};top:${pc(c.py - R * K - y0, H)};width:${pc(2 * HW * K, W)};height:${pc(2 * R * K, H)}`;
+    const u = homeOf.get(c.i);
+    const pos =`left:${pc(c.px - HW * K - x0, W)};top:${pc(c.py - R * K - y0, H)};width:${pc(2 * HW * K, W)};height:${pc(2 * R * K, H)}`;
     if (!u) return `<span class="f-hex empty" style="${pos}"><span class="f-hx"></span></span>`;
     if (u.me) return `<span class="f-hex me" style="${pos}"><span class="f-hx">${classEmblem(hero, 'sm')}</span></span>`;
     who.push(`${u.cls ? CLASSES[u.cls].name : ROLE[u.role].name} ${u.nick}`);
