@@ -130,7 +130,7 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   let sv = await save();
   ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 810, '판매는 고른 일반 장비만 제거, 골드 +10');
-  ok(!(await page.locator('#s-char .sheet').count()) && (await page.locator('#s-char .c7-bag').count()) === 2 && (await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 810' && /판매: 골드 \+10/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 아이템·위 정보창 골드·결과 안내 갱신');
+  ok(!(await page.locator('#s-char .sheet').count()) && (await page.locator('#s-char .c7-bag').count()) === 2 && (await page.getAttribute('#s-char .tb-gold', 'aria-label')) === '골드 810' && !/판매: 골드/.test(await text('#s-char')), '판매 직후 인벤토리 복귀, 아이템·위 정보창 골드 갱신 (골드 + 띠 없음)');
   await page.click('#s-char .c7-bag[data-gitem="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-sell1="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);

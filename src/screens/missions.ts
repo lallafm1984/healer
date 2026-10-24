@@ -110,7 +110,7 @@ s.el.addEventListener('click', async e => {
   if (tab) { st.tab = tab.dataset.missionTab as 'daily' | 'weekly'; render(); s.el.querySelector<HTMLElement>(`#mission-tab-${st.tab}`)?.focus(); return; }
   const c = t.closest<HTMLElement>('[data-claim]');
   if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); st.msg = typeof r === 'string' ? r : gainText(r); commit(); render(); return; }
-  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : `완료 상자: ${gainText(r)}`; commit(); render(); return; }
+  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : gainText(r, '완료 상자'); commit(); render(); return; }
   if (t.closest('#chest2')) {
     const mem = adsFree(save);
     if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
@@ -118,8 +118,8 @@ s.el.addEventListener('click', async e => {
     if (!mem) save.daily.ads.chest++;
     const r = claimChest(save, Math.random, true);
     got(r, 'chest-open');
-    st.msg = typeof r === 'string' ? r : `한 번 더: ${gainText(r)}`; commit(); render(); return;
+    st.msg = typeof r === 'string' ? r : gainText(r, '한 번 더'); commit(); render(); return;
   }
   if (t.closest('#guildGoal')) { const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); st.msg = err || `길드 주간 목표 · 명성 +${GUILD_GOAL.fame}`; commit(); render(); return; }
-  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); st.msg = typeof r === 'string' ? r : gainText(r, '주간 도전 상자'); commit(); render(); }
 });

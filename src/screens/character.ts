@@ -389,7 +389,7 @@ function confirmAction(): void {
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
   const r = sell([action.id]);
   sfx(r.n ? 'gear-sell' : 'deny');
-  msg = r.n ? `판매: 골드 +${fmt(r.gold)}` : '';
+  msg = ''; // 판매 골드 띠 (「판매: 골드 +N」)는 없앰 (2026-10-24 Lim): 위 정보창 골드가 바로 오름
   if (r.n) sheet = null;
   render();
   if (r.n) {
