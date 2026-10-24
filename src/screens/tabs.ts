@@ -67,6 +67,7 @@ function iconOf(k: TabKey): string {
 export function mountTabs(nav: HTMLElement): void {
   let cur: TabKey | undefined;
   const render = () => {
+    const glints = nav.querySelectorAll('.xf-glint'); // 화면 전환 탭 금빛 (transition.ts)은 다시 그려도 이어서
     nav.innerHTML = TABS.map(t => {
       const locked = !!t.lv && topLevel(G.save) < t.lv;
       const tl = tutLocked(t.key);
@@ -76,6 +77,7 @@ export function mountTabs(nav: HTMLElement): void {
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
       return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
     }).join('');
+    nav.append(...glints);
   };
   nav.addEventListener('click', e => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-tab]');

@@ -2,6 +2,7 @@
 import { sunSvg, uiIcon } from './art';
 import { battle, screen } from './kit';
 import { afterTitle } from './tutorial';
+import { titleBloom } from './transition';
 import { sfx } from '../sfx';
 
 const s = screen('s-title', '타이틀', {
@@ -18,4 +19,11 @@ const s = screen('s-title', '타이틀', {
     </div>`;
   },
 });
-s.el.addEventListener('click', () => { if (!sfx('title-start')) battle().sound('tick'); afterTitle(); });
+/** 타이틀 금빛이 덮는 동안 다시 눌러도 한 번만 (2026-10-24 화면 전환 A안) */
+let leaving = false;
+s.el.addEventListener('click', () => {
+  if (leaving) return;
+  leaving = true;
+  if (!sfx('title-start')) battle().sound('tick');
+  titleBloom(s.el.querySelector('.t-emblem'), () => { leaving = false; afterTitle(); });
+});

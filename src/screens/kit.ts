@@ -43,6 +43,8 @@ export interface Screen {
 
 const screens = new Map<string, Screen>();
 let onTabs: ((t: TabKey | undefined) => void) | null = null;
+/** 화면 전환 연출 (transition.ts): 새 화면을 보인 뒤 (바로 앞 화면, 새 화면, 「←」인지) */
+let onShift: ((from: string, to: string, back: boolean) => void) | null = null;
 export let current = '';
 /** 바로 전 화면 (설정에서 돌아갈 곳) */
 export let previous = '';
@@ -81,6 +83,7 @@ export function go(id: string, arg?: unknown): void {
   s.enter?.(arg);
   s.el.scrollTop = 0;
   onTabs?.(s.tab);
+  onShift?.(fromId, id, backNav);
   syncBgm(id);
   // overflow:hidden ancestors can still be scrolled by focus/scrollIntoView.
   // Only the active screen's inner list may scroll; never carry this offset to a new screen.
@@ -88,6 +91,7 @@ export function go(id: string, arg?: unknown): void {
 }
 
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
+export function setShiftHandler(fn: (from: string, to: string, back: boolean) => void): void { onShift = fn; }
 /** 화면은 그대로 두고 하단 탭 (빨간 점)만 다시 그림 */
 export function refreshTabs(): void { if (current) onTabs?.(screens.get(current)?.tab); }
 
