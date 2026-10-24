@@ -267,5 +267,5 @@ s.el.addEventListener('click', e => {
     Flow.content = chalContent(save); Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
     go('s-entry'); return;
   }
-  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : gainText(r, '주간 도전 상자'); commit(); render(); }
 });

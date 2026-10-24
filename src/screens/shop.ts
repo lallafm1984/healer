@@ -30,12 +30,13 @@ const s = screen('s-shop', '상점', {
   },
 });
 
-/** 받은 것 한 줄 (알림 문장 = 텍스트) */
-export function gainText(g: Gain): string {
-  const out: string[] = [];
-  if (g.gold) out.push(`골드 +${fmt(g.gold)}`);
-  if (g.items?.length) out.push(g.items.map(i => i.name).join(', '));
-  return out.join(' · ');
+/**
+ * 받은 장비 한 줄 (알림 문장 = 텍스트), label이 있으면 「label: 이름」. 장비가 없으면 빈 글 = 띠 없음.
+ * 골드는 띠에 쓰지 않는다 (2026-10-24 Lim 「골드 +」 띠 제거): 받은 골드는 위 정보창 · 그 줄 알약에 보인다
+ */
+export function gainText(g: Gain, label = ''): string {
+  const names = g.items?.map(i => i.name).join(', ') ?? '';
+  return names && label ? `${label}: ${names}` : names;
 }
 
 function render(): void {

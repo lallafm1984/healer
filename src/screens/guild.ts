@@ -436,7 +436,7 @@ s.el.addEventListener('click', e => {
   if (t.closest('#guildRecruit')) { st.sub = 'recruit'; st.tip = null; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
-  if (t.closest('#expedChest')) { const r = claimExped(save, Math.random); sfx(typeof r === 'string' ? 'deny' : 'chest-open'); if (typeof r !== 'string') refreshExped(save, realOpen); st.msg = typeof r === 'string' ? r : `원정 상자: 골드 ${fmt(r.gold ?? 0)} · 장비 ${r.items?.length ?? 0}`; commit(); render(); return; } // 받은 뒤 지난 주 목록이면 바로 새 주 원정 (105 QA 3)
+  if (t.closest('#expedChest')) { const r = claimExped(save, Math.random); sfx(typeof r === 'string' ? 'deny' : 'chest-open'); if (typeof r !== 'string') refreshExped(save, realOpen); st.msg = typeof r === 'string' ? r : r.items?.length ? `원정 상자: 장비 ${r.items.length}` : ''; commit(); render(); return; } // 받은 뒤 지난 주 목록이면 바로 새 주 원정 (105 QA 3)
   const post = t.closest<HTMLButtonElement>('[data-post]');
   if (post) {
     if (!post.disabled) {

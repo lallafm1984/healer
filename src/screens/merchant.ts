@@ -122,8 +122,7 @@ s.el.addEventListener('click', e => {
   if (sl) {
     const got = sell([Number(sl.dataset.mcSell)]);
     sfx(got.n ? 'gear-sell' : 'deny');
-    st.got = null;
-    st.msg = got.n ? `판매: 골드 +${fmt(got.gold)}` : '';
+    st.got = null; // 판매 골드 띠 (「판매: 골드 +N」)는 없앰 (2026-10-24 Lim): 위 정보창 골드가 바로 오름
     render();
   }
 });
