@@ -301,26 +301,32 @@ function partyHits(f: Fight): void {
     let amt = u.acc, crit = false;
     u.acc = 0;
     if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감 (멍한 동안 더, 99 집중), 공격이 15 넘으면 가끔 세게
-      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { emit(f, { type: 'miss', uid: u.id }); if (f.t - (u.whiffAt ?? -99) >= STAT_ACT.whiffGap && f.rng() < STAT_ACT.whiffTalk) { u.whiffAt = f.t; bark(f, u, null, false, 'whiff'); } continue; }
+      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { const add = addTarget(f, u); emit(f, { type: 'miss', uid: u.id, ...(add != null ? { add } : {}) }); if (f.t - (u.whiffAt ?? -99) >= STAT_ACT.whiffGap && f.rng() < STAT_ACT.whiffTalk) { u.whiffAt = f.t; bark(f, u, null, false, 'whiff'); } continue; }
       if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
     }
-    land(f, u, amt);
-    emit(f, { type: 'hit', uid: u.id, amt, ...(crit ? { crit } : {}) });
+    const add = land(f, u, amt);
+    emit(f, { type: 'hit', uid: u.id, amt, ...(crit ? { crit } : {}), ...(add != null ? { add } : {}) });
     const storm = u.mods.length ? u.mods.find(m => m.k === 'storm' && m.until > f.t) : undefined;
-    if (storm && f.bossHp > 0) { land(f, u, amt * storm.v); emit(f, { type: 'hit', uid: u.id, amt: amt * storm.v }); } // 칼날폭풍: 추가타
+    if (storm && f.bossHp > 0) { const add2 = land(f, u, amt * storm.v); emit(f, { type: 'hit', uid: u.id, amt: amt * storm.v, ...(add2 != null ? { add: add2 } : {}) }); } // 칼날폭풍: 추가타
   }
 }
 
-/** 한 방이 들어감: 무력화 게이지 · 딜 기록 · 몸통 / 쫄 / 보스 (칼날폭풍 추가타도 같은 길) */
-function land(f: Fight, u: Unit, amt: number): void {
+/** 이 파티원의 한 방이 갈 쫄 (P-ADD): 딜러이고 쫄이 살아 있으면 일점사 첫 쫄 (외골수는 무적일 때만), 아니면 없음 */
+function addTarget(f: Fight, u: Unit): number | undefined {
+  if (f.bodyHp || u.role === 'tank' || (u.p.oneTrack && !f.invuln)) return undefined;
+  return focusOrder(f).find(m => m.alive && m.add)?.id;
+}
+
+/** 한 방이 들어감: 무력화 게이지 · 딜 기록 · 몸통 / 쫄 / 보스 (칼날폭풍 추가타도 같은 길). 쫄을 쳤으면 맞은 쫄 id (화면 숫자 자리) */
+function land(f: Fight, u: Unit, amt: number): number | undefined {
   if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
   u.dealt += Math.min(amt, f.bossHp);
   if (f.thorns && f.t < f.thorns.until && (f.bodyHp || !(u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)))) { // 가시 갑옷 (P-THORNS, 111): 보스 · 몸통을 친 한 대마다
     damage(f, u, f.thorns.dmg * (u.role === 'tank' ? f.thorns.tank : 1));
-    if (!u.alive) return;
+    if (!u.alive) return undefined;
   }
   if (f.bodyHp) hitMobs(f, amt, u);
-  else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
+  else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { const on = hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); return on; } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
   else {
     f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
     if (f.thr && u.role !== 'tank') dealerThreat(f, u, amt); // 어그로 (96): 보스에게 준 딜. 탱커는 threatTick이 쌓음
@@ -341,13 +347,14 @@ function habitPers(p: Partial<Personality>, h = 1): Partial<Personality> {
   return q;
 }
 
-function hitAdds(f: Fight, d: number, u: Unit): void {
+function hitAdds(f: Fight, d: number, u: Unit): number | undefined {
   const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1); // 예전 쫄 처리 (97 FM)는 협동으로 바뀌며 뺌 (99)
   if (u.did) u.did.adds += d;
   const onAdds = f.mobs.some(m => m.alive && m.add);
-  let left = d, cleaved = false;
+  let left = d, cleaved = false, first: number | undefined;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
     if (left <= 1e-9) break;
+    first ??= m.id;
     if (m.add!.cleave) { // 쫄 떼 (P-SWARM): 떼 전체에 한 번, 남는 딜은 일점사 대상 몫만 넘김
       if (cleaved) continue;
       cleaved = true;
@@ -359,6 +366,7 @@ function hitAdds(f: Fight, d: number, u: Unit): void {
     damageMob(f, m, x);
   }
   if (left > 1e-9 && !f.invuln && !onAdds) f.bossHp -= left * bossTaken(f) * (hunt?.boss ?? 1); // 쫄을 친 한 방의 남은 몫은 보스로 안 넘김
+  return onAdds ? first : undefined;
 }
 
 /**

@@ -804,7 +804,7 @@ interface Fx {
  * ox · oy = 자리를 잡으며 떠오르는 길에서 비킨 만큼 (칸 크기 배수, 다음 프레임에도 같은 만큼 비켜 올라감) · at · rise = 지난 프레임에 그린 자리 · 올라간 높이
  */
 /** dmg = 받은 피해 빨간 숫자 (big = 체력 1/4 이상 한 방, 회복 숫자 크기) */
-interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number; shield?: boolean; num?: boolean; dmg?: boolean; big?: boolean }
+interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number; shield?: boolean; num?: boolean; dmg?: boolean; big?: boolean; /** 파티원 칸이 아니라 이 칸 (판 위 쫄)에 뜸 */ cell?: number }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
@@ -1148,6 +1148,20 @@ export function fxDamage(u: Unit, amt: number, now: number): void {
   for (const fl of B2.floats) if (fl.dmg) n++;
   if (n >= DMG_FLOATS) return;
   B2.floats.push({ ...HEAL_AT, text: `-${amt}`, crit: false, over: false, fill: DMG_TEXT, dmg: true, big: amt >= u.max * 0.25, t0: now, n: B2.n++, id: u.id, num: true });
+}
+/** 쫄을 친 파티원 한 방 숫자 색 (보스 그림 옆 숫자처럼 받는 쪽이 적: 회복 민트 · 받은 피해 빨강과 구분) */
+const ADD_HIT_TEXT = 0xffdca0;
+/**
+ * 쫄 (P-ADD)을 친 파티원 한 방 · 빗나감 (2026-10-24 Lim 「보스에게 공격하는 데미지 숫자를 보면 쫄에게 공격도 하면서 보스에게도 공격하고 있는것같다」):
+ * 보스 그림 옆이 아니라 그 쫄 자리에. 판 위 칸이 있는 쫄 = 그 칸, 감옥 = 갇힌 사람 칸, 자리가 없는 쫄은 띄우지 않음
+ */
+export function fxAddHit(mobId: number, text: string, now: number, crit = false, miss = false): void {
+  if (!L.ok || S.reducedEffects || B2.floats.length >= 40) return;
+  const a = B.F?.mobs.find(m => m.id === mobId)?.add;
+  if (!a) return;
+  const fl = { dx: 0, dy: -0.3, text, crit, over: false, fill: miss ? 0xb9b1a2 : ADD_HIT_TEXT, t0: now, n: B2.n++, num: !miss, label: miss };
+  if (a.cell != null) B2.floats.push({ ...fl, id: -1, cell: a.cell });
+  else if (a.hold != null && a.on != null) B2.floats.push({ ...fl, id: a.on });
 }
 /** 흡수 보호막 (엔진 shield 사건): 회복 숫자 자리에 파란 숫자 (더해진 양) */
 export function fxShield(u: Unit, amt: number, now: number): void {
@@ -2244,9 +2258,9 @@ export function render(now: number): void {
   for (const fl of order) {
     floatLast.delete(fl);
     if (now < fl.t0) continue; // 아직 안 뜬 숫자 (연쇄 치유가 차례로 튐)
-    const u = F.party.find(q => q.id === fl.id);
-    if (!u) { floatGone.add(fl); continue; }
-    const base = unitPos(u), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
+    const u = fl.cell != null ? undefined : F.party.find(q => q.id === fl.id);
+    if (fl.cell == null && !u) { floatGone.add(fl); continue; }
+    const base = fl.cell != null ? center(fl.cell) : unitPos(u!), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.big ? fs(0.27, 11) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
     const label = (fl.num ? nums : tops).put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.shield ? C.shield : fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill || !!fl.dmg },
       base.x + (fl.dx + (fl.ox ?? 0)) * s, base.y + (fl.dy + (fl.oy ?? 0)) * s - rise, S.reducedEffects ? 1 : 1 - k * k, 1);
