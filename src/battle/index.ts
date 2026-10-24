@@ -23,7 +23,7 @@ import { classSounds, CLASS_TALENT_SOUNDS } from './class-sound';
 import { autoHealer, create, DT, noviceHealer, hexDist, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useTalent, type Fight, type FightStats, type Telegraph } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
-import { bossSvg, ratsArt } from './art';
+import { bossSvg, mobLook, ratsArt } from './art';
 import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAddHit, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfBetween, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
@@ -584,9 +584,10 @@ function handleEvents(now: number): void {
       case 'gauge': if (!priest.suppress.has('gauge')) Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정', true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
       case 'mobDown': {
-        toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle(); Snd.play('mob-down');
+        const down = F.mobs.find(m => m.id === ev.id);
+        toast(`${down ? mobLook(F, down).name : ev.name} 쓰러짐`, 'good'); updateBossTitle(); Snd.play('mob-down');
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
-        const a = F.mobs.find(m => m.id === ev.id)?.add;
+        const a = down?.add;
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
         break;
       }

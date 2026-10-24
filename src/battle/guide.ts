@@ -5,6 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
+import { mobLookOf } from '../data/mob-looks';
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
@@ -14,6 +15,12 @@ import { BOSSES, hardDef, hardOn, mythicDef, type DebuffDef, type SkillDef, type
 import { bossNums } from './guideNums';
 import { RULES, zoneDps } from '../data/rules';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
+
+/** 같은 종류가 여럿인 구간 적: 둘째부터 보이는 다른 얼굴 이름 (data/mob-looks, 2026-10-25) */
+function looksText(kind: string, count: number): string {
+  const names = [...new Set(Array.from({ length: count - 1 }, (_, k) => mobLookOf(kind, k + 1).name))].filter(n => n !== kind);
+  return names.length ? ` (${names.join(' · ')} 포함)` : '';
+}
 
 // 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 맞는 순간 · 초당 피해/지속은 시험 전투(E.create)의 skills에서 (장판 · 강타 배율 data/rules HAZARD가 들어간 값),
 // 피해 배율·회피는 E.DIFFS에서, 보스·파티 체력(악몽 배율 포함)은 시험 전투에서.
@@ -112,7 +119,7 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
     return {
       nums: {},
       cur: F => { const m = F.mobs.find(x => x.alive); return m ? 'm' + mobs.findIndex(d => d.name === m.name) : ''; },
-      phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${mobGrade(m)} · ${i + 1}번째로 잡음`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
+      phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${mobGrade(m)} · ${i + 1}번째로 잡음`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}${looksText(m.name, m.count)}` })),
       skills,
     };
   },
