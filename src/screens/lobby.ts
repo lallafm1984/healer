@@ -28,7 +28,8 @@ import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
-import { gainText } from './shop';
+import { showReward } from './reward-pop';
+import { sfx } from '../sfx';
 import { mountVillage } from './village';
 import { ENCOUNTERS } from '../data/encounters';
 
@@ -267,5 +268,11 @@ s.el.addEventListener('click', e => {
     Flow.content = chalContent(save); Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
     go('s-entry'); return;
   }
-  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random); st.msg = typeof r === 'string' ? r : gainText(r, '주간 도전 상자'); commit(); render(); }
+  if (t.closest('#lbChal')) {
+    // 임무 화면 「열기」와 같게: 상자 걸쇠 소리 + 보상 창 (reward-pop, 2026-10-24 Lim 시안 A)
+    const r = claimChalChest(save, Math.random);
+    sfx(typeof r === 'string' ? 'deny' : 'chest-open');
+    st.msg = typeof r === 'string' ? r : ''; commit(); render();
+    if (typeof r !== 'string') showReward({ title: '주간 도전 상자', gold: r.gold, items: r.items });
+  }
 });

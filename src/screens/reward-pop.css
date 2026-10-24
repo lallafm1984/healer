@@ -1,0 +1,102 @@
+/*
+ * 보상 창 (reward-pop.ts, 2026-10-24 Lim 시안 A): 배너 아래 가운데 금테 창. 색은 --gk-* 한 벌 (guide-sheet.css 목록에 .rwpop).
+ * 움직임은 위치 · 크기 · 투명도만 (폰 발열), 끝없이 도는 빛살은 저절로 닫히는 골드 창에만. 지연은 요소마다 --d.
+ */
+.rwpop { position: fixed; inset: 0; z-index: 91; display: flex; align-items: center; justify-content: center; padding: calc(var(--banner-h, 70px) + 16px) 18px 18px; font-family: var(--font-body); }
+.rwpop * { box-sizing: border-box; }
+.rwpop [style*="--d"] { animation-delay: var(--d); }
+.rw-dim { position: absolute; inset: 0; background: rgba(8, 6, 4, 0.66); animation: rwFade 0.16s ease-out both; }
+.rw-card {
+  position: relative; width: 100%; max-width: 312px; display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 18px; border-radius: 16px;
+  background: var(--gk-bg); color: var(--gk-ink); text-align: center;
+  box-shadow: inset 0 0 0 1px var(--gk-edge), inset 0 0 0 3px #15120e, inset 0 0 0 4px #5a4426, 0 18px 40px #000c;
+  animation: rwIn 0.24s cubic-bezier(0.2, 1.35, 0.45, 1) both;
+}
+.rw-card:focus { outline: none; }
+.rw-ribbon {
+  align-self: center; margin: -32px 0 0; padding: 4px 18px; border-radius: 8px; font: 800 15px/1.3 var(--font-display); color: var(--menu-btn-gold-ink);
+  background: linear-gradient(#ffe58c, #e5b14a); box-shadow: inset 0 0 0 1px #fff3c8, 0 0 0 1px #4a3010, 0 3px 8px #000a;
+}
+.rw-box { position: relative; display: grid; place-items: center; height: 150px; isolation: isolate; }
+.rw-box > * { grid-area: 1 / 1; }
+.rw-box.gear { overflow: hidden; }
+.rw-rays {
+  width: 230px; height: 230px; border-radius: 50%; z-index: 0; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 216, 110, 0.32) 0deg 9deg, rgba(255, 216, 110, 0) 9deg 22.5deg);
+  -webkit-mask: radial-gradient(circle, #000 22%, transparent 68%); mask: radial-gradient(circle, #000 22%, transparent 68%);
+  animation: rwRays 0.4s ease-out both, rwSpin 9s linear infinite;
+}
+.rw-big { z-index: 2; width: 84px; height: 84px; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); animation: rwBig 0.42s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.rw-big :is(.currency-icon, .g-ic, img) { display: block; width: 100%; height: 100%; object-fit: contain; }
+.rw-coin { position: absolute; left: 50%; top: 50%; z-index: 3; width: 22px; height: 22px; opacity: 0; animation: rwCoin 0.75s cubic-bezier(0.15, 0.7, 0.4, 1) both; }
+.rw-coin :is(.currency-icon, .g-ic, img) { display: block; width: 100%; height: 100%; object-fit: contain; }
+.rw-num { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.rw-num b { font: 800 34px/1.1 var(--font-display); color: var(--gk-head); font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #000, 0 0 16px rgba(255, 196, 70, 0.35); }
+.rw-num b::before, .rw-pill b::before { content: '+'; }
+.rw-num span { font-weight: 700; font-size: 14px; color: var(--gk-ink2); }
+.rw-chest { z-index: 3; width: 108px; height: 108px; animation: rwShake 0.5s ease-in-out both, rwPoof 0.2s ease-out 0.5s forwards; }
+.rw-chest img { width: 100%; height: 100%; object-fit: contain; }
+.rw-items { z-index: 2; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; max-width: 280px; }
+.rw-it { position: relative; display: grid; place-items: center; animation: rwPop 0.38s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.rw-frame {
+  position: relative; z-index: 1; display: grid; place-items: center; width: 100px; height: 100px; border-radius: 16px;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--g) 30%, #241d16), #15110d 74%);
+  box-shadow: inset 0 0 0 2px var(--g), 0 0 22px color-mix(in srgb, var(--g) 45%, transparent);
+}
+.rw-frame .g-ic { width: 84%; height: 84%; object-fit: contain; }
+.rw-items.few .rw-frame { width: 76px; height: 76px; border-radius: 13px; }
+.rw-items.many .rw-frame { width: 58px; height: 58px; border-radius: 11px; }
+.rw-items.many { gap: 8px; }
+.rw-beam {
+  position: absolute; z-index: 0; left: 50%; bottom: -25px; width: 140px; height: 150px; margin-left: -70px; pointer-events: none;
+  background: var(--g); -webkit-mask: var(--beam) center bottom / contain no-repeat; mask: var(--beam) center bottom / contain no-repeat;
+  transform-origin: 50% 100%; animation: rwBeam 0.7s ease-out both;
+}
+.rw-twk { position: absolute; z-index: 2; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; pointer-events: none; opacity: 0; mix-blend-mode: screen; animation: rwTwk 0.6s ease-out both; }
+.rw-info { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; animation: rwUp 0.3s ease-out both; }
+.rw-grade { margin: 0; display: flex; align-items: center; gap: 6px; }
+.rw-grade i, .rw-names i { padding: 1px 10px; border-radius: 999px; background: var(--g); color: #15110d; font-style: normal; font-weight: 800; font-size: 13px; }
+.rw-q { display: inline-block; padding: 0 5px; border-radius: 4px; font: 800 11px/1.55 var(--font-body); color: #2a1c08; background: linear-gradient(#f3dc9a, #c99a3f); box-shadow: inset 0 1px 0 #fff6d8aa, 0 1px 1px #0008; }
+.rw-q[data-q="완벽한"] { background: linear-gradient(#fff3bd, #f0a63a); box-shadow: inset 0 1px 0 #fff, 0 0 7px #ffd36aaa, 0 1px 1px #0008; }
+.rw-name { margin: 0; font: 800 19px/1.3 var(--font-display); color: var(--gi); }
+.rw-sub { margin: 0; font-size: 12px; color: var(--gk-ink2); }
+.rw-names { list-style: none; padding: 0; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 6px 12px; }
+.rw-names li { width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rw-names i { font-size: 11px; padding: 0 8px; }
+.rw-names b { font: 800 13px/1.3 var(--font-display); color: var(--gi); word-break: keep-all; overflow-wrap: anywhere; }
+.rw-pills { margin: 4px 0 0; display: flex; justify-content: center; gap: 8px; animation: rwUp 0.3s ease-out both; }
+.rw-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px 3px 6px; border-radius: 999px; background: var(--gk-chip); box-shadow: inset 0 0 0 1px #6a5230; }
+.rw-pill :is(.currency-icon, .g-ic) { display: grid; width: 24px; height: 24px; }
+.rw-pill :is(.currency-icon, .g-ic) img, .rw-pill img.g-ic { width: 24px; height: 24px; object-fit: contain; }
+.rw-pill b { font: 800 17px/1.2 var(--font-display); color: var(--gk-head); font-variant-numeric: tabular-nums; }
+.rwpop .rw-ok {
+  min-height: 46px; width: 100%; border-radius: 10px; border: 1px solid var(--menu-btn-gold-edge); background: var(--menu-btn-gold); color: var(--menu-btn-gold-ink);
+  box-shadow: none; text-shadow: none; font: 800 16px var(--font-body); animation: rwUp 0.3s ease-out both;
+}
+.rwpop .rw-ok:active { background: var(--menu-btn-gold-pressed); transform: none; }
+.rwpop .rw-ok:focus-visible { outline: 2px solid var(--menu-btn-focus); outline-offset: 2px; }
+.rw-auto { position: absolute; left: 16px; right: 16px; bottom: 8px; height: 3px; border-radius: 2px; background: rgba(255, 211, 77, 0.18); overflow: hidden; }
+.rw-auto i { display: block; height: 100%; background: var(--gk-head); transform-origin: 0 50%; animation: rwBar linear both; }
+
+@keyframes rwFade { from { opacity: 0; } }
+@keyframes rwIn { from { transform: scale(0.82); opacity: 0; } }
+@keyframes rwUp { from { opacity: 0; transform: translateY(6px); } }
+@keyframes rwRays { to { opacity: 1; } }
+@keyframes rwSpin { to { transform: rotate(360deg); } }
+@keyframes rwBig { 0% { transform: scale(0.3) rotateY(160deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
+@keyframes rwCoin {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  12%, 70% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.9) rotate(var(--rot)); opacity: 0; }
+}
+@keyframes rwShake { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-8deg) scale(1.04); } 40% { transform: rotate(7deg) scale(1.06); } 60% { transform: rotate(-6deg) scale(1.09); } 80% { transform: rotate(5deg) scale(1.12); } }
+@keyframes rwPoof { to { transform: scale(1.35); opacity: 0; visibility: hidden; } }
+@keyframes rwPop { from { transform: scale(0.4); opacity: 0; } }
+@keyframes rwBeam { 0% { opacity: 0; transform: scaleY(0.2); } 60% { opacity: 1; transform: scaleY(1.06); } 100% { opacity: 1; transform: none; } }
+@keyframes rwTwk { 0% { opacity: 0; transform: scale(0.3) rotate(-20deg); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15) rotate(10deg); } }
+@keyframes rwBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* 시각 효과 줄이기: 움직임 없이 결과만 (상자 · 튀는 금화 · 반짝임 · 빛살 없음, 빛기둥 · 장비는 제자리) */
+.rwpop.calm *, .rwpop.calm { animation: none !important; }
+.rwpop.calm :is(.rw-chest, .rw-coin, .rw-twk, .rw-rays) { display: none; }
+.rwpop.calm .rw-auto i { animation: rwBar linear both !important; animation-duration: 1.6s !important; }
