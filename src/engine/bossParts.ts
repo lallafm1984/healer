@@ -7,7 +7,7 @@ import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { STAT_ACT, zoneDps } from '../data/rules';
-import { clumsy, sharp } from '../data/fm';
+import { clumsy, lack, sharp } from '../data/fm';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
@@ -649,6 +649,8 @@ function swapTank(f: Fight, from: Unit, d?: Debuff, sub?: number): void {
   emit(f, { type: 'msg', text: `${d.name} 가득: ${st.nick}이(가) ${sub}초 보스를 대신 받음` });
 }
 
+/** 99 협동: 나눠 맞기에 먼저 나설지 (협동 eagerFrom부터 확률, 20 = 늘) */
+const eagerRoll = (f: Fight, coop: number): boolean => coop >= STAT_ACT.eagerFrom && f.rng() < (Math.min(20, coop) - STAT_ACT.eagerFrom + 1) / (21 - STAT_ACT.eagerFrom);
 /** 모이러 안 가는 성격 (외톨이 · 겁쟁이) · 먼저 가는 성격 (사교형) */
 const SOAK_SKIP: PersName[] = ['외톨이', '겁쟁이'];
 const SOAK_EAGER: PersName[] = ['사교형'];
@@ -661,12 +663,13 @@ export function soakGo(f: Fight, tel: Telegraph): void {
     const at = f.cells[t.moving ? t.moving.to : t.cell];
     const ok = living(f).filter(u => u.role !== 'tank' && !u.me && !used.has(u) && !(u.pers && SOAK_SKIP.includes(u.pers)) && !u.moving && !u.pulled && !u.fleeing
       && !u.debuffs.some(d => d.noMove) && hexDist(cellOf(f, u), at) <= 3);
-    const eager = (u: Unit) => (u.pers && SOAK_EAGER.includes(u.pers)) || (u.wob != null && sharp(u.fmStats?.coop ?? 10) >= 0.5) ? 0 : 1; // 99 협동 높으면 먼저 나섬
+    const keen = new Set(ok.filter(u => u.wob != null && eagerRoll(f, u.fmStats?.coop ?? 10))); // 99 협동: 10부터 확률로 먼저 나섬 (2026-10-25 Lim)
+    const eager = (u: Unit) => (u.pers && SOAK_EAGER.includes(u.pers)) || keen.has(u) ? 0 : 1;
     ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), at) - hexDist(cellOf(f, b), at));
     for (const u of ok.slice(0, 3)) {
       used.add(u);
-      const coop = u.wob != null ? u.fmStats?.coop ?? 10 : 15;
-      if (coop < 15 && !regrouping(f, u) && f.rng() < STAT_ACT.soakSkip * clumsy(coop)) { emit(f, { type: 'alone', id: u.id }); slip(f, u); if (f.rng() < 0.4) bark(f, u, null, false, 'alone'); continue; } // 99 협동: 혼자 놂 (그 자리는 빔)
+      const coop = u.wob != null ? u.fmStats?.coop ?? 10 : 20;
+      if (coop < 20 && !regrouping(f, u) && f.rng() < STAT_ACT.soakSkip * lack(coop)) { emit(f, { type: 'alone', id: u.id }); slip(f, u); if (f.rng() < 0.4) bark(f, u, null, false, 'alone'); continue; } // 99 협동: 혼자 놂 (그 자리는 빔, 1 = 90% · 20에서만 0)
       if (coop > 15 && u.did) u.did.help++;
       if (hexDist(cellOf(f, u), at) === 1) { u.padUntil = tel.impact + 0.2; continue; } // 이미 옆
       const c = f.cells.filter(x => !x.unit && !x.block && hexDist(x, at) === 1).sort((a, b) => hexDist(a, cellOf(f, u)) - hexDist(b, cellOf(f, u)))[0];

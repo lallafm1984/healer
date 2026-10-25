@@ -230,6 +230,12 @@ export const ACT_PAR = 15;
 export const clumsy = (s: number): number => Math.max(0, Math.min(1, (ACT_PAR - s) / (ACT_PAR - 1)));
 /** 15에서 0 · 20에서 1 (15 밑이면 0): 15 넘으면 조금 더 잘 */
 export const sharp = (s: number): number => Math.max(0, Math.min(1, (s - ACT_PAR) / (20 - ACT_PAR)));
+/**
+ * 1에서 1 · 20에서 0 (곧은 줄, 2026-10-25 Lim 「나머지는 0이 되지 않게」): 20이 아니면 조금이라도 남는 실수 (혼자 놂 · 스킬 헛씀 · 탱커 엉뚱한 칸 · 생존기 늦게 켬)
+ */
+export const lack = (s: number): number => Math.max(0, Math.min(1, (20 - s) / 19));
+/** 1 → 20 곧은 줄의 10 값 (10이 예전 값이 아닌 효과를 lerp3로 쓸 때) */
+export const line10 = (at1: number, at20: number): number => at1 + (at20 - at1) * 9 / 19;
 /** 순간 흔들림 폭 (99): 꾸준함 15 이상 0 · 10 0.57 · 1 1.6 (판마다 흔들림 dayOffset과 따로) */
 export const wobOf = (steady: number): number => 1.6 * clumsy(steady);
 
@@ -254,6 +260,9 @@ export interface FmFx {
   /** 집중: 악몽 · 레이드 · 보스 30% 아래에서 반응 · 회피 보너스 (낮아도 빼지 않음) */ focus: number;
 }
 /**
+ * 끝값 (2026-10-25 Lim): 공격 · 맷집 · 방어 최대 1.5배 (1 = ÷ 1.5 · 20 = × 1.5), 위치 잡기 5 → 1초 (한 줄), 기술 숙련 끊기 −50 · +10%p, 반응 × 2 · × 0.5,
+ * 침착 다시 움직이기 · 겁쟁이 · 소심이 × 1.5 · × 0.5, 판단 생존기 ±10%p · 치우침 × 1.5 · × 0.5. 10은 예전 값 그대로 (위치 잡기만 한 줄)
+ *
  * 능력치 한 칸의 효과 크기 (97 「다 키운 길드 목표에 맞춰 sim으로 정한다」): 아래 표의 1 · 20 끝값을 10 값 쪽으로 이만큼만 씀.
  * 1이면 표 그대로. 다 키운 길드 (93 7-3)가 악몽 85% 안팎이 되게 맞춤 (sim이 바꿔 볼 수 있게 객체)
  */
@@ -262,16 +271,16 @@ export function fmFx(st: Stats, off = 0): FmFx {
   const s = (k: StatKey) => st[k] + off, S = FM_FX.scale;
   const f = (k: StatKey, a1: number, a10: number, a20: number) => lerp3(s(k), a10 + (a1 - a10) * S, a10, a10 + (a20 - a10) * S);
   return {
-    dps: f('atk', 0.85, 1, 1.15),
-    hp: f('tough', 0.9, 1, 1.1),
-    taken: f('armor', 1.05, 1, 0.92),
+    dps: f('atk', 1 / 1.5, 1, 1.5),
+    hp: f('tough', 1 / 1.5, 1, 1.5),
+    taken: f('armor', 1.5, 1, 1 / 1.5),
     move: f('agility', 1.15, 1, 0.8),
     dodge: f('evade', -0.05, 0, 0.05),
-    homeWait: f('position', 1.5, 1, 0.4),
-    cd: f('skill', 1.05, 1, 0.85), cut: f('skill', -0.05, 0, 0.1),
-    react: f('react', 1.2, 1, 0.8),
-    retry: f('composure', 1.3, 1, 0.6), flee: f('composure', 1.1, 1, 0.8), panic: f('composure', 1.15, 1, 0.7),
-    guard: f('judgment', -0.045, 0, 0.05), bias: f('judgment', 1.3, 1, 0.4),
+    homeWait: f('position', 5, line10(5, 1), 1),
+    cd: f('skill', 1.05, 1, 0.85), cut: f('skill', -0.5, 0, 0.1),
+    react: f('react', 2, 1, 0.5),
+    retry: f('composure', 1.5, 1, 0.5), flee: f('composure', 1.5, 1, 0.5), panic: f('composure', 1.5, 1, 0.5),
+    guard: f('judgment', -0.1, 0, 0.1), bias: f('judgment', 1.5, 1, 0.5),
     focus: f('focus', 0, 0, 0.1),
   };
 }

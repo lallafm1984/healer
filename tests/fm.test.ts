@@ -53,19 +53,24 @@ describe('1000명 능력치', () => {
 });
 
 describe('능력치 → 엔진 값', () => {
-  it('모두 10이면 예전 값 그대로 (배율 1 · 더함 0)', () => {
+  it('모두 10이면 예전 값 그대로 (배율 1 · 더함 0), 위치 잡기만 5 → 1초 한 줄', () => {
     const fx = fmFx(flat(10));
-    for (const k of ['dps', 'hp', 'taken', 'move', 'homeWait', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
+    for (const k of ['dps', 'hp', 'taken', 'move', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
+    expect(fx.homeWait).toBeCloseTo(5 - 4 * 9 / 19, 9);
     for (const k of ['dodge', 'cut', 'guard', 'focus'] as const) expect(fx[k], k).toBeCloseTo(0, 9);
   });
 
-  it('97 표 끝 값 (1 → 20)', () => {
+  it('끝 값 (1 → 20, 2026-10-25 Lim: 공격 · 맷집 · 방어 최대 1.5배 · 위치 잡기 5 → 1초 · 끊기 −50 · +10%p · 반응 × 2 · × 0.5 · 침착 · 판단 × 1.5 · × 0.5)', () => {
     const lo = fmFx(flat(1)), hi = fmFx(flat(20));
-    expect([lo.dps, hi.dps]).toEqual([0.85, 1.15]);
-    expect([lo.hp, hi.hp]).toEqual([0.9, 1.1]);
-    expect([lo.taken, hi.taken]).toEqual([1.05, 0.92]);
+    expect([lo.dps, hi.dps]).toEqual([1 / 1.5, 1.5]);
+    expect([lo.hp, hi.hp]).toEqual([1 / 1.5, 1.5]);
+    expect([lo.taken, hi.taken]).toEqual([1.5, 1 / 1.5]);
     expect([lo.move, hi.move]).toEqual([1.15, 0.8]);
-    expect([lo.react, hi.react]).toEqual([1.2, 0.8]);
+    expect([lo.homeWait, hi.homeWait]).toEqual([5, 1]);
+    expect([lo.cut, hi.cut]).toEqual([-0.5, 0.1]);
+    expect([lo.react, hi.react]).toEqual([2, 0.5]);
+    for (const k of ['retry', 'flee', 'panic', 'bias'] as const) expect([lo[k], hi[k]], k).toEqual([1.5, 0.5]);
+    expect([lo.guard, hi.guard]).toEqual([-0.1, 0.1]);
     expect([lo.focus, hi.focus]).toEqual([0, 0.1]); // 집중은 낮아도 빼지 않음 (낮은 쪽은 99 「멍」). 예전 쫄 처리 딜 배율은 협동으로 바꾸며 뺌
   });
 
@@ -91,7 +96,7 @@ describe('능력치 → 엔진 값', () => {
     const weak = party.map(r => ({ ...r, fm: { stats: { ...r.fm!.stats, tough: 1 }, off: 0 } }));
     const hp = (p: typeof party) => E.create({ encounter: 'plague', diff: '보통', seed: 3, party: p }).party.filter(u => !u.me).map(u => u.max);
     const a = hp(tough), b = hp(weak);
-    a.forEach((v, i) => expect(v / b[i]).toBeCloseTo(1.1 / 0.9, 5));
+    a.forEach((v, i) => expect(v / b[i]).toBeCloseTo(1.5 * 1.5, 5));
   });
 
   it('튜토리얼 파티 (스킬 없음)는 능력치 · 레벨 없음', () => {

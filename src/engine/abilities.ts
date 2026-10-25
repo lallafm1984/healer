@@ -10,7 +10,7 @@ import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
-import { clumsy, sharp } from '../data/fm';
+import { clumsy, lack } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -215,7 +215,7 @@ function poll(f: Fight, u: Unit): void {
  */
 function tryUse(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx): boolean {
   const s = u.ab!;
-  if (u.wob != null && a.cd > 0 && !regrouping(f, u) && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) {
+  if (u.wob != null && a.cd > 0 && !regrouping(f, u) && f.rng() < STAT_ACT.fumble * lack(u.fmStats?.skill ?? 10)) {
     slip(f, u);
     if (f.rng() < STAT_ACT.fumbleFull) { // 다 헛씀 (예전): 재사용만 돎
       s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
@@ -266,7 +266,7 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
     case 'low': {
       if (tr.noZone && (u.moving || f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell)))) return null;
       let thr = tr.hp + starFx(a, u.ab!.star).early + (u.fm?.guard ?? 0); // 판단 (97 FM)
-      if (u.wob != null) thr += (u.ab!.gj ?? 0) - STAT_ACT.guardLate * clumsy(u.fmStats?.judgment ?? 10); // 99 라: 판단이 15보다 낮으면 늦게 · 판마다 흔들림
+      if (u.wob != null) thr += (Math.min(thr, STAT_ACT.guardLast) - thr) * lack(u.fmStats?.judgment ?? 10) + (u.ab!.gj ?? 0); // 99 라: 판단이 20보다 낮으면 늦게 켬 (1 = 체력 10%, 가장 늦게) · 판마다 흔들림
       if (u.p.lateGuard || u.p.earlyGuard) thr += (persGuard(u, thr) - thr) * (u.fm?.bias ?? 1); // 낙천가 · 비관론자 (75), 판단이 높으면 치우침이 줄어듦 (97 FM)
       if (a.kind === 'heal') {
         if (u.ab!.odd != null) thr = u.ab!.odd;
@@ -425,12 +425,12 @@ export function abCut(f: Fight, s: BossSkill): boolean {
 }
 
 /**
- * 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 협동이 15 넘는 다른 끊기 담당 (준비된 끊기 능력) 가운데 가장 높은 사람이 잘함 확률로 알아채
+ * 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 다른 끊기 담당 (준비된 끊기 능력) 가운데 협동이 가장 높은 사람이 coverChance 확률로 알아채
  * 반응 · 판단만큼 뒤에 한 번 더 끊음 (cutRetryTick). 진짜 재사용 대기를 씀 · 한 기술에 한 번만
  */
 function cutBackup(f: Fight, s: BossSkill, by: Unit, snipeable: boolean): void {
   if (f.cutRetry) return;
-  let best: Unit | null = null, bc = 15;
+  let best: Unit | null = null, bc = 1;
   for (const v of f.party) {
     if (v === by || !v.ab || !v.alive || v.wob == null || hasMod(v, 'stop') || held(f, v)) continue;
     if (v.debuffs.length && v.debuffs.some(d => d.noDps)) continue;
@@ -440,10 +440,12 @@ function cutBackup(f: Fight, s: BossSkill, by: Unit, snipeable: boolean): void {
     const c = v.fmStats?.coop ?? 10;
     if (c > bc) { bc = c; best = v; }
   }
-  if (!best || f.rng() >= sharp(bc)) return;
+  if (!best || f.rng() >= coverChance(bc)) return;
   const late = (clumsy(best.fmStats?.react ?? 10) + clumsy(best.fmStats?.judgment ?? 10)) / 2;
   f.cutRetry = { id: best.id, skill: s, at: f.t + STAT_ACT.coverNotice[0] + STAT_ACT.coverNotice[1] * late };
 }
+/** 대신 끊기 확률 (협동): 1은 0, 20은 cover, 그 사이는 coverStep점마다 두 배 (2026-10-25 Lim 「높을수록 확률이 배수로」) */
+export const coverChance = (coop: number): number => (coop <= 1 ? 0 : STAT_ACT.cover * 2 ** ((Math.min(20, coop) - 20) / STAT_ACT.coverStep));
 /** 대신 끊기 때가 됨: 그 기술 예고가 아직 있고 끊기 능력이 준비돼 있으면 끊어 봄. 끊었으면 그 기술 (bosses.ts가 기절 · 장비 효과) */
 export function cutRetryTick(f: Fight): BossSkill | null {
   const r = f.cutRetry!;
