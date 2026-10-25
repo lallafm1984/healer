@@ -94,7 +94,7 @@ function startBattle(guideSec = 0): void {
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
   show('battle');
-  if (S.auto) toast(`자동 힐러${S.autoNovice ? ' (초보)' : ''}가 플레이 중 (기록 안 남김)`);
+  if (S.auto) toast(`자동 힐러${S.autoNovice ? ' (초보)' : ''}가 플레이 중`);
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
   if (S.affixes && !R.idx) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
@@ -665,7 +665,7 @@ $('pause').addEventListener('keydown', e => {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
 });
 $('pauseBtn').addEventListener('click', () => setPause(true));
-// 개발 빌드: 일시정지에서 자동 치유 켜고 끄기 (설정에도 저장). 한 번이라도 켜진 판은 자동 힐러 판
+// 개발 빌드: 일시정지에서 자동 치유 켜고 끄기 (설정에도 저장). 한 번이라도 켜진 판은 결과 화면에 「자동 힐러」 (기록 · 임무는 그대로 셈)
 $('pauseAuto').addEventListener('change', e => {
   S.auto = (e.target as HTMLInputElement).checked;
   if (S.auto && S.run) S.run.auto = true;
@@ -913,7 +913,7 @@ function frame(now: number): void {
   get renderer() { return boardRenderer(); },
   /**
    * 첫날 화면 봇 (가상 사용자 QA, scripts/qa-firstday.mjs): 그리지 않고 지금 전투를 sec초 넘김. 누르는 사람 = 초보 자동 힐러 (그 레벨 사람, engine/novice).
-   * 개발 빌드 자동 치유와 달리 판 기록은 사람이 한 판 그대로 (임무 · 기록에 셈). 시작 카운트다운 · 전투 안내 멈춤은 건너뜀
+   * 개발 빌드 자동 치유처럼 판 기록 · 임무에 셈 (결과 화면 「자동 힐러」 표시는 없음). 시작 카운트다운 · 전투 안내 멈춤은 건너뜀
    */
   skip(sec: number): void {
     const F = B.F;
