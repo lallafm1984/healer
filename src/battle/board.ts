@@ -13,7 +13,7 @@ import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
-import { bossTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
+import { bossTarget, areaRadius, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { asleep } from '../engine/astro';
@@ -1149,17 +1149,16 @@ export function fxDamage(u: Unit, amt: number, now: number): void {
   if (n >= DMG_FLOATS) return;
   B2.floats.push({ ...HEAL_AT, text: `-${amt}`, crit: false, over: false, fill: DMG_TEXT, dmg: true, big: amt >= u.max * 0.25, t0: now, n: B2.n++, id: u.id, num: true });
 }
-/** 쫄을 친 파티원 한 방 숫자 색 (보스 그림 옆 숫자처럼 받는 쪽이 적: 회복 민트 · 받은 피해 빨강과 구분) */
-const ADD_HIT_TEXT = 0xffdca0;
 /**
  * 쫄 (P-ADD)을 친 파티원 한 방 · 빗나감 (2026-10-24 Lim 「보스에게 공격하는 데미지 숫자를 보면 쫄에게 공격도 하면서 보스에게도 공격하고 있는것같다」):
- * 보스 그림 옆이 아니라 그 쫄 자리에. 판 위 칸이 있는 쫄 = 그 칸, 감옥 = 갇힌 사람 칸, 자리가 없는 쫄은 띄우지 않음
+ * 보스 그림 옆이 아니라 그 쫄 자리에. 판 위 칸이 있는 쫄 = 그 칸, 감옥 = 갇힌 사람 칸, 자리가 없는 쫄은 띄우지 않음.
+ * 숫자는 받은 피해와 같은 빨강 (2026-10-25 Lim 「쫄 데미지 숫자는 빨간색으로」)
  */
 export function fxAddHit(mobId: number, text: string, now: number, crit = false, miss = false): void {
   if (!L.ok || S.reducedEffects || B2.floats.length >= 40) return;
   const a = B.F?.mobs.find(m => m.id === mobId)?.add;
   if (!a) return;
-  const fl = { dx: 0, dy: -0.3, text, crit, over: false, fill: miss ? 0xb9b1a2 : ADD_HIT_TEXT, t0: now, n: B2.n++, num: !miss, label: miss };
+  const fl = { dx: 0, dy: -0.3, text, crit, over: false, fill: miss ? 0xb9b1a2 : DMG_TEXT, t0: now, n: B2.n++, num: !miss, label: miss };
   if (a.cell != null) B2.floats.push({ ...fl, id: -1, cell: a.cell });
   else if (a.hold != null && a.on != null) B2.floats.push({ ...fl, id: a.on });
 }
@@ -1846,8 +1845,7 @@ export function render(now: number): void {
     }
   }
 
-  // 판에 나온 적 (35 3-I): 붉은 테 칸 + 이름 · 남은 체력. 딜러가 때리는 적(일점사)에 금빛 과녁, 폭탄은 남은 초
-  const focus = focusOrder(F)[0];
+  // 판에 나온 적 (35 3-I): 붉은 테 칸 + 이름 · 남은 체력, 폭탄은 남은 초. 일점사 금빛 칼날 표식은 없앰 (2026-10-25 Lim 「타겟 아이콘은 제거하자」)
   for (const m of F.mobs) if (m.alive && m.add?.cell != null) {
     const a = m.add, p = center(a.cell!);
     // 적 칸 = 그을린 무쇠 바탕 + 붉게 달아오른 테 그림 (fx-edge-ember, 2026-10-16 검수: 평면 빨간 판이 황동 파티 칸 옆에서 가장 싸 보였음)
@@ -1855,16 +1853,6 @@ export function render(now: number): void {
     hexPoly(cellsG, p.x, p.y, r * 0.92).fill({ color: ember ? 0x2a1715 : 0x3b1514, alpha: 0.92 });
     if (!ember || !edgeRing('fx-edge-ember', p.x, p.y, r * 0.9, Math.max(5, s * 0.15))) hexPoly(cellsG, p.x, p.y, r * 0.92).stroke({ width: Math.max(2.5, s * 0.07), color: C.danger, alpha: 0.9 });
     fillBand(cellsG, p.x, p.y, r * 0.92, p.y + r * 0.92 - 2 * r * 0.92 * (m.hp / m.max), p.y + r * 0.92, C.danger, 0.28);
-    if (m === focus) {
-      // 일점사: 금빛 칼날 표식 (icon-gim-focus)을 칸 왼쪽 위에 (탱커 조준 표식과 다른 모양, 판 밖으로 안 뻗음)
-      const ft = artTexture('icon-gim-focus'), fz = r * 0.62;
-      if (ft) { const fp = fitCenter(p.x - r * 0.56, p.y - r * 0.52, fz / 2); marks.put(ft, fp.x, fp.y, fz, fz, 0.75 + 0.25 * pulse); }
-      else {
-        const ro = r * 0.98, ri = r * 0.62;
-        overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
-          .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
-      }
-    }
     // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만). 칸 그림(37 4장 E)이 있으면 이름 대신 그림
     const mt = artTexture(addArtName(m));
     if (mt) decals.put(mt, p.x, p.y - r * 0.18, r * 1.15, r * 1.15);
@@ -2124,12 +2112,6 @@ export function render(now: number): void {
         overG.stroke({ width: w, color: 0xd8c7a8, alpha: 0.75 });
       }
       if (!jt) hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 }); // 감옥 그림이 있으면 창살 그림만 (2026-10-16 디자이너 검수 17: 테가 세 겹이었음)
-      if (jail === focusOrder(F)[0]) {
-        // 딜러가 깨는 중: 판 위 적 일점사와 같은 금빛 칼날 표식 (금빛 과녁 원 대신)
-        const ft = artTexture('icon-gim-focus'), fz = r * 0.62;
-        if (ft) { const fp = fitCenter(x + r * 0.56, y - r * 0.52, fz / 2); marks.put(ft, fp.x, fp.y, fz, fz, 0.75 + 0.25 * pulse); }
-        else overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
-      }
     }
     // 맞을 때 실제로 받을 양 (engine busterOn = damage()와 같은 계산): 탱커 강타가 탱커 아닌 사람에게 가면 직업군 방어력만큼 큼 (2026-10-16 Lim 「예상보다 많이 깎여 한방에 죽음」)
     const bo = busterOn(F, u);
