@@ -860,7 +860,16 @@ function onClick(t: HTMLElement): boolean {
   const lk = t.closest<HTMLElement>('[data-lock]');
   if (lk) { sfx(toggleLock(Number(lk.dataset.lock)) ? 'gear-lock' : 'deny'); msg = ''; render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
-  if (eq) { wornNow = Number(eq.dataset.equip); sfx(equip(wornNow) ? 'gear-equip' : 'deny'); msg = ''; render(); return true; }
+  if (eq) {
+    // 장착하면 상세 시트를 닫고 인벤토리로 돌아감 (2026-10-25 Lim). 못 하면 시트 그대로
+    // equip()는 벗은 장비를 돌려줌 (빈 칸이면 null): 성공은 가방에 있었는지로 판정
+    wornNow = Number(eq.dataset.equip);
+    const done = G.save.gear.bag.some(x => x.id === wornNow);
+    if (done) equip(wornNow);
+    sfx(done ? 'gear-equip' : 'deny');
+    if (done) closeSheet(); else { msg = ''; render(); }
+    return true;
+  }
   const s1 = t.closest<HTMLButtonElement>('[data-sell1]');
   if (s1) {
     if (s1.disabled) return true;

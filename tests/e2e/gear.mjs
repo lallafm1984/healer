@@ -144,9 +144,10 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-equip="203"]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.gear.equipped.neck?.id === 203 && sv.gear.equipped.neck.lock && sv.gear.bag.length === 0, '상세 「장착」 → 목걸이 착용, 잠금 상태 유지');
+  ok(!(await page.isVisible('#s-char .c7-gsheet')) && await page.evaluate(() => document.activeElement?.id === 'gearInventoryTitle'), '장착하면 상세가 닫힘 (2026-10-25 Lim) → 빈 인벤토리 제목 포커스 복귀');
+  await page.click('#s-char .c7-slot[data-gitem="203"]'); await page.clock.runFor(50);
   ok(await page.isDisabled('#s-char [data-sell1="203"]'), '방금 장착한 장비도 판매 불가');
   await closeSheet();
-  ok(await page.evaluate(() => document.activeElement?.id === 'gearInventoryTitle'), '마지막 아이템 장착 뒤 상세 닫기 → 빈 인벤토리 제목 포커스 복귀');
   ok((await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 새 장비 빨간 점 사라짐');
   const emptyRows = await page.evaluate(() => {
     const list = document.querySelector('#s-char .c7-bags'), note = list.querySelector('.c7-inventory-empty');
