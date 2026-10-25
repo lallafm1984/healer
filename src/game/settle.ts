@@ -116,7 +116,7 @@ export function heroWin(save: SaveData, h: HeroKey = save.hero): void {
 export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
   const c = contentOf(r.content);
   const hero = r.hero ?? save.hero;
-  // 튜토리얼이 끝난 뒤부터 재화·임무 (자동 힐러로 구경한 판은 임무에 안 셈)
+  // 튜토리얼이 끝난 뒤부터 재화·임무. 개발 빌드 자동 치유 판도 사람이 한 판처럼 모두 셈 (2026-10-25 Lim 「추천으로 던전을 클리어했는데 임무에 반영이 안되어 있다」: 예전엔 임무만 뺐음)
   const play = save.tut >= TUT.done || !TUT_CONTENT.includes(c.key); // 튜토리얼 보상은 튜토리얼 판만 (103)
   if (play) rollover(save, now, rng);
   const p = save.player;
@@ -214,7 +214,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   }
 
   const tot2 = r.healed + r.overheal;
-  const missions = play && !r.quit && !r.auto ? onRun(save, {
+  const missions = play && !r.quit ? onRun(save, {
     win: r.win, dungeon: c.kind === 'dungeon' || c.kind === 'raid', explore: c.kind === 'explore', raid, pub, diffIdx: ALL_DIFFS.indexOf(r.diff), deaths: r.deaths,
     overhealPct: tot2 ? Math.round((r.overheal / tot2) * 100) : 0, endManaPct: r.endMana, dispels: r.dispels,
     pers: r.party.map(p => p.pers || '').filter(Boolean), chal: chal?.inTime ? chal.stage : 0,

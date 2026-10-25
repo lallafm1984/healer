@@ -218,6 +218,13 @@ describe('정산 연결', () => {
     expect(x.first).toBe(true);
     expect(s.daily.missions.some(m => m.n > 0)).toBe(true);
   });
+  it('개발 빌드 자동 치유 판도 임무에 셈: 클리어 · 경험치 · 골드 · 장비처럼 (2026-10-25 Lim 폰: 자동 치유로 깬 던전이 임무에만 안 들어갔음)', () => {
+    const s = save(20);
+    s.daily.missions = [{ key: 'clear3', n: 0, got: false }];
+    const x = settle(s, result({ auto: true }), rng, [], T0);
+    expect(x.first).toBe(true);
+    expect(s.daily.missions[0].n).toBe(1);
+  });
 });
 
 describe('시계를 뒤로 (103 다른 문제점 1)', () => {
