@@ -161,10 +161,10 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
 }
 
 /**
- * 하루 첫 3판 (던전 · 레이드) 장비 확률 보너스 (13 2-2). 길드가 꺼져 있으면 모든 판이 공개모집이라 「오늘의 보너스」 + 무엇이 오르는지
- * (2026-10-16 QA 「추천대로」: 「공개모집 보너스 1/3」은 뜻이 안 보였음)
+ * 하루 첫 3판 (던전 · 레이드) 장비 확률 보너스 (13 2-2). 길드가 꺼져 있으면 모든 판이 공개모집이라 「오늘의 보너스」.
+ * 어느 쪽이든 무엇이 오르는지 붙임 (2026-10-16 QA 「추천대로」: 「공개모집 보너스 1/3」은 뜻이 안 보였음, 길드를 켠 뒤에도 같게 2026-10-27)
  */
-const pubBonusText = (n: number) => (FEATURES.guild ? `공개모집 보너스 ${n}/3` : `오늘의 보너스 ${n}/3 · 장비 확률 ↑`);
+const pubBonusText = (n: number) => `${FEATURES.guild ? '공개모집' : '오늘의'} 보너스 ${n}/3 · 장비 확률 ↑`;
 
 /** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비는 정산에서 바로 장착), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
 function tipHtml(r: BattleResult, x: Settlement): string {
