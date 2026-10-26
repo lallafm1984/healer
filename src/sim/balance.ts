@@ -191,6 +191,41 @@ export function findDmg(rate: (dmg: number) => number, aim: number, lo = LO, hi 
   return { dmg: best.dmg, rate: best.rate };
 }
 
+/**
+ * 지금 배율에서 출발해 aim을 찾음 (2026-10-26 Lim 「판 테스트시 한판의 시간을 빠르게 할수없는지?」): 클리어율은 log 배율에 거의 곧게 줄어드니
+ * 첫 걸음은 기울기 SEEK_SLOPE로 어림하고, 그 뒤로는 aim을 사이에 둔 두 점 사이를 곧은 줄로 (못 가두면 마지막 두 점의 기울기로) 좁힘.
+ * findDmg (로그 반 나누기, 9번)는 지금 값과 상관없이 [lo, hi] 가운데부터라 띠 근처 칸도 6 ~ 9번 쟀음 → 보통 2 ~ 4번. 잰 값은 rate가 기억 (designMeasure · at)
+ */
+export const SEEK_SLOPE = 90;
+export function seekDmg(rate: (dmg: number) => number, aim: number, start: number, lo = LO, hi = HI, iters = 7, tol = 1): { dmg: number; rate: number } {
+  const rd = (x: number) => Math.max(lo, Math.min(hi, Math.round(x * 100) / 100));
+  const pts: { x: number; r: number }[] = [];
+  const probe = (x: number) => { const r = rate(x); pts.push({ x, r }); return r; };
+  let x = rd(start), r = probe(x);
+  for (let i = 1; i < iters && Math.abs(r - aim) > tol; i++) {
+    const easy = pts.filter(p => p.r > aim), hard = pts.filter(p => p.r < aim);
+    let nx: number;
+    if (easy.length && hard.length) {
+      const a = easy.reduce((m, p) => (p.x > m.x ? p : m)), b = hard.reduce((m, p) => (p.x < m.x ? p : m));
+      if (b.x - a.x <= 0.015) break;
+      const t = a.r >= 99 || b.r <= 1 ? 0.5 : (a.r - aim) / (a.r - b.r); // 끝이 붙은 쪽 (100 · 0)은 곧은 줄이 안 맞아 반 나누기
+      nx = rd(Math.exp(Math.log(a.x) + (Math.log(b.x) - Math.log(a.x)) * Math.max(0.2, Math.min(0.8, t))));
+      if (nx <= a.x || nx >= b.x) nx = rd(Math.sqrt(a.x * b.x));
+      if (nx <= a.x || nx >= b.x) break;
+    } else {
+      const q = pts.length >= 2 ? pts[pts.length - 2] : null;
+      const s = q && q.x !== x ? (r - q.r) / (Math.log(x) - Math.log(q.x)) : -SEEK_SLOPE;
+      nx = rd(s < -10 ? x * Math.exp((r - aim) / -s) : q ? x * (r > aim ? 2 : 0.5) : x * Math.exp((r - aim) / SEEK_SLOPE)); // 판이 안 바뀌면 (평평) 두 배씩
+      if (nx === x) nx = rd(x + (r > aim ? 0.01 : -0.01));
+      if (nx === x || pts.some(p => p.x === nx)) break; // 끝 (lo · hi)에 닿음
+    }
+    x = nx; r = probe(x);
+  }
+  let best = pts[0];
+  for (const p of pts) if (Math.abs(p.r - aim) <= Math.abs(best.r - aim)) best = p;
+  return { dmg: best.x, rate: best.r };
+}
+
 /** 장소의 지금 보정: 모든 구간이 같은 값이면 그 값 ({} = 보정 없음), 구간마다 다르면 null */
 export function placeTune(t: TuneTable, c: ContentDef, d: DiffName): Tune | null {
   const vals = [...new Set(c.fights(d))].map(k => t[k]?.[d] ?? {});
@@ -292,19 +327,21 @@ export const DESIGN_HI = 6;
 export function designDmg(rate: (dmg: number) => number, d: DiffName, curDmg: number, tg: { min: number; max: number; aim: number }): number {
   const r = rate(curDmg);
   if (r >= tg.min && r <= tg.max) return curDmg;
-  return findDmg(rate, tg.aim, LO, d === '쉬움' ? curDmg : DESIGN_HI).dmg;
+  return seekDmg(rate, tg.aim, curDmg, LO, d === '쉬움' ? curDmg : DESIGN_HI, 7, 2).dmg; // 띠 폭 14라 겨눔 ±2면 충분
 }
-function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, cur: Tune | null): Row {
+/** 숙련 자동 힐러 측정을 건너뛴 자리 (레벨 디자인 칸은 중급자로만 정함, 숙련 값은 보고용) */
+const NO_MEASURE: Measure = { rate: NaN, byHero: {}, time: 0, fails: {}, busy: 0 };
+function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, cur: Tune | null, expert: boolean): Row {
   const base = cur ?? {}, curDmg = base.dmg ?? 1, tg = designTarget({ c, d }), dm = designMeasure(c, d, base), rate = (x: number) => dm(x).rate;
   const before = rate(curDmg), floor = DESIGN_BUSY_SKIP.has(c.key) ? undefined : DESIGN_BUSY[d];
   const idle = floor != null && before >= tg.min && before <= tg.max && dm(curDmg).busy < floor - 0.5; // 띠 안인데 바쁨 하한 아래
   const verdict: Verdict = before < tg.min ? 'hard' : before > tg.max ? 'easy' : idle ? 'idle' : 'ok';
   const busy = floor != null ? { before: dm(curDmg).busy, after: dm(curDmg).busy, floor } : undefined;
-  const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now: measure(c, d, n, cur ?? undefined), verdict, design: { before, after: before, ...tg, busy } };
+  const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now: expert ? measure(c, d, n, cur ?? undefined) : NO_MEASURE, verdict, design: { before, after: before, ...tg, busy } };
   if (!search || verdict === 'ok') return row;
   let dmg = verdict === 'idle' ? curDmg : designDmg(rate, d, curDmg, tg);
   if (floor != null) dmg = designBusyDmg(dm, floor, dmg, tg.min); // 바쁨 하한 (띠 아래 선 아래로는 안 감)
-  if (dmg !== curDmg) { row.next = { dmg, m: measure(c, d, n, { ...base, dmg }) }; row.design!.after = rate(dmg); if (row.design!.busy) row.design!.busy.after = dm(dmg).busy; }
+  if (dmg !== curDmg) { row.next = { dmg, m: expert ? measure(c, d, n, { ...base, dmg }) : NO_MEASURE }; row.design!.after = rate(dmg); if (row.design!.busy) row.design!.busy.after = dm(dmg).busy; }
   return row;
 }
 /**
@@ -327,9 +364,13 @@ export function noviceCap(ok: (dmg: number) => boolean, hi: number, lo = LO): nu
 export const tooIdle = (d: DiffName, m: Measure, c?: ContentDef): boolean => BUSY[d] != null && verdictOf(d, m.rate, c) === 'ok' && m.busy < BUSY[d]! - 0.5;
 
 /** 장소 하나 · 난이도 하나: 지금 값으로 재고, 목표 밖이면 (search) 피해 배율을 찾음 */
-export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, search = true): Row {
+/**
+ * expert = 레벨 디자인 칸에서도 숙련 자동 힐러를 재서 보고에 넣음 (예전엔 늘 재서 칸마다 120 ~ 240판이 더 들었음, 정하는 데는 안 씀).
+ * 2026-10-26 Lim 「판 테스트시 한판의 시간을 빠르게 할수없는지?」: 기본은 안 잼
+ */
+export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, search = true, expert = false): Row {
   const cur = placeTune(t, c, d);
-  if (designCell(c)) return balanceDesign(c, d, n, search, cur);
+  if (designCell(c)) return balanceDesign(c, d, n, search, cur, expert);
   let now = measure(c, d, n), verdict = verdictOf(d, now.rate, c);
   // 목표 밖이면 판 수를 두 배로 다시 재서 확인 (선 근처의 흔들림으로 값을 자꾸 바꾸지 않게)
   if (search && verdict !== 'ok') { now = measure(c, d, n * 2); verdict = verdictOf(d, now.rate, c); }
@@ -338,6 +379,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const base = cur ?? {};
   const seen = new Map<number, Measure>();
   const at = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measure(c, d, n, { ...base, dmg })); return seen.get(dmg)!.rate; };
+  if (cur) seen.set(cur.dmg ?? 1, now); // 지금 배율은 이미 잼 (seekDmg가 여기서 출발)
   const nov = floorProbe(c, d, base);
   /** 초보 하한: 고른 배율이 처음 하는 사람에게 목표 아래면 지키는 가장 큰 배율로 내림 */
   const capped = (r: Row): Row => {
@@ -369,7 +411,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
   const hi = lowerOnly(d) ? curDmg : HI;
-  const r = findDmg(at, targetOf(c, d).aim, LO, hi);
+  const r = seekDmg(at, targetOf(c, d).aim, curDmg, LO, hi);
   const dmg = lowerOnly(d) && r.rate >= targetOf(c, d).aim - 1 ? closeIn(at, d, r.dmg, curDmg, 4, targetOf(c, d).aim) : r.dmg;
   row.next = { dmg, m: seen.get(dmg)! };
   return capped(row);

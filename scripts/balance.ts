@@ -41,7 +41,7 @@ for (const c of places) {
   const goal = enr.every(Number.isFinite) ? ` · 목표 시간 ${fmtT(enr.reduce((a, b) => a + b, 0) / 1.35)}` : '';
   console.log(`\n${c.name} (${c.key}) · ${segs.map(k => ENCOUNTERS[k].name).join(' → ')}${goal}`);
   for (const d of diffs) {
-    const r = balanceOne(TUNE, c, d, N, !check);
+    const r = balanceOne(TUNE, c, d, N, !check, true); // 명령줄 보고는 숙련 값도
     rows.push(r);
     const f = why(r.now);
     console.log(`  ${d.padEnd(3)} ${stdLabel(r.std)} ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now, c)}${f ? ` | 실패: ${f}` : ''}`);
