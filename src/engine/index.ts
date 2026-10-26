@@ -6,7 +6,7 @@ export { aggroTarget, bossTick, queue, type QueueEntry } from './bosses';
 export { bossTaken, busterOn, CHAIN_GROW, focusOrder, isRod, ORDER_NUM, ROD_HP, telDmg } from './bossParts';
 export { submerged, TIDE_CUT } from './core';
 export { DT, living } from './core';
-export { create, recruitParty, rollParty, step } from './fight';
+export { create, recruitParty, rollParty, step, thornsHit } from './fight';
 export { canTarget, knows, knowsPassive, skillUsesSpent, SLOT_OF, slotKey, use } from './healer';
 export { beaconShare, heroPassive, heroRing, hotCount, setBeacon } from './heroes';
 export { reviveTarget } from './revive';

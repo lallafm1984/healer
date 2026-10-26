@@ -320,11 +320,15 @@ function addTarget(f: Fight, u: Unit): number | undefined {
   return focusOrder(f).find(m => m.alive && m.add)?.id;
 }
 
+/** 가시 갑옷 (P-THORNS, 111) 동안 이 사람의 한 방이 보스 · 몸통으로 가서 가시에 찔리는지 (쫄을 치는 딜러는 아님). 판 위 가시 테두리 (board.ts)도 같은 판정 */
+export const thornsHit = (f: Fight, u: Unit): boolean =>
+  !!f.thorns && f.t < f.thorns.until && (!!f.bodyHp || !(u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)));
+
 /** 한 방이 들어감: 무력화 게이지 · 딜 기록 · 몸통 / 쫄 / 보스 (칼날폭풍 추가타도 같은 길). 쫄을 쳤으면 맞은 쫄 id (화면 숫자 자리) */
 function land(f: Fight, u: Unit, amt: number): number | undefined {
   if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
   u.dealt += Math.min(amt, f.bossHp);
-  if (f.thorns && f.t < f.thorns.until && (f.bodyHp || !(u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)))) { // 가시 갑옷 (P-THORNS, 111): 보스 · 몸통을 친 한 대마다
+  if (f.thorns && thornsHit(f, u)) { // 가시 갑옷 (P-THORNS, 111): 보스 · 몸통을 친 한 대마다
     damage(f, u, f.thorns.dmg * (u.role === 'tank' ? f.thorns.tank : 1));
     if (!u.alive) return undefined;
   }

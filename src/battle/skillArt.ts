@@ -9,10 +9,10 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 49장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개, 60 G 어둠물 밀물 · 빌린 생명 · 퍼지는 박동 · 크게 뛰기): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
+/** 기믹 아이콘 50장 (111 가시 갑옷, 37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개, 60 G 어둠물 밀물 · 빌린 생명 · 퍼지는 박동 · 크게 뛰기): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
   'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch', 'mirage', 'glass',
-  'lift', 'chain', 'tide', 'debt', 'pulse', 'beat'] as const;
+  'lift', 'chain', 'tide', 'debt', 'pulse', 'beat', 'thorns'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
@@ -243,6 +243,7 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
     case 'ring': return 'grow'; // 요정 고리 (P-GROW, 37 4장 H-1)
     case 'greed': case 'melt': return e.p; // 보물 욕심 · 녹는 보호막 (51 5장, 그림 52)
     case 'lift': case 'chain': return e.p; // 띄워 올리기 · 연쇄 번개 (56 5장, 그림 57)
+    case 'thorns': return 'thorns'; // 가시 갑옷 (P-THORNS, 111, 그림 2026-10-27)
     case 'adds': return addGim(e.add, tanks);
     case 'debuff': case 'tank': case 'all': return e.debuff ? debuffGim(e.debuff) : undefined;
     default: return undefined;

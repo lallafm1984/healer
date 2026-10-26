@@ -5,11 +5,12 @@
 import type { Unit } from '../engine';
 
 export const DEBUFF_EDGE: Record<string, string> = { 독: 'fx-edge-poison', 마법: 'fx-edge-magic', 저주: 'fx-edge-curse', 질병: 'fx-edge-disease' };
-/** 칸 위 기믹 디버프 (배지 왼쪽 작은 그림, 2026-10-16 QA: 글자가 「저주 30」뿐이라 할 일이 반대인 기믹끼리 같아 보였음). 넘어가는 포자는 칸 위 솜뭉치 그림이 따로 있어 뺌 */
+/** 칸 위 기믹 디버프 (배지 왼쪽 작은 그림, 2026-10-16 QA: 글자가 「저주 30」뿐이라 할 일이 반대인 기믹끼리 같아 보였음). 넘어가는 포자는 칸 위 솜뭉치 그림이 따로 있어 뺌. 단단한 껍질 · 충전 (111)은 2026-10-27 그림이 와서 더함 */
 export const GIM_ICON: [(d: Unit['debuffs'][number]) => boolean, string][] = [
   [d => !!d.charm, 'icon-gim-charm'], [d => d.cap != null, 'icon-gim-cap'], [d => (d.debtLeft ?? 0) > 0 || !!d.debt, 'icon-gim-debt'],
   [d => !!d.swell, 'icon-gim-swell'], [d => d.end?.p === 'flip', 'icon-gim-flip'],
   [d => !!d.trap, 'icon-gim-burst'], [d => d.cureAt != null && d.cureAt < 1, 'icon-gim-full'],
+  [d => d.shell != null, 'icon-gim-shell'], [d => !!d.charge, 'icon-gim-charge'],
 ];
-export const MARK_ART = [...Object.values(DEBUFF_EDGE), 'fx-edge-buster', 'fx-edge-flame', 'fx-edge-glass', 'fx-edge-plate', 'fx-edge-bark', 'fx-edge-mist', 'fx-edge-spark', 'fx-edge-ember', 'fx-edge-threat',
+export const MARK_ART = [...Object.values(DEBUFF_EDGE), 'fx-edge-buster', 'fx-edge-flame', 'fx-edge-glass', 'fx-edge-plate', 'fx-edge-bark', 'fx-edge-mist', 'fx-edge-spark', 'fx-edge-ember', 'fx-edge-threat', 'fx-edge-thorns',
   'fx-link-chain', 'icon-gim-invert', 'icon-gim-link'];

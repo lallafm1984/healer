@@ -743,10 +743,10 @@ const CHAIN_HOW = '번개 구름 아래 사람에게 번개가 떨어지고, 이
 const LIFT_HOW = '회오리가 뜬 사람이 하늘로 떠올라 그동안 새 힐 · 해제가 안 닿음 (미리 건 지속 힐 · 보호막만 남음). 예고 동안 지속 힐 · 해제, 내려오면 낙하 피해라 바로 채우기';
 /** 단단한 껍질 (P-SHELL, 111 4-4): 큰 직접 힐만 깎는 흡수 막. 공략 글과 디버프 */
 const HARD_SHELL_HOW = '최대 체력 25%를 넘는 직접 힐만 껍질을 깎음. 작은 힐 · 지속 힐 틱은 튕겨 헛됨. 큰 힐을 아꼈다 몰아서 깨기, 두면 끝날 때 남은 막만큼 피해. 마법을 지우는 직업은 지움';
-const shellOf = (name: string, x: number, left = 10): DebuffDef => ({ name, type: '마법', left, shell: U.dps(x), shellMin: 0.25, end: { p: 'crack' }, art: 'icon-gim-shell' });
+const shellOf = (name: string, x: number, left = 10): DebuffDef => ({ name, type: '마법', left, shell: U.dps(x), shellMin: 0.25, end: { p: 'crack' } });
 /** 충전 (P-CHARGE, 111 4-4): 직접 힐 횟수가 쌓여 방전. 공략 글과 디버프 */
 const CHARGE_HOW = '직접 힐이 들어올 때마다 1중첩, 4중첩이면 방전해 본인과 이웃 칸이 아픔. 지속 힐 · 광역 힐은 안 셈 → 큰 힐 적게 넣고 지속 힐로 버티기';
-const chargeOf = (name: string, left = 12): DebuffDef => ({ name, type: '마법', left, charge: { max: 4, self: U.dps(0.2), near: U.dps(0.1) }, art: 'icon-gim-charge' });
+const chargeOf = (name: string, left = 12): DebuffDef => ({ name, type: '마법', left, charge: { max: 4, self: U.dps(0.2), near: U.dps(0.1) } });
 /** 가시 갑옷 (P-THORNS, 111 4-3) 공략 글 */
 const THORNS_HOW = '8초 동안 보스를 때리는 사람이 한 대마다 아픔 (근접이 가장 자주). 탱커보다 딜러 줄을 예고 동안 지속 힐 · 광역으로 채우기';
 /** 하늘 던지기 (탱커 띄우기, 56 4-2) 공략 글 */
