@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { TUNE } from '../src/data/tune';
 import * as E from '../src/engine';
-import { applyRows, BUSY, closeIn, findDmg, noviceCap, noviceCellOf, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, BUSY, closeIn, findDmg, noviceCap, seekDmg, noviceCellOf, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 import { rampPlayer } from '../src/sim/ramp';
 import { recommendedFor, SLOTS } from '../src/data/equipment';
 
@@ -150,3 +150,31 @@ describe('초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안)', (
     expect(noviceCellOf(contentOf('mossroot'), '보통')).toBeNull();
   });
 });
+
+describe('seekDmg (2026-10-26 지금 값에서 출발해 찾기)', () => {
+  const rate = (x: number) => Math.max(0, Math.min(100, 100 - 90 * Math.log(x / 0.8)));
+  it('지금 값에서 출발해 몇 번 만에 겨눔 근처', () => {
+    let n = 0;
+    const r = seekDmg(x => { n++; return rate(x); }, 85, 1.5);
+    expect(Math.abs(r.rate - 85)).toBeLessThanOrEqual(1);
+    expect(n).toBeLessThanOrEqual(4);
+    let m = 0;
+    findDmg(x => { m++; return rate(x); }, 85);
+    expect(n).toBeLessThan(m + 1);
+  });
+  it('지금 값이 이미 겨눔 근처면 한 번만', () => {
+    let n = 0;
+    seekDmg(x => { n++; return rate(x); }, 85, 0.94);
+    expect(n).toBe(1);
+  });
+  it('끝에 닿으면 멈춤 (늘 100 → 위 끝, 늘 0 → 아래 끝)', () => {
+    expect(seekDmg(() => 100, 85, 1, 0.4, 3).dmg).toBe(3);
+    expect(seekDmg(() => 0, 85, 1, 0.4, 3).dmg).toBe(0.4);
+  });
+  it('계단 모양 (판 수가 적을 때)도 aim을 사이에 두고 좁힘', () => {
+    const step = (x: number) => Math.round(rate(x) / 10) * 10;
+    const r = seekDmg(step, 60, 2);
+    expect(Math.abs(r.rate - 60)).toBeLessThanOrEqual(10);
+  });
+});
+
