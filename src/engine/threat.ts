@@ -31,6 +31,8 @@ export interface ThreatState {
   lockUntil?: number;
   /** 보스가 탱커가 아닌 사람을 보고 있었음 (1열 이탈 · 띄우기 · 별의 잠): 탱커가 다시 받으면 바로 잡음 (pickUp) */
   away?: boolean;
+  /** 탱커가 첫 도발로 보스를 잡았음 (THREAT.start에 pickUp) */
+  pulled?: boolean;
   retakes: number;
   /** 뺏기 직전 (선의 90%)인 딜러 (판 위 주황 테두리) */
   warn: number[];
@@ -237,6 +239,9 @@ export function threatTick(f: Fight): void {
   };
   // 1열로 돌아옴 (2026-10-27 Lim 「탱커가 1분가까이 … 방황」): 그동안 보스가 아무나 친 것이라 위협이 식은 채 돌아오면 딜러가 0.6초 만에 다시 뺏었음. 돌아오면 바로 잡음
   if (t.away) { t.away = false; if (f.t >= THREAT.start) pickUp(); }
+  // 첫 도발 (2026-10-27 Lim 「전투 시작하자마자 못 잡으면서 계속 반복된다」): 모두 0에서 출발해 처음 몇 초는 딜러 여는 기술 한두 방이 그대로 선을 넘어,
+  // 탱커가 좋아도 판의 26%가 10초 안에 뺏겼음. 뺏기기 시작하는 때 (start) 탱커가 되찾기처럼 잡음
+  if (!t.pulled && f.t >= THREAT.start) { t.pulled = true; pickUp(); }
   t.warn = [];
   let top: Unit | null = null, topR = 0;
   for (const u of living(f)) {

@@ -189,6 +189,21 @@ describe('되찾은 뒤 · 1열로 돌아온 뒤 (2026-10-27 Lim 「탱커가 1�
     while (f.t < end) { f.t += E.DT; setRatio(f, '마', THREAT.leeway['보통'] * 1.5); threatTick(f); expect(t.steal).toBeNull(); }
   });
 
+  it('첫 도발: 뺏기기 시작하는 때 (start) 탱커가 되찾기처럼 잡음, 여는 기술이 센 딜러도 retakeLock초 동안 못 뺏음 (2026-10-27 Lim 「전투 시작하자마자 못 잡으면서 계속 반복」)', () => {
+    const f = fight(), tk = who(f, '탱'), rg = who(f, '근');
+    const t = f.thr!;
+    while (f.t < THREAT.start - E.DT) { E.step(f); f.events.length = 0; }
+    expect(t.pulled).toBeFalsy();
+    setRatio(f, '근', 3); // 여는 기술 한두 방으로 선을 크게 넘음
+    const vR = t.v.get(rg.id)!;
+    E.step(f); f.events.length = 0;
+    expect(t.pulled).toBe(true);
+    expect(t.v.get(tk.id)!).toBeGreaterThan(vR * THREAT.retakeMult * 0.9);
+    expect(t.lockUntil).toBeCloseTo(f.t + THREAT.retakeLock, 1);
+    const end = f.t + THREAT.retakeLock - 0.2;
+    while (f.t < end) { f.t += E.DT; setRatio(f, '근', THREAT.leeway['보통'] * 1.5); threatTick(f); expect(t.steal).toBeNull(); }
+  });
+
   it('판단 1 딜러가 뺏어 되찾기가 늦어져도 10초 안 (2026-10-25 Lim 「최대 10초」, 예전 × 1.5 = 15초까지)', () => {
     for (let seed = 1; seed <= 5; seed++) {
       const f = fight({ tank: { st: { react: 1, skill: 1 } }, rogue: { st: { judgment: 1 } } }), rg = who(f, '근');
