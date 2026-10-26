@@ -122,8 +122,11 @@ export default async function guildExt(url, shots) {
   // 시계를 건너뜀 (fastForward: 밀린 타이머는 한 번만, runFor는 30분치 타이머를 다 돌려 느림). 남은 시간 글은 15초마다 고침
   await page.clock.fastForward(30 * 60e3); await page.clock.runFor(16e3);
   ok(/30분 뒤/.test(await text('#s-guild [data-post="ad"]')), `30분 뒤 남은 시간 글이 줄어듦 (${await text('#s-guild [data-post="ad"]')})`);
-  await page.clock.fastForward(30 * 60e3); await page.clock.runFor(16e3);
-  ok(!await page.isDisabled('#s-guild [data-post="ad"]') && (await text('#s-guild [data-post="ad"]')).trim() === '새로 뽑기', '1시간 뒤 다시 새로 뽑기');
+  // 남은 시간 글은 15초마다 고치니 다 되면 다음 15초 안에 다시 그림 (CI 러너가 느리면 한 번에 안 잡혀 1초씩 30초까지)
+  await page.clock.fastForward(30 * 60e3);
+  const adReady = async () => !await page.isDisabled('#s-guild [data-post="ad"]') && (await text('#s-guild [data-post="ad"]')).trim() === '새로 뽑기';
+  for (let i = 0; i < 30 && !await adReady(); i++) await page.clock.runFor(1e3);
+  ok(await adReady(), `1시간 뒤 다시 새로 뽑기 (${(await text('#s-guild [data-post="ad"]')).trim()} · ${await page.evaluate(() => JSON.stringify({ now: Date.now(), at: JSON.parse(localStorage.getItem('healer.save')).guild.postAdAt, shown: !!document.querySelector('#s-guild')?.getClientRects().length }))})`);
   const allCandidates = (await save()).guild.post.cands.map(c => ({ nick: c.nick, lv: c.lv }));
   for (let remaining = 5; remaining > 0; remaining--) {
     await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);

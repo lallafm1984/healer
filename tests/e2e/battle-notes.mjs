@@ -40,8 +40,12 @@ export default async function battleNotes(url, shots) {
     const cv = await page.locator('#board').boundingBox();
     const people = await page.evaluate(() => window.__proto.F.party.filter(u => u.alive).map(u => ({ id: u.id, ...window.__proto.center(u.cell) })));
     const top = people.reduce((a, b) => (b.y < a.y ? b : a)), bottom = people.reduce((a, b) => (b.y > a.y ? b : a));
-    for (const [where, p] of [['맨 윗줄', top], ['맨 아랫줄', bottom]]) {
+    // 파티원은 장판 · 비켜 주기로 움직이니 누르기 직전 그 사람 자리를 다시 읽음 (움직이는 중이면 멈출 때까지)
+    const spot = id => page.evaluate(id => { const u = window.__proto.F.party.find(x => x.id === id); return { id, moving: !!u.moving, ...window.__proto.center(u.cell) }; }, id);
+    for (const [where, who] of [['맨 윗줄', top], ['맨 아랫줄', bottom]]) {
       await fill();
+      let p = await spot(who.id);
+      for (let i = 0; i < 30 && p.moving; i++) { await page.clock.runFor(100); p = await spot(who.id); }
       await page.mouse.move(cv.x + p.x, cv.y + p.y); await page.mouse.down();
       await page.clock.runFor(600);
       const g = await page.evaluate(() => {
