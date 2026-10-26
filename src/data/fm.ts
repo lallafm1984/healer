@@ -1,6 +1,6 @@
 /**
  * 파티원 능력치 FM식 (97 문서, Lim 2026-10-18 「fm과 함께 길드 v2를 모두 적용하자」): 능력치 12개 (1~20, 10 = 예전 값) + 숨은 학습력 · 꾸준함,
- * 공개모집 1000명의 자기 레벨 (내 Lv × 빠르기). 사람마다 닉네임에서 고정 씨앗을 만들어 계산하고 저장하지 않는다.
+ * 공개모집 1000명은 나오는 칸 레벨 (recruitLevel)로 나오고 그 레벨까지 레벨업 점수를 받음. 사람마다 닉네임에서 고정 씨앗을 만들어 계산하고 저장하지 않는다.
  * 능력치 하나는 전투 엔진 값 하나만 바꾼다 (보이기만 하는 숫자 없음). 효과 범위는 97 표의 1 → 20, 10은 예전 값.
  */
 import type { PersName } from './personalities';
@@ -27,8 +27,8 @@ export const ROLE_CORE: Record<Exclude<Role, 'healer'>, StatKey[]> = {
 };
 
 export type Stats = Record<StatKey, number>;
-/** 한 사람: 능력치 12 · 학습력 · 꾸준함 (1~20) · 빠르기 (레벨 = 내 Lv × 빠르기) */
-export interface FmProfile { stats: Stats; learn: number; steady: number; speed: number }
+/** 한 사람: 능력치 12 · 학습력 · 꾸준함 (1~20). 레벨은 사람마다 없음 (나오는 칸 · 공고의 레벨, recruitLevel) */
+export interface FmProfile { stats: Stats; learn: number; steady: number }
 
 /** 성격 결 (97 「1000명 표의 능력치 결」): 높게 · 낮게 나오기 쉬운 칸 (평균 ±GRAIN). 협동 (예전 쫄 처리): 함께하는 성격 (사교형 · 감사형 · 짝꿍 · 양보왕 · 대타 · 칭찬왕 · 보은형)은 높게, 혼자 노는 성격 (딜 욕심쟁이 · 외톨이 · 이기주의자 · 몰입형 · 외골수)은 낮게 */
 export const GRAIN = 2;
@@ -81,15 +81,13 @@ const clampStat = (x: number) => Math.max(1, Math.min(20, Math.round(x)));
 
 /** 능력치 표준편차 (v23까지의 타고난 값: 평균 10, 대부분 8~13 · 97) */
 export const STAT_SD = 1.8;
-/** 빠르기 (97 「A를 고르면 붙는 규칙」 2번): 40%는 함께 크는 사람 0.95~1.1배, 60%는 천천히 크는 사람 0.02~0.95배 */
-export const SPEED = { fastShare: 0.4, fast: [0.95, 1.1], slow: [0.02, 0.95] } as const;
 
 /**
  * 타고난 값 = Lv 1 능력치 (2026-10-19 Lim 「파티원 능력치는 1렙 기준으로 모든능력치 1~10으로 랜덤」, 기획 104): 칸마다 1~10 고르게,
  * 역할 핵심 넷은 4~10 (탱커 맷집 · 방어 1 같은 「고장」을 막음). 성격 결은 바탕에서 빼고 레벨업 때 오를 칸 무게로만 (lvAdds). 레벨이 오르면 레벨업 점수 (LV_PTS)
  */
 export const BIRTH = { lo: 1, hi: 10, coreLo: 4 } as const;
-/** v25까지의 타고난 값 (평균 10 · 성격 결 ±GRAIN): 씨앗 줄을 같은 만큼 써서 학습력 · 꾸준함 · 빠르기를 예전 그대로 둠 */
+/** v25까지의 타고난 값 (평균 10 · 성격 결 ±GRAIN): 씨앗 줄을 같은 만큼 써서 학습력 · 꾸준함을 예전 그대로 둠 */
 function birthOld(r: () => number, pers: PersName): Stats {
   const grain = PERS_GRAIN[pers];
   const stats = {} as Stats;
@@ -108,18 +106,19 @@ export function profileOf(nick: string, pers: PersName, role: Exclude<Role, 'hea
   birthOld(r, pers);
   const learn = clampStat(1 + r() * 19.999 - 0.5);
   const steady = clampStat(10 + normal(r) * 4);
-  const fast = r() < SPEED.fastShare, u = r();
-  const speed = fast ? SPEED.fast[0] + u * (SPEED.fast[1] - SPEED.fast[0]) : SPEED.slow[0] + u * (SPEED.slow[1] - SPEED.slow[0]);
   const b = rngOf(seedOf(`born:${nick}`)), core = role ? ROLE_CORE[role] : [];
   const stats = {} as Stats;
   for (const k of STAT_KEYS) { const lo = core.includes(k) ? BIRTH.coreLo : BIRTH.lo; stats[k] = lo + Math.floor(b() * (BIRTH.hi - lo + 1)); }
-  return { stats, learn, steady, speed };
+  return { stats, learn, steady };
 }
 
-/** 공개모집 파티원 레벨: 내 Lv × 빠르기 (반올림, 1~100) */
-export const memberLevel = (speed: number, myLv: number): number => Math.max(1, Math.min(100, Math.round(myLv * speed)));
-/** 칸 레벨 ±이만큼인 사람만 모집에 나옴, 모자라면 넓힘 */
-export const LV_BAND = [1, 3] as const;
+/**
+ * 공개모집 파티원 레벨 = 칸 레벨 ± LV_JITTER (1~100). 2026-10-26 Lim 「1000명을 레벨대에 고정하지 말고 공개모집 및 길드 영입시 1레벨 기준으로 시작해서
+ * 해당 레벨까지 능력치 상승으로」: 누구든 Lv 1 타고난 값에서 그 레벨까지 레벨업 점수 (lvAdds)를 받은 모습으로 나옴. 예전엔 사람마다 빠르기 (내 Lv × 0.02 ~ 1.1)가 있고
+ * 칸 ±1인 사람만 뽑아 높은 칸은 직업마다 10명 안팎만 후보였음 (검토 overlevel-20261026)
+ */
+export const LV_JITTER = 1;
+export const recruitLevel = (stage: number, r: () => number): number => Math.max(1, Math.min(100, stage + Math.floor(r() * (2 * LV_JITTER + 1)) - LV_JITTER));
 
 /**
  * 능력 ★ (½ 단위, ★½ ~ ★★★★★): 역할 핵심 넷 60% + 나머지 여덟 40%, 같은 레벨 대비 (104): lv를 주면 그 레벨까지 레벨업 점수가 ★ 점수를 평균만큼 올린 몫 (STAR.lv × 점수)을 뺌.
