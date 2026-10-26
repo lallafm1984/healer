@@ -8,8 +8,11 @@
 #s-merchant .mc-hero::before { background-position: center 62%; }
 #s-merchant .mc-have { margin: 0; padding: 4px 10px; border-radius: 999px; background: #0d0b08cc; border: 1px solid var(--gk-card-bd); font-size: 15px; }
 #s-merchant .mc-have .currency-icon { width: 18px; height: 18px; }
-#s-merchant .mc-lead, #s-merchant .mc-foot { margin: 0; font-size: 12px; color: var(--gk-mute); }
-#s-merchant .mc-foot { text-align: center; }
+#s-merchant .mc-foot { margin: 0; font-size: 12px; color: var(--gk-mute); text-align: center; }
+/* 길드 판 둘 (2026-10-27 마무리 목록 8번): 부위 고르기 · 사기 (판 · 머리 · 알약은 guild-hall.css) */
+#s-merchant .mc > .g-card { flex: none; }
+#s-merchant .mc-card-slot .mc-lead { margin: 0; padding: 8px 12px 0; }
+#s-merchant .mc-card-slot .mc-kinds { padding: 8px 12px 12px; }
 
 /* 종류 카드: 그림 (등급을 모르니 무채 테) · 이름 · 늘 붙는 능력치 */
 #s-merchant .mc-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -31,10 +34,7 @@
 #s-merchant .mc-kind:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 
 /* 사기 판 */
-#s-merchant .mc-buy { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
-#s-merchant .mc-pick { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-#s-merchant .mc-pick b { font-size: 16px; color: var(--gk-head); }
-#s-merchant .mc-pick small { font-size: 12px; color: var(--gk-mute); white-space: nowrap; }
+#s-merchant .mc-buy-body { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
 #s-merchant .mc-odds { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
 #s-merchant .mc-odds li { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--g); background: #0d0b08; color: var(--gi); font-size: 12px; font-weight: 700; }
 #s-merchant .mc-odds li b { font-weight: 800; color: var(--g); }
