@@ -142,6 +142,19 @@ export function sell(ids: number[]): { n: number; gold: number } {
   return got;
 }
 
+/** 이 장비를 착용 조합에 넣어 둔 다른 직업 (72 「남은 일」, 2026-10-27): 가방 꼬리표 · 상세 · 판매 확인에 씀 */
+export function loadoutHeroes(id: number): HeroKey[] {
+  return HERO_KEYS.filter(h => h !== G.save.hero && Object.values(G.save.heroes[h]?.loadout ?? {}).includes(id));
+}
+
+/** h로 바꾸면 착용할 장비 (switchHero와 같은 규칙: 그 직업 착용 조합이 있으면 그 실물, 없으면 지금 착용 그대로) */
+export function gearAfterSwitch(h: HeroKey): GearItem[] {
+  const d = G.save, worn = Object.values(d.gear.equipped).filter((it): it is GearItem => !!it), lo = d.heroes[h]?.loadout;
+  if (h === d.hero || !lo) return worn;
+  const owned = new Map([...d.gear.bag, ...worn].map(it => [it.id, it]));
+  return SLOTS.map(({ key }) => { const it = owned.get(lo[key]!); return it?.slot === key ? it : null; }).filter((it): it is GearItem => !!it);
+}
+
 /** 장비 잠금 켜기·끄기 (27 4-3). 바뀐 뒤 잠김 여부 */
 export function toggleLock(id: number): boolean {
   const it = findItem(id);
