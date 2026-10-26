@@ -24,6 +24,7 @@ import type { HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
 import type { Tune, TuneTable } from '../data/tune';
 import { autoHealer } from '../engine/auto';
+import { FAMILIAR, type NoviceOpts } from '../engine/novice';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
@@ -213,7 +214,7 @@ export interface Row {
   next?: { dmg: number; m: Measure };
   /** 하한 칸 (초보 · 익숙한 사람): 클리어율 (지금 배율 · 쓴 배율), 목표, 하한으로 내렸는지 */
   novice?: { before: number; after: number; target: number; capped: boolean };
-  /** 레벨 디자인 칸 (Lv 21 ~ 100 · 레이드): 그 레벨 사람 · 중간 등급 장비 클리어율 (지금 배율 · 쓴 배율)과 띠 */
+  /** 레벨 디자인 칸 (Lv 21 ~ 100 · 레이드): 중급자 · 중간 등급 장비 클리어율 (지금 배율 · 쓴 배율)과 띠 */
   design?: { before: number; after: number; min: number; max: number; aim: number; busy?: { before: number; after: number; floor: number } };
 }
 
@@ -229,6 +230,10 @@ function noviceProbe(x: NoviceCell, base: Tune, n: number): FloorProbe {
 }
 /** 익숙한 사람 하한 판 수 (기준 직업 셋 × n) */
 export const FAMILIAR_N = 40; // 2026-10-26: 20 → 40 (시드 20개 = 파티 20개라 칸 값이 그 파티에 치우쳤음, 공개모집 아무나 뽑기 · 장소 섞기와 함께)
+/** 레이드는 시드 20 (2026-10-26 Lim 「너무오래걸린다」 → 「줄여」: 20인 판이 길어 다시 맞추기 끝 무렵 레이드 칸만 남아 오래 걸림) */
+export const FAMILIAR_N_RAID = 20;
+/** 칸의 그 레벨 사람 판 수 (기준 직업 셋마다) */
+export const designN = (c: ContentDef): number => (c.kind === 'raid' ? FAMILIAR_N_RAID : FAMILIAR_N);
 /** 하한 재기: 목표 · 배율 → 클리어율 · 지킴 */
 export interface FloorProbe { target: number; rate: (dmg: number) => number; ok: (dmg: number) => boolean }
 /** 그 칸의 하한 (없으면 null): 순차 구간 길의 칸은 그 레벨 초보 (사제, sim/novice). Lv 21 ~ 100 · 레이드는 레벨 디자인 (designCell)이 맡음 */
@@ -238,22 +243,27 @@ export function floorProbe(c: ContentDef, d: DiffName, base: Tune): FloorProbe |
 }
 /**
  * 레벨 디자인 칸 (2026-10-22 Lim 「장비는 20레벨 부터 부위마다 중간 등급 기준으로해서 너무 쉽지도, 너무 어렵지도 않는 적절한 레벨디자인이 필요하다」):
- * 순차 구간 밖 장소 (Lv 21 ~ 100 · 레이드). 숙련 목표 (장소 레벨 곡선) · 바쁨 하한 대신 그 레벨 사람 (Lv 20 익숙 → 60 능숙)이 중간 등급 장비 (sim/familiar midGear)로
+ * 순차 구간 밖 장소 (Lv 21 ~ 100 · 레이드). 숙련 목표 (장소 레벨 곡선) · 바쁨 하한 대신 중급자 (DESIGN_HAND, 2026-10-26 전에는 그 레벨 사람 Lv 20 익숙 → 60 능숙)가 중간 등급 장비 (sim/familiar midGear)로
  * 띠 (designTarget: 쉬움 90 이상 · 보통 85 ~ 99 → 80 ~ 94 · 어려움 60 ~ 74 → 45 ~ 59 · 악몽 45 ~ 59 → 30 ~ 44, 적 Lv 21 → 100) 안에 들게 맞춤 (기준 직업 셋 × FAMILIAR_N)
  */
 export const designCell = (c: ContentDef) => balanceable(c) && !rampPlace(c);
-/** 배율 → 그 레벨 사람 · 중간 등급 장비 클리어율 (잰 값은 기억) */
-export function designRate(c: ContentDef, d: DiffName, base: Tune, n = FAMILIAR_N): (dmg: number) => number {
+/** 배율 → 중급자 · 중간 등급 장비 클리어율 (잰 값은 기억) */
+export function designRate(c: ContentDef, d: DiffName, base: Tune, n = designN(c)): (dmg: number) => number {
   const m = designMeasure(c, d, base, n);
   return dmg => m(dmg).rate;
 }
-/** 배율 → 그 레벨 사람 · 중간 등급 장비 측정 (클리어율 · 바쁨, 잰 값은 기억) */
-export function designMeasure(c: ContentDef, d: DiffName, base: Tune, n = FAMILIAR_N): (dmg: number) => FamiliarMeasure {
+/**
+ * 레벨 디자인 칸을 재는 손 (2026-10-26 Lim 「모든칸의 기준을 중급자로」): 중급자 = engine/novice FAMILIAR (Lv 20쯤 익숙한 사람) 그대로, 레벨이 올라도 늘지 않음.
+ * 예전엔 그 레벨 사람 (noviceAt: Lv 20 익숙 → Lv 60 능숙)이라 Lv 40 넘는 칸 · 레이드가 중급자에게 한 단계 어려웠음 (검토 skill-sim-20261026)
+ */
+export const DESIGN_HAND: NoviceOpts = FAMILIAR;
+/** 배율 → 중급자 · 중간 등급 장비 측정 (클리어율 · 바쁨, 잰 값은 기억) */
+export function designMeasure(c: ContentDef, d: DiffName, base: Tune, n = designN(c)): (dmg: number) => FamiliarMeasure {
   const seen = new Map<number, FamiliarMeasure>(), x = { c, d };
-  return dmg => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, n, 'familiar', BASE_HEROES, { ...base, dmg })); return seen.get(dmg)!; };
+  return dmg => { if (!seen.has(dmg)) seen.set(dmg, measureFamiliar(x, n, 'familiar', BASE_HEROES, { ...base, dmg }, DESIGN_HAND)); return seen.get(dmg)!; };
 }
 /**
- * 레벨 디자인 바쁨 하한 (2026-10-23 Lim 「추천으로 작업」, 111 8장 공통 ④): 보통에서 그 레벨 사람 · 중간 등급 장비의 바쁨 (받는 피해 ÷ 치유 한 번, 분당)이
+ * 레벨 디자인 바쁨 하한 (2026-10-23 Lim 「추천으로 작업」, 111 8장 공통 ④): 보통에서 중급자 · 중간 등급 장비의 바쁨 (받는 피해 ÷ 치유 한 번, 분당)이
  * 이 값 아래면 띠 아래 선을 넘지 않는 만큼 피해 배율을 올림. 기믹을 더해도 자동 밸런스가 피해를 내려 한가한 칸 (심연의 탑 · 판단 던전)이 그대로라서
  */
 export const DESIGN_BUSY: Partial<Record<DiffName, number>> = { '보통': 15 };
