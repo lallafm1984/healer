@@ -142,7 +142,7 @@ describe('어둠물 밀물 (P-TIDE)', () => {
       put(f, u, freeIn(f, z.cells)[0]);
       stay(f, u);
       const amt = got(f, u, 100);
-      u.hp = u.max * 0.2;
+      u.hp = u.max * 0.5; // 물이 빠질 때까지 살아 있게 (2026-10-26 능력치 끝값 자동 밸런스로 보통 피해 × 1.69)
       const seen = steps(f, 8.2);
       return { amt, seen, u };
     };

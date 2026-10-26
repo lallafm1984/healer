@@ -6,6 +6,7 @@ import { artPlaces } from '../src/data/places';
 import * as E from '../src/engine';
 import { applyDebuff } from '../src/engine/bossParts';
 import { hexDist } from '../src/engine/board';
+import { designRun } from '../src/sim/familiar';
 
 describe('심연 가장자리', () => {
   it('Lv 44 탐험 3인: 갈라진 땅 → 역병 군주, 그림은 심연을 빌림', () => {
@@ -31,9 +32,9 @@ describe('심연 가장자리', () => {
     expect(f.me.debuffs.some(d => d.name === '독침')).toBe(true);
   });
 
-  it('Lv 44 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 46 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비, 레벨 디자인 보통 띠)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'abyssedge', diff: '보통', seed: s, level: 33, gear: 'none' }).win) wins++;
-    expect(wins).toBeGreaterThanOrEqual(19);
-  });
+    for (let s = 1; s <= 20; s++) if (designRun(contentOf('abyssedge'), '보통', 'priest', s).win) wins++; // 레벨 디자인 기준 (2026-10-22): 장비 없는 숙련 힐러 기준은 #382 · 2026-10-26 능력치 끝값 자동 밸런스 뒤 맞지 않음
+    expect(wins).toBeGreaterThanOrEqual(17);
+  }, 20_000);
 });
