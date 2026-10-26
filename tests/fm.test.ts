@@ -1,7 +1,7 @@
 /** 파티원 능력치 FM식 (97 문서): 1000명 고정 능력치 · 학습력 · 꾸준함 · 빠르기, 공개모집 저마다 레벨, 능력치 → 엔진 값, 능력 ★ */
 import { describe, expect, it } from 'vitest';
 import { CLASSES } from '../src/data/classes';
-import { abilityStars, BIRTH, dayOffset, fmFx, LV_BAND, lvAdds, memberLevel, profileOf, ROLE_CORE, STAT_KEYS, STAR, starText, type Stats } from '../src/data/fm';
+import { abilityStars, BIRTH, dayOffset, fmFx, LV_JITTER, lvAdds, profileOf, ROLE_CORE, STAT_KEYS, STAR, starText, type Stats } from '../src/data/fm';
 import { PARTY_POOL, pickMember } from '../src/data/nicknames';
 import * as E from '../src/engine';
 
@@ -32,18 +32,6 @@ describe('1000명 능력치', () => {
     for (let v = 1; v <= 10; v++) expect(vs.filter(x => x === v).length / vs.length, `${v}`).toBeGreaterThan(0.05); // 고르게
   });
 
-  it('빠르기: 40%는 함께 크는 사람 (0.95~1.1배), 나머지는 0.02~0.95배', () => {
-    const fast = ALL.filter(m => m.fm.speed >= 0.95).length / ALL.length;
-    expect(fast).toBeGreaterThan(0.35);
-    expect(fast).toBeLessThan(0.45);
-    for (const m of ALL) {
-      expect(m.fm.speed).toBeGreaterThanOrEqual(0.02);
-      expect(m.fm.speed).toBeLessThanOrEqual(1.1);
-    }
-    expect(memberLevel(1, 30)).toBe(30);
-    expect(memberLevel(0.02, 30)).toBe(1);
-    expect(memberLevel(1.1, 100)).toBe(100);
-  });
 
   it('성격 결은 레벨업 때 오를 칸 무게 (104): 딜 욕심쟁이는 Lv 100까지 공격이 침착보다 많이 오름', () => {
     const g = ALL.filter(m => m.pers === '딜 욕심쟁이');
@@ -121,29 +109,29 @@ describe('능력치 → 엔진 값', () => {
 });
 
 describe('공개모집 저마다 레벨 (세상 모험가)', () => {
-  it('칸 레벨 ±1인 사람부터 (내 Lv × 빠르기), 공개모집 표시', () => {
-    let near = 0, n = 0;
-    for (const [my, stage] of [[30, 30], [50, 20], [60, 58], [100, 100], [10, 10]] as const) {
+  it('레벨 = 칸 레벨 ± 1 (내 레벨과 상관없음), 공개모집 표시 (2026-10-26 Lim 「1레벨 기준으로 시작해서 해당 레벨까지」)', () => {
+    for (const [my, stage] of [[30, 30], [50, 20], [60, 58], [100, 100], [10, 10], [4, 11]] as const) {
+      const lvs = new Set<number>();
       for (let s = 1; s <= 40; s++) {
         for (const m of E.recruitParty('choir', s, { abilities: true, myLv: my, stageLv: stage })) {
-          n++;
           expect(m.pub).toBe(true);
-          expect(m.lv).toBeDefined();
-          if (Math.abs(m.lv! - stage) <= LV_BAND[0]) near++;
-          expect(Math.abs(m.lv! - stage), `${my}/${stage} ${m.nick} ${m.lv}`).toBeLessThanOrEqual(LV_BAND[1]);
+          expect(Math.abs(m.lv! - stage), `${my}/${stage} ${m.nick} ${m.lv}`).toBeLessThanOrEqual(LV_JITTER);
+          lvs.add(m.lv!);
         }
       }
+      expect(lvs.size).toBe(stage >= 100 ? 2 : 3); // 칸 − 1 · 칸 · 칸 + 1 (100은 99 · 100)
     }
-    // 내 Lv 50 · 칸 Lv 20 (20인)처럼 그 레벨 사람이 적으면 ±3까지 넓힘
-    expect(near / n).toBeGreaterThan(0.9);
   });
 
-  it('세상 레벨에 칸 레벨 근처 사람이 없으면 가장 가까운 (빠른) 사람', () => {
-    const p = pickMember('warrior', () => 0.5, new Set(), { tank: true, lv: { my: 10, stage: 30 } })!;
-    expect(memberLevel(p.fm.speed, 10)).toBe(11);
+  it('높은 칸도 그 직업 목록 전체가 후보: 많은 판에서 여러 사람이 나옴 (예전 Lv 80 칸은 직업마다 10명 안팎)', () => {
+    const seen = new Set<string>();
+    for (let s = 1; s <= 200; s++) for (const m of E.recruitParty('choir', s, { abilities: true, myLv: 80, stageLv: 80 })) if (m.role === 'tank') seen.add(m.nick);
+    expect(seen.size).toBeGreaterThan(60);
+    const any = pickMember('warrior', () => 0.999, new Set(), { tank: true })!;
+    expect(PARTY_POOL.warrior.map(m => m.nick)).toContain(any.nick);
   });
 
-  it('내 레벨이 칸보다 낮으면 세상 레벨 = 칸 레벨 (힐러 힘과 같은 규칙), 칸 ±1인 사람', () => {
+  it('내 레벨이 칸보다 낮아도 레벨 = 칸 ± 1', () => {
     for (let s = 1; s <= 20; s++) for (const m of E.recruitParty('plague', s, { abilities: true, myLv: 4, stageLv: 11 })) expect(Math.abs(m.lv! - 11), m.nick).toBeLessThanOrEqual(1);
   });
 

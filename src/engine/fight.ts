@@ -9,7 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { dayOffset, fmFx, gain, lack, lerp3, lvAdds, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
+import { dayOffset, fmFx, gain, lack, lerp3, lvAdds, recruitLevel, seedOf, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
@@ -137,7 +137,9 @@ export const meleeCap = (enc: Encounter): number => Math.max(0, BOARDS[enc.board
  */
 export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean; myLv?: number; stageLv?: number; exclude?: ReadonlySet<string> } = {}): RosterEntry[] {
   const list: RosterEntry[] = partyRoles(encKey, seed).map(role => ({ role, pers: '신중파', nick: '' }));
-  const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
+  // 장소마다 다른 사람 (2026-10-26): 같은 판 시드라도 장소 (첫 구간)를 섞어 뽑음. 게임은 판마다 시드가 무작위라 그대로, 시뮬 (시드 1 ~ n)이 모든 장소에서 같은 파티 n개만 재지 않게
+  const place = seedOf(encKey);
+  const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b ^ place);
   const max = sameClassMax(list.length + 1);
   const count: Partial<Record<ClassKey, number>> = {};
   for (const m of list) {
@@ -150,20 +152,20 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
   }
   // 파티원 (75): 직업 목록에서 겹치지 않게 1명 = 닉네임 · 성격 · 직업 스킬 (17 3장, 튜토리얼 파티는 스킬 없음). 직업 난수와 따로 굴림
   // 파티원은 성격과 직업 스킬만 가짐 (2026-10-12 Lim: 직업 패시브 · 특성 뺌)
-  const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1);
+  const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1 ^ Math.imul(place, 0x85ebca6b));
   const used = new Set<string>(opts.exclude ?? []), low = !!ENCOUNTERS[encKey].lowLevel; // 길드원은 공개모집에서 빠짐 (93 7-2)
   let hard = 0;
-  // 97 FM: 내 레벨 · 칸 레벨을 알면 저마다 레벨 (칸 ±1인 사람만), 능력치 · 이번 판 꾸준함 흔들림 (판 시드). 튜토리얼 파티 (스킬 없음)는 예전 그대로.
-  // 세상 레벨 = 칸 레벨 (2026-10-26 Lim 「고치기」): 예전엔 내 레벨과 칸 레벨 중 높은 쪽이라 내가 칸보다 5 ~ 10 높으면 빠르기가 칸 ÷ 내 레벨 근처인 몇 사람만
-  // 칸 ±1에 들어 (직업마다 10 ~ 40명 → 0 ~ 8명) 같은 얼굴이 늘 나오고 판이 크게 어려워졌음 (검토 overlevel-20261026). 내가 칸보다 낮을 때 (Lv 1~20 성장 길의 어려움 · 악몽)는 예전과 같음
+  // 97 FM: 내 레벨 · 칸 레벨을 알면 저마다 레벨, 능력치 · 이번 판 꾸준함 흔들림 (판 시드). 튜토리얼 파티 (스킬 없음)는 예전 그대로.
+  // 2026-10-26 Lim 「1000명을 레벨대에 고정하지 말고 … 1레벨 기준으로 시작해서 해당 레벨까지 능력치 상승으로」: 그 직업 목록 전체에서 뽑고 레벨 = 칸 ± 1 (recruitLevel),
+  // 능력치 = 타고난 값 + 그 레벨까지 레벨업 점수 (makeParty lvAdds). 예전 빠르기 · 칸 ±1 걸러내기는 없앰 (#436: 내가 높으면 몇 사람만 남던 것도)
   const fm = !!opts.abilities;
-  const lv = fm && opts.myLv != null && opts.stageLv != null ? { my: opts.stageLv, stage: opts.stageLv } : undefined;
+  const lvOn = fm && opts.myLv != null && opts.stageLv != null;
   for (const m of list) {
-    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard, lv });
+    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard });
     if (p) {
       m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab;
       if (fm) m.fm = { stats: p.fm.stats, off: dayOffset(p.fm.steady, seed, p.nick), steady: p.fm.steady };
-      if (lv) { m.lv = memberLevel(p.fm.speed, lv.my); m.pub = true; }
+      if (lvOn) { m.lv = recruitLevel(opts.stageLv!, nr); m.pub = true; }
     }
     else { m.nick = pickNick(m.cls!, nr, used); if (opts.abilities) m.ab = rollAbility(m.cls!, nr); } // 목록을 다 씀 (거의 없음): 이름 뒤 숫자
     if (PERS[m.pers].star === 3) hard++;

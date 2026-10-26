@@ -183,12 +183,11 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     expect(JSON.stringify(s.guild.post)).toBe(now);
     expect(Gd.refreshPost(save(30), rng, T)).toBe(false); // 결성 전
   });
-  it('지원자 레벨은 Lv 1 ~ 내 레벨 고르게 (예전 내 Lv − 5 이상), 그 사람의 공개모집 레벨 (내 Lv × 빠르기) 그대로 · 능력치는 그 레벨까지 공개모집 굴림 (Lim 10-22 「맞추고 빼기」)', () => {
+  it('지원자 레벨은 Lv 1 ~ 내 레벨 고르게, 아무나 그 레벨로 (2026-10-26 Lim 「1레벨 기준으로 시작해서 해당 레벨까지」) · 능력치는 그 레벨까지 공개모집 굴림', () => {
     const s = founded(40), lvs: number[] = [];
     for (let i = 0; i < 400; i++) for (const c of Gd.makeCandidates(s, rng)) {
       lvs.push(c.lv);
       expect(ABILITIES[c.ab].cls).toBe(c.cls);
-      expect(c.lv, c.nick).toBe(Gd.worldLevel(s, Gd.personOf(c.nick)!)); // 한 사람은 어디서든 같은 레벨
     }
     expect([Math.min(...lvs), Math.max(...lvs)]).toEqual([1, 40]);
     const mean = lvs.reduce((a, b) => a + b, 0) / lvs.length;
@@ -198,7 +197,10 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     const add2 = lvAdds(c.nick, c.pers, role, c.lv, p.fm.stats);
     expect(c.stats).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, p.fm.stats[k] + add2[k]])));
     expect(Gd.makeCandidates(founded(1), rng).every(x => x.lv === 1)).toBe(true);
-    for (const lv of [5, 60, 100]) { const t = founded(lv); for (const x of Gd.makeCandidates(t, rng, 5)) { expect(x.lv).toBeLessThanOrEqual(lv); expect(x.lv).toBe(Gd.worldLevel(t, Gd.personOf(x.nick)!)); } }
+    for (const lv of [5, 60, 100]) { const t = founded(lv); for (const x of Gd.makeCandidates(t, rng, 5)) { expect(x.lv).toBeLessThanOrEqual(lv); expect(x.lv).toBeGreaterThanOrEqual(1); } }
+    const who = new Set<string>(); // 같은 목표 레벨이라도 여러 사람 (예전엔 빠르기가 맞는 몇 사람만)
+    for (let i = 0; i < 200; i++) for (const c of Gd.makeCandidates(founded(80), rng)) who.add(c.nick);
+    expect(who.size).toBeGreaterThan(300);
   });
   it('공고에 떠 있는 지원자는 길드원처럼 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」), 영입하면 길드원으로 계속 빠짐', () => {
     const s = founded(50); add(s, 'mage', 0);

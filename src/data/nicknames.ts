@@ -9,7 +9,7 @@
  * 스킬 등급은 공개모집 확률 (일반 66 · 고급 27 · 희귀 7%)에 맞춤: 탱커 16 · 7 · 2, 근접 13 · 6 · 1, 원거리 20 · 8 · 2
  */
 import { CLASSES, type ClassKey } from './classes';
-import { LV_BAND, memberLevel, profileOf, type FmProfile } from './fm';
+import { profileOf, type FmProfile } from './fm';
 import { PERS, type PersName } from './personalities';
 import { MORE_ROWS } from './pool-more';
 
@@ -18,7 +18,7 @@ export interface PoolMember {
   pers: PersName;
   /** 직업 스킬 키 (abilities.ts, 직업.키) */
   ab: string;
-  /** 능력치 12 · 학습력 · 꾸준함 · 빠르기 (97 FM, 닉네임 씨앗으로 고정) */
+  /** 능력치 12 · 학습력 · 꾸준함 (97 FM, 닉네임 씨앗으로 고정) */
   fm: FmProfile;
 }
 
@@ -97,11 +97,10 @@ export const RARE_WEIGHT = 0.4;
 /**
  * 공개모집 파티원 1명 (75): 그 직업 목록에서 안 쓴 사람 중, 저레벨 던전이면 희귀 빼고 · 탱커는 ★1만 · ★★★는 파티당 1명까지 (04 6-F).
  * 희귀 성격은 가중치 0.4. 맞는 사람이 없으면 조건을 하나씩 풀고, 다 썼으면 null.
- * lv (97 FM 「세상 모험가」): 그 사람 레벨 (내 Lv × 빠르기)이 칸 레벨 ±1인 사람만, 모자라면 ±3, 그래도 없으면 칸 레벨에 가장 가까운 사람들
+ * 레벨로 거르지 않는다 (2026-10-26 Lim, 레벨은 칸 레벨로 정함 fm recruitLevel): 그 직업 목록 전체가 후보
  */
-export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<string>, o: { low?: boolean; tank?: boolean; hard?: number; lv?: { my: number; stage: number } } = {}): PoolMember | null {
-  let free = PARTY_POOL[cls].filter(m => !used.has(m.nick) && (o.tank ? !('noTank' in PERS[m.pers]) : !('tankOnly' in PERS[m.pers]))); // 탱커 묶음 (95)은 탱커로만
-  if (o.lv && free.length) free = inBand(free, o.lv.my, o.lv.stage);
+export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<string>, o: { low?: boolean; tank?: boolean; hard?: number } = {}): PoolMember | null {
+  const free = PARTY_POOL[cls].filter(m => !used.has(m.nick) && (o.tank ? !('noTank' in PERS[m.pers]) : !('tankOnly' in PERS[m.pers]))); // 탱커 묶음 (95)은 탱커로만
   const rare = (m: PoolMember) => 'rare' in PERS[m.pers];
   const strict = free.filter(m => !o.low || (!rare(m) && (!o.tank || PERS[m.pers].star === 1) && ((o.hard ?? 0) < 1 || PERS[m.pers].star < 3)));
   const list = strict.length ? strict : free;
@@ -112,13 +111,6 @@ export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<str
   return list[list.length - 1];
 }
 
-/** 칸 레벨 띠 (LV_BAND)에 드는 사람. 띠마다 넓혀 보고, 아무도 없으면 가장 가까운 레벨의 사람들 */
-function inBand(list: PoolMember[], my: number, stage: number): PoolMember[] {
-  const gap = (m: PoolMember) => Math.abs(memberLevel(m.fm.speed, my) - stage);
-  for (const b of LV_BAND) { const l = list.filter(m => gap(m) <= b); if (l.length) return l; }
-  const best = Math.min(...list.map(gap));
-  return list.filter(m => gap(m) === best);
-}
 
 /**
  * 직업 목록에서 아직 안 쓴 이름 하나 (난수 1번). 다 썼으면 목록 이름 뒤에 숫자 (방패든양2). 길드 지원자용

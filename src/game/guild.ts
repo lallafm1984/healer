@@ -7,7 +7,7 @@ import { ABILITIES } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
-import { dayOffset, LV_BAND, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { dayOffset, lvAdds, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, hireGold, lowStageXp, POST, REQ, REST_SHARE,
   memberSkillLevel, LV_DOUBLE, spendPoints, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember,
@@ -53,8 +53,6 @@ export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers
   const stats = Object.fromEntries(STAT_KEYS.map(k => [k, birth[k] + add[k]])) as Stats;
   return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now() };
 }
-/** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
-export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
 
 function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
@@ -89,33 +87,23 @@ function drawOne(list: Person[], r: () => number): Person | null {
 /** 고급 스킬은 희귀가 아니다. 희귀 성격 또는 희귀 등급 스킬을 가진 사람을 하나의 희귀 풀로 센다 (안쪽 굴림만, 화면에는 등급 표시 없음, 2026-10-22). */
 export const rareCandidate = (p: Pick<Person, 'pers' | 'ab'>) => 'rare' in PERS[p.pers] || ABILITIES[p.ab]?.grade === 'epic';
 /**
- * 지원자 n명 (중복 없이, 길드원이 아닌 사람): 희귀 여부를 먼저 굴린 뒤 (POST.rareChance, 그 풀에서), 목표 레벨을 Lv 1 ~ 내 레벨에서 고르게 하나 뽑고
- * (2026-10-22 Lim 「1레벨 부터 캐릭터 레벨까지 랜덤」), 공개모집 레벨 (worldLevel = 내 Lv × 빠르기)이 목표 ±1 · ±3 · 가장 가까운 사람을 데려옴.
- * 지원자 레벨 = 그 사람의 공개모집 레벨 그대로 (Lim 10-22 「맞추고 빼기」: 한 사람은 어디서든 같은 레벨), 내 레벨을 넘는 사람은 빼고.
- * 능력치는 그 레벨까지 공개모집과 같은 레벨업 굴림 (newMember)
+ * 지원자 n명 (중복 없이, 길드원이 아닌 사람): 희귀 여부를 먼저 굴린 뒤 (POST.rareChance, 그 풀에서), 레벨을 Lv 1 ~ 내 레벨에서 고르게 하나 뽑고
+ * (2026-10-22 Lim 「1레벨 부터 캐릭터 레벨까지 랜덤」), 그 풀의 아무나 그 레벨로 데려옴 (2026-10-26 Lim 「1000명을 레벨대에 고정하지 말고 … 1레벨 기준으로 시작해서
+ * 해당 레벨까지 능력치 상승으로」, 예전엔 빠르기로 그 레벨에 맞는 사람만 찾아 목표 레벨마다 몇 사람만 나왔음). 능력치는 그 레벨까지 공개모집과 같은 레벨업 굴림 (newMember)
  */
 export function makeCandidates(save: SaveData, r: () => number, n: number = POST.cands): GuildMember[] {
   const my = topLevel(save), taken = new Set<string>(), out: GuildMember[] = [];
   for (let i = 0; i < n; i++) {
-    const all = strangers(save, () => true, taken), list = all.filter(p => worldLevel(save, p) <= my);
-    const base = list.length ? list : all;
+    const all = strangers(save, () => true, taken);
     const rare = r() < POST.rareChance;
-    const pool = base.filter(p => rareCandidate(p) === rare);
+    const pool = all.filter(p => rareCandidate(p) === rare);
     const target = 1 + Math.min(my - 1, Math.floor(r() * my));
-    const p = drawOne(nearLevel(save, pool.length ? pool : base, target), r);
+    const p = drawOne(pool.length ? pool : all, r);
     if (!p) break;
     taken.add(p.nick);
-    out.push(newMember(save, p, worldLevel(save, p)));
+    out.push(newMember(save, p, target));
   }
   return out;
-}
-/** 공개모집 레벨이 목표 ±1 (LV_BAND), 모자라면 ±3, 그래도 없으면 가장 가까운 사람들 (공개모집 pickMember의 띠와 같은 규칙) */
-function nearLevel(save: SaveData, list: Person[], target: number): Person[] {
-  const gap = (p: Person) => Math.abs(worldLevel(save, p) - target);
-  for (const b of LV_BAND) { const l = list.filter(p => gap(p) <= b); if (l.length) return l; }
-  if (!list.length) return list;
-  const best = Math.min(...list.map(gap));
-  return list.filter(p => gap(p) === best);
 }
 /** 매일 공고 (오전 6시, dayKey): 결성한 길드에 그날 공고가 없으면 지원자 POST.cands명. 시계를 뒤로 돌린 날은 그대로. 새로 왔으면 true */
 export function refreshPost(save: SaveData, r: () => number, now = Date.now()): boolean {
