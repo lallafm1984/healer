@@ -23,9 +23,9 @@ const lvIn = (k: ContentKey) => Math.max(CHAL.lv, contentOf(k).stageLv);
 /** 가운데 점: 들어가는 레벨이 MID − 5 아래인 던전은 Lv MID에서도 잼 (초반 던전은 레벨에 따라 곧게 안 늘어남) */
 const MID = 60;
 
-/** 깨기 반 배율: 이긴 판이 반이 되는 적 피해 배율 (로그 이분, 8번) */
+/** 깨기 반 배율: 이긴 판이 반이 되는 적 피해 배율 (로그 이분, 8번). 위 끝 15 (2026-10-26 능력치 끝값 뒤 초반 던전 Lv 100이 6을 넘음) */
 function half(k: ContentKey, lv: number): number {
-  let lo = Math.log(0.3), hi = Math.log(6);
+  let lo = Math.log(0.3), hi = Math.log(15);
   for (let i = 0; i < 8; i++) {
     const mid = (lo + hi) / 2, w = chalMeasure(k, lv, { hp: hp15, dmg: Math.exp(mid) }, N).win;
     if (w >= 50) lo = mid; else hi = mid;
