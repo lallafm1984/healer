@@ -101,6 +101,17 @@ describe('능력치 → 엔진 값', () => {
     a.forEach((v, i) => expect(v / b[i]).toBeCloseTo(1.5 * 1.5, 5));
   });
 
+  it('내가 칸보다 높아도 공개모집은 칸 레벨 기준: 같은 사람들 · 칸 ±3 (2026-10-26 Lim 「고치기」, 예전엔 내 레벨 기준이라 직업마다 몇 사람만 남음)', () => {
+    for (const s of [1, 2, 3, 4]) {
+      const same = E.recruitParty('plague', s, { abilities: true, myLv: 60, stageLv: 60 });
+      for (const my of [65, 70, 80]) {
+        const hi = E.recruitParty('plague', s, { abilities: true, myLv: my, stageLv: 60 });
+        expect(hi.map(m => m.nick)).toEqual(same.map(m => m.nick));
+        expect(hi.every(m => Math.abs((m.lv ?? 0) - 60) <= 3)).toBe(true);
+      }
+    }
+  });
+
   it('튜토리얼 파티 (스킬 없음)는 능력치 · 레벨 없음', () => {
     for (const m of E.recruitParty('plague', 5, { myLv: 30, stageLv: 30 })) {
       expect(m.fm).toBeUndefined();

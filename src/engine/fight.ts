@@ -154,9 +154,10 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
   const used = new Set<string>(opts.exclude ?? []), low = !!ENCOUNTERS[encKey].lowLevel; // 길드원은 공개모집에서 빠짐 (93 7-2)
   let hard = 0;
   // 97 FM: 내 레벨 · 칸 레벨을 알면 저마다 레벨 (칸 ±1인 사람만), 능력치 · 이번 판 꾸준함 흔들림 (판 시드). 튜토리얼 파티 (스킬 없음)는 예전 그대로.
-  // 세상 레벨 = 내 레벨과 칸 레벨 중 높은 쪽 (힐러 힘 max(내 Lv, 칸 Lv)와 같은 규칙): 내가 칸보다 낮으면 (Lv 1~20 성장 길의 어려움 · 악몽) 칸 레벨 근처 사람이 없어 모집이 칸보다 크게 약했음
+  // 세상 레벨 = 칸 레벨 (2026-10-26 Lim 「고치기」): 예전엔 내 레벨과 칸 레벨 중 높은 쪽이라 내가 칸보다 5 ~ 10 높으면 빠르기가 칸 ÷ 내 레벨 근처인 몇 사람만
+  // 칸 ±1에 들어 (직업마다 10 ~ 40명 → 0 ~ 8명) 같은 얼굴이 늘 나오고 판이 크게 어려워졌음 (검토 overlevel-20261026). 내가 칸보다 낮을 때 (Lv 1~20 성장 길의 어려움 · 악몽)는 예전과 같음
   const fm = !!opts.abilities;
-  const lv = fm && opts.myLv != null && opts.stageLv != null ? { my: Math.max(opts.myLv, opts.stageLv), stage: opts.stageLv } : undefined;
+  const lv = fm && opts.myLv != null && opts.stageLv != null ? { my: opts.stageLv, stage: opts.stageLv } : undefined;
   for (const m of list) {
     const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard, lv });
     if (p) {
