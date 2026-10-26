@@ -228,7 +228,7 @@ function noviceProbe(x: NoviceCell, base: Tune, n: number): FloorProbe {
   return { target, rate, ok: (dmg: number) => rate(dmg) >= target };
 }
 /** 익숙한 사람 하한 판 수 (기준 직업 셋 × n) */
-export const FAMILIAR_N = 20;
+export const FAMILIAR_N = 40; // 2026-10-26: 20 → 40 (시드 20개 = 파티 20개라 칸 값이 그 파티에 치우쳤음, 공개모집 아무나 뽑기 · 장소 섞기와 함께)
 /** 하한 재기: 목표 · 배율 → 클리어율 · 지킴 */
 export interface FloorProbe { target: number; rate: (dmg: number) => number; ok: (dmg: number) => boolean }
 /** 그 칸의 하한 (없으면 null): 순차 구간 길의 칸은 그 레벨 초보 (사제, sim/novice). Lv 21 ~ 100 · 레이드는 레벨 디자인 (designCell)이 맡음 */
