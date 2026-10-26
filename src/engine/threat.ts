@@ -148,7 +148,7 @@ export function slipping(f: Fight, u: Unit): boolean {
 /** 탱커 한 틱 위협 배율 (보통 탱커 = 1): 기술 숙련 × 집중 (이동 · 생존기 · 강타 1초 동안) × 어그로 흘림 (딴생각 동안 0) */
 function tankMult(f: Fight, u: Unit): number {
   if (!u.alive || u.lift || (u.sleep != null && u.sleep > f.t) || slipping(f, u)) return 0;
-  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? (1 - STAT_ACT.tankThreat * clumsy(stat(u, 'skill'))) * (1 + STAT_ACT.tankDps * sharp(u.fmStats?.atk ?? 10)) : 1); // 99 나: 15보다 낮으면 초보만큼 덜 쌓음 · 99 다: 딜 잘하는 탱커는 그만큼 더
+  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? 1 + STAT_ACT.tankDps * sharp(u.fmStats?.atk ?? 10) : 1); // 기술 숙련 1 · 20 = × 0.5 · × 1.5 (2026-10-25 Lim, 예전 초보 몫을 합침) · 99 다: 딜 잘하는 탱커는 그만큼 더
   const focus = busy(f, u) ? lerp3(stat(u, 'focus'), THREAT.focus[0], THREAT.focus[1], 1) : 1;
   return skill * focus * (u.p.slip?.dps ?? 1);
 }
@@ -163,20 +163,20 @@ function healerRaw(f: Fight, tank: Unit): number {
   return THREAT.heal * Math.sqrt(t.heal / Math.max(t.taken, t.floor)) * levelMult(f, f.me, tank) * (t.vN / vT);
 }
 
-/** 되찾기까지 (초): 반응 1 → 8 · 10 → 6 · 20 → 4, 기술 숙련 1 → × 1.1 · 20 → × 0.9, 4~8초. 뉴비는 처음 보는 보스에서 느림, 끈기형은 길어질수록 빠름 */
+/** 되찾기까지 (초): 반응 1 → 10 · 10 → 6 · 20 → 3, 기술 숙련 1 → × 1.5 · 20 → × 0.5, 3~10초 (2026-10-25 Lim). 뉴비는 처음 보는 보스에서 느림, 끈기형은 길어질수록 빠름 */
 export function retakeDelay(f: Fight, u: Unit): number {
   let d = lerp3(stat(u, 'react'), THREAT.retake[0], THREAT.retake[1], THREAT.retake[2]) * lerp3(stat(u, 'skill'), THREAT.retakeSkill[0], 1, THREAT.retakeSkill[1]);
   if (u.p.learn) d *= u.p.learn.react;
   if (u.p.grit) d *= Math.max(u.p.grit.min, 1 - u.p.grit.step * Math.floor(f.t / u.p.grit.every));
   return Math.max(THREAT.retakeMin, Math.min(THREAT.retakeMax, d));
 }
-/** 되찾기까지 (실제로 쓰는 값): 99 나 꾸준함 흔들림 (평균 1)을 더함 */
+/** 되찾기까지 (실제로 쓰는 값): 99 나 꾸준함 흔들림 (평균 1)을 더함, 흔들려도 3~10초 안 (2026-10-25 Lim 「최소 3초에서 최대 10초」) */
 function retakeAfter(f: Fight, u: Unit): number {
   const d = retakeDelay(f, u);
-  return u.wob ? Math.max(THREAT.retakeMin * 0.75, d * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1))) : d;
+  return u.wob ? Math.max(THREAT.retakeMin, Math.min(THREAT.retakeMax, d * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1)))) : d;
 }
 
-/** 딜러가 뺏은 뒤 딜을 멈추기까지 (초): 침착 1 → 2 · 10 → 1 · 20 → 바로 */
+/** 딜러가 뺏은 뒤 딜을 멈추기까지 (초): 침착 1 → 5 · 10 → 1 · 20 → 바로 (2026-10-25 Lim) */
 const calmDelay = (u: Unit) => lerp3(stat(u, 'composure'), THREAT.calm[0], THREAT.calm[1], 0);
 
 /** 보스가 칠 사람 (평타 · 예고 없는 탱커 기술): 뺏은 사람이 있으면 그 사람, 아니면 aggroTarget */

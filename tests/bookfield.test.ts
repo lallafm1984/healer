@@ -4,7 +4,7 @@ import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
-import { midGearConfig } from '../src/sim/familiar';
+import { designRun } from '../src/sim/familiar';
 
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
@@ -33,8 +33,8 @@ describe('책갈피 설원', () => {
 
   it('Lv 31 자동 힐러, 보통이면 대부분 깸 (중간 등급 장비, 레벨 디자인 보통 띠 80 ~ 94%)', () => {
     let wins = 0;
-    // 공개모집처럼 직업 스킬이 있는 파티 (튜토리얼 뒤, 자동 밸런스 기준과 같음. 75: 파티원 목록)
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, ...midGearConfig(40, 'priest', s), party: E.recruitParty('pagedrift', s, { abilities: true }) }).win) wins++;
-    expect(wins).toBeGreaterThanOrEqual(15);
+    // 레벨 디자인 기준 (자동 밸런스와 같음): 그 레벨 공개모집 파티 · 중간 등급 장비. 예전엔 Lv 1 능력치 파티라 2026-10-26 능력치 끝값 뒤 맞지 않음
+    for (let s = 1; s <= 20; s++) if (designRun(contentOf('bookfield'), '보통', 'priest', s).win) wins++;
+    expect(wins).toBeGreaterThanOrEqual(16);
   });
 });

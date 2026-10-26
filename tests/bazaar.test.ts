@@ -192,7 +192,7 @@ describe('던전 ⑮ 모래시계 궁전', () => {
     for (const mythic of [false, true]) {
       const f = boss('degul', mythic);
       const u = f.party.find(x => x.role === 'ranged')!;
-      u.base = u.max = 5000; u.hp = u.max * 0.9;
+      for (const v of f.party) { v.base = v.max = 20000; v.hp = v.max * 0.9; } // 데굴데굴에 아무도 쓰러지지 않게 (2026-10-26 능력치 끝값 자동 밸런스로 피해 × 1.2, 나 (힐러)가 쓰러지면 판이 끝남)
       skillOn(f, 'glass');
       steps(f, 3.05);
       expect(f.glass).toHaveLength(1);

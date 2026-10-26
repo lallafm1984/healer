@@ -16,7 +16,7 @@ import { frontCell, posDps } from './position';
 import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
-import { clumsy, sharp } from '../data/fm';
+import { clumsy, lack, sharp } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
@@ -239,7 +239,7 @@ function tankLost(f: Fight, u: Unit): boolean {
     return true;
   }
   if (f.t < u.lostUntil) return true;
-  if (!u.lostWrong && f.rng() < STAT_ACT.tankWrong * clumsy(u.fmStats?.judgment ?? 10)) {
+  if (!u.lostWrong && f.rng() < STAT_ACT.tankWrong * lack(u.fmStats?.judgment ?? 10)) {
     u.lostWrong = true;
     const p = f.R.pos, at = cellOf(f, u);
     const wrong = f.cells.filter(c => !c.unit && !c.block && !dangerAt(f, c.i) && (!p || c.row >= p.tankRows) && c.i !== u.cell && hexDist(c, at) <= 2);

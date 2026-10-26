@@ -149,19 +149,21 @@ describe('뺏기 · 되찾기', () => {
 });
 
 describe('능력치 · 성격 · 레벨', () => {
-  it('되찾기까지: 반응 1 → 8초 · 10 → 6초 · 20 → 4초, 기술 숙련 20 = × 0.9, 4~8초', () => {
+  it('되찾기까지 (2026-10-25 Lim): 반응 1 → 10초 · 10 → 6초 · 20 → 3초, 기술 숙련 1 · 20 = × 1.5 · × 0.5, 3~10초', () => {
     const a = fight({ tank: { st: { react: 1 } } });
-    expect(retakeDelay(a, who(a, '탱'))).toBeCloseTo(8);
+    expect(retakeDelay(a, who(a, '탱'))).toBeCloseTo(10);
     const f = fight();
     expect(retakeDelay(f, who(f, '탱'))).toBeCloseTo(6);
     const g = fight({ tank: { st: { react: 20 } } });
-    expect(retakeDelay(g, who(g, '탱'))).toBeCloseTo(4);
+    expect(retakeDelay(g, who(g, '탱'))).toBeCloseTo(3);
     const h = fight({ tank: { st: { skill: 20 } } });
-    expect(retakeDelay(h, who(h, '탱'))).toBeCloseTo(5.4);
+    expect(retakeDelay(h, who(h, '탱'))).toBeCloseTo(3);
     const k = fight({ tank: { st: { react: 1, skill: 1 } } });
-    expect(retakeDelay(k, who(k, '탱'))).toBeCloseTo(THREAT.retakeMax);
+    expect(retakeDelay(k, who(k, '탱'))).toBeCloseTo(10);
+    expect(THREAT.retakeMax).toBe(10);
     const m = fight({ tank: { st: { react: 20, skill: 20 } } });
-    expect(retakeDelay(m, who(m, '탱'))).toBeCloseTo(THREAT.retakeMin);
+    expect(retakeDelay(m, who(m, '탱'))).toBeCloseTo(3);
+    expect(THREAT.retakeMin).toBe(3);
   });
 
   it('딜 줄이기 시작: 판단 1 → 안 줄임 · 10 → 85% · 20 → 70%, 딜 욕심쟁이 −5 · 신중파 +5 · 눈치백단 = 20', () => {
