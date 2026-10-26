@@ -111,6 +111,26 @@ describe('위치 규칙', () => {
     expect(f.cells[tank.home].row).toBe(0);
   });
 
+  it('1열의 다른 칸이 모두 장판이고 남은 칸에 딜러가 서 있으면 딜러가 1열 밖으로 비켜 주고 탱커가 그 칸으로 (2026-10-27 Lim 「탱커가 1분가까이 … 방황」)', () => {
+    const f = E.create({ encounter: 'scrap', diff: '보통', seed: 4 });
+    quiet(f);
+    const tank = f.party.find(u => u.role === 'tank')!;
+    place(f, tank, 1);
+    const front = f.cells.filter(c => c.row === 0 && !c.block);
+    let seat = front.find(c => c.unit && c.unit.role !== 'tank' && !c.unit.me);
+    const v = seat ? seat.unit! : f.party.find(u => u.role !== 'tank' && !u.me)!;
+    if (!seat) { seat = front.find(c => !c.unit)!; f.cells[v.cell].unit = null; seat.unit = v; v.cell = seat.i; v.home = seat.i; }
+    f.zones.push({ id: 9998, cells: new Set(front.filter(c => c !== seat).map(c => c.i)), end: Infinity, dps: 0 });
+    for (let i = 0; i < 20 * 4 && rowOf(f, tank) !== 0; i++) { E.step(f); f.events.length = 0; }
+    expect(rowOf(f, tank)).toBe(0);
+    expect(tank.cell).toBe(seat!.i);
+    expect(rowOf(f, v)).toBeGreaterThanOrEqual(1);
+    if (v.role === 'melee') expect(rowOf(f, v)).toBeLessThan(POS_RULES.meleeRows); // 근접은 공격하는 줄 안으로
+    expect(v.home).toBe(v.cell); // 비킨 칸이 새 자리 (제자리로 돌아와 다시 막지 않게)
+    expect(f.loose).toBeNull();
+    expect(E.aggroTarget(f)).toBe(tank);
+  });
+
   it('교대: 1열 밖 부탱커가 보스를 넘겨받으면 1열로 나가며 받음', () => {
     const f = E.create({ encounter: 'pililli', diff: '보통', seed: 1 });
     quiet(f);
