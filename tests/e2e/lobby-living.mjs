@@ -110,7 +110,7 @@ export default async function lobbyLiving(url, shots) {
         await page.locator('#s-party .tb-back').tap(); await page.clock.runFor(100);
         await page.locator('#tabs [data-tab="lobby"]').tap(); await page.clock.runFor(100);
         await page.locator('#s-lobby .lb-shop').tap(); await page.clock.runFor(100);
-        ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop .srow'), `${width}: 잡화점 실제 터치 → 상점 상품`);
+        ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop .cash-row'), `${width}: 잡화점 실제 터치 → 상점 상품`);
         await page.locator('#s-shop .tb-back').tap(); await page.clock.runFor(300);
         evidence.widths.push({ width, height, initial, at3, at9, t0, t9, gpu, hit });
 
@@ -189,7 +189,7 @@ export default async function lobbyLiving(url, shots) {
       ok(!fallback.live && fallback.canvas === 0 && fallback.image, 'WebGL 초기화 실패 시 853px 바탕 이미지 표시', fallback);
       await page.screenshot({ path: `${shots}/lobby_living_no_webgl.png` });
       await page.locator('#s-lobby .lb-shop').tap(); await page.clock.runFor(100);
-      ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop .srow'), 'WebGL 실패 fallback에서도 잡화점 실제 터치 가능');
+      ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop .cash-row'), 'WebGL 실패 fallback에서도 잡화점 실제 터치 가능');
       // 지원하지 않는 렌더러도 조용히 고정 바탕으로 전환해야 한다. 예외를 키워드로 숨기지 않는다.
       errs.push(...expectedDiagnostics.map(s => `WebGL failure fixture: ${s}`));
       evidence.fallbacks.noWebGL.fallback = fallback;

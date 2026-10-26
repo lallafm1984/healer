@@ -3,6 +3,7 @@
  * 가운데 = 부위 카드 6 (Lim 「부위만 고르게」: 종류는 그 부위 다섯 가지 중 무작위), 아래 = 사기 (값 · 등급 확률).
  * 사면 봉인 꾸러미 (icon-merchant)가 흔들리다 풀리고 장비 카드 (영웅 · 품질은 결과창과 같은 빛기둥) → 상세 · 판매 · 한 번 더.
  * 탭 막대 없이 「← 로비」 (상점과 같은 하위 화면). 규칙 · 수치는 game/merchant.ts · data/economy MERCHANT
+ * 2026-10-27 (마무리 목록 8번): 부위 고르기 · 사기를 길드 판 둘로 (guild-hall.css .g-card, 판 머리 = 그림 · 제목 · 숫자). 머리 그림 · 감정 결과 시트는 그대로
  */
 import { art } from '../art';
 import { GRADE_STYLE, HERO_FROM, ITEM_GRADES, kindOf, kindsOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
@@ -42,14 +43,17 @@ function render(): void {
     <div class="ns-body mc">
       <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">떠돌이 행상인</p><h2>미확인 장비</h2></div>
         <p class="mc-have">${currencyAmount('gold', isFinite(have) ? have : '∞')}</p></header>
-      <p class="note mc-lead">부위를 고르면 종류 · 등급 · 옵션은 산 뒤에 정해집니다.</p>
-      <div class="mc-kinds" role="radiogroup" aria-label="부위">${SLOTS.map(x => `<button type="button" class="mc-kind" role="radio" data-mslot="${x.key}" aria-checked="${x.key === slot}">
+      <section class="g-card mc-card-slot" data-sec="slot"><header class="g-hd"><span class="g-hi">${gameIcon('merchant', uiIcon('shop'))}</span><h3>부위 고르기</h3></header>
+        <p class="g-sub wrap mc-lead">부위를 고르면 종류 · 등급 · 옵션은 산 뒤에 정해집니다.</p>
+        <div class="mc-kinds" role="radiogroup" aria-label="부위">${SLOTS.map(x => `<button type="button" class="mc-kind" role="radio" data-mslot="${x.key}" aria-checked="${x.key === slot}">
           <span class="mc-art">${gearIcon({ slot: x.key })}</span><b>${x.name}</b><small>종류 ${kindsOf(x.key).length}가지</small></button>`).join('')}</div>
-      <section class="panel mc-buy" aria-label="사기">
-        <p class="mc-pick"><b>미확인 ${nm}</b><small>Lv ${o.lv} · 종류 무작위</small></p>
+      </section>
+      <section class="g-card mc-buy" data-sec="buy" aria-label="사기"><header class="g-hd"><span class="g-hi">${gearIcon({ slot })}</span><h3>미확인 ${nm}</h3><span class="g-meta">Lv ${o.lv}<small>종류 무작위</small></span></header>
+        <div class="mc-buy-body">
         <ul class="mc-odds" aria-label="등급 확률">${chips}</ul>
         <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${nm} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
         ${o.why || st.msg ? `<p class="mc-why" role="status">${esc(st.msg || (o.lock || `${o.why} · 보유 ${fmt(have)}`))}</p>` : ''}
+        </div>
       </section>
       <p class="note mc-foot">영웅은 Lv ${HERO_FROM}부터 · 장비 레벨 = 지금 직업 레벨 · 전용 효과 70%</p>
     </div>

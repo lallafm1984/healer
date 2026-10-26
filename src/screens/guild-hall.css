@@ -67,60 +67,60 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
  * 줄 = 그림 · 이름 (+ 한 줄) · 오른쪽 숫자 · 알약. 보상 · 상태 = .g-pill (그림 + 짧은 글). 규칙 · 긴 설명 = ⓘ → .g-tip.
  * 버튼: 할 일 · 주 동작 = 붉은 .btn.primary (줄 안은 mini), 그 밖 = 돌 .btn. 같은 일을 다른 모양으로 만들지 않는다. */
 #s-guild .panel { margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-hd {
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hd {
   display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 4px 4px 4px 10px; box-sizing: border-box;
   background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line);
 }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-hi { flex: none; width: 32px; height: 32px; display: grid; place-items: center; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-hi > .g-ic { width: 32px; height: 32px; object-fit: contain; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-hi > svg { width: 20px; height: 20px; color: var(--gk-head); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-hd h3 { flex: 1 1 auto; min-width: 0; margin: 0; font: 800 16px/1.2 var(--font-display); color: var(--gk-head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-meta { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; font: 800 14px var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-meta small { font-weight: 600; font-size: 12px; color: var(--gk-mute); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-meta .currency-amount { font-size: 13px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hi { flex: none; width: 32px; height: 32px; display: grid; place-items: center; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hi > .g-ic { width: 32px; height: 32px; object-fit: contain; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hi > svg { width: 20px; height: 20px; color: var(--gk-head); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hd h3 { flex: 1 1 auto; min-width: 0; margin: 0; font: 800 16px/1.2 var(--font-display); color: var(--gk-head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-meta { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; font: 800 14px var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-meta small { font-weight: 600; font-size: 12px; color: var(--gk-mute); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-meta .currency-amount { font-size: 13px; }
 /* ⓘ: 보이는 원은 작게, 누르는 자리는 44 */
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-info { flex: none; width: 44px; height: 44px; margin: -4px 0; padding: 0; display: grid; place-items: center; border: 0; background: none; color: var(--gk-mute); cursor: pointer; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-info .ui-icon { width: 22px; height: 22px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-info[aria-expanded="true"] { color: var(--gk-head); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-info:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -4px; border-radius: 50%; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-tip { margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #15120e; border-bottom: 1px solid var(--gk-line); font-size: 12.5px; line-height: 1.55; color: var(--gk-ink2); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-tip p { margin: 0; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-tip b { margin-right: 4px; color: var(--gk-head); font-weight: 700; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info { flex: none; width: 44px; height: 44px; margin: -4px 0; padding: 0; display: grid; place-items: center; border: 0; background: none; color: var(--gk-mute); cursor: pointer; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info .ui-icon { width: 22px; height: 22px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info[aria-expanded="true"] { color: var(--gk-head); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -4px; border-radius: 50%; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip { margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #15120e; border-bottom: 1px solid var(--gk-line); font-size: 12.5px; line-height: 1.55; color: var(--gk-ink2); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip p { margin: 0; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip b { margin-right: 4px; color: var(--gk-head); font-weight: 700; }
 /* 줄 */
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; box-sizing: border-box; border-top: 1px solid var(--gk-line); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row:first-child { border-top: 0; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row.done { opacity: 0.6; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row.tap { cursor: pointer; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row.tap:active { background: #ffffff08; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-row.tap:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ri { flex: none; width: 40px; height: 40px; display: grid; place-items: center; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ri > .g-ic { width: 38px; height: 38px; object-fit: contain; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ri.sm { width: 30px; height: 30px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ri.sm > .g-ic { width: 28px; height: 28px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ri > svg { width: 22px; height: 22px; color: var(--gk-head); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rm { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rm > b { font: 700 14px/1.25 var(--font-body); color: var(--gk-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rm > b small { margin-left: 6px; font: 600 11px var(--font-body); color: var(--gk-mute); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-sub { font-size: 12px; line-height: 1.35; color: var(--gk-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-sub.wrap { white-space: normal; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rs { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-rs > .btn { flex: none; width: auto; min-height: 40px; margin: 0; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-num { font: 800 16px/1 var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-num small { font-size: 12px; font-weight: 600; color: var(--gk-mute); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-bar { display: block; height: 8px; border: 1px solid var(--gk-card-bd); border-radius: 4px; background: #0d0b08; overflow: hidden; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; box-sizing: border-box; border-top: 1px solid var(--gk-line); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row:first-child { border-top: 0; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.done { opacity: 0.6; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.tap { cursor: pointer; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.tap:active { background: #ffffff08; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.tap:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ri { flex: none; width: 40px; height: 40px; display: grid; place-items: center; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ri > .g-ic { width: 38px; height: 38px; object-fit: contain; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ri.sm { width: 30px; height: 30px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ri.sm > .g-ic { width: 28px; height: 28px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ri > svg { width: 22px; height: 22px; color: var(--gk-head); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rm { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rm > b { font: 700 14px/1.25 var(--font-body); color: var(--gk-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rm > b small { margin-left: 6px; font: 600 11px var(--font-body); color: var(--gk-mute); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-sub { font-size: 12px; line-height: 1.35; color: var(--gk-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-sub.wrap { white-space: normal; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rs { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rs > .btn { flex: none; width: auto; min-height: 40px; margin: 0; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-num { font: 800 16px/1 var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-num small { font-size: 12px; font-weight: 600; color: var(--gk-mute); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-bar { display: block; height: 8px; border: 1px solid var(--gk-card-bd); border-radius: 4px; background: #0d0b08; overflow: hidden; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
 /* 알약 */
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill {
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill {
   display: inline-flex; align-items: center; gap: 3px; height: 24px; padding: 0 8px 0 4px; box-sizing: border-box; border-radius: 12px;
   background: #15120e; border: 1px solid var(--gk-card-bd); font: 700 12px/1 var(--font-body); color: var(--gk-ink); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill:not(:has(.g-ic)) { padding: 0 8px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill > .g-ic { width: 18px; height: 18px; object-fit: contain; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill.fame { color: var(--gk-num); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill.ok, #s-guild .g-pill.free { color: #9ad48f; border-color: #4c6b3a; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-pill.warn { color: var(--gk-enr-ink); border-color: var(--gk-enr-bd); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill:not(:has(.g-ic)) { padding: 0 8px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill > .g-ic { width: 18px; height: 18px; object-fit: contain; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill.fame { color: var(--gk-num); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill.ok, #s-guild .g-pill.free { color: #9ad48f; border-color: #4c6b3a; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill.warn { color: var(--gk-enr-ink); border-color: var(--gk-enr-bd); }
 /* 줄 위 한 줄 동작 (쉬는 길드원 모두 후원) */
 #s-guild .g-act { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 12px; background: #15120e66; border-bottom: 1px solid var(--gk-line); }
 #s-guild .g-actt { flex: 1; min-width: 0; font-size: 13px; color: var(--gk-ink2); }
@@ -149,14 +149,14 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-story-name b { font: 800 16px var(--font-display); color: var(--gk-head); }
 #s-guild .g-story .btn, #s-guild .g-story .btn2 { min-height: 44px; min-width: 140px; }
 /* ---------- 아래 붉은 출전 (전투 탭 「출전」과 같은 a2-depart 그림 · 크기) ---------- */
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-foot { flex: none; padding: 6px 14px 6px; background: #15120e; border-top: 1px solid var(--gk-line); box-shadow: 0 -6px 14px #0006; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-foot { flex: none; padding: 6px 14px 6px; background: #15120e; border-top: 1px solid var(--gk-line); box-shadow: 0 -6px 14px #0006; }
 body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-cta {
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-cta {
   width: 100%; height: 56px; min-height: 56px; border-color: transparent; box-shadow: none; color: var(--a2-ink, #fff4d5);
 }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-cta .g-mk .g-ic { width: 80%; height: 80%; object-fit: contain; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ct b { font: 800 clamp(18px, 5vw, 22px)/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-cta .g-mk .g-ic { width: 80%; height: 80%; object-fit: contain; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ct b { font: 800 clamp(18px, 5vw, 22px)/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
 
 /* ---------- 길드원 시트 (편성 화면 파티원 시트와 같은 바탕) ---------- */
 #app .ns .sheet.g-msheet { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); gap: 10px; word-break: keep-all; overflow-wrap: anywhere; }
@@ -228,8 +228,8 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }
-  :is(#s-guild, #s-entry, #s-missions, #s-settings) .g-cta { height: 48px; min-height: 48px; }
-  :is(#s-guild, #s-entry, #s-missions, #s-settings) .g-ct b { font-size: 19px; }
+  :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-cta { height: 48px; min-height: 48px; }
+  :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ct b { font-size: 19px; }
 }
 
 /* 그림 (93 11장): 길드 Lv 깃발 · 결성 이야기 배경 · 숙지 두루마리 */
