@@ -11,7 +11,7 @@ import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKIL
 /** 37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 4장 A (묶음 D 보물 욕심 · 녹는 보호막 · 부화하는 알), 55 4장 G 1~2 (묶음 E 신기루 · 모래시계), 57 4장 G 1~2 (묶음 F 띄워 올리기 · 연쇄 번개), 60 4장 G 1~2 (묶음 G 어둠물 밀물 · 빌린 생명) */
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
   'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
-  'greed', 'melt', 'hatch', 'mirage', 'glass', 'lift', 'chain', 'tide', 'debt', 'pulse', 'beat'].map(n => `icon-gim-${n}`);
+  'greed', 'melt', 'hatch', 'mirage', 'glass', 'lift', 'chain', 'tide', 'debt', 'pulse', 'beat', 'thorns'].map(n => `icon-gim-${n}`);
 /** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만), 57 4장 D (묶음 F), 60 4장 D (묶음 G): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,

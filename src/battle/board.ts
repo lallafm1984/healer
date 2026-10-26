@@ -13,7 +13,7 @@ import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
-import { bossTarget, areaRadius, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
+import { bossTarget, areaRadius, hexDist, ORDER_NUM, busterOn, slotKey, thornsHit, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { asleep } from '../engine/astro';
@@ -1697,11 +1697,8 @@ export function render(now: number): void {
       else for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
     }
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
-    const hat = u.debuffs.find(d => d.art?.startsWith('icon-gim-hat-')), hatTex = hat ? artTexture(hat.art!) : null;
+    const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
     if (hatTex) statusArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
-    // 111 단단한 껍질 · 충전: 그 기믹 그림을 칸 왼쪽 아래 모서리에 (위쪽은 디버프 배지 · 조준 표식 자리라 모자 자리에 두면 가려짐, 2026-10-27), 끝나기 2초 전 깜빡임
-    const mark = u.debuffs.find(d => d.art && !d.art.startsWith('icon-gim-hat-')), markTex = mark ? artTexture(mark.art!) : null;
-    if (mark && markTex) statusArt.put(markTex, x - r * 0.56, y + r * 0.34, r * 0.6, r * 0.6, mark.left < 2 ? 0.55 + 0.4 * pulse : 1);
     // 묶음 H (63 E 3 · 9): 걸린 동안 칸 위에 겹침 (가운데가 빈 그림). 얼음 갑옷은 녹을수록 옅게, 거품은 중첩만큼 커짐, 끝나기 2초 전 깜빡임
     if (hold) {
       const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
@@ -1950,6 +1947,8 @@ export function render(now: number): void {
     }
     // 어그로 (96 5번 A): 위협이 뺏는 선의 90%인 딜러 = 주황 경고 띠 (fx-edge-threat)가 천천히 깜빡임 (뺏기 약 0.5초 전, 미리 보호막 · 지속 힐).
     // 뺏으면 조준 표식이 옮겨가고, 탱커가 되찾을 때까지 (4~8초) 띠도 그 딜러에게 머묾 (2026-10-19 Lim 「바로 되찾아 온다」)
+    // 가시 갑옷 (P-THORNS, 111): 그동안 보스를 때려 가시에 찔리는 사람 칸 = 가시 띠 (fx-edge-thorns), 끝나기 2초 전 깜빡임. 그림이 없으면 붉은 테
+    if (u.role !== 'healer' && F.thorns && thornsHit(F, u)) { const R = ringRadius(`thorns${u.id}`, 'hex', x, y, r * 1.08, 3), a = F.thorns.until - F.t < 2 ? 0.45 + 0.5 * pulse : 0.9; if (!edgeRing('fx-edge-thorns', x, y, R, Math.max(6, s * 0.2), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.danger, alpha: a }); }
     if (F.thr?.warn.includes(u.id)) { const R = ringRadius(`threat${u.id}`, 'hex', x, y, r * 1.1, 3), a = S.reducedEffects ? 0.85 : 0.5 + 0.5 * zpulse; if (!edgeRing('fx-edge-threat', x, y, R, Math.max(6, s * 0.16), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.threat, alpha: a }); }
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
     if (ui.selectedUnitId === u.id) {
