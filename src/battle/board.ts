@@ -1697,8 +1697,11 @@ export function render(now: number): void {
       else for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
     }
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
-    const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
+    const hat = u.debuffs.find(d => d.art?.startsWith('icon-gim-hat-')), hatTex = hat ? artTexture(hat.art!) : null;
     if (hatTex) statusArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
+    // 111 단단한 껍질 · 충전: 그 기믹 그림을 칸 왼쪽 아래 모서리에 (위쪽은 디버프 배지 · 조준 표식 자리라 모자 자리에 두면 가려짐, 2026-10-27), 끝나기 2초 전 깜빡임
+    const mark = u.debuffs.find(d => d.art && !d.art.startsWith('icon-gim-hat-')), markTex = mark ? artTexture(mark.art!) : null;
+    if (mark && markTex) statusArt.put(markTex, x - r * 0.56, y + r * 0.34, r * 0.6, r * 0.6, mark.left < 2 ? 0.55 + 0.4 * pulse : 1);
     // 묶음 H (63 E 3 · 9): 걸린 동안 칸 위에 겹침 (가운데가 빈 그림). 얼음 갑옷은 녹을수록 옅게, 거품은 중첩만큼 커짐, 끝나기 2초 전 깜빡임
     if (hold) {
       const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
