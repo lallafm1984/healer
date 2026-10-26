@@ -34,6 +34,8 @@ export default async function devauto(url, shots) {
   await page.check('#pauseAuto'); await page.clock.runFor(50);
   ok(await auto() === true, '일시정지에서 켜면 설정에 저장');
   const c0 = await casts();
+  // 아무도 안 다쳤으면 힐할 일이 없어 (공개모집 능력치 · 첫 도발 #443에 따라 시작 몇 초는 피해가 적음) 탱커 아닌 한 명의 체력을 40%로
+  await page.evaluate(() => { const f = window.__proto.F, u = f.party.find(x => x.alive && x.role !== 'tank' && !x.me) ?? f.party.find(x => x.alive); u.hp = u.max * 0.4; });
   await page.click('#resumeBtn'); await page.clock.runFor(8000);
   ok(await casts() > c0, `켜면 자동 힐러가 스킬을 씀 (시전 ${c0} → ${await casts()})`);
 

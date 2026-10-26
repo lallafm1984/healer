@@ -1,7 +1,7 @@
 // Real Web Audio decoding/playback: battle events, all seven healer voices,
 // mass-hit deduplication, mute, and browser errors. No audio API mocks.
 import { chromium } from 'playwright';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { COMBAT_SOUNDS } from '../../scripts/sfx/combat.mjs';
 import { departGo, patchSave, toParty } from './nav.mjs';
@@ -82,11 +82,23 @@ export default async function combatAudio(url, shots) {
     await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: true, vibrate: false } });
     await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
     await departGo(page);
+    // 보스 기술 착탄 소리 (bs- · bc- · boss-<특성>-<방식>)는 전투마다 그 보스 것만 풂 (src/sfx/index.ts perBattle, #352): 나머지가 다 풀릴 때까지만 기다림
+    const BOSS_THEME = /^boss-[a-z]+-(hit|wave|ground|cast)$/;
+    const perBattle = n => n.startsWith('bs-') || n.startsWith('bc-') || BOSS_THEME.test(n);
+    const always = COMBAT_SOUNDS.filter(s => !perBattle(s.name)).length;
     for (let i = 0; i < 600; i++) {
-      if (await page.evaluate(count => new Set(window.__audioQA.decoded.map(x => x.name)).size >= count, COMBAT_SOUNDS.length)) break;
+      if (await page.evaluate(count => new Set(window.__audioQA.decoded.map(x => x.name)).size >= count, always)) break;
       await page.waitForTimeout(100);
       await page.clock.runFor(10);
     }
+    // 이번 전투에서 안 푼 보스 기술 소리도 실제로 풀리는지: 빌드된 파일을 같은 소리 문맥으로 직접 풂
+    const assets = readdirSync('dist/assets');
+    const bossUrls = COMBAT_SOUNDS.filter(s => perBattle(s.name)).map(s => assets.find(f => f.startsWith(`${s.name}-`) && /^[\w-]{8}\.ogg$/.test(f.slice(s.name.length + 1))));
+    ok(bossUrls.every(Boolean), '보스 기술 소리 파일이 빌드에 모두 있음', bossUrls.filter(x => !x).length);
+    await page.evaluate(async urls => {
+      const c = window.__audioQA.contexts[0];
+      for (const u of urls) { try { await c.decodeAudioData(await (await fetch(u)).arrayBuffer()); } catch { /* failed에 남음 */ } }
+    }, bossUrls.filter(Boolean).map(f => `assets/${f}`));
     await page.clock.runFor(4500);
     await page.evaluate(() => {
       const f = window.__proto.F;

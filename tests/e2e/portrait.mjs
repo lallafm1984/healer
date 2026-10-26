@@ -51,8 +51,9 @@ export default async function portrait(url, shots) {
     const villageTime = () => page.locator('#s-lobby .lb-village').evaluate(el => Number(el.dataset.t || 'NaN'));
     // A2 목재·리넨 부품: 의미별 메뉴 아이콘과 독립 목표/출전 재질이 실제로 읽히는지.
     const lobbyIcons = '#s-lobby .lb-sock .g-ic, #s-lobby .lb-plate > .g-ic, #s-lobby .lb-cta > .g-ic';
+    // 상점 · 행상인은 원형 문장 그림 (lb-emblem-art, #394)
     const iconsLoaded = await loaded(lobbyIcons) && (await Promise.all([
-      '.lb-missions .g-ic', '.lb-chal .g-ic', '.lb-shop > .g-ic', '.lb-merchant > .g-ic', '.lb-cta > .g-ic',
+      '.lb-missions .g-ic', '.lb-chal .g-ic', '.lb-shop > .lb-emblem-art', '.lb-merchant > .lb-emblem-art', '.lb-cta > .g-ic',
     ].map(selector => loaded(`#s-lobby ${selector}`)))).every(Boolean);
     ok(iconsLoaded, `${width}: 로비 소켓·패널·출전 그림 (임무·주간 도전·상점·행상인·출전) decode`);
     ok(await bgLoaded('#s-lobby .lb-main') && await bgLoaded('#s-lobby .lb-trk') && await bgLoaded('#lobbyStart')
