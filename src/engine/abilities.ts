@@ -10,7 +10,7 @@ import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
-import { clumsy, lack } from '../data/fm';
+import { lack } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -244,7 +244,7 @@ function pendTick(f: Fight, u: Unit): void {
 
 /** 능력치 (99 다): 이번 판단 (0.2초마다)에 쓰나. 늦게 쓰는 평균 abLate × 판단 서툼 (15 이상 바로) */
 function actNow(f: Fight, u: Unit): boolean {
-  const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
+  const tau = STAT_ACT.abLate * lack(u.fmStats?.judgment ?? 10);
   return tau < 0.05 || regrouping(f, u) || f.rng() < 1 - Math.exp(-0.2 / tau);
 }
 
@@ -359,7 +359,7 @@ export function abOnTel(f: Fight, tel: Telegraph): void {
       const hit = telMatch(f, u, a, tr, tel);
       if (!hit || u.ab!.pend) return;
       if (u.wob != null && !regrouping(f, u)) { // 능력치 (99, Codex 검토 B): 판단이 15보다 낮으면 예고를 보고도 늦게 (평균 abLate × 서툼초, 터지기 전에 못 쓰면 놓침)
-        const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
+        const tau = STAT_ACT.abLate * lack(u.fmStats?.judgment ?? 10);
         if (tau >= 0.05) {
           const d = -tau * Math.log(1 - f.rng());
           if (f.t + d < tel.impact) u.ab!.pend = { tel: tel.id, at: f.t + d, i, target: hit === true ? undefined : hit.id };
@@ -441,7 +441,7 @@ function cutBackup(f: Fight, s: BossSkill, by: Unit, snipeable: boolean): void {
     if (c > bc) { bc = c; best = v; }
   }
   if (!best || f.rng() >= coverChance(bc)) return;
-  const late = (clumsy(best.fmStats?.react ?? 10) + clumsy(best.fmStats?.judgment ?? 10)) / 2;
+  const late = (lack(best.fmStats?.react ?? 10) + lack(best.fmStats?.judgment ?? 10)) / 2;
   f.cutRetry = { id: best.id, skill: s, at: f.t + STAT_ACT.coverNotice[0] + STAT_ACT.coverNotice[1] * late };
 }
 /** 대신 끊기 확률 (협동): 1은 0, 20은 cover, 그 사이는 coverStep점마다 두 배 (2026-10-25 Lim 「높을수록 확률이 배수로」) */

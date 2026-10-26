@@ -16,12 +16,12 @@ import { frontCell, posDps } from './position';
 import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
-import { clumsy, lack, sharp } from '../data/fm';
+import { gain, lack } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
-/** 99 위치 잡기: 탱커가 아닌 능력치 있는 사람의 위치 잡기 (그 밖은 15 = 예전) */
-export const posOf = (u: Unit): number => (u.wob != null && u.role !== 'tank' && !u.me ? u.fmStats?.position ?? 10 : 15);
+/** 99 위치 잡기: 탱커가 아닌 능력치 있는 사람의 위치 잡기 (그 밖은 null = 예전, 붙어 섬 · 먼저 떨어져 섬 없음) */
+export const posOf = (u: Unit): number | null => (u.wob != null && u.role !== 'tank' && !u.me ? u.fmStats?.position ?? 10 : null);
 const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
 /**
  * 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾.
@@ -31,7 +31,7 @@ export function stepAway(f: Fight, u: Unit, sec: number, sure = false): boolean 
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
   // 99 위치 잡기: 15보다 낮으면 옆에 사람이 있는데도 붙어 섬 (sure = 위치 잡기 15 넘는 사람이 먼저 떨어져 서는 길, 굴림 없음)
   const pos = posOf(u);
-  if (!sure && pos < 15 && !regrouping(f, u) && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1) && f.rng() < STAT_ACT.spreadMiss * clumsy(pos)) {
+  if (!sure && pos != null && pos < 20 && !regrouping(f, u) && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1) && f.rng() < STAT_ACT.spreadMiss * lack(pos)) {
     emit(f, { type: 'clump', id: u.id });
     slip(f, u);
     if (f.rng() < 0.4) bark(f, u, null, false, 'clump');
@@ -113,7 +113,7 @@ function focusTick(f: Fight, u: Unit): boolean {
   return dazed(f, u);
 }
 function nextDaze(f: Fight, u: Unit): number {
-  const r = STAT_ACT.dazeRate * clumsy(u.fmStats?.focus ?? 10), R = STAT_ACT.dazeRamp, first = STAT_ACT.dazeFirst;
+  const r = STAT_ACT.dazeRate * lack(u.fmStats?.focus ?? 10), R = STAT_ACT.dazeRamp, first = STAT_ACT.dazeFirst;
   if (r <= 0) return Infinity;
   const tau = Math.max(0, f.t - first), g = tau < R ? (tau * tau) / (2 * R) : R / 2 + (tau - R);
   const G = g - Math.log(1 - f.rng()) / r;
@@ -205,7 +205,7 @@ function think(f: Fight, u: Unit): void {
   }
   // 옮겨붙음 본판 (P-JUMP, 46 3-1) · 부풀기 (P-SWELL, 46 4-1): 들면 옆에 아무도 없는 칸으로 비켜 섬 (지워도 옆 사람이 안 맞게)
   if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => awayFrom(x) && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
-  if (posOf(u) > 15 && spreadAware(f, u)) return; // 99 위치 잡기: 옆 사람이 든 옮겨붙음 · 부풀기에서 먼저 떨어져 섬
+  if (posOf(u) != null && spreadAware(f, u)) return; // 99 위치 잡기: 옆 사람이 든 옮겨붙음 · 부풀기에서 먼저 떨어져 섬
   // 위치 규칙 (2026-10-13 Lim): 1열에 탱커가 없어 적이 아무나 때리면, 탱커가 비어 있는 안전한 1열 칸으로 바로 나가 다시 잡음 (거기가 새 자리)
   if (u.lostUntil != null && !f.loose && f.t >= u.lostUntil) { u.lostUntil = undefined; u.lostWrong = false; }
   if (f.loose && u.role === 'tank' && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t)) {
@@ -230,7 +230,7 @@ function think(f: Fight, u: Unit): void {
  */
 function tankLost(f: Fight, u: Unit): boolean {
   if (u.lostUntil == null) {
-    const c = (clumsy(u.fmStats?.position ?? 10) + clumsy(u.fmStats?.react ?? 10)) / 2;
+    const c = (lack(u.fmStats?.position ?? 10) + lack(u.fmStats?.react ?? 10)) / 2;
     const sec = STAT_ACT.tankBack * c * (1 + STAT_ACT.react * (u.wob ?? 0) * (2 * f.rng() - 1));
     if (sec < 0.1) return false;
     u.lostUntil = f.t + sec; u.lostWrong = false;
@@ -257,7 +257,7 @@ function spreadAware(f: Fight, u: Unit): boolean {
     const d = v.debuffs.find(awayFrom);
     if (!d || u.spreadSeen === d.id) continue;
     u.spreadSeen = d.id;
-    if (f.rng() < sharp(posOf(u)) && stepFrom(f, u, v, d.left)) return true;
+    if (f.rng() < gain(posOf(u)!) && stepFrom(f, u, v, d.left)) return true;
   }
   return false;
 }

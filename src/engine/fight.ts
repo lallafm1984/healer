@@ -9,7 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { clumsy, dayOffset, fmFx, lvAdds, memberLevel, sharp, STAT_KEYS, wobOf, type Stats } from '../data/fm';
+import { dayOffset, fmFx, gain, lack, lerp3, lvAdds, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
@@ -186,7 +186,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const add = r?.fm && role !== 'healer' && r.gid == null ? lvAdds(r.nick, r.pers, role, r.lv, r.fm.stats) : null;
     const st = r?.fm ? (add ? Object.fromEntries(STAT_KEYS.map(k => [k, r.fm!.stats[k] + add[k]])) as Stats : r.fm.stats) : null;
     const fx = st ? fmFx(st, off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
-    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(st!.atk + off); } // 99 다: 공격 높은 탱커
+    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= lerp3(st!.atk + off, STAT_ACT.tankDps[0], 1, STAT_ACT.tankDps[1]); } // 99 다: 공격 높은 탱커 (1 · 10 · 20 = × 0.7 · 1 · 1.6)
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? habitPers(PERS[pers], r?.habit) : {}, nick, base, max: base, hp: base, dps, alive: true,
@@ -235,7 +235,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
  * 그동안 1열에 탱커가 없으면 적이 다른 파티원을 침 (looseTick). 레이드에서 다른 탱커가 1열이면 그 탱커가 잡음
  */
 function startLost(f: Fight, u: Unit): void {
-  const c = clumsy(u.fmStats?.position ?? 10), p = f.R.pos;
+  const c = lack(u.fmStats?.position ?? 10), p = f.R.pos;
   if (!p || c <= 0 || f.rng() >= STAT_ACT.tankStart * c) return;
   const at = f.cells[u.cell];
   let back: Cell | null = null;
@@ -301,8 +301,8 @@ function partyHits(f: Fight): void {
     let amt = u.acc, crit = false;
     u.acc = 0;
     if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감 (멍한 동안 더, 99 집중), 공격이 15 넘으면 가끔 세게
-      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { const add = addTarget(f, u); emit(f, { type: 'miss', uid: u.id, ...(add != null ? { add } : {}) }); if (f.t - (u.whiffAt ?? -99) >= STAT_ACT.whiffGap && f.rng() < STAT_ACT.whiffTalk) { u.whiffAt = f.t; bark(f, u, null, false, 'whiff'); } continue; }
-      if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
+      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * lack(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { const add = addTarget(f, u); emit(f, { type: 'miss', uid: u.id, ...(add != null ? { add } : {}) }); if (f.t - (u.whiffAt ?? -99) >= STAT_ACT.whiffGap && f.rng() < STAT_ACT.whiffTalk) { u.whiffAt = f.t; bark(f, u, null, false, 'whiff'); } continue; }
+      if (f.rng() < STAT_ACT.crit * gain(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
     }
     const add = land(f, u, amt);
     emit(f, { type: 'hit', uid: u.id, amt, ...(crit ? { crit } : {}), ...(add != null ? { add } : {}) });

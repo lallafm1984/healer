@@ -1,7 +1,7 @@
 /** 능력치 기반 전투 행동 (99): (가) 장판 반응 흔들림 · 못 피한 모양 */
 import { describe, expect, it } from 'vitest';
 import type { ClassKey } from '../src/data/classes';
-import { clumsy, STAT_KEYS, wobOf, type Stats } from '../src/data/fm';
+import { lack, STAT_KEYS, wobOf, type Stats } from '../src/data/fm';
 import type { PersName } from '../src/data/personalities';
 import { STAT_ACT, THREAT } from '../src/data/rules';
 import * as E from '../src/engine';
@@ -51,11 +51,11 @@ describe('(가) 예고 반응 흔들림', () => {
     expect(mean(ts) / base[0]).toBeLessThan(1.05);
   });
 
-  it('기준점 15 (Lim 「평균 15정도에서 지금처럼」): 꾸준함 15 이상은 예전처럼 늘 같음, 낮을수록 더 흔들림', () => {
-    expect(wobOf(1)).toBeCloseTo(1.6); expect(wobOf(15)).toBe(0); expect(wobOf(20)).toBe(0); expect(wobOf(10)).toBeCloseTo(1.6 * 5 / 14);
+  it('꾸준함 20은 늘 같음, 낮을수록 더 흔들림 (2026-10-26 20에서만 0, 예전 15부터 0)', () => {
+    expect(wobOf(1)).toBeCloseTo(1.6); expect(wobOf(20)).toBe(0); expect(wobOf(10)).toBeCloseTo(1.6 * 10 / 19); expect(wobOf(15)).toBeCloseTo(1.6 * 5 / 19);
     const spread = (steady: number) => { const f = fight({ steady }), ts = reactTimes(f, who(f, '근'), 300); return Math.max(...ts) - Math.min(...ts); };
-    expect(spread(15)).toBeCloseTo(0, 6);
     expect(spread(20)).toBeCloseTo(0, 6);
+    expect(spread(15)).toBeGreaterThan(0);
     expect(spread(15)).toBeLessThan(spread(10));
     expect(spread(10)).toBeLessThan(spread(1));
   });
@@ -93,15 +93,15 @@ describe('(가) 못 피한 모양', () => {
     expect(slow.late).toBeGreaterThan(quick.late * 1.6);
     const dull = shapes({ judgment: 1 }, 300), sharp = shapes({ judgment: 20 }, 300);
     expect(dull.wrong).toBeGreaterThan(sharp.wrong * 2);
-    const avg = shapes({}, 400), tot = avg.late + avg.wrong + avg.freeze, want = STAT_ACT.late * clumsy(10) * (1 - clumsy(10));
+    const avg = shapes({}, 400), tot = avg.late + avg.wrong + avg.freeze, want = STAT_ACT.late * lack(10) * (1 - lack(10));
     expect(avg.late / tot).toBeGreaterThan(want - 0.06);
     expect(avg.late / tot).toBeLessThan(want + 0.06);
-    const par = shapes({ react: 15, judgment: 15 }, 200);
-    expect(par.late + par.wrong).toBe(0); // 15 이상 = 예전처럼 멈칫만
+    const par = shapes({ react: 20, judgment: 20 }, 200);
+    expect(par.late + par.wrong).toBe(0); // 둘 다 20 = 멈칫만 (2026-10-26, 예전 15)
   });
 
   it('Codex 검토 반영 1: 반응 빠름 + 판단 나쁨 = 먼저 엉뚱한 쪽, 반응 느림 + 판단 좋음 = 늦어도 맞는 칸, 둘 다 낮으면 멈칫', () => {
-    const quickDull = shapes({ react: 15, judgment: 1 }, 200), slowSharp = shapes({ react: 1, judgment: 15 }, 200), both = shapes({ react: 1, judgment: 1 }, 200);
+    const quickDull = shapes({ react: 20, judgment: 1 }, 200), slowSharp = shapes({ react: 1, judgment: 20 }, 200), both = shapes({ react: 1, judgment: 1 }, 200);
     expect(quickDull.late).toBe(0); expect(quickDull.wrong).toBeGreaterThan(50);
     expect(slowSharp.wrong).toBe(0); expect(slowSharp.late).toBeGreaterThan(70);
     expect(both.late + both.wrong).toBe(0); expect(both.freeze).toBeGreaterThan(150);
@@ -142,15 +142,18 @@ describe('(가) 못 피한 모양', () => {
 describe('(나) 탱커 자리', () => {
   const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
   const front = (f: F, u: Unit) => f.cells[u.moving ? u.moving.to : u.cell].row < f.R.pos!.tankRows;
-  it('전투 시작: 위치 잡기가 낮으면 둘째 줄에서 시작하는 일이 잦고 (그동안 적이 다른 사람을 침), 15 이상은 늘 1열', () => {
-    let lost = 0, lostPar = 0;
+  it('전투 시작: 위치 잡기가 낮으면 둘째 줄에서 시작하는 일이 잦고 (그동안 적이 다른 사람을 침), 20은 늘 1열 (2026-10-26, 예전 15)', () => {
+    let lost = 0, lostMid = 0, lostPar = 0;
     for (let i = 0; i < 200; i++) {
       const f = fight({ seed: 2000 + i, tank: { position: 1 } }), tk = who(f, '탱');
       if (!front(f, tk)) { lost++; expect(tk.lostUntil).toBeGreaterThan(0); }
-      const g = fight({ seed: 2000 + i, tank: { position: 15 } });
+      const m = fight({ seed: 2000 + i, tank: { position: 10 } });
+      if (!front(m, who(m, '탱'))) lostMid++;
+      const g = fight({ seed: 2000 + i, tank: { position: 20 } });
       if (!front(g, who(g, '탱'))) lostPar++;
     }
     expect(lost / 200).toBeGreaterThan(STAT_ACT.tankStart - 0.12);
+    expect(lostMid).toBeGreaterThan(0); expect(lostMid).toBeLessThan(lost);
     expect(lostPar).toBe(0);
   });
   it('시작 자리를 못 찾은 탱커: 머뭇거리는 동안 적이 다른 파티원을 노리고 (loose), 끝나면 1열로 나감', () => {
@@ -166,7 +169,7 @@ describe('(나) 탱커 자리', () => {
     }
     throw new Error('시작 자리를 못 찾은 판이 없음');
   });
-  it('1열이 비면: 위치 잡기 · 반응이 낮으면 머뭇거리고 (「?」), 15 이상은 바로 1열로', () => {
+  it('1열이 비면: 위치 잡기 · 반응이 낮으면 머뭇거리고 (「?」), 20은 바로 1열로', () => {
     const lostFor = (st: Partial<Stats>) => {
       const f = fight({ seed: 7, tank: st }), tk = who(f, '탱');
       if (!front(f, tk)) steps(f, 6); // 시작 자리를 못 찾았으면 먼저 1열로
@@ -176,7 +179,7 @@ describe('(나) 탱커 자리', () => {
       for (let k = 0; k < 200 && !front(f, tk); k++) steps(f, 0.05);
       return f.t - t0;
     };
-    const slow = lostFor({ position: 1, react: 1, judgment: 15 }), par = lostFor({ position: 15, react: 15 });
+    const slow = lostFor({ position: 1, react: 1, judgment: 20 }), par = lostFor({ position: 20, react: 20 });
     expect(par).toBeLessThan(0.5);
     expect(slow).toBeGreaterThan(par + 0.6);
   });
@@ -199,16 +202,18 @@ describe('(다) 딜 · 직업 스킬', () => {
     }
     return { hit, miss, crit };
   }
-  it('기술 숙련이 15보다 낮으면 한 방이 빗나감 (1 = 15%), 15 이상은 늘 들어감', () => {
-    const lo = swings({ skill: 1, focus: 15 }, 400), par = swings({ skill: 15, focus: 15 }, 200); // 집중 15: 「멍」 빗나감 빼고
+  it('기술 숙련이 20보다 낮으면 한 방이 빗나감 (1 = 15% · 10 ≈ 7.9%), 20은 늘 들어감 (2026-10-26, 예전 15부터 0)', () => {
+    const lo = swings({ skill: 1, focus: 20 }, 400), mid = swings({ skill: 10, focus: 20 }, 600), par = swings({ skill: 20, focus: 20 }, 200); // 집중 20: 「멍」 빗나감 빼고
     expect(lo.miss / (lo.hit + lo.miss)).toBeGreaterThan(STAT_ACT.miss - 0.05);
     expect(lo.miss / (lo.hit + lo.miss)).toBeLessThan(STAT_ACT.miss + 0.05);
+    expect(mid.miss / (mid.hit + mid.miss)).toBeGreaterThan(0.03); expect(mid.miss / (mid.hit + mid.miss)).toBeLessThan(0.13);
     expect(par.miss).toBe(0);
   });
-  it('공격이 15 넘으면 가끔 세게 (20 = 8% × 1.5), 15 이하는 없음', () => {
-    const hi = swings({ atk: 20 }, 400), par = swings({ atk: 15 }, 200);
+  it('공격이 높을수록 가끔 세게 (1 = 0 · 10 ≈ 3.8% · 20 = 8%, × 1.5), 2026-10-26 예전 15 넘어야', () => {
+    const hi = swings({ atk: 20 }, 400), mid = swings({ atk: 10 }, 600), lo = swings({ atk: 1 }, 200);
     expect(hi.crit / hi.hit).toBeGreaterThan(STAT_ACT.crit - 0.04);
-    expect(par.crit).toBe(0);
+    expect(mid.crit).toBeGreaterThan(0); expect(mid.crit / mid.hit).toBeLessThan(hi.crit / hi.hit);
+    expect(lo.crit).toBe(0);
   });
   /** 궁수 정조준 (쿨마다, t ≥ 1초): 처음 쓴 때 · 헛씀 */
   function firstUse(st: Partial<Stats>, seed: number) {
@@ -225,8 +230,10 @@ describe('(다) 딜 · 직업 스킬', () => {
     }
     return { t: Infinity, fumble: false, weak: undefined };
   }
-  it('판단이 15보다 낮으면 쓸 때가 돼도 늦게 씀 (1 = 평균 1.2초), 15 이상은 바로 (0.2초 판단 주기)', () => {
-    const late = Array.from({ length: 60 }, (_, i) => firstUse({ judgment: 1 }, 40 + i).t), now = Array.from({ length: 30 }, (_, i) => firstUse({ judgment: 15 }, 40 + i).t);
+  it('판단이 20보다 낮으면 쓸 때가 돼도 늦게 씀 (1 = 평균 1.2초 · 10 ≈ 0.63초), 20은 바로 (0.2초 판단 주기)', () => {
+    const late = Array.from({ length: 60 }, (_, i) => firstUse({ judgment: 1 }, 40 + i).t), now = Array.from({ length: 30 }, (_, i) => firstUse({ judgment: 20 }, 40 + i).t);
+    const mid = Array.from({ length: 60 }, (_, i) => firstUse({ judgment: 10 }, 40 + i).t);
+    expect(mean(mid)).toBeGreaterThan(mean(now)); expect(mean(mid)).toBeLessThan(mean(late));
     expect(Math.max(...now)).toBeLessThan(1.3);
     expect(mean(late)).toBeGreaterThan(mean(now) + 0.6);
   });
@@ -254,8 +261,9 @@ describe('(다) 탱커 딜', () => {
     const end = f.t + 120;
     while (f.t < end && !f.over) { E.step(f); f.events.length = 0; }
     expect(who(f, '탱').dealt).toBeGreaterThan(who(f, '사').dealt);
-    const g = fight({ tank: { atk: 15 } }), h = fight({ tank: { atk: 10 } });
-    expect(who(g, '탱').dps).toBeCloseTo(who(h, '탱').dps * (1.25 / 1), 1); // 공격 15 = 공격 배율 (fmFx 10 → 20 = 1 → 1.5 사이)만, 새 보너스 없음
+    const g = fight({ tank: { atk: 15 } }), h = fight({ tank: { atk: 10 } }), l = fight({ tank: { atk: 1 } });
+    expect(who(g, '탱').dps).toBeCloseTo(who(h, '탱').dps * 1.25 * 1.3, 1); // 공격 15 = 공격 배율 1.25 × 탱커 딜 1.3 (2026-10-26 1 · 10 · 20 = × 0.7 · 1 · 1.6, 예전 15까지 1)
+    expect(who(l, '탱').dps).toBeCloseTo(who(h, '탱').dps * (1 / 1.5) * 0.7, 1);
   });
 });
 
@@ -292,11 +300,12 @@ describe('(마) 어그로 상황', () => {
     for (const dt of [0.5, 1.5, 2.5, 4, 8]) { const at = t.steal!.at + 1 + dt; while (f.t < at) { E.step(f); f.events.length = 0; } out.push(threatDps(f, u)); }
     return { out, steal: t.steal! };
   }
-  it('뺏은 뒤: 판단 · 침착 20 = 되찾을 때까지 멈춤, 15 = 예전 (2초 멈춤 → 25% 줄임), 1 = 계속 그대로 때림 (되찾기도 늦음)', () => {
+  it('뺏은 뒤 (2026-10-26 한 줄): 판단 · 침착 20 = 10초 멈춤 (되찾기 최대), 15 = 6초 멈춤 → 18% 줄임, 1 = 계속 그대로 때림 (되찾기도 늦음)', () => {
     const hi = afterSteal({ judgment: 20, composure: 20 }), par = afterSteal({ judgment: 15, composure: 15 }), lo = afterSteal({ judgment: 1, composure: 1 });
     expect(hi.out.every(x => x === 0)).toBe(true);
-    expect(par.out[0]).toBe(0);
-    expect(par.out[4]).toBeCloseTo(1 - THREAT.ease);
+    expect(hi.steal.stopFor).toBe(THREAT.stopMax);
+    expect(par.out[0]).toBe(0); expect(par.out[3]).toBe(0);
+    expect(par.out[4]).toBeCloseTo(1 - THREAT.ease * 14 / 19);
     expect(lo.out.every(x => x === 1 || x === 0)).toBe(true); // 판단 · 침착 1: 계속 때리다가 당황하면 잠깐 끊김 (아래)
     expect(lo.out.slice(1).every(x => x === 1)).toBe(true);
   });
@@ -339,9 +348,14 @@ describe('(마) 어그로 상황', () => {
     const ll = stealCase({ judgment: 1, composure: 1 });
     expect(ll.sits).toContain('aggroLost'); expect(ll.moved).toBe(true); expect(ll.lost).toBe(true);
     expect(ll.dps(0.5)).toBe(0); expect(ll.dps(STAT_ACT.breakSec + 0.3)).toBe(1);
-    // 15 = 예전 그대로 (생존기 · 당황 · 자리 잃음 없음)
-    const par = stealCase({ judgment: 15, composure: 15 }, 'rogue.evasion');
-    expect(par.used).toBe(false); expect(par.hesit).toBeLessThanOrEqual(0); expect(par.moved || par.lost).toBe(false); expect(par.sits).toContain('aggroSteal');
+    // 15 · 15 (2026-10-26 한 줄): 74%는 생존기를 켜고 버팀, 아니면 잠깐 머뭇거림 (1.2 × 5/19초), 자리 잃음 없음
+    let held = 0;
+    for (const sd of [1, 2, 3, 4, 5, 6]) {
+      const c = stealCase({ judgment: 15, composure: 15, skill: 20 }, 'rogue.evasion', sd);
+      if (c.used) held++; else expect(c.hesit).toBeLessThan(0.5);
+      expect(c.moved || c.lost).toBe(false);
+    }
+    expect(held).toBeGreaterThan(0);
   });
 });
 
@@ -366,23 +380,24 @@ describe('(라) 방어 · 회피 · 나머지', () => {
     expect(usesAt({ judgment: 10, skill: 20 }, 0.22)).toBe(true);
     expect(usesAt({ judgment: 1, skill: 20 }, 0.12)).toBe(false); // 10%
   });
-  it('평타 막기: 방어 · 발놀림 20이면 가끔 반만 맞음 (「막음」), 15 이하는 없음', () => {
+  it('평타 막기: 방어가 높을수록 가끔 반만 맞음 (「막음」, 1 = 0 · 10 ≈ 5.7% · 20 = 12%, 2026-10-26 예전 15 넘어야)', () => {
     const count = (st: Partial<Stats>) => {
       const f = E.create({ encounter: 'warden', diff: '보통', seed: 9, stageLv: 30, heroLv: 30, party: [R('tank', 'warrior', '사교형', '탱', st, 15), R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')] });
       let n = 0;
-      while (f.t < 120 && !f.over) { E.step(f); n += f.events.filter(e => e.type === 'parry').length; f.events.length = 0; who(f, '탱').hp = who(f, '탱').max; }
+      while (f.t < 400 && !f.over) { E.step(f); n += f.events.filter(e => e.type === 'parry').length; f.events.length = 0; who(f, '탱').hp = who(f, '탱').max; }
       return n;
     };
-    expect(count({ armor: 20, agility: 20 })).toBeGreaterThan(0);
-    expect(count({ armor: 15, agility: 15 })).toBe(0);
+    const top = count({ armor: 20, agility: 20 }), mid = count({ armor: 10, agility: 10 });
+    expect(top).toBeGreaterThan(0);
+    expect(mid).toBeGreaterThan(0); expect(mid).toBeLessThan(top);
     expect(count({ armor: 20, agility: 1 })).toBeGreaterThan(0); // 막기는 방어만 (맷집 = 버티는 몸 · 발놀림 = 몸놀림과 나눔)
     expect(count({ armor: 1, agility: 20 })).toBe(0);
   });
-  it('피하기 확률 · 이동: 회피 · 발놀림이 15보다 낮으면 덜 피하고 느림, 15는 예전 값', async () => {
+  it('피하기 확률 · 이동: 회피 · 발놀림이 낮을수록 덜 피하고 느림 (회피 −13%p → +8%p 한 줄, 2026-10-26)', async () => {
     const { dodgeRate, moveTo } = await import('../src/engine/movement');
     const f1 = fight({ st: { evade: 1, agility: 1 } }), f15 = fight({ st: { evade: 15, agility: 15 } }), f20 = fight({ st: { evade: 20 } });
     const a = dodgeRate(f1, who(f1, '근')), b = dodgeRate(f15, who(f15, '근')), c = dodgeRate(f20, who(f20, '근'));
-    expect(b - a).toBeGreaterThan(STAT_ACT.evadeLow + 0.04); // 새 층 −8%p + 예전 회피 차이
+    expect(b - a).toBeGreaterThan(0.13); // 1 → 15: −13 → +2.5%p
     expect(c).toBeGreaterThan(b);
     const go = (f: F) => { const u = who(f, '근'), c2 = f.cells.find(x => !x.unit && !x.block && hexDist(x, f.cells[u.cell]) === 1)!; moveTo(f, u, c2); return u.moving!.total; };
     expect(go(f1) / go(f15)).toBeGreaterThan(1 + STAT_ACT.slowMove);
@@ -408,7 +423,7 @@ describe('Codex 검토 반영: 버그', () => {
     expect(mean(late)).toBeGreaterThan(mean(freeze) - 0.25);
     expect(mean(wrong)).toBeGreaterThan(mean(freeze) - 0.25);
   });
-  it('B: 예고 반응 생존기도 판단이 낮으면 늦게 쓰거나 놓치고, 15 이상은 예고가 뜨자마자', async () => {
+  it('B: 예고 반응 생존기도 판단이 낮으면 늦게 쓰거나 놓치고, 20은 예고가 뜨자마자', async () => {
     const { abOnTel } = await import('../src/engine/abilities');
     const shield = (judgment: number, seed: number, skill = 15, out?: { fumble: number }) => {
       const f = E.create({
@@ -426,16 +441,16 @@ describe('Codex 검토 반영: 버그', () => {
       for (let k = 0; k < 40 && at === Infinity; k++) { for (const ev of f.events) if (ev.type === 'ability' && ev.id === tk.id) { at = f.t - t0; if (out && (ev.fumble || ev.weak)) out.fumble++; } f.events.length = 0; if (f.t < tel.impact) E.step(f); else break; }
       return at;
     };
-    const par = Array.from({ length: 30 }, (_, i) => shield(15, 50 + i)), slow = Array.from({ length: 60 }, (_, i) => shield(1, 50 + i));
+    const par = Array.from({ length: 30 }, (_, i) => shield(20, 50 + i)), slow = Array.from({ length: 60 }, (_, i) => shield(1, 50 + i));
     expect(par.every(t => t === 0)).toBe(true);
     expect(slow.filter(t => t === 0).length).toBe(0);
     expect(slow.some(t => t > 0 && t < Infinity)).toBe(true); // 늦게 씀
     expect(slow.some(t => t === Infinity)).toBe(true); // 놓침
     const o = { fumble: 0 };
-    for (let i = 0; i < 80; i++) shield(15, 50 + i, 1, o);
+    for (let i = 0; i < 80; i++) shield(20, 50 + i, 1, o);
     expect(o.fumble).toBeGreaterThan(0); // 예고 반응도 기술 숙련이 낮으면 헛씀
     const p = { fumble: 0 };
-    for (let i = 0; i < 80; i++) shield(15, 50 + i, 20, p);
+    for (let i = 0; i < 80; i++) shield(20, 50 + i, 20, p);
     expect(p.fumble).toBe(0);
   });
 });
@@ -454,7 +469,7 @@ describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있
     }
     return { f, u, daze, miss };
   }
-  it('집중이 15보다 낮으면 긴 전투일수록 잠깐 멍함 (처음 20초는 없음), 15 이상은 없음', () => {
+  it('집중이 20보다 낮으면 긴 전투일수록 잠깐 멍함 (처음 20초는 없음), 20은 없음 (2026-10-26, 예전 15부터 없음)', () => {
     let early = 0, late = 0, n = 0;
     for (let s = 1; s <= 8; s++) {
       const { daze } = long({ focus: 1 }, 260, s);
@@ -463,9 +478,12 @@ describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있
     }
     expect(n).toBeGreaterThan(20);
     expect(late).toBeGreaterThan(early); // 같은 60초라도 뒤쪽이 더 잦음
-    for (const focus of [15, 20]) expect(long({ focus }, 260, 3).daze.length).toBe(0);
+    expect(long({ focus: 20 }, 260, 3).daze.length).toBe(0);
+    let mid = 0, low = 0;
+    for (let s = 1; s <= 6; s++) { mid += long({ focus: 15 }, 260, s).daze.length; low += long({ focus: 1 }, 260, s).daze.length; }
+    expect(mid).toBeGreaterThan(0); expect(mid).toBeLessThan(low);
   });
-  it('멍한 동안: 새 장판 반응을 멍이 끝날 때까지 미루고, 한 방이 더 빗나감 (기술 숙련 15라도)', () => {
+  it('멍한 동안: 새 장판 반응을 멍이 끝날 때까지 미루고, 한 방이 더 빗나감 (기술 숙련 20이라도)', () => {
     const f = fight({ st: { focus: 1 } }), u = who(f, '근');
     for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
     u.dazeNext = Infinity; u.dazeUntil = f.t + 1.5;
@@ -476,8 +494,8 @@ describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있
     while (f.t < end - 1e-9) { E.step(f); f.events.length = 0; expect(u.moving).toBeNull(); expect(u.react).toBe(r0); }
     for (let i = 0; i < 3; i++) { E.step(f); f.events.length = 0; }
     expect(u.react).not.toBe(r0); // 멍이 끝나자 반응함
-    const on = long({ focus: 15, skill: 15 }, 60, 2, (_f, v) => { v.dazeNext = Infinity; v.dazeUntil = Infinity; }).miss.length;
-    const off = long({ focus: 15, skill: 15 }, 60, 2).miss.length;
+    const on = long({ focus: 20, skill: 20 }, 60, 2, (_f, v) => { v.dazeNext = Infinity; v.dazeUntil = Infinity; }).miss.length;
+    const off = long({ focus: 20, skill: 20 }, 60, 2).miss.length;
     expect(off).toBe(0);
     expect(on).toBeGreaterThan(5);
   });
@@ -519,10 +537,12 @@ describe('맷집 「휘청」 · 「버팀」 (Lim 06:47 「능력치 하나하�
     }
     return { f, u, reel, steady };
   }
-  it('맷집이 15보다 낮으면 큰 한 방 뒤 휘청 (1 = 70%), 15는 없음, 15 넘으면 휘청 대신 버팀', async () => {
-    const lo = await bigHits({ tough: 1 }, 300), par = await bigHits({ tough: 15 }, 200), hi = await bigHits({ tough: 20 }, 200);
+  it('맷집이 낮을수록 큰 한 방 뒤 휘청 (1 = 70% · 15 ≈ 18%), 높을수록 버팀 (1 = 0 · 15 ≈ 74% · 20 = 100%, 2026-10-26 한 줄)', async () => {
+    const lo = await bigHits({ tough: 1 }, 300), mid = await bigHits({ tough: 15 }, 300), hi = await bigHits({ tough: 20 }, 200);
     expect(lo.reel / 300).toBeGreaterThan(STAT_ACT.stagger - 0.08); expect(lo.reel / 300).toBeLessThan(STAT_ACT.stagger + 0.08);
-    expect(par.reel + par.steady).toBe(0);
+    expect(lo.steady).toBe(0);
+    expect(mid.reel / 300).toBeGreaterThan(0.1); expect(mid.reel / 300).toBeLessThan(0.28);
+    expect(mid.steady / 300).toBeGreaterThan(0.5); expect(mid.steady / 300).toBeLessThan(0.7);
     expect(hi.reel).toBe(0); expect(hi.steady).toBe(200);
   });
   it('작은 피해 · 틱 피해로는 휘청하지 않음', async () => {
@@ -553,7 +573,7 @@ describe('맷집 「휘청」 · 「버팀」 (Lim 06:47 「능력치 하나하�
       for (let i = 0; i < 10; i++) { E.step(f); f.events.length = 0; }
       return (f.thr!.v.get(u.id) ?? 0) - v0 * Math.pow(0.5, 10 * E.DT / THREAT.half);
     };
-    expect(await run(20)).toBeGreaterThan(await run(15) * 1.3);
+    expect(await run(20)).toBeGreaterThan(await run(1) * 1.3);
   });
 });
 
@@ -567,10 +587,11 @@ describe('방어 = 막는 솜씨 「자세 놓침」 (Lim 06:47 「능력치 하
     offGuardRoll(f, tel);
     return { f, tk, tel, note: f.events.some(e => e.type === 'offGuard' && e.id === tk.id) };
   }
-  it('방어가 15보다 낮으면 강타 예고 때 자세를 못 잡음 (1 = 60%), 15 이상은 늘 잡음', async () => {
-    let lo = 0, par = 0;
-    for (let i = 0; i < 300; i++) { if ((await busterTel(1, 100 + i)).note) lo++; if ((await busterTel(15, 100 + i)).note) par++; }
+  it('방어가 20보다 낮으면 강타 예고 때 자세를 못 잡음 (1 = 60% · 10 ≈ 32%), 20은 늘 잡음 (2026-10-26, 예전 15부터)', async () => {
+    let lo = 0, mid = 0, par = 0;
+    for (let i = 0; i < 300; i++) { if ((await busterTel(1, 100 + i)).note) lo++; if ((await busterTel(10, 100 + i)).note) mid++; if ((await busterTel(20, 100 + i)).note) par++; }
     expect(lo / 300).toBeGreaterThan(STAT_ACT.offGuard - 0.08); expect(lo / 300).toBeLessThan(STAT_ACT.offGuard + 0.08);
+    expect(mid / 300).toBeGreaterThan(0.22); expect(mid / 300).toBeLessThan(0.42);
     expect(par).toBe(0);
   });
   it('자세를 못 잡은 강타: 예고 숫자와 실제 피해가 함께 × 1.15', async () => {
@@ -606,21 +627,22 @@ describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나�
     return { f, u, m };
   }
   const swell = (f: F, u: Unit) => { const { addDebuff } = E as unknown as { addDebuff?: never }; void addDebuff; u.debuffs.push({ id: f.nextId++, name: '부풀기', type: '저주', left: 8, swell: { every: 2, max: 5 } } as never); };
-  it('15보다 낮으면 옮겨붙음 · 부풀기를 든 채 옆 사람에게 붙어 섬 (1 = 50%, 「붙어 섬」), 15는 예전 그대로', () => {
+  it('20보다 낮으면 옮겨붙음 · 부풀기를 든 채 옆 사람에게 붙어 섬 (1 = 50% · 10 ≈ 26%, 「붙어 섬」), 20은 안 붙음 (2026-10-26)', () => {
     const rate = (position: number) => {
       let clump = 0;
       for (let s = 0; s < 200; s++) {
-        const { f, u } = besideMage({ position, evade: 15 }, 2000 + s);
+        const { f, u } = besideMage({ position, evade: 15 }, 2000 + s, { position: 1 }); // 옆 마법사는 먼저 떨어져 서지 않게 (위치 잡기 1)
         swell(f, u);
         for (let i = 0; i < 8; i++) { E.step(f); for (const ev of f.events) if (ev.type === 'clump' && ev.id === u.id) clump++; f.events.length = 0; }
       }
       return clump / 200;
     };
-    const lo = rate(1);
-    expect(lo).toBeGreaterThan(STAT_ACT.spreadMiss - 0.1); expect(lo).toBeLessThan(STAT_ACT.spreadMiss + 0.1);
-    expect(rate(15)).toBe(0);
+    const lo = rate(1), mid = rate(10);
+    expect(lo).toBeGreaterThan(STAT_ACT.spreadMiss - 0.12); expect(lo).toBeLessThan(STAT_ACT.spreadMiss + 0.1);
+    expect(mid).toBeGreaterThan(0.08); expect(mid).toBeLessThan(lo);
+    expect(rate(20)).toBe(0);
   });
-  it('15 넘으면 옆 사람이 부풀기를 들면 먼저 떨어져 섬 (20 = 늘), 15는 그대로', () => {
+  it('위치 잡기가 높을수록 옆 사람이 부풀기를 들면 먼저 떨어져 섬 (1 = 안 함 · 20 = 늘, 2026-10-26 예전 15 넘어야)', () => {
     const away = (position: number) => {
       let n = 0;
       for (let s = 0; s < 40; s++) {
@@ -633,9 +655,11 @@ describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나�
       return n / 40;
     };
     expect(away(20)).toBe(1);
-    expect(away(15)).toBe(0);
+    const mid = away(10);
+    expect(mid).toBeGreaterThan(0.15); expect(mid).toBeLessThan(0.85);
+    expect(away(1)).toBe(0);
   });
-  it('15 넘으면 연쇄 번개 대상일 때 알아서 흩어져 섬 (신중파가 아니어도), 15는 예전처럼 안 비킴', async () => {
+  it('위치 잡기가 높을수록 연쇄 번개 대상일 때 알아서 흩어져 섬 (신중파가 아니어도), 1은 안 비킴', async () => {
     const { chainWarn } = await import('../src/engine/bossParts');
     // 작은 판 (5인 10칸)이라 옆 사람이 더 적은 칸이 없으면 못 비킴 (예전 stepAway 규칙): 시드 여럿에서 셈
     const moved = (position: number) => {
@@ -649,9 +673,10 @@ describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나�
       return n;
     };
     expect(moved(20)).toBeGreaterThan(10);
-    expect(moved(15)).toBe(0);
+    expect(moved(10)).toBeLessThan(moved(20));
+    expect(moved(1)).toBe(0);
   });
-  it('15보다 낮으면 칸을 고를 때 나쁜 자리도 고름 (흔들림 2 → 22), 15는 늘 같은 칸', async () => {
+  it('20보다 낮으면 칸을 고를 때 나쁜 자리도 고름 (흔들림 2 → 22), 20은 늘 같은 칸', async () => {
     const { pickCell } = await import('../src/engine/movement');
     const picks = (position: number) => {
       const { f, u } = besideMage({ position }, 7);
@@ -659,8 +684,8 @@ describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나�
       for (let i = 0; i < 60; i++) out.add(pickCell(f, u, { safe: true, home: true })!.i);
       return out.size;
     };
-    expect(picks(15)).toBeLessThanOrEqual(2);
-    expect(picks(1)).toBeGreaterThan(picks(15));
+    expect(picks(20)).toBeLessThanOrEqual(2);
+    expect(picks(1)).toBeGreaterThan(picks(20));
   });
 });
 
@@ -734,17 +759,20 @@ describe('협동 (예전 쫄 처리, Lim 10-19 07:04 「협동」)', () => {
     expect(mid).toBeGreaterThan(0.1); expect(mid).toBeLessThan(0.4);
     expect(alone(20)).toBe(0);
   });
-  it('탱커가 모두 쓰러지면 협동이 15 넘는 근접이 잠깐 붙잡음 (보스가 그 사람을 침), 15는 없음', async () => {
+  it('탱커가 모두 쓰러지면 협동이 가장 높은 사람 (근접 먼저)이 협동만큼 확률로 잠깐 붙잡음 (1 = 안 함 · 10 ≈ 47% · 20 = 늘, 2026-10-26 예전 15 넘어야)', async () => {
     const { damage } = await import('../src/engine/core');
     const { aggroTarget } = await import('../src/engine/bossParts');
-    const stand = (coop: number) => {
-      const f = coopFight({ coop }, { coop: 10 }), tk = who(f, '탱');
+    const stand = (coop: number, seed = 1) => {
+      const f = coopFight({ coop }, { coop }, seed), tk = who(f, '탱');
+      who(f, '궁').fmStats!.coop = coop;
       damage(f, tk, tk.max * 10, false, 'fixed');
       return { f, id: f.standIn && f.t < f.standIn.until ? f.standIn.id : null, target: aggroTarget(f)?.nick };
     };
     const hi = stand(20);
     expect(hi.id).toBe(who(hi.f, '근').id); expect(hi.target).toBe('근');
-    expect(stand(15).id).toBeNull();
+    expect(stand(1).id).toBeNull();
+    const mid = Array.from({ length: 30 }, (_, i) => stand(10, 40 + i).id != null).filter(Boolean).length;
+    expect(mid).toBeGreaterThan(5); expect(mid).toBeLessThan(25);
   });
 });
 

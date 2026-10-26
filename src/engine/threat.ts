@@ -8,7 +8,7 @@
  * 튜토리얼 · 프로토타입 · 파티원 능력이 없는 판 (옛 시드 파티) · 일반 · 정예 구간 · 탱커 없는 파티는 끔.
  */
 import { STAT_ACT, THREAT } from '../data/rules';
-import { clumsy, lerp3, sharp } from '../data/fm';
+import { gain, lack, lerp3 } from '../data/fm';
 import { holdGuard } from './abilities';
 import { hexDist } from './board';
 import { aggroTarget } from './bossParts';
@@ -96,7 +96,7 @@ function noEase(f: Fight, u: Unit): boolean {
 /** 딜러가 보스에게 준 딜 (fight.ts partyHits, 쫄 · 몸통 말고 보스 몫만). 레벨 차이는 비교할 때 곱함 */
 export function dealerThreat(f: Fight, u: Unit, amt: number): void {
   const t = f.thr!;
-  t.v.set(u.id, (t.v.get(u.id) ?? 0) + amt * (u.wob != null ? 1 + STAT_ACT.dealerThreat * sharp(u.fmStats?.atk ?? 10) : 1)); // 99 마: 압도적으로 센 딜러
+  t.v.set(u.id, (t.v.get(u.id) ?? 0) + amt * (u.wob != null ? lerp3(u.fmStats?.atk ?? 10, STAT_ACT.dealerThreat[0], 1, STAT_ACT.dealerThreat[1]) : 1)); // 99 마: 센 딜러일수록 더 뺏음 (공격 1 · 10 · 20 = × 0.7 · 1 · 1.6)
   t.inc += amt;
 }
 
@@ -112,10 +112,8 @@ interface StealHabit { stopFor: number; cut: number; panic: number; guard: numbe
 function stealHabit(u: Unit): StealHabit {
   if (u.wob == null) return { stopFor: THREAT.stopSec, cut: THREAT.ease, panic: 0, guard: 0 };
   const j = stat(u, 'judgment'), c = stat(u, 'composure');
-  const panic = clumsy(c), guard = Math.min(sharp(j), sharp(c));
-  if (j >= 15) return { stopFor: sharp(j) >= 1 ? Infinity : THREAT.stopSec + sharp(j) * 6, cut: THREAT.ease, panic, guard };
-  const cj = clumsy(j);
-  return { stopFor: THREAT.stopSec * Math.max(0, 1 - 2 * cj), cut: THREAT.ease * (1 - cj), panic, guard };
+  // 2026-10-26 「20일때만 발동되게 하지말고」: 멈춤 판단 1 · 10 · 20 = 0 · 2 · 10초 (되찾기 최대), 줄임 · 버팀 · 당황 모두 한 줄
+  return { stopFor: lerp3(j, 0, THREAT.stopSec, THREAT.stopMax), cut: THREAT.ease * gain(j), panic: lack(c), guard: Math.min(gain(j), gain(c)) };
 }
 
 /** 딜러가 쫄에게 준 딜: 위협은 없고 탱커 위협 바탕 (파티 딜 속도)에만 들어감. 쫄을 치는 동안 보스만 치는 사람 (외골수)이 튀지 않게 */
@@ -148,7 +146,7 @@ export function slipping(f: Fight, u: Unit): boolean {
 /** 탱커 한 틱 위협 배율 (보통 탱커 = 1): 기술 숙련 × 집중 (이동 · 생존기 · 강타 1초 동안) × 어그로 흘림 (딴생각 동안 0) */
 function tankMult(f: Fight, u: Unit): number {
   if (!u.alive || u.lift || (u.sleep != null && u.sleep > f.t) || slipping(f, u)) return 0;
-  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? 1 + STAT_ACT.tankDps * sharp(u.fmStats?.atk ?? 10) : 1); // 기술 숙련 1 · 20 = × 0.5 · × 1.5 (2026-10-25 Lim, 예전 초보 몫을 합침) · 99 다: 딜 잘하는 탱커는 그만큼 더
+  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? lerp3(u.fmStats?.atk ?? 10, STAT_ACT.tankDps[0], 1, STAT_ACT.tankDps[1]) : 1); // 기술 숙련 1 · 20 = × 0.5 · × 1.5 (2026-10-25 Lim, 예전 초보 몫을 합침) · 99 다: 딜 잘하는 탱커는 그만큼 더
   const focus = busy(f, u) ? lerp3(stat(u, 'focus'), THREAT.focus[0], THREAT.focus[1], 1) : 1;
   return skill * focus * (u.p.slip?.dps ?? 1);
 }
@@ -272,14 +270,14 @@ export function threatTick(f: Fight): void {
   const stops = !!hb && hb.stopFor > 0;
   t.steal = { id: top.id, at: f.t, stopAt: top.me ? Infinity : f.t + calmDelay(top) + (stops ? STAT_ACT.panicHit * hb!.panic : 0), ...(hb ? { stopFor: hb.stopFor, cut: hb.cut } : {}) };
   // 99 마: 판단이 낮아 계속 때리는 딜러면 탱커가 되찾기 어려움
-  const ign = hb && top.wob != null ? clumsy(stat(top, 'judgment')) : 0;
+  const ign = hb && top.wob != null ? lack(stat(top, 'judgment')) : 0;
   t.retakeAt = Math.max(f.t + retakeAfter(f, base) * (1 + STAT_ACT.ignoreRetake * ign), t.readyAt);
   top.thrEase = false;
   if (top.me) f.stats.healerSteals = (f.stats.healerSteals ?? 0) + 1; else f.stats.steals = (f.stats.steals ?? 0) + 1;
   let shape: 'guard' | 'panic' | 'lost' | null = null; // Codex 검토 반영 1: 판단 × 침착 네 모양
   if (hb && stops && hb.guard > 0 && f.rng() < hb.guard && holdGuard(f, top)) shape = 'guard';
   else if (hb && stops && hb.panic > 0 && !regrouping(f, top)) { top.hesitUntil = f.t + STAT_ACT.hesit * hb.panic; if (hb.panic >= 0.2) { shape = 'panic'; slip(f, top); } }
-  else if (hb && !stops && !regrouping(f, top) && f.rng() < STAT_ACT.stealLost * clumsy(stat(top, 'judgment')) * hb.panic && loseSpot(f, top)) { t.steal.breakUntil = f.t + STAT_ACT.breakSec; shape = 'lost'; slip(f, top); }
+  else if (hb && !stops && !regrouping(f, top) && f.rng() < STAT_ACT.stealLost * lack(stat(top, 'judgment')) * hb.panic && loseSpot(f, top)) { t.steal.breakUntil = f.t + STAT_ACT.breakSec; shape = 'lost'; slip(f, top); }
   const high = lvOf(f, top) - lvOf(f, base) >= THREAT.highLv; // 고렙이 뺏음 (레벨 차이만으로 선을 넘음)
   if (top.me) aggroBark(f, base, high ? 'aggroHealerHigh' : 'aggroHealer'); // 고렙 힐러: 탱커가 감탄 · 농담
   else if (slipping(f, base)) aggroBark(f, base, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
@@ -288,7 +286,7 @@ export function threatTick(f: Fight): void {
     if (shape === 'lost') aggroBark(f, top, 'aggroLost'); // 99 마: 판단 · 침착 ↓ 딜 끊기고 자리 잃음
     else if (shape === 'panic') aggroBark(f, top, 'aggroPanic'); // 99 마: 판단 ↑ · 침착 ↓ 한 대 더 · 머뭇거림
     else if (stops && addsUp(f, top)) aggroBark(f, top, 'aggroAdds'); // Codex 검토 반영 2: 멈추는 대신 쫄 · 감옥으로
-    else if (hb && hb.stopFor === Infinity || shape === 'guard') aggroBark(f, top, 'aggroHold'); // 99 마: 멈추고 기다림 (생존기를 켜고 버팀)
+    else if (hb && hb.stopFor >= THREAT.stopMax - 1e-9 || shape === 'guard') aggroBark(f, top, 'aggroHold'); // 99 마: 멈추고 기다림 (생존기를 켜고 버팀)
     else if (hb && hb.stopFor <= 0 && hb.cut < THREAT.ease * 0.5) aggroBark(f, top, 'aggroIgnore'); // 99 마: 계속 때림
     else aggroBark(f, top, high ? 'aggroStealHigh' : 'aggroSteal');
   }
