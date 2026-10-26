@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ClassKey } from '../src/data/classes';
 import { fmFx, STAT_KEYS, type Stats } from '../src/data/fm';
 import type { PersName } from '../src/data/personalities';
-import { THREAT } from '../src/data/rules';
+import { STAT_ACT, THREAT } from '../src/data/rules';
 import * as E from '../src/engine';
 import { runEffect } from '../src/engine/bossParts';
 import { heal } from '../src/engine/core';
@@ -190,7 +190,7 @@ describe('되찾은 뒤 · 1열로 돌아온 뒤 (2026-10-27 Lim 「탱커가 1�
   });
 
   it('첫 도발: 뺏기기 시작하는 때 (start) 탱커가 되찾기처럼 잡음, 여는 기술이 센 딜러도 retakeLock초 동안 못 뺏음 (2026-10-27 Lim 「전투 시작하자마자 못 잡으면서 계속 반복」)', () => {
-    const f = fight(), tk = who(f, '탱'), rg = who(f, '근');
+    const f = fight({ tank: { st: { skill: 20 } } }), tk = who(f, '탱'), rg = who(f, '근'); // 기술 숙련 20 = 첫 도발을 안 놓침
     const t = f.thr!;
     while (f.t < THREAT.start - E.DT) { E.step(f); f.events.length = 0; }
     expect(t.pulled).toBeFalsy();
@@ -202,6 +202,27 @@ describe('되찾은 뒤 · 1열로 돌아온 뒤 (2026-10-27 Lim 「탱커가 1�
     expect(t.lockUntil).toBeCloseTo(f.t + THREAT.retakeLock, 1);
     const end = f.t + THREAT.retakeLock - 0.2;
     while (f.t < end) { f.t += E.DT; setRatio(f, '근', THREAT.leeway['보통'] * 1.5); threatTick(f); expect(t.steal).toBeNull(); }
+  });
+
+  it('첫 도발 놓침 (같은 날 Lim 「전투 시작부터 못 잡는경우도 있어야한다」): 기술 숙련 1 = 50% · 10 = 24% · 20 = 0, 놓치면 잠금 없이 위협 싸움', () => {
+    const rate = (skill: number) => {
+      let n = 0;
+      for (let seed = 1; seed <= 200; seed++) {
+        const f = fight({ tank: { st: { skill } } });
+        f.rng = E.rngFrom(seed);
+        while (f.t < THREAT.start + E.DT && !f.thr!.pulled) { E.step(f); f.events.length = 0; }
+        expect(f.thr!.pulled).toBe(true);
+        if (f.thr!.pullMissed) { n++; expect(f.thr!.lockUntil).toBeUndefined(); }
+      }
+      return n / 200;
+    };
+    expect(STAT_ACT.pullMiss).toBe(0.5);
+    expect(rate(20)).toBe(0);
+    expect(rate(1)).toBeGreaterThan(0.38);
+    expect(rate(1)).toBeLessThan(0.62);
+    const r10 = rate(10);
+    expect(r10).toBeGreaterThan(0.14);
+    expect(r10).toBeLessThan(0.36);
   });
 
   it('판단 1 딜러가 뺏어 되찾기가 늦어져도 10초 안 (2026-10-25 Lim 「최대 10초」, 예전 × 1.5 = 15초까지)', () => {
