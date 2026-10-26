@@ -7,9 +7,8 @@ import { RAID10_LV, RAID20_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  CHAR_SLOT, JOB_PRICE, jobProductId, NOADS, PAID_HEROES, slotGold,
+  JOB_PRICE, jobProductId, NOADS, PAID_HEROES,
 } from '../data/economy';
-import { resourceBalance, spendResource } from './resources';
 import { HEROES } from '../data/heroes';
 import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade } from '../data/equipment';
 import {
@@ -18,7 +17,6 @@ import {
 import { clearGold, MAX_LEVEL } from '../data/progression';
 import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, weekKey } from './clock';
-import { TUT } from './tutorial';
 import { CHAL } from '../data/challenge';
 import { pickChalContent } from './runmode';
 
@@ -245,45 +243,5 @@ export function grantProduct(save: SaveData, id: string): string {
   if (!products(save).some(p => p.id === id)) return '없는 상품';
   if (save.bought.includes(id)) return '이미 산 상품';
   save.bought.push(id);
-  return '';
-}
-
-// ---------- 캐릭터 칸 (68 2장): 골드로 모아 사거나 앱 결제로 바로 (Lim 2026-10-12 「둘 다」, v16에서 골드와 함께 뺐다가 91에서 되살림) ----------
-export interface SlotOffer {
-  /** 산 칸 수 (처음 1) · 최대 */
-  have: number; max: number;
-  /** 다음 칸 골드 값 · 골드로 살 때 필요한 지금 캐릭터 레벨 */
-  gold: number; lv: number;
-  /** 골드로 살 수 있음 / 아니면 이유 */
-  ok: boolean; why: string;
-  /** 앱 결제로 살 수 있음 / 아니면 이유 (레벨 · 골드 조건 없음) */
-  cash: boolean; cashWhy: string;
-  /** 앱 결제 상품 (platform/billing purchase에 id) */
-  iap: { id: string; name: string; price: string };
-}
-
-export function slotOffer(save: SaveData): SlotOffer {
-  const have = save.roster.slots, gold = slotGold(have), lv = CHAR_SLOT.lv;
-  const cashWhy = have >= CHAR_SLOT.max ? `칸이 가득 참 (최대 ${CHAR_SLOT.max})` : save.tut < TUT.done ? '튜토리얼을 마치면 살 수 있음' : '';
-  const why = cashWhy
-    || (save.player.level < lv && !save.settings.devUnlock ? `이 캐릭터 Lv ${lv}부터` : '')
-    || (resourceBalance(save, 'gold') < gold ? `골드 부족 (${gold.toLocaleString('ko-KR')} 필요)` : '');
-  return { have, max: CHAR_SLOT.max, gold, lv, ok: !why, why, cash: !cashWhy, cashWhy, iap: CHAR_SLOT.iap };
-}
-
-/** 지금 캐릭터 골드로 칸 하나 사기. 성공 = 빈 문자열, 아니면 이유 */
-export function buySlot(save: SaveData): string {
-  const o = slotOffer(save);
-  if (!o.ok) return o.why;
-  spendResource(save, 'gold', o.gold);
-  save.roster.slots++;
-  return '';
-}
-
-/** 앱 결제가 끝난 뒤 칸 하나 주기 (화면이 purchase(CHAR_SLOT.iap.id) 성공 뒤에 부름). 성공 = 빈 문자열 */
-export function grantSlot(save: SaveData): string {
-  const o = slotOffer(save);
-  if (!o.cash) return o.cashWhy;
-  save.roster.slots++;
   return '';
 }

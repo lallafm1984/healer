@@ -9,9 +9,9 @@ import { damage } from '../src/engine/core';
 import { heroApply, heroHeal, heroTick, putHot } from '../src/engine/heroes';
 import { hotTick } from '../src/engine/units';
 import { heroWin } from '../src/game/settle';
-import { G, heroNow, heroStatus, makeChar, switchHero, switchOpen } from '../src/game/state';
+import { G, heroNow, heroStatus, switchHero, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
-import { migrate, newSave } from '../src/platform/storage';
+import { heroSaveOf, migrate, newSave } from '../src/platform/storage';
 
 type F = ReturnType<typeof E.create>;
 const fight = (hero: 'priest' | 'druid' | 'paladin', level = 100) => {
@@ -37,7 +37,7 @@ describe('직업 저장', () => {
   });
 });
 
-describe('직업 퀘스트는 없음 (68: 캐릭터 칸을 사서 만듦)', () => {
+describe('직업 퀘스트는 없음', () => {
   beforeEach(() => {
     G.save = newSave(1);
     G.save.tut = TUT.done;
@@ -48,9 +48,8 @@ describe('직업 퀘스트는 없음 (68: 캐릭터 칸을 사서 만듦)', () =
     heroWin(G.save);
     expect(G.save.heroes.priest?.wins ?? 0).toBe(0);
   });
-  it('새 캐릭터는 만들 때 해금, 이긴 판만 셈', () => {
-    expect(makeChar('druid')).toBe('');
-    expect(G.save.heroes.druid!.unlocked).toBe(true);
+  it('지금 직업의 이긴 판만 셈', () => {
+    G.save.hero = 'druid'; heroSaveOf(G.save, 'druid').unlocked = true;
     heroWin(G.save);
     expect(G.save.heroes.druid!.wins).toBe(1);
   });
@@ -79,7 +78,7 @@ describe('같은 캐릭터의 무료 직업 전환 (v12)', () => {
     expect(switchOpen().ok).toBe(true);
     expect(heroStatus('druid').state).toBe('locked');
     expect(switchHero('druid')).toBe(false);
-    makeChar('druid');
+    G.save.hero = 'druid'; heroSaveOf(G.save, 'druid').unlocked = true; // 예전에 쓰던 직업 (캐릭터 칸 · 옛 저장)
     expect(heroStatus('druid').state).toBe('now');
     expect(heroStatus('priest').state).toBe('open');
     expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, buy: false });

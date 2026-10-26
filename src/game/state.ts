@@ -5,7 +5,7 @@ import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
 import { sellGold, SLOTS, type GearItem } from '../data/equipment';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
-import { heroSaveOf, load, loadChar, newSave, parkChar, save, shareAccount, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
+import { heroSaveOf, load, newSave, save, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { onAct, rollover, type Rollover } from './economy';
 import { adsFree } from './stamina';
@@ -196,72 +196,6 @@ export function setTalentPreset(i: number, h: HeroKey = G.save.hero): boolean {
   hs.preset = i;
   commit();
   return true;
-}
-
-// ---------- 캐릭터 (68): 타이틀 → 캐릭터 선택 → 게임 시작. 캐릭터마다 따로 계정처럼 ----------
-
-/** 캐릭터 선택에 보일 칸 하나 (cur = 지금 캐릭터) */
-export interface CharCard { id: number; hero: HeroKey; name: string; level: number; at: number; cur: boolean }
-
-/** 만든 캐릭터들 (만든 순서). 산 칸 수 · 값은 economy slotOffer */
-export function charList(): CharCard[] {
-  const r = G.save.roster;
-  return r.chars.map(c => ({ id: c.id, hero: c.hero, name: c.name, level: c.id === r.cur ? G.save.player.level : c.level, at: c.at, cur: c.id === r.cur }));
-}
-
-/** 이름 (최대 8자). 안 적으면 직업 이름, 같은 이름이 있으면 「사제 2」 */
-export const CHAR_NAME_MAX = 8;
-function charName(h: HeroKey, name: string): string {
-  const names = G.save.roster.chars.map(c => c.name);
-  const want = name.trim().slice(0, CHAR_NAME_MAX);
-  if (want) return want;
-  const base = HEROES[h].name;
-  if (!names.includes(base)) return base;
-  let n = 2;
-  while (names.includes(`${base} ${n}`)) n++;
-  return `${base} ${n}`;
-}
-
-/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 휴식 · 목록)을 옮김 (캐릭터를 바꿔 휴식을 두 번 쓰지 않게) */
-function swapTo(next: SaveData, id: number, now: number): void {
-  const cur = G.save;
-  rollover(cur, now, Math.random);
-  rollover(next, now, Math.random);
-  shareAccount(cur, next);
-  parkChar(cur);
-  const r = next.roster, c = r.chars.find(x => x.id === id)!;
-  r.cur = id; c.at = now; delete c.park;
-  G.save = next;
-  commit();
-  syncAds();
-}
-
-/** 캐릭터 고르기 (캐릭터 선택). 지금 캐릭터거나 없으면 false */
-export function pickChar(id: number, now = Date.now()): boolean {
-  if (Flow.running) return false;
-  const next = loadChar(G.save, id);
-  if (!next) return false;
-  swapTo(next, id, now);
-  return true;
-}
-
-/**
- * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 맨몸, 튜토리얼은 계정에 한 번이라 건너뜀.
- * 만들면 그 캐릭터로 바뀜. 성공 = 빈 문자열, 아니면 이유
- */
-export function makeChar(h: HeroKey, name = '', now = Date.now()): string {
-  if (Flow.running) return '정산 후 생성 가능';
-  const r = G.save.roster;
-  if (G.save.tut < TUT.done) return '튜토리얼을 마치면 만들 수 있음';
-  if (!HEROES[h]) return '없는 직업';
-  if (r.chars.length >= r.slots) return '빈 칸이 없음 (상점에서 캐릭터 칸 사기)';
-  const d = newSave(now);
-  d.hero = h; d.tut = TUT.done;
-  heroSaveOf(d, h).unlocked = true;
-  const id = r.next++;
-  r.chars.push({ id, hero: h, name: charName(h, name), level: 1, at: now });
-  swapTo(d, id, now);
-  return '';
 }
 
 /** v12: 튜토리얼 뒤, 출발 전이나 정산 후 무료 직업 전환 */
