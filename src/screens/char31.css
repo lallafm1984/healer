@@ -456,3 +456,8 @@
 
 /* 직업 전환: 공통 성장 안내와 직업별 장비 수집. 기존 양피지·금테 색상을 계승 */
 #s-char .c7-spt b small { display: inline-block; font-size: 11px; color: var(--gold-hi); }
+/* 다른 직업 착용 조합에 든 장비 (72 「남은 일」, 2026-10-27): 칸 오른쪽 위 작은 직업 문장 · 상세 이름 아래 한 줄 */
+#s-char .c7-bag .lo { position: absolute; z-index: 2; right: 1px; top: 1px; width: 17px; height: 17px; display: grid; place-items: center; pointer-events: none; }
+#s-char .c7-bag .lo .emblem { width: 17px; height: 17px; border-width: 1px; box-shadow: 0 1px 2px #000a; }
+#s-char .c7-bag .lo .emblem img, #s-char .c7-bag .lo .emblem svg { width: 100%; height: 100%; }
+#s-char .c7-gname .c7-lo { color: #e8c77a; }
