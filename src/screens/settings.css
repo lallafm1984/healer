@@ -1,0 +1,18 @@
+/*
+ * 설정 화면 (2026-10-27 마무리 목록 7번: 「설정 화면을 길드 모양으로」).
+ * 바탕 · 돌 버튼 · 칩은 service-hall.css 목록, 판 · 줄은 guild-hall.css (#s-settings를 목록에 넣음).
+ * 여기는 설정에만 있는 것: 그림 머리 (상점 · 행상인 · 임무와 같은 결, ui-settings) · 줄 안의 크기 막대 · 스위치 · 칩.
+ */
+#s-settings.ns .settings { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0 12px 16px; }
+#s-settings.ns .st-hero { --hero-art: var(--art-ui-settings, none); flex: none; min-height: 96px; margin: 0 -12px; align-items: flex-end; justify-content: space-between; border-bottom-color: var(--gk-edge); }
+#s-settings.ns .st-hero::before { background-position: center 52%; }
+#s-settings.ns .st-card { flex: none; }
+#s-settings.ns .st-row { min-height: 52px; flex-wrap: wrap; }
+#s-settings.ns .st-row > .vol-row { flex: 1 1 100%; min-height: 36px; }
+#s-settings.ns .st-row > .toggle { flex: 1 1 auto; min-height: 36px; display: flex; align-items: center; gap: 10px; }
+#s-settings.ns .st-row > .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#s-settings.ns .st-row > #toSkills { margin: 0; }
+#s-settings.ns .st-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#s-settings.ns .st-col .g-sub { margin: 0 0 2px 32px; }
+/* 개발 빌드: 출시 때 정리하는 옛 점선 판 그대로 (판 사이 간격만 맞춤) */
+#s-settings.ns .settings .group.dev { margin: 6px 0 0; }
