@@ -6,12 +6,12 @@ import { SKILLS } from './skills';
 
 /**
  * 레벨업 팝업에 보여 줄 "새로 열림" (18 2-2). live = 이 빌드에서 실제로 바뀌는 것.
- * 아직 안 만든 것은 live: false로 두고 레벨업 팝업에서 제외한다.
+ * 아직 안 만든 것은 live: false로 두고 레벨업 팝업에서 제외한다. (안 만든 공개모집 직업 +6종 · 직업 칭호 · 직업 색 힐 이펙트 줄은 2026-10-27 Lim 「지워」로 뺌)
  */
 export interface Milestone { text: string; live: boolean; hero?: HeroKey }
 const BASE: Record<number, Milestone[]> = {
   5: [{ text: '특성 1단', live: true }],
-  10: [{ text: '특성 2단', live: true }, { text: '주간 임무', live: true }, { text: '공개모집 직업 +6종', live: false }],
+  10: [{ text: '특성 2단', live: true }, { text: '주간 임무', live: true }],
   15: [{ text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (원정대 결성 · 영입)', live: true }] : [])],
   20: [{ text: '직업 전환 · 드루이드 해금', live: true, hero: 'druid' }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }],
   25: [{ text: '특성 5단', live: true }],
@@ -19,9 +19,8 @@ const BASE: Record<number, Milestone[]> = {
   35: [{ text: '특성 7단', live: true }],
   40: [{ text: '특성 8단', live: true }],
   45: [{ text: '특성 9단', live: true }],
-  50: [{ text: '특성 10단 (완성)', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
+  50: [{ text: '특성 10단 (완성)', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }],
   51: [{ text: '정점 수련 (레벨마다 지능·체력 +0.3%)', live: true }],
-  100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],
 };
 /**
  * 탐험 · 던전 열림 (34 5-2 열림 레벨 표)은 CONTENT에서 만들어 맨 앞에. 아직 안 만든 곳은 「준비 중」.

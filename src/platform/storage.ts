@@ -364,44 +364,10 @@ function rosterOf(v: unknown, hero: HeroKey, now: number): Roster {
   return { cur, slots: Math.max(chars.length, typeof r.slots === 'number' ? r.slots : 1), next: Math.max(typeof r.next === 'number' ? r.next : 0, ...chars.map(c => c.id + 1)), chars };
 }
 
-// ---------- 캐릭터 (68, v11) ----------
+// ---------- 캐릭터 (68, v11): 저장 형식만 남음. 캐릭터 만들기 · 고르기 · 칸 사기는 화면 없이 남아 있던 코드라 2026-10-27 Lim 「지워」로 없앰 ----------
 
 /** 쉬는 캐릭터 저장 키 */
 export const charKey = (id: number) => `healer.char.${id}`;
-
-/**
- * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 휴식 (81 · 90) · 캐릭터 목록.
- * 나머지 (재료 · 장비 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
- */
-export function shareAccount(from: SaveData, to: SaveData): void {
-  to.settings = { ...from.settings, layout: to.settings.layout, tapKey: to.settings.tapKey };
-  to.bought = [...from.bought];
-  to.stamina = { ...from.stamina };
-  to.roster = from.roster;
-}
-
-/** 쉬는 캐릭터 저장을 읽음 (아직 따로 안 쓴 것 먼저). 목록은 지금 저장 것을 그대로 씀 (shareAccount) */
-export function loadChar(d: SaveData, id: number, kv: KV | null = store()): SaveData | null {
-  const c = d.roster.chars.find(x => x.id === id);
-  if (!c || id === d.roster.cur) return null;
-  if (c.park) return c.park.v < SAVE_VERSION ? migrate(c.park) : c.park;
-  try {
-    const s = kv?.getItem(charKey(id));
-    return s ? migrate(JSON.parse(s)) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** 지금 캐릭터를 쉬게 둠 (다음 save()가 charKey에 씀). 목록은 빼고 (계정 것이라 지금 저장에만) */
-export function parkChar(d: SaveData): void {
-  const c = d.roster.chars.find(x => x.id === d.roster.cur);
-  if (!c) return;
-  c.level = d.player.level; c.hero = d.hero;
-  const p = { ...d } as Partial<SaveData>;
-  delete p.roster;
-  c.park = p as SaveData;
-}
 
 /** 쉬는 캐릭터 저장을 모두 지움 (설정 「저장 지우고 처음부터」) */
 export function wipeChars(d: SaveData, kv: KV | null = store()): void {

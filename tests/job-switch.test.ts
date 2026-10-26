@@ -12,7 +12,7 @@ import { rngFrom } from '../src/engine/rng';
 import { claimChalChest, raidLootOpen, rollover } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
-import { equip, G, heroStatus, makeChar, pickChar, sell, switchHero } from '../src/game/state';
+import { equip, G, heroStatus, sell, switchHero } from '../src/game/state';
 import { migrate, newSave, save, load, heroSaveOf, type KV } from '../src/platform/storage';
 
 const now = new Date(2026, 9, 14, 12).getTime();
@@ -70,14 +70,6 @@ describe('공통 성장과 직업별 착용 조합', () => {
     G.save.player.level = 20; G.save.settings.devJobs = true;
     expect(heroStatus('druid')).toMatchObject({ state: 'open', dev: false });
   });
-  it('다른 캐릭터의 높은 레벨이나 직업을 가져오지 않음', () => {
-    makeChar('paladin', '', now);
-    expect(G.save.roster.cur).toBe(2); expect(G.save.player.level).toBe(1);
-    expect(switchHero('druid')).toBe(false);
-    expect(switchHero('priest')).toBe(true);
-    expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
-    expect(pickChar(1, now)).toBe(true); expect(G.save.player.level).toBe(30);
-  });
   it('아이템 ID로 세팅을 복원하며 잠근 같은 실물을 사용, 판매한 아이템은 재생성하지 않음', () => {
     const one = makeItem(() => .5, 'weapon', '희귀', 1), two = makeItem(() => .5, 'weapon', '희귀', 2);
     G.save.gear.equipped.weapon = one; G.save.gear.bag = [two];
@@ -99,13 +91,16 @@ describe('공통 성장과 직업별 착용 조합', () => {
     expect(G.save.heroes.priest?.talents).toEqual([2,1]);
     switchHero('druid'); expect(G.save.settings.tapKey).toBe('renew'); expect(G.save.heroes.druid?.talents).toEqual([0]);
   });
-  it('출발부터 정산까지 (휴식 포함) 직업·캐릭터 전환 불가', () => {
-    makeChar('druid', '', now); pickChar(1, now); Flow.running = true;
-    expect(switchHero('druid')).toBe(false); expect(pickChar(2)).toBe(false); expect(makeChar('paladin')).toMatch(/정산/);
+  it('출발부터 정산까지 (휴식 포함) 직업 전환 불가', () => {
+    Flow.running = true;
+    expect(switchHero('druid')).toBe(false);
     Flow.running = false; expect(switchHero('druid')).toBe(true);
   });
   it('v11 저장의 다른 캐릭터·유료 칸·자산을 합치거나 삭제하지 않음', () => {
-    makeChar('druid', '', now); const raw = JSON.parse(JSON.stringify(G.save)); raw.v = 11;
+    // 옛 v11 저장: 캐릭터 둘 (지금 = 2번 드루이드, 1번 사제는 쉬는 캐릭터로 저장 안에). 캐릭터 만들기 · 고르기 코드는 2026-10-27에 없앴고 저장 형식만 남음
+    const park = JSON.parse(JSON.stringify(G.save)); delete park.roster;
+    const raw = JSON.parse(JSON.stringify(G.save)); raw.v = 11; raw.hero = 'druid'; raw.player = { level: 1, xp: 0, gold: 0 };
+    raw.roster = { cur: 2, slots: 2, next: 3, chars: [{ id: 1, hero: 'priest', name: '사제', level: 30, at: now, park }, { id: 2, hero: 'druid', name: '드루이드', level: 1, at: now }] };
     raw.weekly.loot = ['priest|abyss1|보통','druid|abyss1|보통'];
     const s = migrate(raw);
     expect(s.roster).toEqual(raw.roster); expect(s.gear).toEqual(raw.gear); expect(s.player).toEqual(raw.player);

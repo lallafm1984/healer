@@ -3,11 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { clearXp, gradeOf, restRun, rampXp } from '../src/data/progression';
 import * as E from '../src/engine';
-import { raidLootOpen } from '../src/game/economy';
 import { PARTY_POOL } from '../src/data/nicknames';
 import { capOf, newMember, personOf } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
-import { G, heroStatus, lockOf, makeChar, otherHeroFor, pickChar, switchOpen } from '../src/game/state';
+import { G, heroStatus, lockOf, otherHeroFor } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
 import { migrate, newSave, SAVE_VERSION, topLevel } from '../src/platform/storage';
 
@@ -43,7 +42,7 @@ describe('저장 이전 (34 3-4 → 68 v11)', () => {
   });
 });
 
-describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
+describe('캐릭터 레벨 (34 3장)', () => {
   beforeEach(() => {
     G.save = newSave(1);
     G.save.tut = TUT.done;
@@ -51,33 +50,15 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     G.save.roster.slots = 3;
     G.save.player.level = 25; G.save.player.xp = 40; G.save.player.gold = 777;
   });
-  it('새 캐릭터는 Lv 1 · 골드 0부터, 돌아오면 원래 레벨 · 골드', () => {
-    expect(makeChar('druid')).toBe('');
-    expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
-    G.save.player.level = 4;
-    expect(pickChar(1)).toBe(true);
-    expect(G.save.player).toEqual({ level: 25, xp: 40, gold: 777 });
-    expect(topLevel(G.save)).toBe(25);
-    expect(G.save.roster.chars.find(c => c.id === 2)!.level).toBe(4);
-  });
-  it('기준 레벨 (길드 · 상점 · 임무)도 그 캐릭터 레벨', () => {
-    makeChar('druid');
-    expect(G.save.player.level).toBe(1);
-    expect(topLevel(G.save)).toBe(1);
-    expect(switchOpen().ok).toBe(true);
-    expect(pickChar(1)).toBe(true);
-    expect(topLevel(G.save)).toBe(25);
-  });
   it('콘텐츠는 지금 캐릭터 공통 레벨로 잠김, 직업 전환으로 우회할 수 없음', () => {
-    makeChar('druid');
+    G.save.player.level = 1;
     const c = contentOf('swamp');
     expect(lockOf(c).locked).toBe(true);
     expect(otherHeroFor(lockOf(c).lv)).toBeNull();
     expect(otherHeroFor(26)).toBeNull();
     expect(heroStatus('paladin').state).toBe('locked');
   });
-  it('따라잡기 없음: 다른 캐릭터보다 낮아도 경험치는 그 레벨 그대로 (34 v0.2)', () => {
-    makeChar('druid');
+  it('따라잡기 없음: 경험치는 그 레벨 그대로 (34 v0.2)', () => {
     G.save.player.level = 10;
     // Lv 20까지 장소 Lv 20까지는 장소가 정한 경험치 (70), 다른 캐릭터 레벨과 상관없음
     const x = settle(G.save, result({ stage: 10 }), () => 0.5);
@@ -86,21 +67,11 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     expect(settle(G.save, result({ stage: 30 }), () => 0.5).xp).toBe(restRun(clearXp(30, '보통', gradeOf(0), { win: true })));
     expect('catchUp' in x).toBe(false);
   });
-  it('레이드 주 첫 보상은 캐릭터마다', () => {
-    G.save.player.level = 40;
-    settle(G.save, result({ content: 'abyss1', diff: '보통', segN: 1, segIdx: 0 }), () => 0.5);
-    expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
-    makeChar('druid');
-    expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
-    pickChar(1);
-    expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
-  });
   it('길드원 레벨 상한 = 그 캐릭터 레벨 (34 4장 8번), 정원은 명성 (93 6-2)이라 캐릭터와 상관없음', () => {
     G.save.player.level = 80;
     const p = personOf(PARTY_POOL.warrior[0].nick)!, cap = capOf(G.save);
     expect(newMember(G.save, p, 90).lv).toBe(80);
-    makeChar('druid');
-    expect(G.save.player.level).toBeLessThan(80);
+    G.save.player.level = 1;
     expect(newMember(G.save, p, 90).lv).toBe(G.save.player.level);
     expect(capOf(G.save)).toEqual(cap);
   });
