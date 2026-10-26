@@ -74,6 +74,8 @@
 #s-entry .f-tl li.elite .f-nd { border-color: #e0bd77; }
 #s-entry .f-tl li.boss .f-nd { border-color: #b8664d; background: #6a2f23; }
 #s-entry .f-tl li.boss:last-child .f-nl { color: #f0d7a6; font-weight: 700; }
+/* 구간 적 이름은 말줄임 대신 두 줄까지 (편성 공략 시트 .f-rt .f-nl과 같은 규칙, 2026-10-27 마무리 목록 2번) */
+#s-entry .f-tl .f-nl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.2; }
 /* 보상: 세 칸 + 보너스 알약 + 월요일 상자 줄 (길드 주간 목표 줄) */
 #s-entry .wc-reward-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 8px; }
 #s-entry .wc-reward-grid > div { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; }
