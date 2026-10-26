@@ -7,7 +7,7 @@ import { posPref } from './position';
 import { followPref, pairDodge, persDodge, persIgnoresZone, persLate, persMove, persPosPref, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 import { STAT_ACT } from '../data/rules';
-import { clumsy, sharp } from '../data/fm';
+import { lack } from '../data/fm';
 
 export type Zone3 = 'front' | 'mid' | 'back';
 
@@ -72,7 +72,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
     if (opts.home && c.i === u.home) s += 60;
     if (u.p.follow) s += followPref(f, u, c) / 2; // 따라쟁이: 피할 때도 탱커 옆 (75)
     if (u.ps) s += persPosPref(f, u, c, opts.safe === true); // 앞장이 · 뒷줄파 · 짝꿍 · 모서리파 · 양보왕 · 집돌이 (95)
-    s += f.rng() * (2 + (u.wob != null && u.role !== 'tank' && !u.me ? STAT_ACT.posNoise * clumsy(u.fmStats?.position ?? 10) : 0)); // 99 위치 잡기: 15 밑은 나쁜 자리도 고름
+    s += f.rng() * (2 + (u.wob != null && u.role !== 'tank' && !u.me ? STAT_ACT.posNoise * lack(u.fmStats?.position ?? 10) : 0)); // 99 위치 잡기: 15 밑은 나쁜 자리도 고름
     if (s > bs) { bs = s; best = c; }
   }
   return best;
@@ -86,7 +86,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   if (u.ps) time *= persMove(u); // 느림보 (75)
   if (u.fm) time *= u.fm.move; // 발놀림 (97 FM)
-  if (u.wob != null) time *= 1 + STAT_ACT.slowMove * clumsy(u.fmStats?.agility ?? 10); // 99 라: 15보다 낮으면 더 느림
+  if (u.wob != null) time *= 1 + STAT_ACT.slowMove * lack(u.fmStats?.agility ?? 10); // 99 라: 20보다 낮으면 더 느림
   if (u.did) u.did.move++;
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
@@ -116,7 +116,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
   if (f.mood != null && f.t < f.mood && !u.me) rt *= f.moodReact!; // 분위기메이커 (95): 시작 10초 모두
-  if (u.fm && u.fm.focus > 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래
+  if (u.fm && u.fm.focus !== 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래 (낮으면 더 느림)
   // 능력치 (99 가): 꾸준함이 15보다 낮으면 예고마다 들쭉날쭉 (평균 1, 폭 = wob). 15 이상은 예전처럼 늘 같은 값 (다 같이 정확히)
   // 늦어진 쪽은 터지기 직전 (lastCall초 전)까지만: 예전 시간에 피하던 사람이 흔들림 때문에 맞지는 않게 (늦게 피함은 못 피한 모양에서)
   if (u.wob && inZ && !regrouping(f, u)) {
@@ -164,8 +164,7 @@ export function dodgeRate(f: Fight, u: Unit): number {
 
 function dodgeBase(f: Fight, u: Unit): number {
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0) + (u.pairWith != null ? pairDodge(f, u) : 0)
-    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0) // 집중 (97 FM)
-    + (u.wob != null ? STAT_ACT.evadeHigh * sharp(u.fmStats?.evade ?? 10) - STAT_ACT.evadeLow * clumsy(u.fmStats?.evade ?? 10) : 0))); // 99 라: 회피 15 = 예전
+    + (u.fm && u.fm.focus !== 0 && bigStage(f) ? u.fm.focus / 2 : 0))); // 집중 (97 FM). 회피는 fmFx dodge 한 줄 (2026-10-26)
 }
 
 /** 집중 (97 FM)이 힘을 내는 판: 악몽 · 레이드 (10인 넘게) · 보스 체력 30% 아래 */
@@ -238,7 +237,7 @@ export function recoverAt(f: Fight, u: Unit, impact: number): number {
  * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시, 둘 다 낮으면 대개 이것). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true (Codex 검토 반영 1)
  */
 function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): boolean {
-  const cr = clumsy(st(u, 'react')), cj = clumsy(st(u, 'judgment')), late = STAT_ACT.late * cr * (1 - cj), wrong = STAT_ACT.wrong * cj * (1 - cr);
+  const cr = lack(st(u, 'react')), cj = lack(st(u, 'judgment')), late = STAT_ACT.late * cr * (1 - cj), wrong = STAT_ACT.wrong * cj * (1 - cr);
   if (late + wrong <= 0) return false;
   const x = f.rng();
   if (x < late) {

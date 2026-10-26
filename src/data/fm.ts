@@ -222,22 +222,22 @@ export function dayOffset(steady: number, fightSeed: number, nick: string): numb
 }
 
 /**
- * 능력치 기반 행동 (99) 기준점 = 15 (2026-10-19 Lim 「움직임은 평균 15정도에서 지금처럼 움직여지게 해보자. 지금의 움직임이 너무좋다」):
- * 새 행동 층 (반응 흔들림 · 못 피한 모양 · 탱커 머뭇거림 · 빗나감 · 스킬 실수 …)은 15 이상이면 예전 그대로, 낮을수록 서툼 (1 = 가장 서툼). 예전 효과 (fmFx, 10 = 예전 값)는 그대로
+ * 능력치 기반 행동 (99): 예전 기준점 15 (2026-10-19 Lim 「평균 15정도에서 지금처럼」, 15 이상 실수 없음 · 15 넘어야 잘함)는 2026-10-25 · 26 Lim 「능력치 20일때만 발동되게 하지말고 …
+ * 능력치 1과 10이 같지 않게」로 없앴다. 실수는 lack (1 → 20 한 줄, 20에서만 0), 잘함은 gain (1에서 0 → 20 한 줄), 배율은 lerp3 (10 = 예전 값)
  */
-export const ACT_PAR = 15;
-/** 15에서 0 · 1에서 1 (15 넘으면 0) */
-export const clumsy = (s: number): number => Math.max(0, Math.min(1, (ACT_PAR - s) / (ACT_PAR - 1)));
-/** 15에서 0 · 20에서 1 (15 밑이면 0): 15 넘으면 조금 더 잘 */
-export const sharp = (s: number): number => Math.max(0, Math.min(1, (s - ACT_PAR) / (20 - ACT_PAR)));
 /**
  * 1에서 1 · 20에서 0 (곧은 줄, 2026-10-25 Lim 「나머지는 0이 되지 않게」): 20이 아니면 조금이라도 남는 실수 (혼자 놂 · 스킬 헛씀 · 탱커 엉뚱한 칸 · 생존기 늦게 켬)
  */
 export const lack = (s: number): number => Math.max(0, Math.min(1, (20 - s) / 19));
+/**
+ * 1에서 0 · 20에서 1 (곧은 줄, 2026-10-26 Lim 「능력치 20일때만 발동되게 하지말고 … 능력치 1과 10이 같지 않게」): 잘함 확률 (세게 · 막음 · 버팀 · 먼저 떨어져 섬 · 붙잡기 · 뺏은 뒤 버팀).
+ * 예전엔 15 넘어야 생겼음
+ */
+export const gain = (s: number): number => Math.max(0, Math.min(1, (s - 1) / 19));
 /** 1 → 20 곧은 줄의 10 값 (10이 예전 값이 아닌 효과를 lerp3로 쓸 때) */
 export const line10 = (at1: number, at20: number): number => at1 + (at20 - at1) * 9 / 19;
-/** 순간 흔들림 폭 (99): 꾸준함 15 이상 0 · 10 0.57 · 1 1.6 (판마다 흔들림 dayOffset과 따로) */
-export const wobOf = (steady: number): number => 1.6 * clumsy(steady);
+/** 순간 흔들림 폭 (99): 꾸준함 1 1.6 · 10 0.84 · 15 0.42 · 20 0 (2026-10-26 20에서만 0, 예전 15부터 0 · 판마다 흔들림 dayOffset과 따로) */
+export const wobOf = (steady: number): number => 1.6 * lack(steady);
 
 /** 1 → 10 → 20 사이를 직선으로 (10 = 예전 값) */
 export function lerp3(s: number, at1: number, at10: number, at20: number): number {
@@ -257,7 +257,7 @@ export interface FmFx {
   /** 반응: 예고를 보고 움직이기까지 시간 배율 */ react: number;
   /** 침착: 못 피한 뒤 다시 움직이기까지 배율 · 겁쟁이 도망 체력 · 소심이 당황 시간 배율 */ retry: number; flee: number; panic: number;
   /** 판단: 생존 능력 체력 기준 (더함) · 낙천가 · 비관론자 치우침을 남기는 몫 */ guard: number; bias: number;
-  /** 집중: 악몽 · 레이드 · 보스 30% 아래에서 반응 · 회피 보너스 (낮아도 빼지 않음) */ focus: number;
+  /** 집중: 악몽 · 레이드 · 보스 30% 아래에서 반응 · 회피 보너스 (낮으면 뺌) */ focus: number;
 }
 /**
  * 끝값 (2026-10-25 Lim): 공격 · 맷집 · 방어 최대 1.5배 (1 = ÷ 1.5 · 20 = × 1.5), 위치 잡기 5 → 1초 (한 줄), 기술 숙련 끊기 −50 · +10%p, 반응 × 2 · × 0.5,
@@ -275,12 +275,12 @@ export function fmFx(st: Stats, off = 0): FmFx {
     hp: f('tough', 1 / 1.5, 1, 1.5),
     taken: f('armor', 1.5, 1, 1 / 1.5),
     move: f('agility', 1.15, 1, 0.8),
-    dodge: f('evade', -0.05, 0, 0.05),
+    dodge: f('evade', -0.13, line10(-0.13, 0.08), 0.08), // 2026-10-26: 예전 ±5%p와 새 층 (15 밑 −8%p · 15 위 +3%p)을 한 줄로 (10 −3 · 15 +2.5%p)
     homeWait: f('position', 5, line10(5, 1), 1),
     cd: f('skill', 1.05, 1, 0.85), cut: f('skill', -0.5, 0, 0.1),
     react: f('react', 2, 1, 0.5),
     retry: f('composure', 1.5, 1, 0.5), flee: f('composure', 1.5, 1, 0.5), panic: f('composure', 1.5, 1, 0.5),
     guard: f('judgment', -0.1, 0, 0.1), bias: f('judgment', 1.5, 1, 0.5),
-    focus: f('focus', 0, 0, 0.1),
+    focus: f('focus', -0.1, 0, 0.1), // 2026-10-26 「1과 10이 같지 않게」: 1은 큰 판에서 반응 · 회피가 더 나쁨 (예전 0 · 0 · 10%)
   };
 }

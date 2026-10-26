@@ -7,7 +7,7 @@ import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { STAT_ACT, zoneDps } from '../data/rules';
-import { clumsy, lack, sharp } from '../data/fm';
+import { gain, lack } from '../data/fm';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
@@ -42,7 +42,7 @@ export function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
   let amt = base * (0.7 + 0.6 * r);
   // 99 라: 방어가 15 넘으면 가끔 막아 반만 맞음 (15 이하는 예전 그대로)
-  if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * sharp(tk.fmStats.armor); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
+  if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * gain(tk.fmStats.armor); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
   damage(f, tk, amt, false, 'tank');
   if (f.aff) affNecrotic(f, tk); // 괴저 (110)
 }
@@ -57,7 +57,7 @@ export function offGuardRoll(f: Fight, tel: Telegraph): void {
   for (const id of tel.units) {
     const u = unitById(f, id);
     if (!u || u.wob == null || u.role !== 'tank' || !u.fmStats || regrouping(f, u)) continue; // 강타를 받아 내는 자세는 탱커 몫 (탱커가 아닌 사람은 이미 직업군 방어력만큼 더 맞음)
-    const p = STAT_ACT.offGuard * clumsy(u.fmStats.armor);
+    const p = STAT_ACT.offGuard * lack(u.fmStats.armor);
     if (p > 0 && f.rng() < p) { (tel.offGuard ??= []).push(u.id); emit(f, { type: 'offGuard', id: u.id }); slip(f, u); }
   }
 }
@@ -455,7 +455,7 @@ export function chainWarn(f: Fight, tel: Telegraph): void {
     const u = unitById(f, id);
     if (!u?.alive || u.me || u.lift || u.moving) continue;
     if (u.pers === '신중파') stepAway(f, u, tel.impact - f.t);
-    else if (posOf(u) > 15 && f.rng() < sharp(posOf(u))) stepAway(f, u, tel.impact - f.t, true); // 99 위치 잡기: 알아서 흩어져 섬
+    else if (posOf(u) != null && f.rng() < gain(posOf(u)!)) stepAway(f, u, tel.impact - f.t, true); // 99 위치 잡기: 알아서 흩어져 섬 (1 · 10 · 20 = 0 · 47 · 100%)
   }
 }
 

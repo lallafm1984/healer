@@ -14,7 +14,7 @@ import { talentDeath, talentTaken } from './talents';
 import { coverPart, persDebuff, persDeath, persDispel, persHealed, persHealTaken, persHurt, sturdyTaken } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
-import { clumsy, sharp } from '../data/fm';
+import { gain, lack } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -418,13 +418,13 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
 /** 99 협동: 탱커가 모두 쓰러지면 협동이 15 넘는 사람 가운데 가장 높은 사람 (근접 먼저)이 잘함 확률로 standSec초 붙잡음 (받는 피해 − standCut) */
 function coopStandIn(f: Fight): void {
   if (f.party.some(v => v.alive && v.role === 'tank') || (f.standIn && f.t < f.standIn.until)) return;
-  let best: Unit | null = null, bc = 15;
+  let best: Unit | null = null, bc = 1;
   for (const v of living(f)) {
     if (v.me || v.role === 'tank' || v.wob == null) continue;
     const c = (v.fmStats?.coop ?? 10) + (v.role === 'melee' ? 0.01 : 0);
     if (c > bc) { bc = c; best = v; }
   }
-  if (!best || f.rng() >= sharp(bc)) return;
+  if (!best || f.rng() >= gain(bc)) return;
   f.standIn = { id: best.id, until: f.t + STAT_ACT.standSec };
   addMod(best, { k: 'cut', v: STAT_ACT.standCut, until: f.t + STAT_ACT.standSec, src: '협동' });
   bark(f, best, null, true, 'standIn');
@@ -435,12 +435,12 @@ function coopStandIn(f: Fight): void {
 function bigHit(f: Fight, u: Unit): void {
   const tough = u.fmStats?.tough ?? 10;
   if (u.staggerUntil != null && f.t < u.staggerUntil) return;
-  if (!regrouping(f, u) && f.rng() < STAT_ACT.stagger * clumsy(tough)) {
+  if (!regrouping(f, u) && f.rng() < STAT_ACT.stagger * lack(tough)) {
     u.staggerUntil = f.t + STAT_ACT.staggerSec;
     slip(f, u);
     emit(f, { type: 'stagger', id: u.id });
     if (f.rng() < 0.4) bark(f, u, null, false, 'reel');
-  } else if (sharp(tough) > 0 && f.rng() < sharp(tough)) {
+  } else if (gain(tough) > 0 && f.rng() < gain(tough)) {
     u.steadyAt = f.t;
     emit(f, { type: 'stagger', id: u.id, steady: true });
   }

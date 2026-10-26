@@ -57,7 +57,8 @@ describe('능력치 → 엔진 값', () => {
     const fx = fmFx(flat(10));
     for (const k of ['dps', 'hp', 'taken', 'move', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
     expect(fx.homeWait).toBeCloseTo(5 - 4 * 9 / 19, 9);
-    for (const k of ['dodge', 'cut', 'guard', 'focus'] as const) expect(fx[k], k).toBeCloseTo(0, 9);
+    for (const k of ['cut', 'guard', 'focus'] as const) expect(fx[k], k).toBeCloseTo(0, 9);
+    expect(fx.dodge).toBeCloseTo(-0.13 + 0.21 * 9 / 19, 9); // 회피 −13%p → +8%p 한 줄 (2026-10-26, 예전 새 층 −2.9%p를 합침)
   });
 
   it('끝 값 (1 → 20, 2026-10-25 Lim: 공격 · 맷집 · 방어 최대 1.5배 · 위치 잡기 5 → 1초 · 끊기 −50 · +10%p · 반응 × 2 · × 0.5 · 침착 · 판단 × 1.5 · × 0.5)', () => {
@@ -71,7 +72,8 @@ describe('능력치 → 엔진 값', () => {
     expect([lo.react, hi.react]).toEqual([2, 0.5]);
     for (const k of ['retry', 'flee', 'panic', 'bias'] as const) expect([lo[k], hi[k]], k).toEqual([1.5, 0.5]);
     expect([lo.guard, hi.guard]).toEqual([-0.1, 0.1]);
-    expect([lo.focus, hi.focus]).toEqual([0, 0.1]); // 집중은 낮아도 빼지 않음 (낮은 쪽은 99 「멍」). 예전 쫄 처리 딜 배율은 협동으로 바꾸며 뺌
+    expect([lo.focus, hi.focus]).toEqual([-0.1, 0.1]); // 집중 1은 큰 판에서 반응 · 회피가 나쁨 (2026-10-26 「1과 10이 같지 않게」, 예전 0). 예전 쫄 처리 딜 배율은 협동으로 바꾸며 뺌
+    expect(lo.dodge).toBeCloseTo(-0.13, 9); expect(hi.dodge).toBeCloseTo(0.08, 9);
   });
 
   it('꾸준함: 20이면 흔들림 없음, 1이면 ±2.5 안, 같은 판 · 같은 사람이면 같은 값', () => {
