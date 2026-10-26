@@ -348,6 +348,18 @@ describe('무너지는 바닥 (P-HOLE) · 칸을 차지하는 쫄 (토템)', () 
     const u = dealer(f);
     for (let i = 0; i < 20; i++) { const c = pickCell(f, u, { safe: true }); expect(c?.block).toBeUndefined(); }
   });
+  it('위치 규칙이 있으면 1열 칸은 1개 이상 남김: 탱커가 장판을 피해 1열을 비워도 다 무너지지 않음 (2026-10-27 Lim 「탱커가 1분가까이 … 방황」)', () => {
+    const f = fight();
+    expect(f.R.pos).toBeTruthy();
+    const tank = f.party.find(u => u.role === 'tank')!;
+    const away = f.cells.find(c => c.row >= f.R.pos!.tankRows && !c.unit && !c.block)!;
+    f.cells[tank.cell].unit = null; away.unit = tank; tank.cell = away.i; tank.home = away.i;
+    for (const u of f.party) if (u !== tank && f.cells[u.cell].row < f.R.pos!.tankRows) { const c = f.cells.find(x => x.row >= f.R.pos!.tankRows && !x.unit && !x.block)!; f.cells[u.cell].unit = null; c.unit = u; u.cell = c.i; u.home = c.i; }
+    for (let i = 0; i < f.cells.length; i++) run(f, { p: 'hole', n: 1, max: f.cells.length });
+    const front = f.cells.filter(c => c.row < f.R.pos!.tankRows);
+    expect(front.filter(c => c.block !== 'hole').length).toBeGreaterThanOrEqual(1);
+    expect(front.some(c => c.block === 'hole')).toBe(true); // 나머지 1열 칸은 무너질 수 있음
+  });
   it('토템: 빈 칸 하나를 막고 이웃 칸에 오라 장판, 부수면 칸과 오라가 사라짐', () => {
     const f = fight();
     run(f, { p: 'adds', n: 1, add: { name: '진흙 토템', short: '토템', hp: 0.05, dmg: 0, every: 99, aura: 9 } });

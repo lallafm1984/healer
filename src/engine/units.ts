@@ -12,7 +12,7 @@ import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './s
 import { barkCut, putSprout, sproutSpec } from './heroes';
 import { dropDone } from './shaman';
 import { mistHop } from './monk';
-import { frontCell, posDps } from './position';
+import { frontCell, posDps, yieldFront } from './position';
 import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
@@ -212,6 +212,7 @@ function think(f: Fight, u: Unit): void {
     if (u.wob != null && !regrouping(f, u) && tankLost(f, u)) return; // 능력치 (99 나): 머뭇거림 · 엉뚱한 칸 (수습 틈이면 바로)
     const c = frontCell(f, u);
     if (c && c.i !== u.cell && moveTo(f, u, c)) { u.home = c.i; u.homeAt = null; return; }
+    if (!c && yieldFront(f, u)) return; // 1열 칸이 다 막혔으면 1열에 선 딜러가 비켜 줌 (칸이 비면 다음 판단에 나감)
   }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
   if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {

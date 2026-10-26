@@ -148,6 +148,62 @@ describe('뺏기 · 되찾기', () => {
   });
 });
 
+describe('되찾은 뒤 · 1열로 돌아온 뒤 (2026-10-27 Lim 「탱커가 1분가까이(거의 무한으로) 어그로를 못잡고 방황」)', () => {
+  /** 탱커를 1열 밖 (row 1) 빈 칸 / 원래 칸으로 바로 옮김 */
+  const moveTank = (f: F, cell: number) => { const tk = who(f, '탱'); f.cells[tk.cell].unit = null; f.cells[cell].unit = tk; tk.cell = cell; tk.home = cell; };
+
+  it('되찾으면 탱커 위협 = 모두 가운데 가장 큰 위협 × 1.1 (뺏은 사람보다 센 딜러가 있어도), retakeLock초 동안은 아무도 못 뺏음', () => {
+    const f = fight(), tk = who(f, '탱'), rg = who(f, '근'), mg = who(f, '마');
+    steps(f, 10);
+    const t = f.thr!;
+    t.steal = { id: rg.id, at: f.t, stopAt: f.t };
+    t.retakeAt = f.t;
+    setRatio(f, '근', 1.2); setRatio(f, '마', 3);
+    const vM = t.v.get(mg.id)!;
+    threatTick(f);
+    expect(t.steal).toBeNull();
+    expect(t.v.get(tk.id)! / (vM * Math.pow(0.5, E.DT / THREAT.half))).toBeCloseTo(THREAT.retakeMult, 1);
+    const end = f.t + THREAT.retakeLock - 0.1;
+    while (f.t < end) { f.t += E.DT; setRatio(f, '마', THREAT.leeway['보통'] * 1.5); threatTick(f); expect(t.steal).toBeNull(); }
+    for (let i = 0; i < 40 && !t.steal; i++) { f.t += E.DT; setRatio(f, '마', THREAT.leeway['보통'] * 1.5); threatTick(f); }
+    expect(t.steal?.id).toBe(mg.id); // 잠금이 끝나면 다시 뺏을 수 있음
+  });
+
+  it('1열을 떠나 보스가 아무나 친 뒤 돌아오면 바로 잡음: 위협 = 가장 큰 위협 × 1.1 · retakeLock초 동안 못 뺏음', () => {
+    const f = fight(), tk = who(f, '탱'), mg = who(f, '마');
+    steps(f, 10);
+    const t = f.thr!, home = tk.cell;
+    moveTank(f, f.cells.find(c => c.row === 1 && !c.unit && !c.block)!.i);
+    f.zones.push({ id: 9997, cells: new Set(f.cells.filter(c => c.row === 0).map(c => c.i)), end: Infinity, dps: 0 });
+    steps(f, 1);
+    expect(f.loose).not.toBeNull();
+    f.zones = f.zones.filter(z => z.id !== 9997);
+    moveTank(f, home);
+    setRatio(f, '마', 3);
+    const vM = t.v.get(mg.id)!;
+    E.step(f); f.events.length = 0;
+    expect(f.loose).toBeNull();
+    expect(t.v.get(tk.id)!).toBeGreaterThan(vM * THREAT.retakeMult * 0.9);
+    expect(t.lockUntil).toBeCloseTo(f.t + THREAT.retakeLock, 1);
+    const end = f.t + THREAT.retakeLock - 0.2;
+    while (f.t < end) { f.t += E.DT; setRatio(f, '마', THREAT.leeway['보통'] * 1.5); threatTick(f); expect(t.steal).toBeNull(); }
+  });
+
+  it('판단 1 딜러가 뺏어 되찾기가 늦어져도 10초 안 (2026-10-25 Lim 「최대 10초」, 예전 × 1.5 = 15초까지)', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const f = fight({ tank: { st: { react: 1, skill: 1 } }, rogue: { st: { judgment: 1 } } }), rg = who(f, '근');
+      f.rng = E.rngFrom(seed);
+      steps(f, 10);
+      const t = f.thr!;
+      t.lockUntil = undefined; t.steal = null; t.retakeAt = null; t.readyAt = 0; t.over.clear();
+      for (let i = 0; i < 40 && !t.steal; i++) { f.t += E.DT; setRatio(f, '근', 3); setRatio(f, '마', 0); setRatio(f, '궁', 0); threatTick(f); }
+      expect(f.thr!.steal?.id).toBe(rg.id);
+      expect(t.retakeAt! - f.t).toBeLessThanOrEqual(THREAT.retakeMax + 1e-9);
+      expect(t.retakeAt! - f.t).toBeGreaterThanOrEqual(THREAT.retakeMin - 1e-9);
+    }
+  });
+});
+
 describe('능력치 · 성격 · 레벨', () => {
   it('되찾기까지 (2026-10-25 Lim): 반응 1 → 10초 · 10 → 6초 · 20 → 3초, 기술 숙련 1 · 20 = × 1.5 · × 0.5, 3~10초', () => {
     const a = fight({ tank: { st: { react: 1 } } });

@@ -27,6 +27,10 @@ export interface ThreatState {
   /** 탱커가 되찾는 때 (반응) · 되찾기를 다시 쓸 수 있는 때 · 되찾은 횟수 */
   retakeAt: number | null;
   readyAt: number;
+  /** 되찾은 뒤 · 1열로 돌아와 다시 잡은 뒤 이때까지는 아무도 못 뺏음 (THREAT.retakeLock) */
+  lockUntil?: number;
+  /** 보스가 탱커가 아닌 사람을 보고 있었음 (1열 이탈 · 띄우기 · 별의 잠): 탱커가 다시 받으면 바로 잡음 (pickUp) */
+  away?: boolean;
   retakes: number;
   /** 뺏기 직전 (선의 90%)인 딜러 (판 위 주황 테두리) */
   warn: number[];
@@ -216,7 +220,7 @@ export function threatTick(f: Fight): void {
   t.vN += inc;
   for (const u of f.party) if (u.role === 'tank' && u.alive) { const m = tankMult(f, u); if (m) t.v.set(u.id, (t.v.get(u.id) ?? 0) + inc * m); }
   const base = f.bodyHp ? null : aggroTarget(f);
-  if (!base || base.role !== 'tank') { endSteal(f); t.warn = []; t.me = 0; t.holder = base?.role === 'tank' ? base.id : null; return; }
+  if (!base || base.role !== 'tank') { endSteal(f); t.warn = []; t.me = 0; t.holder = base?.role === 'tank' ? base.id : null; if (base) t.away = true; return; }
   // 보스를 받은 탱커가 바뀜 (교대 · 띄우기 · 별의 잠 · 쓰러짐): 지금 탱커의 위협을 이어받음
   if (t.holder !== base.id) {
     if (t.holder != null) t.v.set(base.id, Math.max(t.v.get(base.id) ?? 0, t.v.get(t.holder) ?? 0));
@@ -225,6 +229,14 @@ export function threatTick(f: Fight): void {
   const vT = t.v.get(base.id) ?? 0, L = leewayOf(f);
   /** 위협 ÷ 탱커 위협 (1을 넘으면 탱커보다 큼, 여유를 넘으면 뺏음) */
   const raw = (u: Unit) => (u.me ? healerRaw(f, base) : vT > 0 ? ((t.v.get(u.id) ?? 0) * levelMult(f, u, base)) / vT : 0);
+  /** 탱커 위협을 모두 가운데 가장 큰 위협 × retakeMult 위로 올리고 retakeLock초 동안 못 뺏게 (되찾기 · 1열로 돌아와 다시 잡음) */
+  const pickUp = () => {
+    const most = Math.max(0, ...living(f).filter(u => u.role !== 'tank' && !u.lift).map(raw));
+    t.v.set(base.id, Math.max(vT, most * vT * THREAT.retakeMult));
+    t.lockUntil = f.t + THREAT.retakeLock; t.over.clear();
+  };
+  // 1열로 돌아옴 (2026-10-27 Lim 「탱커가 1분가까이 … 방황」): 그동안 보스가 아무나 친 것이라 위협이 식은 채 돌아오면 딜러가 0.6초 만에 다시 뺏었음. 돌아오면 바로 잡음
+  if (t.away) { t.away = false; if (f.t >= THREAT.start) pickUp(); }
   t.warn = [];
   let top: Unit | null = null, topR = 0;
   for (const u of living(f)) {
@@ -255,8 +267,8 @@ export function threatTick(f: Fight): void {
     if (!who || !who.alive) { f.stats.stealDeaths = (f.stats.stealDeaths ?? 0) + 1; endSteal(f); return; } // 쓰러짐
     // 되찾을 때까지 보스는 그 사람을 봄 (위협이 식어도 저절로 안 돌아감): 판 위 주황 띠도 그 사람에게 (내가 뺏으면 띠 없음)
     if (!who.me && !t.warn.includes(who.id)) t.warn.push(who.id);
-    if (t.retakeAt != null && f.t + 1e-9 >= t.retakeAt) { // 되찾기 (모든 탱커의 기본 행동, 재사용 8초): 탱커 위협 = 뺏은 사람의 1.1배
-      t.v.set(base.id, raw(who) * vT * THREAT.retakeMult);
+    if (t.retakeAt != null && f.t + 1e-9 >= t.retakeAt) { // 되찾기 (모든 탱커의 기본 행동, 재사용 8초): 탱커 위협 = 모두 가운데 가장 큰 위협의 1.1배
+      pickUp(); // 뺏은 사람만이 아니라 모두 가운데 가장 큰 위협 위로
       t.readyAt = f.t + THREAT.retakeCd; t.retakes++;
       aggroBark(f, base, !who.me && t.retakes >= THREAT.levelBarkAt ? 'aggroLevel' : 'aggroRegain'); // 「딜러 레벨 차이」 대사는 딜러가 뺏었을 때만
       emit(f, { type: 'aggro', id: base.id, from: s.id });
@@ -264,14 +276,14 @@ export function threatTick(f: Fight): void {
     }
     return;
   }
-  if (f.t < THREAT.start || !top) return;
+  if (f.t < THREAT.start || !top || (t.lockUntil != null && f.t < t.lockUntil)) return; // 되찾은 뒤 잠깐은 못 뺏음 (retakeLock)
   // 뺏음: 보스가 그 사람을 봄
   const hb = top.me ? null : stealHabit(top);
   const stops = !!hb && hb.stopFor > 0;
   t.steal = { id: top.id, at: f.t, stopAt: top.me ? Infinity : f.t + calmDelay(top) + (stops ? STAT_ACT.panicHit * hb!.panic : 0), ...(hb ? { stopFor: hb.stopFor, cut: hb.cut } : {}) };
   // 99 마: 판단이 낮아 계속 때리는 딜러면 탱커가 되찾기 어려움
   const ign = hb && top.wob != null ? lack(stat(top, 'judgment')) : 0;
-  t.retakeAt = Math.max(f.t + retakeAfter(f, base) * (1 + STAT_ACT.ignoreRetake * ign), t.readyAt);
+  t.retakeAt = Math.max(f.t + Math.min(THREAT.retakeMax, retakeAfter(f, base) * (1 + STAT_ACT.ignoreRetake * ign)), t.readyAt); // 늦어져도 10초 안 (2026-10-25 Lim 「최대 10초」)
   top.thrEase = false;
   if (top.me) f.stats.healerSteals = (f.stats.healerSteals ?? 0) + 1; else f.stats.steals = (f.stats.steals ?? 0) + 1;
   let shape: 'guard' | 'panic' | 'lost' | null = null; // Codex 검토 반영 1: 판단 × 침착 네 모양

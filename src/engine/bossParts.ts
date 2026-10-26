@@ -238,9 +238,12 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'hole': {
-      // 무너지는 바닥 (P-HOLE): 판 가운데에서 먼 빈 칸부터. 빈 칸은 늘 1개 이상 남김 (35 1-1 원칙 6)
+      // 무너지는 바닥 (P-HOLE): 판 가운데에서 먼 빈 칸부터. 빈 칸은 늘 1개 이상 남김 (35 1-1 원칙 6).
+      // 위치 규칙이 있으면 1열 칸도 1개 이상 남김 (2026-10-27 Lim 「탱커가 1분가까이(거의 무한으로) … 방황」: 탱커가 장판을 피해 비운 1열 칸까지 무너져 1열이 다 구멍이면 그 판 끝까지 탱커가 못 잡았음, 얼음 서고 200초)
+      const front = (c: Cell) => !!f.R.pos && c.row < f.R.pos.tankRows;
+      const lastFront = (c: Cell) => front(c) && !f.cells.some(x => x !== c && front(x) && x.block !== 'hole');
       for (let i = 0; i < e.n && f.cells.filter(c => c.block === 'hole').length < e.max; i++) {
-        const free = f.cells.filter(c => !c.unit && !c.block);
+        const free = f.cells.filter(c => !c.unit && !c.block && !lastFront(c));
         if (free.length <= 1) break;
         const far = Math.max(...free.map(c => fromMid(f, c)));
         const pick = free.filter(c => fromMid(f, c) > far - 1e-6);

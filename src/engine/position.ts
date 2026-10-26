@@ -5,7 +5,7 @@
  */
 import { hexDist } from './board';
 import { emit, living, randomTargets } from './core';
-import { dangerAt } from './movement';
+import { dangerAt, moveTo } from './movement';
 import type { Cell, Fight, Role, Unit } from './types';
 
 const rowOf = (f: Fight, u: Unit): number => f.cells[u.cell]?.row ?? 0;
@@ -28,6 +28,34 @@ export function frontCell(f: Fight, u: Unit): Cell | null {
     if (!best || hexDist(at, c) < hexDist(at, best)) best = c;
   }
   return best;
+}
+
+/**
+ * 1열에 비어 있는 안전한 칸이 없어 탱커가 못 나갈 때 (2026-10-27 Lim 「탱커가 1분가까이(거의 무한으로) 어그로를 못잡고 방황」): 안전한 1열 칸에 선 파티원
+ * (탱커 · 나 말고, 탱커에게 가장 가까운 사람)이 1열 밖 가장 가까운 안전한 빈 칸으로 비켜 섬 (근접은 공격하는 줄 안, 그 칸이 새 자리). 탱커는 칸이 비면 그리로 나감.
+ * 예전엔 장판이 1열 두 칸을 덮고 남은 칸에 근접이 서 있으면 장판이 걷힐 때까지 (8 ~ 9초) 탱커가 2열에서 머뭇거리며 보스를 못 잡았음. 비켰으면 true
+ */
+export function yieldFront(f: Fight, tank: Unit): boolean {
+  const p = f.R.pos;
+  if (!p) return false;
+  const at = f.cells[tank.cell];
+  let seat: Cell | null = null;
+  for (const c of f.cells) {
+    const v = c.unit;
+    if (c.row >= p.tankRows || c.block || !v || v.role === 'tank' || v.me || !v.alive || v.moving || dangerAt(f, c.i)) continue;
+    if (!seat || hexDist(at, c) < hexDist(at, seat)) seat = c;
+  }
+  if (!seat) return false;
+  const v = seat.unit!;
+  let best: Cell | null = null, bs = Infinity;
+  for (const c of f.cells) {
+    if (c.unit || c.block || c.row < p.tankRows || dangerAt(f, c.i)) continue;
+    const s = hexDist(seat, c) * 10 - posPref(f, v.role, c, 100);
+    if (s < bs) { bs = s; best = c; }
+  }
+  if (!best || !moveTo(f, v, best)) return false;
+  v.home = best.i; v.homeAt = null;
+  return true;
 }
 
 /** 위치에 따른 공격력 배율: 근접 (탱커 포함)은 1 · 2열 밖이면 0, 원거리는 레이드 판 1 · 2열이면 rangedDps */
