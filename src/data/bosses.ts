@@ -4593,7 +4593,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '역병 폭주', period: 2, dmg: 250 },
   },
-  // 역병 대사제 말로스 탐험판 (탐험 ㊱ 왕도 지붕길 Lv 50): 던전 ㉙ ②의 평타 · 역병 사슬 · 썩은 기도만 (3인 사슬 = 탱커와 딜러)
+  // 역병 대사제 말로스 탐험판 (탐험 ㊱ 왕도 지붕길 Lv 50): 던전 ㉙ ②의 평타 · 역병 사슬 · 썩은 기도 + 질병 퍼뜨리기 (2026-10-27) (3인 사슬 = 탱커와 딜러)
   malos50: {
     phase: [1, ''],
     skills: [
@@ -4602,6 +4602,10 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '이어진 둘이 피해 · 치유를 반씩 나눔', effect: { p: 'link', kind: 'share', name: '역병 사슬', sec: 14 } },
       { key: 'prayer', name: '썩은 기도', icon: '기도', kind: 'instant', first: 6, period: 12, cast: 0,
         effect: { p: 'rot', n: 1, debuff: { name: '썩은 기도', type: '질병', left: 24, end: { p: 'restoreMax' } }, pct: 0.08, max: 3, again: 0.5 } },
+      // 2026-10-27 Lim 「지붕길」: 던전판 (malos)의 질병 퍼뜨리기 (두면 끝날 때 이웃 칸에 번짐)를 그대로
+      { key: 'spread', name: '질병 퍼뜨리기', icon: '번짐', kind: 'instant', first: 15, period: 22, cast: 0,
+        how: '두면 끝날 때 이웃 칸에 번짐 (피해 + 독침). 이웃이 없을 때 지우거나, 붙어 서기 전에 지우기',
+        effect: { p: 'debuff', n: 1, debuff: { name: '퍼지는 역병', type: '질병', left: 8, trap: true, end: { p: 'spread' } } } },
       { key: 'aoe', name: '대사제의 기도', icon: '기도', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 180 } },
     ],
     enrage: { name: '역병 폭주', period: 2, dmg: 195 },

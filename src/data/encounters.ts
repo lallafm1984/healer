@@ -1182,7 +1182,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '다락 박쥐 떼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
-  malos50: { key: 'malos50', lowLevel: true, name: '역병 대사제 말로스', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malos50', stage: 0.3, debuffs: ['질병'] },
+  // 체력 2026-10-27 Lim 「지붕길」 (교단 숲속 야영지처럼 지루함): 2400 → 1500
+  malos50: { key: 'malos50', lowLevel: true, name: '역병 대사제 말로스', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malos50', stage: 0.3, debuffs: ['질병'] },
   // 던전 ㉚ 반딧불 빵집 (Lv 53): 일반 밀가루 창고 → 밀가루 요정 폴폴 → 정예 오븐 앞 → 케이크 골렘 몽글이
   flourstore: trash('flourstore', '밀가루 창고', [
     { name: '버섯 꼬마 경비', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
