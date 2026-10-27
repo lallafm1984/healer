@@ -1419,6 +1419,7 @@ export const BOSS_CAST_SOUND: Record<string, string> = {
   "malmijal:jail": 'boss-water-cast',
   "malos50:chain": 'boss-poison-cast',
   "malos50:prayer": 'boss-poison-cast',
+  "malos50:spread": 'boss-poison-cast',
   "malos:chain": 'boss-poison-cast',
   "malos:prayer": 'boss-poison-cast',
   "malos:spread": 'boss-poison-cast',
