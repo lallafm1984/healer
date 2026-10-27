@@ -13,8 +13,6 @@
   background: linear-gradient(#ffe68a, #d9a43a); color: #2a1806; font: 800 9px/14px var(--font-display);
   text-shadow: none; box-shadow: 0 1px 2px #000a; pointer-events: none;
 }
-/* 보충 장소 (113 8장) 처음 가 보기 전 */
-#s-content .b-region .b-rec.new { background: linear-gradient(#bff0c8, #6fbf86); color: #0f2614; }
 #s-content .b-dc .b-fit {
   position: absolute; z-index: 1; top: -6px; left: 50%; transform: translateX(-50%);
   padding: 0 5px; border-radius: 7px; font: 800 9px/13px var(--font-display); letter-spacing: 0;

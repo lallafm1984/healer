@@ -96,10 +96,18 @@ describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
     expect(rampRefLevel(contentOf('rustfort'), '보통')).toBe(5); // 적 Lv 7이지만 쉬움을 깬 Lv 5에 들어가는 칸
     expect(rampRefLevel(contentOf('snowlab'), '보통')).toBeNull();
   });
-  it('2026-10-17 Lim 「내 레벨이 11인데 권장레벨 16이 추천」: 역병 약초 온실 악몽은 적 Lv 16이지만 길에서 Lv 11에 들어가는 칸 → 권장 레벨 11 · 적정', () => {
+  it('2026-10-28 Lim 「탐험 및 던전의 권장 레벨이 쉬움, 보통이 같고 어려움, 악몽이 같다」: 순차 구간 장소는 난이도마다 1씩 (장소 Lv + 0 · 1 · 2 · 3), 길에서 들어가는 레벨 이상', () => {
+    for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
+      expect(ALL_DIFFS.map(d => recLevel(x, d)), x.key).toEqual(ALL_DIFFS.map((d, i) => Math.min(stageOf(x, d), x.stageLv + i)));
+      for (const d of ALL_DIFFS) expect(recLevel(x, d), `${x.key} ${d}`).toBeGreaterThanOrEqual(Math.min(stageOf(x, d), rampRefLevel(x, d)!)); // 튜토리얼 녹슨 고원 쉬움은 적 Lv 1
+    }
+    expect(ALL_DIFFS.map(d => recLevel(contentOf('rustfort'), d))).toEqual([5, 6, 7, 8]);
+    expect(ALL_DIFFS.map(d => recLevel(contentOf('snowlab'), d))).toEqual(ALL_DIFFS.map(d => stageOf(contentOf('snowlab'), d))); // 그 밖 장소는 적 레벨 (0 · 2 · 4 · 6)
+  });
+  it('2026-10-17 Lim 「내 레벨이 11인데 권장레벨 16이 추천」: 역병 약초 온실 악몽은 적 Lv 16이지만 길에서 Lv 11에 들어가는 칸 → 적정, 권장 레벨은 장소 Lv + 3 = 13', () => {
     const g = contentOf('greenhouse');
     expect(stageOf(g, '악몽')).toBe(16);
-    expect(recLevel(g, '악몽')).toBe(11);
+    expect(recLevel(g, '악몽')).toBe(13);
     expect(four(g, 11, 0)).toEqual(['여유', '적정', '적정', '적정']);
     expect(recLevel(c, '악몽')).toBe(36); // 그 밖 장소는 적 레벨
     expect(recLevel(contentOf('abyss1'), '보통')).toBe(stageOf(contentOf('abyss1'), '보통'));
@@ -250,13 +258,13 @@ describe('모험 길잡이 (guide)', () => {
 });
 
 describe('공개모집 레벨 바탕 = 권장 레벨 (2026-10-27 Lim 「권장레벨에 맞춰」 → 1)', () => {
-  it('순차 구간은 적 레벨보다 낮을 수 있고 (온실 악몽 적 Lv 16 · 권장 Lv 11), 그 밖은 적 레벨. 파티원 레벨 = 이것 ± 1', async () => {
+  it('순차 구간은 적 레벨보다 낮을 수 있고 (온실 악몽 적 Lv 16 · 권장 Lv 13), 그 밖은 적 레벨. 파티원 레벨 = 이것 ± 1', async () => {
     const { recruitParty } = await import('../src/engine/fight');
     const gh = contentOf('greenhouse');
     expect(stageOf(gh, '악몽')).toBe(16);
-    expect(recLevel(gh, '악몽')).toBe(11);
+    expect(recLevel(gh, '악몽')).toBe(13);
     const p = recruitParty(gh.fights('악몽')[0], 7, { abilities: true, myLv: 11, stageLv: recLevel(gh, '악몽') });
-    for (const m of p) expect(Math.abs((m.lv ?? 0) - 11)).toBeLessThanOrEqual(1);
+    for (const m of p) expect(Math.abs((m.lv ?? 0) - 13)).toBeLessThanOrEqual(1);
     for (const c of CONTENT.filter(x => !isLeveling(x))) for (const d of ALL_DIFFS) expect(recLevel(c, d)).toBe(stageOf(c, d));
     const lower = CONTENT.flatMap(c => ALL_DIFFS.filter(d => recLevel(c, d) < stageOf(c, d)).map(d => ({ c, d })));
     expect(lower.length).toBeGreaterThan(40);

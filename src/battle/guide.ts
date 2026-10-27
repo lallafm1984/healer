@@ -4,7 +4,7 @@
  */
 import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
-import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
+import { ENCOUNTERS, enrageOf, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
 import { mobLookOf } from '../data/mob-looks';
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
@@ -461,7 +461,7 @@ function dataGuide(c: GuideCtx): GuideBody {
 
 export type GuideModel = GuideBody & { enc: Encounter; diff: DiffName; m: number; dodge: number; bossMax: number; hp: Probe['hp']; tier: string; B: Record<string, Num> };
 export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number, variant = 0): GuideModel {
-  const enc = ENCOUNTERS[encKey], P = probe(encKey, diff, stageLv, heroLv, variant);
+  const enc = { ...ENCOUNTERS[encKey], enrage: enrageOf(encKey, diff) }, P = probe(encKey, diff, stageLv, heroLv, variant); // 광폭화는 난이도마다 (data/pace)
   const m = P.m, n = (x: number) => Math.round(x * m);
   const B = bossNums(enc.script);
   const g = (GUIDE[enc.script] ?? dataGuide)({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B, hpMult: P.bossMax / enc.hp, variant });

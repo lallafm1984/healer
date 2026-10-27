@@ -10,13 +10,20 @@ export const PACE = { hp: 0.55, skill: 0.7, enrage: 0.55 } as const;
  * 쉬움 0.55 × 0.85 ≈ 0.47 · 보통 0.55 × 0.9 ≈ 0.5 (= 예전의 반쯤), 어려움 · 악몽 0.55
  */
 export const PACE_DIFF_HP: Partial<Record<'쉬움' | '보통' | '어려움' | '악몽', number>> = { '쉬움': 0.85, '보통': 0.9 };
+/**
+ * 광폭화 배율 난이도별 (2026-10-28 Lim 「악몽의 광폭화시간이 너무 짧아서 계속 광폭화가 된다」): 위 PACE.enrage (0.55, 쉬움 = 데이터 표 ENCOUNTERS 값) 대신 곱함.
+ * 0.55 하나일 때 이긴 판 보스전이 광폭화 시각의 가운데 보통 69 · 어려움 80 · 악몽 87% (순차 구간, 악몽은 보스 체력 × 1.3 · 4 ~ 6레벨 높은 적)라
+ * 악몽은 절반 가까이 광폭화 뒤에 끝났음. 이 값으로 모든 레벨대 가운데 64% 이하 · 열에 아홉 84% 이하 (.sim 측정, 녹슨 문지기 185 · 205 · 240 · 270초)
+ */
+export const PACE_DIFF_ENRAGE: Partial<Record<'쉬움' | '보통' | '어려움' | '악몽', number>> = { '보통': 0.6, '어려움': 0.7, '악몽': 0.8 };
 
 /** 이 구간이 빨라지나: 탐험 · 던전 보스 (잡몹 구간 · 레이드 · 튜토리얼 아님) */
 export const pacedTier = (tier: string, script: string): boolean => script !== 'trash' && /^(탐험|던전) ·/.test(tier);
 
-/** 보스 체력 (50 단위) · 광폭화 (5초 단위) */
+/** 보스 체력 (50 단위) · 광폭화 (5초 단위, 난이도를 주면 PACE_DIFF_ENRAGE) */
 export const paceHp = (hp: number): number => Math.max(50, Math.round((hp * PACE.hp) / 50) * 50);
-export const paceEnrage = (sec: number): number => (Number.isFinite(sec) ? Math.round((sec * PACE.enrage) / 5) * 5 : sec);
+export const paceEnrage = (sec: number, diff?: keyof typeof PACE_DIFF_ENRAGE): number =>
+  (Number.isFinite(sec) ? Math.round((sec * ((diff && PACE_DIFF_ENRAGE[diff]) || PACE.enrage)) / 5) * 5 : sec);
 /**
  * 기술 주기 (틱 0.05초 단위, 반올림): 데이터는 0.5초 단위라 × 0.7은 0.35초의 배수로 딱 떨어져 주기끼리의 비 (돌가루 22.5초 · 무력화 45초 = 두 배)가 그대로.
  * 주기는 시전 + 1초보다 짧아지지 않게 (예전부터 짧았으면 그대로)

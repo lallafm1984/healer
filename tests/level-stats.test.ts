@@ -1,7 +1,8 @@
 /** 102 레벨별 능력치 균형 → 104 레벨업 점수 · 광폭화 배율 · 빗나감 대사 (2026-10-19 Lim) */
 import { describe, expect, it } from 'vitest';
 import type { ClassKey } from '../src/data/classes';
-import { ENCOUNTERS, ENRAGE_MULT, RAW_ENCOUNTERS } from '../src/data/encounters';
+import { ALL_DIFFS } from '../src/data/content';
+import { ENCOUNTERS, enrageOf, ENRAGE_MULT, RAW_ENCOUNTERS } from '../src/data/encounters';
 import { GROW_TYPES, growthOf, lvAdds, LV_PTS, lvPoints, statsAt, STAT_KEYS, type Stats } from '../src/data/fm';
 import type { PersName } from '../src/data/personalities';
 import { STAT_ACT } from '../src/data/rules';
@@ -94,6 +95,15 @@ describe('광폭화 배율 (Lim 「광폭화 시간을 전체적으로 늘려주
     expect(ENCOUNTERS.warden.enrage).toBe(185); // 탐험 · 던전 보스는 × 0.55 (2026-10-27, 5초 반올림)
     expect(ENCOUNTERS.plague.enrage).toBe(490); // 레이드는 그대로
     for (const e of Object.values(ENCOUNTERS)) if (Number.isFinite(e.enrage)) expect(e.enrage % 5, e.key).toBe(0);
+  });
+  it('2026-10-28 Lim 「악몽의 광폭화시간이 너무 짧아서 계속 광폭화가 된다」: 탐험 · 던전 보스 광폭화는 난이도마다 0.55 · 0.6 · 0.7 · 0.8배, 전투 · 공략이 같은 값', () => {
+    expect(ALL_DIFFS.map(d => enrageOf('warden', d))).toEqual([185, 205, 240, 270]);
+    expect(ALL_DIFFS.map(d => enrageOf('plague', d))).toEqual([490, 490, 490, 490]); // 레이드는 그대로
+    for (const d of ALL_DIFFS) {
+      expect(E.create({ encounter: 'warden', diff: d, seed: 1 }).enc.enrage, d).toBe(enrageOf('warden', d));
+      expect(E.create({ encounter: 'warden', diff: d, seed: 1, proto: true }).enc.enrage, d).toBe(340); // 프로토타입 일치는 빠르기 전 표
+    }
+    for (const e of Object.values(ENCOUNTERS)) for (const d of ALL_DIFFS) if (Number.isFinite(e.enrage)) expect(enrageOf(e.key, d) % 5, `${e.key} ${d}`).toBe(0);
   });
 });
 
