@@ -41,3 +41,24 @@ describe('공략 카드', () => {
     expect(html).not.toContain('보스 기술');
   });
 });
+
+// 2026-10-27 Lim 「역병사슬이 걸리면 어떻게 되는지, 퍼지는 역병이 걸리면 어떤 효과인지 설명이 없어서 … 공략에서는 상세히 (다른 모든 보스 스킬 해당)」
+describe('공략 기술 글 = 걸리면 무엇이 되는지', () => {
+  it('역병 사슬 · 퍼지는 역병: 나눔 · 번짐을 숫자까지', () => {
+    const g = guideModel('malos', '보통', 30, 30);
+    const chain = g.skills.find(s => s.name === '역병 사슬')!.tip(null)[0];
+    const spread = g.skills.find(s => s.name === '질병 퍼뜨리기')!.tip(null)[0];
+    expect(chain).toMatch(/「역병 사슬」로 14초 이음 \(해제 안 됨\): 이어진 둘이 받는 피해 · 치유를 반씩 나눔/);
+    expect(spread).toMatch(/「퍼지는 역병」 \(질병, 8초 · 끝나면 터져 이웃 칸 아군 \d+ \+ 「독침」 \(독, 12초 · 초당 \d+\), 지우면 그 자리에서 바로 터짐\)/);
+  });
+  it('모든 보스 · 구간: 쫄은 하는 일, 차례 디버프는 디버프마다 효과', () => {
+    for (const c of CONTENT) for (const k of new Set(c.fights('악몽'))) {
+      for (const s of guideModel(k, '악몽', c.stageLv, 60).skills) {
+        const t = s.tip(null)[0];
+        expect(t.length, `${k} ${s.name}`).toBeGreaterThan(8);
+        expect(t, `${k} ${s.name}`).not.toMatch(/마리 등장$|디버프를 차례로 \(/);
+        expect(t, `${k} ${s.name}`).not.toMatch(/「[^」]+」 \([^,()]+, [\d.]+초\)/); // 효과 없는 디버프 글
+      }
+    }
+  });
+});

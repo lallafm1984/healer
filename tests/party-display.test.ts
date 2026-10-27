@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers } from '../src/battle/party-display';
+import { cellTypography, debuffBrief, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod, Unit } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -128,15 +128,22 @@ describe('디버프 요약', () => {
     expect(debuffDisplay(debuff(), 'priest', true).text).toBe('질5');
     expect(debuffDisplay(debuff({ left: -0.1 }), 'priest').seconds).toBe(0);
   });
-  it('해제 불가·함정도 배지에 기호 없이 표시하고 상세 안내는 유지한다', () => {
+  it('해제 불가·함정도 배지에 기호 없이 표시하고 상세 글은 직업별 해제 대신 효과 (2026-10-27 Lim)', () => {
     const poison = debuff({ type: '독' });
     expect(debuffDisplay(poison, 'priest', true)).toMatchObject({ text: '독5', state: 'unavailable' });
     expect(debuffDisplay(poison, 'druid', true)).toMatchObject({ text: '독5', state: 'available' });
     expect(debuffDisplay(debuff({ trap: true }), 'priest', true)).toMatchObject({ text: '질5', state: 'dangerous' });
-    expect(debuffDisplay(debuff({ trap: true }), 'priest').detail).toContain('해제 시 전염 폭발');
+    expect(debuffDisplay(debuff({ trap: true, end: { p: 'spread' } }), 'priest').detail).toBe('부패 · 질병 · 5초 · 끝나거나 지우면 옆 칸에 번짐');
+    for (const hero of ['priest', 'druid'] as const) expect(debuffDisplay(poison, hero).detail).not.toMatch(/해제/);
   });
   it('중첩과 원래 이름은 상세 요약에 보존한다', () => {
-    expect(debuffDisplay(debuff({ name: '썩은 숨결', stack: 3 }), 'priest').detail).toBe('썩은 숨결 · 질병 · 5초, 3중첩 · 해제 가능');
+    expect(debuffDisplay(debuff({ name: '썩은 숨결', stack: 3, maxCut: 0.15 }), 'priest').detail).toBe('썩은 숨결 · 질병 · 5초, 3중첩 · 최대 체력 −15%, 끝나면 돌아옴');
+  });
+  it('짧은 효과: 하는 일을 앞의 둘만 (사슬 · 함정 · 체력 선 · 받는 치유)', () => {
+    expect(debuffBrief(debuff({ name: '역병 사슬', type: '마법', lock: true, link: { to: 2, kind: 'share' } }))).toBe('이어진 둘이 피해 · 치유를 반씩 나눔');
+    expect(debuffBrief(debuff({ name: '늪 거머리', type: '독', lock: true, dot: 20, cureAt: 1, end: { p: 'hit', dmg: 177 } }))).toBe('체력 100% 채우면 떨어짐 · 두면 끝날 때 피해');
+    expect(debuffBrief(debuff({ name: '먼지 범벅', type: '저주', healCut: 0.08, stack: 3, dot: 5 }))).toBe('받는 치유 −24% · 지속 피해');
+    expect(debuffBrief(debuff({ name: '부패', type: '질병' }))).toBe('');
   });
   it('표시할 대표 디버프를 고르면서 입력 순서나 내용을 바꾸지 않는다', () => {
     const poison = debuff({ id: 2, type: '독' }), disease = debuff(), trap = debuff({ id: 3, trap: true });

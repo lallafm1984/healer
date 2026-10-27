@@ -11,7 +11,7 @@ import { SKILLS } from '../data/skills';
 import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
-import { BOSSES, hardDef, hardOn, inVariant, mythicDef, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, inVariant, mythicDef, SPREAD, type AddDef, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
 import { bossNums } from './guideNums';
 import { RULES, zoneDps } from '../data/rules';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
@@ -281,24 +281,41 @@ for (const def of Object.values(BOSSES)) for (const d of def.skills) {
 export const iconColor = (ic: string, kind?: string): string => ICON_COLOR[ic] || KIND_COLOR[kind ?? ''] || '#BBB';
 const pctT = (x: number) => `${Math.round(x * 100)}%`;
 const ROW_NAME = { front: '앞줄', mid: '가운데 줄', back: '뒷줄' } as const;
-/** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
+/**
+ * 디버프 한 줄: 「부패」 (질병, 20초 · 최대 체력 −10%, 끝나면 돌아옴). 걸리면 무엇이 되는지 · 끝나거나 지우면 무엇이 되는지를 숫자까지 다 적는다
+ * (2026-10-27 Lim 「역병사슬이 걸리면 어떻게 되는지 … 공략에서는 상세히 설명하도록 (다른 모든 보스 스킬 해당)」). 전투 중 파티원 상세창은 짧게 (party-display.ts debuffBrief)
+ */
 function debuffText(d: DebuffDef, n: (x: number) => number): string {
-  const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
-    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap && d.end?.p !== 'trapLoan' ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
-    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : '',
-    d.feed ? `빨아들인 만큼 × ${d.feed} 보스 회복` : '', d.end?.p === 'trapHit' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 이웃 칸 <b>${n(d.end.burst)}</b>` : '',
-    d.end?.p === 'blast' ? `끝나거나 지우면 이웃 칸 <b>${n(d.end.dmg)}</b>` : '',
-    d.end?.p === 'trapLoan' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 터지지 않고 이웃 칸 ${d.end.n}명에게 빌린 생명 (최소 ${pctT(d.end.loan.debt?.min ?? 0.3)})` : '',
-    d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : '',
+  const e = d.end;
+  const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.stackMax && !d.vuln ? `또 걸리면 겹침 (최대 ${d.stackMax}, 초당 피해 × 중첩)` : '',
+    d.grow && d.cureAt ? `체력 ${pctT(d.cureAt)} 아래인 동안 ${secT(d.grow.every)}마다 1중첩, 중첩마다 초당 <b>${n(d.grow.dot)}</b> (최대 ${d.grow.max})` : '',
+    d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', e?.p === 'restoreMax' ? '끝나거나 지우면 최대 체력이 돌아옴' : '',
+    d.healCut ? `받는 치유 −${pctT(d.healCut)}${d.stackMax ? ' 중첩' : ''}` : '',
+    d.noDps ? '딜 0' : '', d.noMove ? '못 움직여 장판을 못 피함' : '', d.hide ? '판 기술에 안 맞음' : '', d.dpsCut ? `딜 −${pctT(d.dpsCut)}` : '',
+    d.invert ? '받는 치유가 그만큼 피해로' : '', d.lock ? '해제 안 됨' : '',
+    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.untilBossLoss != null ? `보스 체력을 ${pctT(d.untilBossLoss)} 깎으면 풀림` : '',
+    e?.p === 'hit' ? (d.absorb ? `막이 남은 채로 시간이 다 되면 <b>${n(e.dmg)}</b>` : `두면 시간 끝에 <b>${n(e.dmg)}</b>`) : '', e?.p === 'colDmg' ? `두면 시간 끝에 그 사람이 선 열 전체 <b>${n(e.dmg)}</b> (지우면 그냥 사라짐)` : '',
+    d.trap && (!e || e.p === 'spread') ? `끝나면 터져 이웃 칸 아군 <b>${n(SPREAD.dmg)}</b> + 「${SPREAD.debuff.name}」 (${SPREAD.debuff.type}, ${secT(SPREAD.debuff.left)} · 초당 ${n(SPREAD.debuff.dot)}), 지우면 그 자리에서 바로 터짐`
+      : e?.p === 'spread' ? `끝나면 이웃 칸 아군 <b>${n(SPREAD.dmg)}</b> + 「${SPREAD.debuff.name}」 (${SPREAD.debuff.type}, ${secT(SPREAD.debuff.left)} · 초당 ${n(SPREAD.debuff.dot)})` : '',
+    d.feed ? `빨아들인 만큼 × ${d.feed} 보스 회복` : '', e?.p === 'trapHit' ? `두면 시간 끝에 <b>${n(e.dmg)}</b>, 지우면 이웃 칸 아군 <b>${n(e.burst)}</b>` : '',
+    e?.p === 'blast' ? `끝나거나 지우면 (지우면 바로) 이웃 칸 아군 <b>${n(e.dmg)}</b>` : '',
+    e?.p === 'trapLoan' ? `두면 시간 끝에 <b>${n(e.dmg)}</b>, 지우면 터지지 않고 이웃 칸 ${e.n}명에게 빌린 생명 (최소 ${pctT(e.loan.debt?.min ?? 0.3)})` : '',
+    e?.p === 'jump' && e.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${e.mult}, 지우면 사라짐`
+      : e?.p === 'jump' ? `지우면 이웃 칸 아군 1명에게 ${secT(e.sec)} 옮겨붙고 초당 피해 ×${e.mult} (옆에 아무도 없으면 사라짐)${e.boost ? `, 두면 시간 끝에 보스 피해 +${pctT(e.boost)} (전투 끝까지)` : ''}` : '',
     d.vuln ? `받는 피해 +${pctT(d.vuln)}${d.stackMax ? ' 중첩' : ''}` : '', d.swap ? `${d.swap}중첩이면 탱커 교대` : '',
-    d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : '',
+    d.sub ? `탱커가 하나면 ${d.swap}중첩 때 근접 딜러가 ${secT(d.sub)} 대신 맞음` : '',
+    d.absorb ? `치유 흡수 막 <b>${n(d.absorb)}</b>: 받는 치유가 막을 먼저 깎고 그동안 체력은 안 참, 다 깎으면 사라짐` : '',
+    d.count ? '내가 스킬을 쓸 때마다 1중첩 (지우는 그 한 번은 안 셈)' : '', e?.p === 'stackHit' ? `끝나거나 지우면 중첩 × <b>${n(e.dmg)}</b>` : '',
+    d.drain ? `내 마나 초당 −${d.drain}%` : '',
+    d.charm ? `딜을 멈추고 ${secT(d.charm.every)}마다 이웃 칸 아군 <b>${n(d.charm.dmg)}</b>, 치유를 받을 때마다 +${secT(d.charm.heal)}, 체력 ${pctT(d.charm.free)} 아래가 되면 풀림` : '',
+    d.over ? `이 사람에게 넘친 치유 × ${d.over}만큼 이웃 칸 아군 피해` : '',
     d.swell ? `${secT(d.swell.every)}마다 1중첩 (최대 ${d.swell.max})` : '',
     d.shell ? `단단한 껍질 <b>${n(d.shell)}</b>: 최대 체력 ${pctT(d.shellMin ?? 0.25)} 넘는 직접 힐만 깎임 (작은 힐 · 지속 틱은 튕김), 두면 끝날 때 남은 막만큼 피해` : '',
     d.charge ? `직접 힐 ${d.charge.max}번째에 방전: 본인 <b>${n(d.charge.self)}</b> · 이웃 칸 <b>${n(d.charge.near)}</b> (지속 힐 · 광역은 안 셈)` : '',
-    d.end?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(d.end.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(d.end.self)}</b> + 이웃 칸 중첩 × <b>${n(d.end.near)}</b>` : '',
-    d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : '',
+    e?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(e.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(e.self)}</b> + 이웃 칸 중첩 × <b>${n(e.near)}</b>` : '',
+    d.cap != null ? `치유로는 체력이 ${pctT(d.cap)}까지만 참` : '', e?.p === 'flip' ? `두면 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%), 지우면 그냥 사라짐` : '',
     d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
-    (d.end?.p === 'blast' || d.end?.p === 'trapHit') && d.end.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', d.end?.p === 'pass' ? '지우면 남은 막이 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해' : ''].filter(Boolean);
+    (e?.p === 'blast' || e?.p === 'trapHit') && e.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', e?.p === 'pass' ? `지우면 남은 막이 가장 건강한 아군에게 ${secT(e.sec)} 넘어감, 두면 끝날 때 남은 막만큼 피해` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
@@ -310,6 +327,26 @@ const capHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `큰 피해 예고
 /** 묶음 C 새 부품 (48 5장) */
 const passHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `낮은 사람에게 붙으면 ${act('purify', RO)} 지워 건강한 사람에게 넘기고, 그 사람 몸에서 힐로 녹이기` : `못 지움. 붙은 사람에게 힐을 몰아 막을 녹이기`);
 const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 힐을 멈추고, 낮으면 오히려 둠${canDispel(S.hero, d.type) ? `. 높을 때는 ${act('purify', RO)} 지우기` : ''}`;
+/** 「으로 · 로」: ㄹ 받침도 「로」 (「역병 사슬」로) */
+const roJ = (w: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
+/** 판에 나오는 적이 하는 일 (P-ADD): 때리기 · 오라 · 하는 일 · 쓰러질 때. 「: …」로 붙고, 하는 일이 없으면 빈 글 */
+function addText(a: AddDef, c: GuideCtx): string {
+  const { n } = c, j = a.job;
+  const job = !j ? '' : j.p === 'mend' ? `${secT(j.every)}마다 보스 체력 ${j.pct < 0.01 ? `${+(j.pct * 100).toFixed(2)}%` : pctT(j.pct)} 회복`
+    : j.p === 'bomb' ? `${secT(j.sec)} 안에 못 깨면 터져 전원 <b>${n(j.dmg)}</b>${j.debuff ? ` + ${debuffText(j.debuff, n)}` : ''}`
+    : j.p === 'pylon' ? `서 있는 동안 보스가 받는 피해 −${pctT(j.cut)}`
+    : j.p === 'drain' ? `살아 있는 동안 내 마나 초당 −${j.pct}%`
+    : j.p === 'smash' ? `${secT(j.every)}마다 맡은 사람에게 ${secT(j.warn)} 예고 뒤 <b>${n(j.dmg)}</b>`
+    : j.p === 'march' ? `뒷줄에서 ${secT(j.every)}마다 한 줄씩 다가와 앞줄을 넘으면 보스에게 흡수: 보스 피해 +${pctT(j.boost)} (전투 끝까지)`
+    : j.p === 'fixate' ? `탱커 아닌 1명을 노려 ${secT(j.every)}마다 한 칸씩 다가가고, 붙으면 터져 그 사람 <b>${n(j.dmg)}</b> + 이웃 칸 <b>${n(j.splash)}</b>`
+    : j.p === 'sting' ? `${secT(j.every)}마다 탱커 아닌 1명에게 <b>${n(j.dmg)}</b> + ${debuffText(j.debuff, n)}`
+    : j.p === 'hatch' ? `${secT(j.sec)} 안에 못 깨면 알이 깨져 「${j.add.name}」${josa(j.add.name, '이', '가')} 나옴${addText(j.add, c)}`
+    : j.p === 'hoard' ? `${secT(j.sec)} 안에 못 깨면 보스가 주워 보스 피해 +${pctT(j.boost)} (전투 끝까지)` : '';
+  const hit = a.dmg > 0 && j?.p !== 'sting' ? `맡은 사람을 ${secT(a.every)}마다 <b>${n(a.dmg)}</b>` : '';
+  const parts = [job, hit, a.aura ? `이웃 칸에 선 사람 초당 <b>${n(a.aura)}</b>` : '', a.cleave ? '떼라서 딜러 딜이 모두에게 같이 들어감' : '',
+    a.down ? `쓰러질 때 ${a.down.p === 'burst' ? '살아 있는 모두' : '때리던 사람'}에게 ${debuffText(a.down.debuff, n)}` : ''].filter(Boolean);
+  return parts.length ? `: ${parts.join(' · ')}` : '';
+}
 /** 생명 사슬 쌍 수 (20인 물그림자 사슬, 51 4-3) */
 const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number => (c.mythic && e.pairsMythic) || e.pairs || 1;
 /** 기술 효과 → [무엇, 어떻게] */
@@ -332,26 +369,28 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)${e.pad ? `. 그 칸에 받침: 끝에 위 사람 <b>${n(e.pad.dmg)}</b>, 비어 있으면 전원 <b>${n(e.pad.empty)}</b>` : ''}`,
       e.pad ? '끌려온 사람을 받침 끝까지 세워 두기 (탱커와 묶어 광역, 울림 직전 단일 힐)' : `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
     case 'drag': return [`🌊 예고 때 고른 ${targetWho(d, c)}을 잠긴 줄로 끌어내려 ${secT(e.sec)} 묶어 둠 + <b>${n(e.dmg)}</b> (잠긴 칸이면 받는 치유 −${pctT(TIDE_CUT)})`, '예고 동안 찍힌 사람을 90% 위로. 끌려간 뒤에는 보호막 · 지속 힐'];
-    case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장`, '딜러가 잡음. 맞는 사람을 채우기'];
-    case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너짐`, '파티원이 알아서 비킴'];
-    case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함${e.fake ? `. 🌫 하나는 신기루 숫자 (시작 ${secT(e.fake.at)} 뒤 걷힘, 그 전에 힐하면 틀림)` : ''}${c.mythic && e.wrongAll ? `. 틀리면 전원 <b>${n(e.wrongAll)}</b>` : ''}`,
+    case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장${addText(e.add, c)}`, '딜러가 잡음. 맞는 사람을 채우기'];
+    case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너져 전투 끝까지 못 서는 칸이 됨 (모두 ${e.max}칸까지)`, '파티원이 알아서 비킴'];
+    case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함 (기술을 쉬고 받는 피해 ×${e.daze.vuln}). ${c.diff === '쉬움' ? '순서가 틀리면 처음부터' : `순서가 틀리면 그 사람 <b>${n(e.wrong)}</b> + 처음부터`}, 시간이 다 되면 못 받은 사람마다 <b>${n(e.miss)}</b>${e.fake ? `. 🌫 하나는 신기루 숫자 (시작 ${secT(e.fake.at)} 뒤 걷힘, 그 전에 힐하면 틀림)` : ''}${c.mythic && e.wrongAll ? `. 틀리면 전원 <b>${n(e.wrongAll)}</b>` : ''}`,
       e.fake ? '①부터 시작하고, 같은 번호가 둘이면 걷힐 때까지 기다렸다가 진짜에게' : '번호 순서대로 한 번씩 힐 넣기'];
-    case 'jail': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠 (딜 0 · 초당 ${n(e.dot)})`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
+    case 'jail': return [`탱커 · 나 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠: 딜 0 · 못 움직임 · 초당 <b>${n(e.dot)}</b> (해제 안 됨). 딜러가 감옥 (체력 보스의 ${pctT(e.hp)})을 깨면 풀림`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
     case 'beat': return [`💓 심장이 크게 뜀: 시전 · 집중 중인 힐이 끊기고 시전 스킬이 ${secT(c.mythic && e.secMythic ? e.secMythic : e.sec)} 잠김${e.dmg ? ` + 전원 <b>${n(e.dmg)}</b>` : ''}`, '예고가 뜨면 새 시전을 시작하지 않기. 잠긴 동안은 즉시 스킬 · 지속 힐 · 보호막'];
     case 'quake': return [`시전 중인 힐이 끊기고 그 스킬 ${secT(e.lock)} 잠김 + 전원 <b>${n(e.dmg)}</b>`, '예고가 뜨면 새 시전을 시작하지 않기 (즉시 스킬 · 지속 힐)'];
     case 'rest': return [`${secT(e.sec)} 동안 기술을 쉼`, '그동안 마나를 아끼며 채우기'];
     case 'clear': return [`「${e.name}」이 모두에게서 사라짐`, ''];
-    case 'stagger': return [`${secT(e.sec)} 안에 게이지 채우기: 체력 ${pctT(e.hp)} 이상인 파티원의 딜만 셈`, '딜러 체력을 높게 유지'];
+    case 'stagger': return [`${secT(e.sec)} 안에 게이지 채우기: 체력 ${pctT(c.mythic && e.hpMythic != null ? e.hpMythic : e.hp)} 이상인 파티원의 딜만 셈. 채우면 보스가 ${secT(e.win.sec)} 무방비 (기술을 쉬고 받는 피해 ×${e.win.vuln}), 못 채우면 전원 <b>${n(e.fail.dmg)}</b> + 시전 스킬 ${secT(e.fail.lock)} 잠김`, '딜러 체력을 높게 유지'];
     case 'counter': return [`끊기 능력으로 끊으면 보스 ${secT(e.stun)} 기절, 못 끊으면 앞줄 <b>${n(e.dmg)}</b>`, '앞줄을 미리 채우기'];
     case 'tower': return [`발판 ${e.n}곳: 위 사람 <b>${n(e.dmg)}</b>, 빈 발판마다 전원 <b>${n(e.empty)}</b>`, '발판에 선 사람을 채워 끝까지 세워 두기'];
     case 'cycle': return e.random
-      ? [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명에게 셋 중 하나: ${e.debuffs.map(x => debuffText(x, n)).join(' / ')}`, '칸 위 모자를 보고 다르게: 뒤집힘은 힐 멈춤 · 상한은 지우거나 보호막 · 완치는 몰아서 채우기']
-      : [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
+      ? [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명에게 ${e.debuffs.length === 3 ? '셋' : e.debuffs.length === 2 ? '둘' : e.debuffs.length === 4 ? '넷' : `${e.debuffs.length}개`} 중 하나: ${e.debuffs.map(x => debuffText(x, n)).join(' / ')}`, '칸 위 모자를 보고 다르게: 뒤집힘은 힐 멈춤 · 상한은 지우거나 보호막 · 완치는 몰아서 채우기']
+      : [`${e.each ? `${e.n}명이 하나씩 다른 디버프` : `${e.n}명에게 쓸 때마다 다음 디버프`}: ${[...new Map(e.debuffs.map(x => [x.name + x.type, x])).values()].map(x => debuffText(x, n)).join(' → ')}`, '지울 수 있는 것부터 지우기'];
     case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(zoneDps(RULES, e.dps))}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
       '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
-    case 'soul': return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
-    case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : '두 사람을'} 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
-    case 'vessel': return [`「${e.name}」: 넘친 치유를 모아 가득 차면 전원 보호막`, '일부러 넘치게 힐하기'];
+    case 'soul': return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}. 못 채우면 ${e.fail.text}: ${e.fail.near ? '이웃 칸' : '전원'} <b>${n(e.fail.dmg)}</b>${e.fail.debuff ? ` + ${debuffText(e.fail.debuff, n)}` : ''}${e.fail.boost ? ` · 보스 피해 +${pctT(e.fail.boost)}` : ''}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
+    case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : e.pick === 'tanks' ? '두 탱커를' : '두 사람을'} 「${e.name}」${roJ(e.name)} ${secT(e.sec)} 이음 (해제 안 됨): ${e.kind === 'balance'
+      ? `두 사람 체력 비율 차이가 ${pctT(e.gap ?? 0.3)} 넘게 벌어지면 사슬이 끊어지며 둘 다 <b>${n(e.dmg ?? 0)}</b>`
+      : '이어진 둘이 받는 피해 · 치유를 반씩 나눔 (한쪽만 힐해도 둘 다 참)'}`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
+    case 'vessel': return [`「${e.name}」: ${secT(e.sec)} 동안 넘친 치유가 그릇에 모임 (끝 = 파티 최대 체력 합의 ${pctT(e.need)}). 가득 차면 전원 ${secT(e.shield)} 보호 (받는 피해 −40%), 못 채우면 그냥 사라짐`, '일부러 넘치게 힐하기'];
     case 'auto': return [`탱커에게 ${n(e.dmg)}`, ''];
     case 'share': return [`🎯 대상과 이웃 칸 아군이 <b>${n(e.dmg)}</b>를 인원 수로 나눠 받음 (혼자면 그대로)`, '가까운 파티원이 모임. 대상을 미리 채우고, 모인 칸에 광역 힐'];
     case 'trade': return [`두 탱커의 「${e.name}」 중첩이 서로 바뀜`, '바뀐 뒤 바로 교대가 오니 두 탱커 모두 채워 두기'];
