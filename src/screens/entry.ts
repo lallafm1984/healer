@@ -10,7 +10,7 @@ import { AFFIXES } from '../data/affixes';
 import { CHAL, chalDropDiff, chalReward, chalShown } from '../data/challenge';
 import { ITEM_GRADES } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
-import { nextWeekAffixes, runMode } from '../game/runmode';
+import { nextWeekAffixes, runMode, weekAffixes } from '../game/runmode';
 import { untilWeekReset, weekRemaining } from '../game/clock';
 import { restBase } from '../game/stamina';
 import { G } from '../game/state';
@@ -50,10 +50,10 @@ function render(): void {
   Flow.chal = st;
   const m = runMode(G.save, c, d, { chal: st });
   const segs = c.fights(d), best = G.save.weekly.chalBest, lv = G.save.player.level;
-  const festival = m.affixes.includes('festival'), bounty = m.affixes.includes('bounty'), bonus = chalReward(st), shown = chalShown(st);
-  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값. 휴식 보너스는 결과 화면에서만. 보통 던전의 반 (110 2차) · 단계 보너스 · 축제 · 풍요는 넣음 (110)
-  const gold = restBase(restRun(clearGold(m.stage, d, 'A') * CHAL.rewardCut * bonus * (bounty ? CHAL.bountyGold : 1)));
-  const xp = restBase(restRun(clearXp(lv, d, 'A', { win: true }) * CHAL.rewardCut * bonus * (festival ? CHAL.festivalXp : 1)));
+  const bonus = chalReward(st), shown = chalShown(st);
+  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값. 휴식 보너스는 결과 화면에서만. 보통 던전의 반 (110 2차) · 단계 보너스는 넣음 (110)
+  const gold = restBase(restRun(clearGold(m.stage, d, 'A') * CHAL.rewardCut * bonus));
+  const xp = restBase(restRun(clearXp(lv, d, 'A', { win: true }) * CHAL.rewardCut * bonus));
   const box = best ? chalChestOf(best, lv) : null;
   // 장비 최고 등급 = 실제 확률 (영웅 · 전설 확률까지, 출전 확률 창과 같은 dropOdds)에서 나오는 가장 높은 등급 (103)
   const chalOdds = gearGradeOdds(chalDropDiff(st), 0, lv), chalTop = [...ITEM_GRADES].reverse().find(g => chalOdds[g] > 0) ?? ITEM_GRADES[0]; // 상자 등급은 내 레벨로 (Lv 45 전 영웅 없음, 103)
@@ -75,10 +75,15 @@ function render(): void {
         ${track(st, open, best, lv)}</div>` });
 
   // 이번 주 어픽스 (줄 + 다음 주 알약) · 구간 · 보상 (세 칸 + 보너스 알약 + 월요일 상자 줄)
-  const afxTip = m.affixes.map(k => `<p><b>${AFFIXES[k].name}</b>${esc(AFFIXES[k].tip)}</p>`).join('') + '<p>어픽스는 월요일 오전 6시에 바뀝니다.</p>';
-  const afx = `<ul class="g-rows wc-afx">${m.affixes.map(k => `<li class="g-row"><span class="g-ri">${afxIcon(k)}</span><div class="g-rm"><b>${AFFIXES[k].name}</b><span class="g-sub wrap">${esc(AFFIXES[k].desc)}</span></div>${AFFIXES[k].good ? `<span class="g-rs">${pill('좋은 주', 'ok')}</span>` : ''}</li>`).join('')}</ul>
-      <p class="wc-next"><span class="cap">다음 주</span>${next.map(k => pill(`${afxIcon(k)}${AFFIXES[k].name}`, AFFIXES[k].good ? 'ok' : '')).join('')}</p>`;
-  const tags = [bonus > 1 ? `${st}단계 보너스 ${pct(bonus - 1)}` : '', festival ? '축제 경험치 +20%' : '', bounty ? '풍요 골드 +30%' : ''].filter(Boolean);
+  // 이번 주 어픽스 셋 (115 나안): 셋째는 CHAL.third단계부터, 그 아래 단계를 고르면 셋째 줄은 흐리게 + 「10단계부터」
+  const week = weekAffixes();
+  const afxTip = week.map(k => `<p><b>${AFFIXES[k].name}</b>${esc(AFFIXES[k].tip)}</p>`).join('') + `<p>셋째 어픽스는 ${CHAL.third}단계부터 붙습니다. 어픽스는 월요일 오전 6시에 바뀝니다.</p>`;
+  const afx = `<ul class="g-rows wc-afx">${week.map((k, i) => {
+    const later = i >= 2, off = later && !m.affixes.includes(k);
+    return `<li class="g-row${off ? ' wc-later' : ''}"><span class="g-ri">${afxIcon(k)}</span><div class="g-rm"><b>${AFFIXES[k].name}</b><span class="g-sub wrap">${esc(AFFIXES[k].desc)}</span></div>${later ? `<span class="g-rs">${pill(`${CHAL.third}단계부터`, off ? '' : 'warn')}</span>` : ''}</li>`;
+  }).join('')}</ul>
+      <p class="wc-next"><span class="cap">다음 주</span>${next.map(k => pill(`${afxIcon(k)}${AFFIXES[k].name}`)).join('')}</p>`;
+  const tags = [bonus > 1 ? `${st}단계 보너스 ${pct(bonus - 1)}` : ''].filter(Boolean);
   const rewardTip = `<p>골드 · 경험치는 보통 던전 한 판의 반에 단계 보너스를 더한 값입니다. 휴식 보너스는 결과에서 더해집니다.</p><p><b>월요일 상자</b>이번 주 최고 단계로 다음 월요일에 받습니다. 5단계 고급 · 10단계 희귀 · 15단계 영웅 · 20단계 영웅 2, 골드는 5단계마다 늘어납니다.</p>`;
   // 월요일 상자 줄 = 길드 「주간 목표」 줄 (그림 · 이름 · 다음 등급 · 막대 / 오른쪽 이번 주 최고 / 다음 단계 · 지금 상자 알약)
   const nm = MILES.find(n => n > best) ?? CHAL.max, prev = [...MILES].reverse().find(n => n <= best) ?? 0, full = best >= CHAL.max;

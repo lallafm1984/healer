@@ -399,7 +399,7 @@ function hitMobs(f: Fight, d: number, u?: Unit): void {
 function mobDown(f: Fight, m: Mob): void {
   m.hp = 0; m.alive = false;
   f.tels = f.tels.filter(t => t.skill.mob !== m.id);
-  if (f.aff) affMobDown(f, !!m.boss); // 복수심 (110)
+  if (f.aff) affMobDown(f, m); // 복수심 (110) · 결속 (115)
   emit(f, { type: 'mobDown', id: m.id, name: m.name });
 }
 

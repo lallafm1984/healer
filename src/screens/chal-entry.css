@@ -61,6 +61,8 @@
 #s-entry .wc-body .wc-afx .g-row { min-height: 60px; }
 #s-entry .f-afi { width: 38px; height: 38px; }
 #s-entry .wc-body .wc-afx .g-sub { white-space: normal; text-wrap: pretty; }
+/* 셋째 어픽스 (115 나안): 고른 단계가 10단계 아래면 흐리게, 오른쪽 「10단계부터」 */
+#s-entry .wc-body .wc-afx .g-row.wc-later > :not(.g-rs) { opacity: .5; }
 #s-entry .wc-next { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 8px 12px 10px; border-top: 1px solid var(--gk-line); }
 #s-entry .wc-next > .cap { margin-right: 2px; color: var(--gk-mute); font-size: 12px; }
 #s-entry .wc-body .g-pill { gap: 4px; }

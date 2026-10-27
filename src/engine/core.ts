@@ -6,7 +6,7 @@ import { HEROES } from '../data/heroes';
 import { SANCTUARY } from '../data/heroConst';
 import { hexDist } from './board';
 import { abHurt, abLethal, addMod, blocksDebuff, dmgMods, healMods } from './abilities';
-import { affDebuffEnd, affHeal, affMobDown } from './affixes';
+import { affDeath, affDebuffEnd, affHeal, affMobDown, affOverflow } from './affixes';
 import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
 import { posTaken } from './position';
@@ -113,6 +113,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (over > 1e-9) {
       if (f.vessel && f.t < f.vessel.until) f.vessel.fill += over * (1 + sv(f, 'breathFlask') + bowl); // 후우의 숨결 병 (56 6장) · 달빛 그릇
       if (u.debuffs.length) overload(f, u, over);
+      if (f.aff) affOverflow(f, u, over); // 넘침 (115): 넘친 치유 몫이 치유 흡수 막으로
     }
   }
   if (direct) {
@@ -409,6 +410,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (!u.me && f.tx.death) talentDeath(f, u); // 남은 꽃 · 순교의 빛 (77)
     if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
     if (f.persOn) persDeath(f, u); // 다혈질 (75)
+    if (f.aff && !u.me) affDeath(f, u); // 도전자의 위기 (115)
     if (u.role === 'tank') coopStandIn(f); // 99 협동: 탱커가 모두 쓰러지면 잠깐 붙잡기 (대타 성격이 먼저)
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
@@ -668,7 +670,7 @@ export function damageMob(f: Fight, m: Mob, x: number): void {
   if (m.hp <= 1e-9) {
     m.hp = 0; m.alive = false;
     f.tels = f.tels.filter(t => t.skill.mob !== m.id);
-    if (f.aff) affMobDown(f, !!m.boss); // 복수심 (110)
+    if (f.aff) affMobDown(f, m); // 복수심 (110) · 결속 (115)
     emit(f, { type: 'mobDown', id: m.id, name: m.name });
   }
   if (f.bodyHp) f.bossHp = f.mobs.reduce((s, q) => s + (q.add ? 0 : q.hp), 0);
