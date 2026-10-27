@@ -122,8 +122,13 @@ export default async function combatAudio(url, shots) {
         const f = window.__proto.F, u = f.party.find(u => !u.me);
         f.events.push(...list.map(e => ({ ...e, ...(e.id === -1 ? { id: u.id } : {}), ...(e.uid === -1 ? { uid: u.id } : {}) })));
       }, events);
-      await page.clock.runFor(40);
-      const actual = await page.evaluate(i => window.__audioQA.starts.slice(i).map(s => s.name), before);
+      // 사건은 매 장 handleEvents가 소리로 바꿈: CI 러너에서 한 장 늦을 때가 있어 기대한 소리가 날 때까지 20ms씩 (40ms부터 600ms까지, 예전 40ms 한 번)
+      let actual = [];
+      for (let i = 0; i < 30; i++) {
+        await page.clock.runFor(20);
+        actual = await page.evaluate(i => window.__audioQA.starts.slice(i).map(s => s.name), before);
+        if (i >= 1 && expected.every(n => actual.includes(n))) break;
+      }
       ok(expected.every(n => actual.includes(n)), label, actual);
       await page.waitForTimeout(1600);
       return actual;
