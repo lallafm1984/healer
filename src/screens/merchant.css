@@ -8,16 +8,14 @@
 #s-merchant .mc-hero::before { background-position: center 62%; }
 #s-merchant .mc-have { margin: 0; padding: 4px 10px; border-radius: 999px; background: #0d0b08cc; border: 1px solid var(--gk-card-bd); font-size: 15px; }
 #s-merchant .mc-have .currency-icon { width: 18px; height: 18px; }
-#s-merchant .mc-foot { margin: 0; font-size: 12px; color: var(--gk-mute); text-align: center; }
 /* 길드 판 둘 (2026-10-27 마무리 목록 8번): 부위 고르기 · 사기 (판 · 머리 · 알약은 guild-hall.css) */
 #s-merchant .mc > .g-card { flex: none; }
-#s-merchant .mc-card-slot .mc-lead { margin: 0; padding: 8px 12px 0; }
 #s-merchant .mc-card-slot .mc-kinds { padding: 8px 12px 12px; }
 
-/* 종류 카드: 그림 (등급을 모르니 무채 테) · 이름 · 늘 붙는 능력치 */
+/* 부위 카드: 그림 (등급을 모르니 무채 테) · 이름 (「종류 N가지」는 2026-10-27 Lim이 뺌) */
 #s-merchant .mc-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 #s-merchant .mc-kind {
-  display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; min-height: 104px; padding: 8px 4px 7px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 88px; padding: 8px 4px 7px;
   border: 1px solid var(--gk-card-bd); border-radius: 10px; background: var(--gk-card); color: var(--gk-ink); font: inherit; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -27,7 +25,6 @@
 }
 #s-merchant .mc-kind .mc-art .g-ic { width: 46px; height: 46px; object-fit: contain; filter: saturate(0.85); }
 #s-merchant .mc-kind b { font-size: 14px; line-height: 1.2; color: var(--gk-head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#s-merchant .mc-kind small { font-size: 11px; line-height: 1.25; color: var(--gk-ink2); text-align: center; }
 #s-merchant .mc-kind[aria-checked="true"] { border: 2px solid var(--gk-accent); padding: 7px 3px 6px; background: linear-gradient(#3a2e1f, #2a2118); box-shadow: 0 0 0 1px #0008, 0 0 14px #ffd34d33; }
 #s-merchant .mc-kind[aria-checked="true"] .mc-art { box-shadow: inset 0 0 0 1px var(--gk-edge), inset 0 0 12px #0008, 0 0 10px #ffd34d33; }
 #s-merchant .mc-kind:active { filter: brightness(1.12); }
@@ -46,6 +43,9 @@
 /* 감정 결과 시트 */
 #app #s-merchant .sheet.mc-reveal { align-items: stretch; gap: 10px; background: var(--gk-bg); background-color: #15120e; border-top-color: var(--gk-edge); color: var(--gk-ink); }
 #app #s-merchant .sheet.mc-reveal > .grip { background: var(--gk-edge); }
+/* 판매 확인 창을 띄우거나 닫으며 다시 그릴 땐 올라오는 움직임 · 빛기둥 솟음 없이 (빛기둥 숨쉬기만) */
+#app #s-merchant .sheet.mc-reveal.still { animation: none; }
+#s-merchant .mc-reveal.still .mc-beam:not(.calm) { animation: rbeamP 2.4s ease-in-out infinite alternate; }
 #s-merchant .mc-rt { margin: 0; text-align: center; font: 800 15px var(--font-display); color: var(--gk-mute); letter-spacing: 0.04em; }
 #s-merchant .mc-stage { position: relative; display: grid; place-items: center; height: 150px; isolation: isolate; }
 #s-merchant .mc-stage > * { grid-area: 1 / 1; }

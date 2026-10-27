@@ -72,9 +72,9 @@
 }
 /* Inventory heading: name only (count and gold removed 2026-10-24). */
 #app #s-char[data-sub="gear"] .c7-inventory-head { gap: 6px; padding: 2px 0 5px; }
-/* A second, flat bronze dialog must be accepted before spending or dismantling. */
-#app #s-char .sheet-dim.c7-confirm-dim { z-index: 74; background: #0009; }
-#app #s-char .sheet.c7-confirm {
+/* A second, flat bronze dialog must be accepted before spending or dismantling (장비 상세 · 행상인 감정 결과 판매, sellConfirmHtml). */
+#app :is(#s-char, #s-merchant) .sheet-dim.c7-confirm-dim { z-index: 74; background: #0009; }
+#app :is(#s-char, #s-merchant) .sheet.c7-confirm {
   z-index: 75; top: calc(50% + 35px); bottom: auto; left: 50%; transform: translate(-50%, -50%);
   width: calc(100% - 32px); max-width: 390px; max-height: calc(100dvh - 94px);
   padding: 20px; gap: 14px; border: 1px solid #b7985f; border-radius: 12px;
@@ -82,29 +82,29 @@
   box-shadow: 0 12px 50px #000a, inset 0 0 0 3px #b7985f18;
   animation: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #9c8050 #28231b;
 }
-#app #s-char .c7-confirm > * { flex-shrink: 0; }
-#app #s-char .c7-confirm h3 { margin: 0; font: 800 22px/1.4 var(--font-display); color: #f5e8cc; }
-#app #s-char .c7-confirm-item { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid #89704480; }
-#app #s-char .c7-confirm-item > b { font-size: 16px; line-height: 1.5; color: var(--g); word-break: keep-all; overflow-wrap: anywhere; }
-#app #s-char .c7-confirm-icon { flex: none; width: 56px; height: 56px; padding: 5px; border: 1px solid var(--g); border-radius: 7px; background: #17140f; }
-#app #s-char .c7-confirm-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; }
-#app #s-char .c7-confirm-cost { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
-#app #s-char .c7-confirm-cost > span { color: #c9bda8; }
-#app #s-char .c7-confirm-cost > div { display: flex; flex-wrap: wrap; gap: 12px; }
-#app #s-char .c7-confirm .currency-icon { width: 26px; height: 26px; }
-#app #s-char .c7-confirm p { margin: 0; color: #c9bda8; font-size: 12px; line-height: 1.65; word-break: keep-all; }
-#app #s-char .c7-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px; }
-#app #s-char .c7-confirm button { min-height: 48px; padding: 8px; background: #30291e; background-blend-mode: normal; border: 1px solid #a88b58; border-radius: 7px; color: #f5e8cc; font: 800 17px var(--font-display); text-shadow: none; box-shadow: none; }
-#app #s-char .c7-confirm button.hot { background: #71522b; border-color: #d4b06c; }
-#app #s-char .c7-confirm button:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 2px; }
+#app :is(#s-char, #s-merchant) .c7-confirm > * { flex-shrink: 0; }
+#app :is(#s-char, #s-merchant) .c7-confirm h3 { margin: 0; font: 800 22px/1.4 var(--font-display); color: #f5e8cc; }
+#app :is(#s-char, #s-merchant) .c7-confirm-item { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid #89704480; }
+#app :is(#s-char, #s-merchant) .c7-confirm-item > b { font-size: 16px; line-height: 1.5; color: var(--g); word-break: keep-all; overflow-wrap: anywhere; }
+#app :is(#s-char, #s-merchant) .c7-confirm-icon { flex: none; width: 56px; height: 56px; padding: 5px; border: 1px solid var(--g); border-radius: 7px; background: #17140f; }
+#app :is(#s-char, #s-merchant) .c7-confirm-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; }
+#app :is(#s-char, #s-merchant) .c7-confirm-cost { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+#app :is(#s-char, #s-merchant) .c7-confirm-cost > span { color: #c9bda8; }
+#app :is(#s-char, #s-merchant) .c7-confirm-cost > div { display: flex; flex-wrap: wrap; gap: 12px; }
+#app :is(#s-char, #s-merchant) .c7-confirm .currency-icon { width: 26px; height: 26px; }
+#app :is(#s-char, #s-merchant) .c7-confirm p { margin: 0; color: #c9bda8; font-size: 12px; line-height: 1.65; word-break: keep-all; }
+#app :is(#s-char, #s-merchant) .c7-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px; }
+#app :is(#s-char, #s-merchant) .c7-confirm button { min-height: 48px; padding: 8px; background: #30291e; background-blend-mode: normal; border: 1px solid #a88b58; border-radius: 7px; color: #f5e8cc; font: 800 17px var(--font-display); text-shadow: none; box-shadow: none; }
+#app :is(#s-char, #s-merchant) .c7-confirm button.hot { background: #71522b; border-color: #d4b06c; }
+#app :is(#s-char, #s-merchant) .c7-confirm button:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 2px; }
 @media (max-width: 359px) {
-  #app #s-char .sheet.c7-confirm { padding: 16px; }
+  #app :is(#s-char, #s-merchant) .sheet.c7-confirm { padding: 16px; }
 }
 
-#app #s-char .c7-confirm-actions { position: sticky; bottom: -20px; padding: 8px 0 0; background: #28231b; z-index: 8; }
-#app #s-char .c7-confirm button:disabled { opacity: .5; cursor: default; }
+#app :is(#s-char, #s-merchant) .c7-confirm-actions { position: sticky; bottom: -20px; padding: 8px 0 0; background: #28231b; z-index: 8; }
+#app :is(#s-char, #s-merchant) .c7-confirm button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 359px) {
-  #app #s-char .c7-confirm-actions { bottom: -16px; }
+  #app :is(#s-char, #s-merchant) .c7-confirm-actions { bottom: -16px; }
 }
 
 /* 보상 화면에서는 캐릭터 배경 없이 동일한 장비 시트만 올린다. */
