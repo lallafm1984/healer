@@ -370,9 +370,12 @@ function itemSheet(id: number): string {
 
 /** 판매 확인창 (91, 예전 분해 확인). 판매한 장비는 되돌릴 수 없음 */
 function confirmHtml(): string {
-  if (!pending) return '';
-  const it = findItem(pending.id);
-  if (!it) return '';
+  const it = pending && findItem(pending.id);
+  return it ? sellConfirmHtml(it) : '';
+}
+
+/** 판매 확인창 한 벌 (장비 상세 · 행상인 감정 결과, 2026-10-27 Lim 「판매가 있는 곳 모두」): 취소 data-confirmcancel · 판매하기 data-confirmgo */
+export function sellConfirmHtml(it: GearItem): string {
   return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="확인 취소" tabindex="-1"></button>
     <section class="sheet c7-confirm still" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc">
       <h3 id="gearConfirmTitle">장비 판매</h3>

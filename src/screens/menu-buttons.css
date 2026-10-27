@@ -15,7 +15,8 @@
 }
 
 #app :is(.ns, .admodal, #rest, #pauseGuide),
-#app #s-char[data-sub] :is(.c7-gsheet, .c7-job-sheet, .c7-confirm, .c7-tsheet) {
+#app #s-char[data-sub] :is(.c7-gsheet, .c7-job-sheet, .c7-confirm, .c7-tsheet),
+#app #s-merchant[class] .c7-confirm {
   :is(
     .btn, .btn2, .g-seal, .g-sign, .c7-cta, .c7-hcta, .c7-sb,
     .c7-dialog-close, .c7-tp-btn, .c7-recb, .f-shut, .f-gbtn, .f-go,
