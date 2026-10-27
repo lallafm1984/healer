@@ -6,7 +6,7 @@ import * as E from '../src/engine';
 
 describe('잡몹 구간', () => {
   it('잡몹을 목록 순서대로 잡고, 다 잡으면 이김', () => {
-    const f = E.create({ encounter: 'gate', diff: '보통', seed: 3 });
+    const f = E.create({ encounter: 'gate', diff: '보통', seed: 3, tune: {} }); // 자동 밸런스 체력 배율 (data/tune hp) 없이
     expect(f.mobs.map(m => m.name)).toEqual(['고철 졸개', '고철 졸개', '고철 졸개', '잔해 투척병']);
     expect(f.bossMax).toBeCloseTo(ENCOUNTERS.gate.hp * f.scale);
     const order: number[] = [];
@@ -35,8 +35,14 @@ describe('잡몹 구간', () => {
     expect(f.over).toBe('win');
   });
 
+  it('자동 밸런스 체력 배율 (Tune.hp, 2026-10-27 A안)은 보스 · 잡몹 체력에 곱함', () => {
+    const a = E.create({ encounter: 'gate', diff: '보통', seed: 3, tune: {} }), b = E.create({ encounter: 'gate', diff: '보통', seed: 3, tune: { hp: 0.5 } });
+    expect(b.bossMax).toBeCloseTo(a.bossMax * 0.5);
+    expect(b.mobs[0].max).toBeCloseTo(a.mobs[0].max * 0.5);
+  });
+
   it('악몽은 잡몹 체력도 ×1.3', () => {
-    const f = E.create({ encounter: 'boiler', diff: '악몽', seed: 1 });
+    const f = E.create({ encounter: 'boiler', diff: '악몽', seed: 1, tune: {} }); // 자동 밸런스 체력 배율 없이
     expect(f.mobs[0].max).toBeCloseTo(400 * 1.3 * f.scale);
     expect(f.bossMax).toBeCloseTo(ENCOUNTERS.boiler.hp * 1.3 * f.scale);
   });

@@ -16,7 +16,7 @@ import { MERCHANT } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildLvOf, hireGold } from '../data/guild';
 import { HEROES, type HeroKey } from '../data/heroes';
-import { addXp, MAX_LEVEL, xpToNext } from '../data/progression';
+import { addXp, MAX_LEVEL, recLevel, xpToNext } from '../data/progression';
 import { SKILLS } from '../data/skills';
 import { TALENT_TREES } from '../data/talents';
 import { noviceHealer } from '../engine/auto';
@@ -185,7 +185,7 @@ function fightOnce(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number
   let roster: RosterEntry[];
   if (c.key === 'tutorial') roster = DUO_PARTY;
   else {
-    const pub = recruitParty(segs[0], o.seed, { abilities: !tut, myLv: lv, stageLv: m.stage, exclude: recruitExclude(save) }); // 길드원 · 공고 지원자는 빠짐 (게임과 같음)
+    const pub = recruitParty(segs[0], o.seed, { abilities: !tut, myLv: lv, stageLv: o.chal ? m.stage : recLevel(c, d), exclude: recruitExclude(save) }); // 길드원 · 공고 지원자는 빠짐 · 권장 레벨 ±1 (게임과 같음)
     // 길드파티는 「추천 편성」 (game/recommend: 보스 특징에 맞는 능력 · 레벨)으로 (autoPick = 레벨 순은 끊기 · 쫄 처리가 빠져 Lv 86 뒤 특정 칸을 0%로 졌음, 2026-10-22)
     roster = o.guild && save.guild.founded && save.guild.members.length && guildPartyFits(save, enc) ? guildRoster(save, recommendPick(save, enc, segs, m.stage).pick, pub, enc, o.seed) : pub;
   }

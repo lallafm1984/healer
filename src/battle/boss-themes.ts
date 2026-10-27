@@ -1279,6 +1279,7 @@ export const BOSS_CAST_SOUND: Record<string, string> = {
   "geomeun:bowl": 'boss-holy-cast',
   "geomeun:loan": 'boss-shadow-cast',
   "geomeun:touch": 'boss-shadow-cast',
+  "geopum46:bubble": 'boss-poison-cast',
   "geopum46:potion": 'boss-poison-cast',
   "geopum:bubble": 'boss-poison-cast',
   "geopum:potion": 'boss-poison-cast',

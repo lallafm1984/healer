@@ -4542,7 +4542,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     mythicStep: { skill: 'demerit', kind: 'jump' }, // 111 악몽 변화: 벌점 지우면 옆으로 옮겨붙음
     enrage: { name: '사감 폭주', period: 2, dmg: 240 },
   },
-  // 약품 수도사 거품이 탐험판 (탐험 ㉟ 교단 숲속 야영지 Lv 46): 던전 ㉙ ①의 평타 · 역겨운 물약 · 끓어오름만
+  // 약품 수도사 거품이 탐험판 (탐험 ㉟ 교단 숲속 야영지 Lv 46): 던전 ㉙ ①의 평타 · 역겨운 물약 · 끓어오름 + 역병 거품 (탐험판 세기, 2026-10-27)
   geopum46: {
     phase: [1, ''],
     skills: [
@@ -4550,6 +4550,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('약병 내려치기', '약병', 8, 16, 360),
       { key: 'potion', name: '역겨운 물약', icon: '물약', kind: 'instant', first: 6, period: 14, cast: 0,
         effect: { p: 'debuff', n: 1, debuff: { name: '역겨운 물약', type: '질병', left: 10, dot: 22 } } },
+      // 2026-10-27 Lim 「교단숲속야영지의 탐험이 너무 지루하다」: 던전판 (geopum)의 역병 거품을 탐험판 세기 (× 0.7, 3중첩)로
+      { key: 'bubble', name: '역병 거품', icon: '거품', kind: 'instant', first: 9, period: 18, cast: 0, how: BUBBLE_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { ...bubble(12, 3, 0.7), name: '역병 거품', type: '질병' } } },
       { key: 'boil', name: '끓어오름', icon: '끓음', kind: 'aoe', first: 16, period: 20, cast: 3, warn: 'aoe', cut: true, how: '쓸 때마다 조금씩 세짐', effect: { p: 'all', dmg: 140, grow: 15 } },
     ],
     enrage: { name: '솥 폭주', period: 2, dmg: 195 },

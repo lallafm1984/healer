@@ -65,8 +65,8 @@ function roll(): void {
   Flow.seed = newSeed();
   openRow = -1;
   // 공개모집 파티원도 능력 1개 (17 3장). 튜토리얼 파티는 능력 없음
-  // 97 FM: 칸 레벨 ±1인 모험가. 길드원은 공개모집에 안 나옴 (93 7-2)
-  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage, exclude: recruitExclude(G.save) }); // 길드원 · 공고 지원자는 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」)
+  // 97 FM: 권장 레벨 ±1인 모험가 (2026-10-27 Lim 「권장레벨에 맞춰」, 주간 도전은 내 레벨). 길드원은 공개모집에 안 나옴 (93 7-2)
+  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: Flow.chal ? modeNow().stage : recLevel(contentOf(Flow.content), Flow.diff), exclude: recruitExclude(G.save) }); // 길드원 · 공고 지원자는 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」)
 }
 
 /** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */

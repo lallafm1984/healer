@@ -20,7 +20,7 @@ import { ALL_DIFFS, CONTENT, isLeveling, stageOf, type ContentDef, type ContentK
 import type { DiffName } from '../data/difficulty';
 import { avgScore, presetScore, recommendedFor } from '../data/equipment';
 import { FAME_LOW_GAP } from '../data/guild';
-import { lvPower, RAMP_LV, rampDiffs, rampFour, rampPlace, rampRefLevel, rampXp } from '../data/progression';
+import { lvPower, RAMP_LV, rampDiffs, rampFour, rampPlace, rampRefLevel, rampXp, recLevel } from '../data/progression';
 import { G, lockOf } from './state';
 
 export type Fit = '여유' | '적정' | '도전' | '위험';
@@ -37,11 +37,8 @@ export interface Stage { content: ContentKey; diff: DiffName }
 /** 그 칸을 맞춘 기준 레벨 = 적 레벨 (순차 구간 장소는 70의 길에서 들어가는 레벨). 레이드도 장소 레벨 (2026-10-21, 예전엔 내 레벨과 열림 레벨 중 큰 쪽) */
 export const refLevel = (c: ContentDef, d: DiffName) => (isLeveling(c) && rampRefLevel(c, d)) || stageOf(c, d);
 
-/**
- * 출전 화면 · 편성 「권장 레벨」 (92): 그 칸을 맞춘 플레이어 레벨. 순차 구간 장소는 길에서 들어가는 레벨 (온실 악몽 = 적 Lv 16이지만 Lv 11,
- * 적 레벨보다 높으면 적 레벨: 튜토리얼 녹슨 고원 쉬움), 그 밖은 적 레벨
- */
-export const recLevel = (c: ContentDef, d: DiffName) => Math.min(stageOf(c, d), (isLeveling(c) && rampRefLevel(c, d)) || Infinity);
+/** 「권장 레벨」 (92) · 공개모집 파티원 레벨 바탕: data/progression recLevel */
+export { recLevel };
 
 /**
  * 난이도 몫. 순차 구간 장소 (Lv 20까지): 클리어율 목표 쉬움 99 · 보통 97 · 어려움 85 · 악몽 75% (STEP), Lv 10~20 장소 악몽은 길이라 85%로 맞춤 (92).

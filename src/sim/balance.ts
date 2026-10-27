@@ -11,7 +11,7 @@
  * 순차 레벨링 구간 (70, 장소 Lv 20까지) 어려움 · 악몽은 권장 장비 대신 그 난이도가 처음 열린 플레이어의 레벨 · 드롭 장비 (sim/ramp, 2026-10-13 Lim
  * 「Lv 1 어려움이 자동 힐로 안 깨짐」: 권장 장비로는 녹슨 고원 어려움 80%, 실제 Lv 3 · 장비 1~2개로는 3%).
  * 초보 하한 (2026-10-22 Lim 「추천대로」, sim/novice B안 · 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」): 순차 레벨링 구간 길의 칸
- * (쉬움 · 보통, Lv 10 ~ 20은 어려움도)은 그 레벨 사람 (사제, 길의 레벨 · 드롭 장비, Lv 10까지 처음 → Lv 20 익숙)의 클리어율이
+ * (쉬움 · 보통, Lv 10 ~ 20은 어려움도)은 그 레벨 사람 (사제, 길의 레벨 · 드롭 장비, Lv 10까지 처음 → Lv 11부터 중급자, 2026-10-27 Lim 「11부터는 중급자기준으로 하자」)의 클리어율이
  * 초보 목표 (장소 Lv 10까지 A안 · 그 뒤 B안, 튜토리얼 판 TUT_TARGET) 아래로 가는 피해 배율을 쓰지 않는다. 숙련 목표 · 바쁨 하한보다 먼저 (그 배율보다 높으면 내림).
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
@@ -29,7 +29,7 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
-import { rampPlace } from '../data/progression';
+import { rampPlace, recLevel } from '../data/progression';
 import { designTarget, measureFamiliar, type FamiliarMeasure } from './familiar';
 import { measureNovice, noviceCells, noviceTarget, type NoviceCell } from './novice';
 import { rampLevel, rampPlayer, usesRamp, type RampPlayer } from './ramp';
@@ -74,6 +74,11 @@ const REST = 10;
 const MAX_T = 700 * 1.25; // 한 판 끝 (초): 광폭화 배율 (ENRAGE_MULT, 102)만큼 함께 늘림
 /** 찾는 배율 범위 */
 const LO = 0.4, HI = 3;
+/**
+ * 체력 손잡이 바닥 (2026-10-27 Lim 「권장레벨에 맞춰」 → 1 → 「추천」 A안): 피해 배율이 LO인데도 목표 · 초보 하한 아래인 순차 구간 칸은 보스 · 적 체력 배율 (Tune.hp)을 이만큼까지 줄임.
+ * 공개모집이 권장 레벨 ± 1이라 적보다 4 ~ 5레벨 낮은 칸 (어려움 · 악몽)에서 파티 딜이 모자라 광폭화에 걸렸음 (녹슨 요새 악몽 피해 0.2배에도 45%)
+ */
+export const HP_LO = 0.3;
 
 /** 맞출 장소: 만든 것만 (튜토리얼 첫 전투는 뺌) */
 export const balanceable = (c: ContentDef) => c.ready && !c.hidden && c.fights('보통').length > 0;
@@ -113,7 +118,7 @@ export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void;
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common', tweak?: RunTweak): Run {
   const segs = c.fights(d), s = standard(c, d), own = tweak?.player;
-  const party = recruitParty(segs[0], seed, { abilities: true, myLv: own?.lv ?? s.heroLv ?? s.lv, stageLv: s.lv }); // 97 FM: 저마다 레벨 (칸 ±1)
+  const party = recruitParty(segs[0], seed, { abilities: true, myLv: own?.lv ?? s.heroLv ?? s.lv, stageLv: recLevel(c, d) }); // 97 FM: 저마다 레벨 (권장 레벨 ±1, 게임과 같음)
   tweak?.party?.(party, s.lv);
   // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음), 플레이어를 주면 그 레벨 · 장비
   const rp = own ?? (s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null), lv = own ? own.lv : (s.heroLv ?? s.lv) + (tweak?.heroUp ?? 0);
@@ -245,8 +250,8 @@ export interface Row {
   cur: Tune | null;
   now: Measure;
   verdict: Verdict;
-  /** 목표 밖 (또는 바쁨 하한 아래)이라 찾은 새 피해 배율과 그때 결과 */
-  next?: { dmg: number; m: Measure };
+  /** 목표 밖 (또는 바쁨 하한 아래)이라 찾은 새 피해 배율 (피해가 바닥이면 체력 배율도, HP_LO)과 그때 결과 */
+  next?: { dmg: number; hp?: number; m: Measure };
   /** 하한 칸 (초보 · 익숙한 사람): 클리어율 (지금 배율 · 쓴 배율), 목표, 하한으로 내렸는지 */
   novice?: { before: number; after: number; target: number; capped: boolean };
   /** 레벨 디자인 칸 (Lv 21 ~ 100 · 레이드): 중급자 · 중간 등급 장비 클리어율 (지금 배율 · 쓴 배율)과 띠 */
@@ -389,8 +394,27 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
     r.novice = { before: nov.rate(curDmg), after: nov.rate(top), target: nov.target, capped: top < pick };
     return r;
   };
+  /**
+   * 체력 손잡이 (HP_LO): 고른 피해 배율이 바닥 (LO, 0.02 안)인데 숙련 목표 아래거나 초보 하한 아래면 LO에서 체력 배율을 숙련 목표값에 맞추고,
+   * 그래도 초보 하한 아래면 15%씩 더 줄임 (6번까지). 피해가 바닥이 아니면 그대로
+   */
+  const shorten = (r: Row): Row => {
+    if ((r.next?.dmg ?? base.dmg ?? 1) > LO + 0.02) return r; // 바닥 근처 (찾기가 평평해서 0.41 · 0.42에서 멈춘 칸도)
+    const hp0 = base.hp ?? 1, mLo = r.next?.m ?? now;
+    const novOk = (hp: number) => { const p = floorProbe(c, d, { ...base, hp }); return !p || p.ok(LO); };
+    if (verdictOf(d, mLo.rate, c) !== 'hard' && novOk(hp0)) return r;
+    const hs = new Map<number, Measure>();
+    const atHp = (hp: number) => { if (!hs.has(hp)) hs.set(hp, measure(c, d, n, { ...base, dmg: LO, hp })); return hs.get(hp)!.rate; };
+    let hp = verdictOf(d, mLo.rate, c) === 'hard' ? seekDmg(atHp, targetOf(c, d).aim, hp0, HP_LO, hp0).dmg : hp0;
+    for (let i = 0; i < 6 && !novOk(hp) && hp > HP_LO + 1e-9; i++) hp = Math.max(HP_LO, Math.round(hp * 0.85 * 100) / 100);
+    atHp(hp);
+    r.next = { dmg: LO, hp, m: hs.get(hp)! };
+    const p = floorProbe(c, d, { ...base, hp });
+    if (r.novice && p) r.novice.after = p.rate(LO);
+    return r;
+  };
   if (verdict === 'ok') {
-    if (!tooIdle(d, now, c)) return capped(row);
+    if (!tooIdle(d, now, c)) return shorten(capped(row));
     // 바쁨 하한: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지 다시).
     // 클리어율은 목표값 (aim, 찾기와 같이 1 차이까지) 아래로 내리지 않음: 넘으면 마지막으로 괜찮던 배율과 그 사이에서 목표값에 맞춤
     const curDmg = base.dmg ?? 1, aim = targetOf(c, d).aim, floor = aim - 1;
@@ -406,7 +430,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
       break;
     }
     if (ok > curDmg) row.next = { dmg: ok, m: seen.get(ok)! };
-    return capped(row);
+    return shorten(capped(row));
   }
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
@@ -414,7 +438,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const r = seekDmg(at, targetOf(c, d).aim, curDmg, LO, hi);
   const dmg = lowerOnly(d) && r.rate >= targetOf(c, d).aim - 1 ? closeIn(at, d, r.dmg, curDmg, 4, targetOf(c, d).aim) : r.dmg;
   row.next = { dmg, m: seen.get(dmg)! };
-  return capped(row);
+  return shorten(capped(row));
 }
 
 function lowerOnly(d: DiffName): boolean { return TARGET[d].max >= 100; }
@@ -432,7 +456,7 @@ export function closeIn(rate: (dmg: number) => number, d: DiffName, good: number
   return good;
 }
 
-/** 찾은 값을 표에 넣음: 장소의 모든 구간 · 그 난이도에 같은 피해 배율 (1이면 지움) */
+/** 찾은 값을 표에 넣음: 장소의 모든 구간 · 그 난이도에 같은 피해 배율 · 체력 배율 (1이면 지움) */
 export function applyRows(t: TuneTable, rows: Row[]): TuneTable {
   const out: TuneTable = JSON.parse(JSON.stringify(t));
   for (const r of rows) {
@@ -440,7 +464,9 @@ export function applyRows(t: TuneTable, rows: Row[]): TuneTable {
     const c = CONTENT.find(x => x.key === r.key)!;
     for (const seg of new Set(c.fights(r.diff))) {
       const e: Tune = { ...(out[seg]?.[r.diff] ?? {}), dmg: r.next.dmg };
+      if (r.next.hp != null) e.hp = r.next.hp;
       if (e.dmg === 1) delete e.dmg;
+      if (e.hp === 1) delete e.hp;
       const row = (out[seg] ??= {});
       if (Object.keys(e).length) row[r.diff] = e; else delete row[r.diff];
       if (!Object.keys(row).length) delete out[seg];
