@@ -12,7 +12,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
-  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -146,6 +147,15 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   gratedrain: { key: 'gratedrain', name: '철창 배수실', segments: ['sievehall', 'clawguard', 'cagepass', 'kkwakjip'] },
   bandagetent: { key: 'bandagetent', name: '붕대 보급천막', segments: ['bandageroad', 'charye'] },
   herbcart: { key: 'herbcart', name: '야간 약초수레길', segments: ['cartroad', 'humchim'] },
+  // 113 3차 (Lv 13~16)
+  stitchroom: { key: 'stitchroom', name: '응급 봉합실', segments: ['tornhall', 'stitchdoll', 'triagebed', 'ttakkeum'] },
+  twindistill: { key: 'twindistill', name: '쌍둥이 증류실', segments: ['tubehall', 'frother', 'stillway', 'dubangul'] },
+  roofgutter: { key: 'roofgutter', name: '빗물받이 지붕', segments: ['wettiles', 'chalbak'] },
+  flagroad: { key: 'flagroad', name: '낡은 깃발길', segments: ['flagwalk', 'gotge'] },
+  mistlamp: { key: 'mistlamp', name: '안개등 징검길', segments: ['foggystones', 'heurit'] },
+  lightbasin: { key: 'lightbasin', name: '빛고임 수초밭', segments: ['glowweeds', 'ttorong'] },
+  reedwatch: { key: 'reedwatch', name: '갈대 감시초소', segments: ['reedarrows', 'hwingnun'] },
+  smallferry: { key: 'smallferry', name: '작은 나룻터', segments: ['ferrypath', 'danggim'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

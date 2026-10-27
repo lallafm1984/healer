@@ -1059,6 +1059,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
   if (d.shell) { d.shellLeft = d.shell * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 단단한 껍질 (P-SHELL, 111 4-4)
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
+  if (d.staunch) d.staunchNeed = d.staunchLeft = u.max * d.staunch.healPct; // 봉합 상처 (113 6.2): 걸린 때의 최대 체력 기준
   if (def.fx) emit(f, { type: 'fx', name: def.fx, on: u.id }); // 모자 · 춤바람 · 벌침 (그림 49 E)
   if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)
   if (def.dropPct) damage(f, u, (u.max * def.dropPct) / f.dmgMult, true, 'fixed'); // 최대 체력 비율 (113 7-2: 체력선 회복 기믹의 처음 결손, 보정과 상관없이)

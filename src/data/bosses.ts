@@ -150,6 +150,11 @@ export interface DebuffDef {
    */
   dropPct?: number;
   /**
+   * 봉합 상처 (113 6.2): 걸릴 때 그 사람 최대 체력 × healPct가 봉합량. 실제로 오른 체력 (직접 · 지속 · 광역 · 토템 모두, 넘친 치유 · 흡수막 깎은 몫 빼고)만큼 줄고 0이면 멎음.
+   * 출혈 = 초당 최대 체력 × dotPct × (남은 봉합량 ÷ 처음 봉합량), 보정 (tune)과 상관없이. 해제 안 됨 (lock과 같이 적음), 만료 폭발 없음
+   */
+  staunch?: { healPct: number; dotPct: number };
+  /**
    * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)을 빚으로. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
    * 이 사람에게 넘친 치유가 빚을 갚음 (다 갚으면 사라짐). 시간이 다 되면 남은 빚만큼 피해 (고정). lock과 같이 적음
    */
@@ -5659,6 +5664,157 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     variants: ['약초 열병 → 독한 꽃가루 → 약초 정령', '독한 꽃가루 → 약초 열병 → 약초 정령', '약초 열병 → 약한 광역 → 약초 정령'],
     enrage: { name: '도둑 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 113 초반 보충 장소 3차 (Lv 13~16) ----------
+  // 봉합사 따끔 (S16 응급 봉합실): 14초에 딜러 한 명 봉합 상처 (12초, 처음 최대 체력 35% 깎임, 봉합량 = 최대 체력 30%, 실제로 회복할수록 출혈 (초당 최대 체력 2%)이 줄어듦).
+  // 해제 안 됨 · 만료 폭발 없음 · 동시 하나. A 상처 → 강타, B 상처 → 6초 뒤 탱커 강타, C 약한 광역 → 상처
+  ttakkeum: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      { key: 'wound', name: '봉합 상처', icon: '봉합', kind: 'instant', first: 14, period: 36, cast: 0,
+        how: '실제로 회복한 만큼 출혈이 줄고 최대 체력 30%를 채우면 멎음. 지속 힐로 길게 또는 빠른 힐로 바로 (보호막은 피해만 막음)',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '봉합 상처', type: '물리', left: 12, lock: true, dropPct: 0.35, staunch: { healPct: 0.3, dotPct: 0.02 } } } },
+      { key: 'buster', name: '큰 바늘 찌르기', icon: '바늘', kind: 'buster', first: 26, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.5), target: 'tank', effect: { p: 'tank' }, when: { variant: [0, 2] } },
+      { key: 'busterb', name: '큰 바늘 찌르기', icon: '바늘', kind: 'buster', first: 18, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.5), target: 'tank', effect: { p: 'tank' }, when: { variant: [1] },
+        how: '상처 6초 뒤 탱커 강타. 상처 대상에 지속 힐을 걸어 두고 탱커로' },
+      { key: 'gauze', name: '붕대 휘날리기', icon: '붕대', kind: 'aoe', first: 8, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.16) } },
+    ],
+    variants: ['봉합 상처 → 강타', '봉합 상처 → 6초 뒤 강타', '약한 광역 → 봉합 상처'],
+    enrage: { name: '봉합 폭주', period: 2, dmg: 250 },
+  },
+  // 증류사 두방울 (S17 쌍둥이 증류실): 16초에 한 명 치유 흡수막 (힐이 막부터 깎음, 12초 뒤 남아도 안 터짐), 6초 뒤 다른 약한 질병.
+  // A 흡수막 → 질병, B 질병 → 흡수막, C 흡수막 → 끝난 뒤 광역
+  dubangul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('국자 내려치기', '국자', 4, 36, U.tank(0.5)),
+      ...([[0, 16], [1, 22], [2, 16]] as const).map(([v, at]): SkillDef => ({
+        key: `film${v}`, name: '증류 막', icon: '증류', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        how: '체력 막대가 안 올라도 힐이 막부터 깎는 중. 작은 힐 두세 번이면 사라짐 (12초 뒤 남아도 안 터짐). 다른 사람이 위험하면 그쪽 먼저',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '증류 막', type: '물리', left: 12, lock: true, absorb: U.heal(1.6) } },
+      })),
+      ...([[0, 22], [1, 16]] as const).map(([v, at]): SkillDef => ({
+        key: `cough${v}`, name: '증류 기침', icon: '기침', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '증류 기침', type: '질병', left: 10, dot: U.dps(0.02) } },
+      })),
+      { key: 'boil', name: '쌍둥이 증기', icon: '증기', kind: 'aoe', first: 26, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    variants: ['증류 막 → 증류 기침', '증류 기침 → 증류 막', '증류 막 → 끝난 뒤 쌍둥이 증기'],
+    enrage: { name: '증류 폭주', period: 2, dmg: 250 },
+  },
+  // 빗물 도마뱀 찰박 (S18 빗물받이 지붕): 18초에 뒷줄 한 명을 4초 끌어당김 (그동안 보스 평타를 탱커와 번갈아), 끌기 6초 뒤 못 피하는 앞줄 물벼락.
+  // A 끌기 → 앞줄 물벼락, B 앞줄 물벼락 → 끌기, C 끌기 → 한 명 물벼락
+  chalbak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('꼬리 채찍', '꼬리', 4, 36, 330),
+      ...([[0, 18], [1, 21], [2, 18]] as const).map(([v, at]): SkillDef => ({
+        key: `pull${v}`, name: '꼬리 감아 끌기', icon: '끌기', kind: 'buster', first: at, period: 36, cast: 2, warn: 'buster', target: { p: 'back', n: 1 }, when: { variant: [v] },
+        how: '뒷줄 한 명이 앞으로 끌려와 4초 동안 평타를 나눠 맞음. 원래 자리 말고 지금 자리 · 예고를 보고 채우기', effect: { p: 'pull', sec: 4, dmg: 200 },
+      })),
+      ...([[0, 26], [1, 12]] as const).map(([v, at]): SkillDef => ({
+        key: `rain${v}`, name: '앞줄 물벼락', icon: '물벼', kind: 'zone', first: at, period: 36, cast: 3, warn: 'zone', fixed: true, hitDmg: 150, cells: { p: 'line', at: 'front' }, when: { variant: [v] },
+        how: '앞줄에 선 사람이 맞음 (못 피함). 끌려온 사람도 앞줄이면 맞음, 예고된 줄을 미리 채우기',
+      })),
+      { key: 'drop', name: '빗물 한 줄기', icon: '빗물', kind: 'buster', first: 26, period: 36, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [2] }, effect: { p: 'strike', dmg: 200 } },
+    ],
+    variants: ['꼬리 끌기 → 앞줄 물벼락', '앞줄 물벼락 → 꼬리 끌기', '꼬리 끌기 → 한 명 물벼락'],
+    enrage: { name: '빗물 폭주', period: 2, dmg: 195 },
+  },
+  // 깃대 수호상 곧게 (S19 낡은 깃발길): 20초에 12초 무력화 기회 (체력 65% 이상인 파티원의 딜만 게이지, 성공 = 6초 무방비, 실패 = 약한 광역 한 번).
+  // A 무력화 → 끝나고 광역, B 약한 광역 → 무력화, C 한 명 지목 → 무력화
+  gotge: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('깃대 찌르기', '깃대', 6, 44, 330),
+      { key: 'stand', name: '깃발 버티기', icon: '깃발', kind: 'instant', first: 20, period: 44, cast: 0,
+        how: '12초 동안 체력 65% 이상인 파티원의 딜만 게이지를 채움. 탱커 한 명을 가득 채우기보다 여럿을 65% 위로',
+        effect: { p: 'stagger', sec: 12, need: 5, hp: 0.65, tank: 1, win: { sec: 6, vuln: 1.3 }, fail: { dmg: 120, lock: 0 } } },
+      { key: 'wave', name: '깃발 바람', icon: '바람', kind: 'aoe', first: 34, period: 44, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: 140 } },
+      { key: 'waveb', name: '깃발 바람', icon: '바람', kind: 'aoe', first: 13, period: 44, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 120 } },
+      { key: 'point', name: '깃창 지목', icon: '깃창', kind: 'buster', first: 14, period: 44, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [2] }, effect: { p: 'strike', dmg: 200 } },
+    ],
+    variants: ['깃발 버티기 → 끝나고 광역', '약한 광역 → 깃발 버티기', '한 명 지목 → 깃발 버티기'],
+    enrage: { name: '수호상 폭주', period: 2, dmg: 195 },
+  },
+  // 안개 사냥꾼 흐릿 (S20 안개등 징검길): 안개등 정령 (16초, 채우면 10초 적 피해 −25%)이 있는 동안 지목 두 번 (6초 이상 사이). 놓쳐도 피해 없음.
+  // A 등불 → 지목 둘, B 지목 → 등불 → 지목, C 등불 → 약한 광역
+  heurit: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('갈대 활 내려치기', '갈대', 4, 36, 330),
+      ...([[0, 10], [1, 12], [2, 10]] as const).map(([v, at]): SkillDef => ({
+        key: `lamp${v}`, name: '안개등 정령', icon: '등불', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        how: '지목 대상이 안전하면 등불을 먼저 채워 다음 공격을 약하게, 위험하면 그 사람부터',
+        effect: { p: 'soul', name: '안개등 정령', short: '등불', hp: 0.4, size: 0.5, sec: 16, win: { text: '10초 동안 적 피해 −25%', weak: { pct: 0.25, sec: 10 } }, fail: { text: '등불이 꺼짐', dmg: 0 } },
+      })),
+      ...([[0, 13, 1], [0, 20, 2], [1, 8, 1], [1, 20, 2]] as const).map(([v, at, i]): SkillDef => ({
+        key: `shot${v}${i}`, name: '안개 화살', icon: '화살', kind: 'buster', first: at, period: 36, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [v] },
+        effect: { p: 'strike', dmg: 170 },
+      })),
+      { key: 'fog', name: '짙은 안개', icon: '안개', kind: 'aoe', first: 20, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 130 } },
+    ],
+    variants: ['안개등 → 안개 화살 두 번', '안개 화살 → 안개등 → 안개 화살', '안개등 → 약한 광역'],
+    enrage: { name: '안개 폭주', period: 2, dmg: 165 },
+  },
+  // 물방울지기 또롱 (S21 빛고임 수초밭): 14초에 빛의 그릇 (12초 동안 넘친 치유를 모아 파티 최대 체력 합 4%면 14초 전원 보호막), 그릇 10초 뒤 약한 광역 물방울.
+  // 그릇 실패에 피해 없음. A 그릇 → 광역, B 한 명 지목 → 그릇 → 광역, C 그릇 → 앞줄 물살
+  ttorong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('물대야 내려치기', '대야', 4, 36, 330),
+      { key: 'vessel', name: '빛의 그릇', icon: '그릇', kind: 'instant', first: 14, period: 36, cast: 0,
+        how: '파티가 안전할 때 넘친 치유를 모으면 10초 뒤 물방울을 보호막으로 받음. 위험한 사람 먼저, 남는 치유가 그릇으로',
+        effect: { p: 'vessel', name: '빛의 그릇', need: 0.04, sec: 12, shield: 14 } },
+      { key: 'drops', name: '물방울 터짐', icon: '물방', kind: 'aoe', first: 21, period: 36, cast: 3, warn: 'aoe', when: { variant: [0, 1] }, effect: { p: 'all', dmg: 140 } },
+      { key: 'aim', name: '물방울 쏘기', icon: '물방', kind: 'buster', first: 8, period: 36, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] }, effect: { p: 'strike', dmg: 180 } },
+      { key: 'wave', name: '앞줄 물살', icon: '물살', kind: 'zone', first: 21, period: 36, cast: 3, warn: 'zone', fixed: true, hitDmg: 150, cells: { p: 'line', at: 'front' }, when: { variant: [2] },
+        how: '앞줄에 선 사람이 맞음 (못 피함). 예고된 줄을 미리 채우기' },
+    ],
+    variants: ['빛의 그릇 → 물방울', '한 명 지목 → 빛의 그릇 → 물방울', '빛의 그릇 → 앞줄 물살'],
+    enrage: { name: '물방울 폭주', period: 2, dmg: 165 },
+  },
+  // 감시병 휙눈 (S22 갈대 감시초소): 12초부터 뒷줄 지목 두 번 (7초 사이, 대상은 따로 예고 · 같은 사람일 수도) → 탱커 강타.
+  // A 뒷줄 둘 → 강타, B 뒷줄 → 강타 → 뒷줄, C 광역 → 뒷줄 하나 → 강타
+  hwingnun: {
+    phase: [1, ''],
+    skills: [
+      AUTO(90),
+      ...([[0, 12, 1], [0, 19, 2], [1, 12, 1], [1, 27, 2], [2, 19, 1]] as const).map(([v, at, i]): SkillDef => ({
+        key: `dart${v}${i}`, name: '갈대 독침', icon: '독침', kind: 'buster', first: at, period: 36, cast: 2, warn: 'buster', target: { p: 'back', n: 1 }, when: { variant: [v] },
+        how: '뒷줄 한 명이 맞음. 두 번째 대상이 첫 번째와 같다고 생각하지 말고 예고를 보기', effect: { p: 'strike', dmg: 200 },
+      })),
+      ...([[0, 27], [1, 19], [2, 27]] as const).map(([v, at]): SkillDef => ({
+        key: `spear${v}`, name: '갈대창 찌르기', icon: '갈대', kind: 'buster', first: at, period: 36, cast: 2, warn: 'buster', dmg: 360, target: 'tank', effect: { p: 'tank' }, when: { variant: [v] },
+      })),
+      { key: 'volley', name: '갈대 화살비', icon: '화살', kind: 'aoe', first: 10, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 140 } },
+    ],
+    variants: ['뒷줄 독침 두 번 → 강타', '뒷줄 독침 → 강타 → 뒷줄 독침', '화살비 → 뒷줄 독침 → 강타'],
+    enrage: { name: '감시 폭주', period: 2, dmg: 175 },
+  },
+  // 밧줄지기 당김 (S23 작은 나룻터): 18초에 발판 하나 (갈 수 있는 딜러가 스스로 감), 6초 뒤 발판 위 사람 하중 피해 · 비어 있으면 작은 광역.
+  // A 발판, B 약한 광역 → 발판, C 발판 → 끝나고 강타
+  danggim: {
+    phase: [1, ''],
+    skills: [
+      AUTO(90),
+      BUSTER('갈고리 내려치기', '갈고', 6, 36, 340),
+      ...([[0, 18], [1, 19], [2, 18]] as const).map(([v, at]): SkillDef => ({
+        key: `raft${v}`, name: '나룻배 발판', icon: '발판', kind: 'aoe', first: at, period: 36, cast: 6, when: { variant: [v] },
+        how: '금빛 발판에 들어간 사람이 맞고, 비어 있으면 모두 조금. 발판으로 나서는 동료를 미리 채우기',
+        effect: { p: 'tower', n: 1, dmg: 200, empty: 90 },
+      })),
+      { key: 'splash', name: '밧줄 물보라', icon: '물보', kind: 'aoe', first: 10, period: 36, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 120 } },
+      { key: 'yank', name: '밧줄 당기기', icon: '밧줄', kind: 'buster', first: 29, period: 36, cast: 2, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+    ],
+    variants: ['나룻배 발판', '약한 광역 → 나룻배 발판', '나룻배 발판 → 끝나고 강타'],
+    enrage: { name: '밧줄 폭주', period: 2, dmg: 175 },
   },
 };
 

@@ -36,7 +36,10 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   // 113 2차 (Lv 9~12)
   | 'waxhall' | 'waxdoll' | 'sealstore' | 'chorereu' | 'incensepass' | 'censerguard' | 'brokencase' | 'huljjeok' | 'drycanal' | 'vineguard' | 'seedbench' | 'mallim'
   | 'pollenshelf' | 'thornporter' | 'sackstore' | 'kkaseul' | 'floodhall' | 'gateshield' | 'drainway' | 'multeok' | 'sievehall' | 'clawguard' | 'cagepass' | 'kkwakjip'
-  | 'bandageroad' | 'charye' | 'cartroad' | 'humchim';
+  | 'bandageroad' | 'charye' | 'cartroad' | 'humchim'
+  // 113 3차 (Lv 13~16)
+  | 'tornhall' | 'stitchdoll' | 'triagebed' | 'ttakkeum' | 'tubehall' | 'frother' | 'stillway' | 'dubangul'
+  | 'wettiles' | 'chalbak' | 'flagwalk' | 'gotge' | 'foggystones' | 'heurit' | 'glowweeds' | 'ttorong' | 'reedarrows' | 'hwingnun' | 'ferrypath' | 'danggim';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -63,7 +66,9 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   // 113 초반 보충 장소 1차 (Lv 5~8)
   | 'kkuksoe' | 'chiik' | 'cutter' | 'deolkeok' | 'huuk' | 'heuneuk' | 'eolluk' | 'puseokash'
   // 113 2차 (Lv 9~12)
-  | 'chorereu' | 'huljjeok' | 'vineguard' | 'mallim' | 'kkaseul' | 'multeok' | 'clawguard' | 'kkwakjip' | 'charye' | 'humchim';
+  | 'chorereu' | 'huljjeok' | 'vineguard' | 'mallim' | 'kkaseul' | 'multeok' | 'clawguard' | 'kkwakjip' | 'charye' | 'humchim'
+  // 113 3차 (Lv 13~16)
+  | 'ttakkeum' | 'dubangul' | 'chalbak' | 'gotge' | 'heurit' | 'ttorong' | 'hwingnun' | 'danggim';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1721,6 +1726,85 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '부리 가면 집행자', hp: 150, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   humchim: { key: 'humchim', lowLevel: true, name: '약초 도둑 훔침', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'humchim', stage: 0.3, debuffs: ['질병'] },
+  // ---------- 113 초반 보충 장소 3차 (Lv 13~16): 교단 약품 제조실 · 왕도 지붕길 · 늪지 어귀 · 개구리 연못 반복판 대신 ----------
+  // S16 응급 봉합실 (Lv 13 · 교단 약품 제조실): 회복할수록 줄어드는 출혈 (봉합 상처, 113 6.2)
+  tornhall: trash('tornhall', '찢어진 붕대 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  stitchdoll: trash('stitchdoll', '봉합 인형', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '봉합 인형', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 봉합 상처의 예습: 작은 상처 (회복할수록 출혈이 줄어듦)
+        { key: 'cut', name: '실밥 긋기', icon: '실밥', to: 'other', dmg: 0, first: 8, period: 20, cast: 0,
+          effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '작은 봉합 상처', type: '물리', left: 10, lock: true, dropPct: 0.25, staunch: { healPct: 0.2, dotPct: 0.015 } } } },
+      ],
+    },
+  ]),
+  triagebed: trash('triagebed', '응급 침상', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  ttakkeum: { key: 'ttakkeum', lowLevel: true, name: '봉합사 따끔', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6200, enrage: 260, manaCoef: 1.0, diffs: ALL, script: 'ttakkeum', stage: 0.25 },
+  // S17 쌍둥이 증류실 (Lv 13 · 교단 약품 제조실): 흡수막과 일반 상처 구분
+  tubehall: trash('tubehall', '약액 배관', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  frother: trash('frother', '거품 교반기', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '거품 교반기', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 흡수막의 예습: 작은 막 (힐이 막부터 깎음, 남아도 안 터짐)
+        { key: 'film', name: '거품 막', icon: '거품', to: 'other', dmg: 0, first: 8, period: 20, cast: 0,
+          effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '거품 막', type: '물리', left: 10, lock: true, absorb: 180 } } },
+      ],
+    },
+  ]),
+  stillway: trash('stillway', '증류관 통로', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  dubangul: { key: 'dubangul', lowLevel: true, name: '증류사 두방울', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6200, enrage: 260, manaCoef: 1.0, diffs: ALL, script: 'dubangul', stage: 0.25, debuffs: ['질병'] },
+  // S18 빗물받이 지붕 (Lv 14 · 왕도 지붕길): 끌려간 사람 먼저 준비
+  wettiles: trash('wettiles', '젖은 지붕 처마', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '다락 박쥐 떼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  chalbak: { key: 'chalbak', lowLevel: true, name: '빗물 도마뱀 찰박', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'chalbak', stage: 0.3 },
+  // S19 낡은 깃발길 (Lv 14 · 왕도 지붕길): 파티 체력으로 무력화
+  flagwalk: trash('flagwalk', '부러진 깃대길', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '다락 박쥐 떼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  gotge: { key: 'gotge', lowLevel: true, name: '깃대 수호상 곧게', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1600, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'gotge', stage: 0.3 },
+  // S20 안개등 징검길 (Lv 15 · 늪지 어귀): 도움을 받을지 지금 회복할지 (안개등 정령)
+  foggystones: trash('foggystones', '안개 낀 징검돌', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  heurit: { key: 'heurit', lowLevel: true, name: '안개 사냥꾼 흐릿', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'heurit', stage: 0.3 },
+  // S21 빛고임 수초밭 (Lv 15 · 늪지 어귀): 넘친 치유로 다음 공격 준비 (빛의 그릇)
+  glowweeds: trash('glowweeds', '빛 고인 수초길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  ttorong: { key: 'ttorong', lowLevel: true, name: '물방울지기 또롱', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'ttorong', stage: 0.3 },
+  // S22 갈대 감시초소 (Lv 16 · 개구리 연못): 탱커 밖 연속 공격 대응
+  reedarrows: trash('reedarrows', '갈대 화살길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  hwingnun: { key: 'hwingnun', lowLevel: true, name: '감시병 휙눈', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2000, enrage: 175, manaCoef: 1.0, diffs: ALL, script: 'hwingnun', stage: 0.3 },
+  // S23 작은 나룻터 (Lv 16 · 개구리 연못): 자동으로 나선 동료 지원 (받침 발판 하나)
+  ferrypath: trash('ferrypath', '젖은 나룻길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  danggim: { key: 'danggim', lowLevel: true, name: '밧줄지기 당김', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2000, enrage: 175, manaCoef: 1.0, diffs: ALL, script: 'danggim', stage: 0.3 },
 };
 
 /**
