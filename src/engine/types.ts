@@ -545,7 +545,7 @@ export type FightEvent =
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
-export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'splash'
+export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'bloom' | 'splash'
   | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil'
   | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer'
   /** 묶음 B 새 부품 (46 5장, 그림 37 G · 47 E): 부풀기 지워서 퐁 · 치유 상한 먹물 · 뒤집힘 금화. 두어서 터지면 explode */

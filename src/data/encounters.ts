@@ -39,7 +39,11 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'bandageroad' | 'charye' | 'cartroad' | 'humchim'
   // 113 3차 (Lv 13~16)
   | 'tornhall' | 'stitchdoll' | 'triagebed' | 'ttakkeum' | 'tubehall' | 'frother' | 'stillway' | 'dubangul'
-  | 'wettiles' | 'chalbak' | 'flagwalk' | 'gotge' | 'foggystones' | 'heurit' | 'glowweeds' | 'ttorong' | 'reedarrows' | 'hwingnun' | 'ferrypath' | 'danggim';
+  | 'wettiles' | 'chalbak' | 'flagwalk' | 'gotge' | 'foggystones' | 'heurit' | 'glowweeds' | 'ttorong' | 'reedarrows' | 'hwingnun' | 'ferrypath' | 'danggim'
+  // 113 4차 (Lv 17~20)
+  | 'mirrorgate' | 'shadowguard' | 'shallowway' | 'bichim' | 'undamway' | 'mudshield' | 'brokenfort' | 'mukjik' | 'wellyard' | 'bucketguard' | 'wellstair' | 'durae'
+  | 'woodhall' | 'drumguard' | 'lowstage' | 'dungtak' | 'silkpath' | 'mongsil' | 'dewpath2' | 'kkumul' | 'puffslope' | 'ttoreureu'
+  | 'drillyard2' | 'spearguard' | 'bandagelane' | 'tuktuk' | 'lotuswater' | 'gatespear' | 'lowcorridor' | 'yeongap';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -68,7 +72,9 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   // 113 2차 (Lv 9~12)
   | 'chorereu' | 'huljjeok' | 'vineguard' | 'mallim' | 'kkaseul' | 'multeok' | 'clawguard' | 'kkwakjip' | 'charye' | 'humchim'
   // 113 3차 (Lv 13~16)
-  | 'ttakkeum' | 'dubangul' | 'chalbak' | 'gotge' | 'heurit' | 'ttorong' | 'hwingnun' | 'danggim';
+  | 'ttakkeum' | 'dubangul' | 'chalbak' | 'gotge' | 'heurit' | 'ttorong' | 'hwingnun' | 'danggim'
+  // 113 4차 (Lv 17~20)
+  | 'shadowguard' | 'bichim' | 'mukjik' | 'durae' | 'dungtak' | 'mongsil' | 'kkumul' | 'ttoreureu' | 'tuktuk' | 'yeongap';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1805,6 +1811,132 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   danggim: { key: 'danggim', lowLevel: true, name: '밧줄지기 당김', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2000, enrage: 175, manaCoef: 1.0, diffs: ALL, script: 'danggim', stage: 0.3 },
+  // ---------- 113 초반 보충 장소 4차 (Lv 17~20): 독안개 늪 · 갈대 오두막 마을 · 버섯숲 늪가 · 두꺼비 왕국 수련궁 반복판 대신 ----------
+  // S24 물그림자 관측소 (Lv 17 · 독안개 늪): 체력을 기록하기 전에 회복 (모래시계). 정예 (보스 ①)는 모래시계 갱신이 있어 보스 스크립트
+  mirrorgate: trash('mirrorgate', '거울못 입구', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  shadowguard: { key: 'shadowguard', lowLevel: true, name: '물그림자 경비', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'shadowguard', stage: 0.25 },
+  shallowway: trash('shallowway', '얕은 관측 수로', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  bichim: { key: 'bichim', lowLevel: true, name: '물거울지기 비침', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'bichim', stage: 0.25 },
+  // S25 오래된 둑 보루 (Lv 17 · 독안개 늪): 공격이 멈춘 틈에 파티 재정비 (체력 50%에서 한 번 숨 고르기 → 무력화)
+  undamway: trash('undamway', '둑 아래 통로', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  mudshield: trash('mudshield', '진흙 방패병', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '진흙 방패병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'mud', name: '진흙 벽 밀기', icon: '진흙', kind: 'aoe', to: 'all', dmg: 140, first: 8, period: 14, cast: 3 },
+      ],
+    },
+  ]),
+  brokenfort: trash('brokenfort', '무너진 보루', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  mukjik: { key: 'mukjik', lowLevel: true, name: '둑지기 묵직', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'mukjik', stage: 0.25 },
+  // S26 갈대 우물집 (Lv 18 · 갈대 오두막 마을): 나눠 받는 치유 활용 (나눔 사슬)
+  wellyard: trash('wellyard', '우물 마당', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  bucketguard: trash('bucketguard', '두레박 경비', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '두레박 경비', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'swing', name: '두레박 휘두르기', icon: '두레', kind: 'buster', to: 'other', dmg: 120, first: 8, period: 14, cast: 2 },
+      ],
+    },
+  ]),
+  wellstair: trash('wellstair', '젖은 우물 계단', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  durae: { key: 'durae', lowLevel: true, name: '우물지기 두레', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'durae', stage: 0.25 },
+  // S27 북소리 회당 (Lv 18 · 갈대 오두막 마을): 진동 뒤 행동 불능 회복 (겁먹음: 체력 75%까지 채우면 복귀)
+  woodhall: trash('woodhall', '울리는 목재 복도', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  drumguard: trash('drumguard', '북 든 근위병', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '북 든 근위병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'quake', name: '작은 북소리', icon: '북', kind: 'aoe', to: 'all', dmg: 0, first: 9, period: 18, cast: 3, effect: { p: 'quake', dmg: 40, lock: 1 } },
+      ],
+    },
+  ]),
+  lowstage: trash('lowstage', '낮은 무대', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  dungtak: { key: 'dungtak', lowLevel: true, name: '북지기 둥탁', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'dungtak', stage: 0.25 },
+  // S28 잠든 누에길 (Lv 19 · 버섯숲 늪가): 직접 치유와 지속 치유 선택 (포자 정전기: 직접 힐 세 번째에 방전)
+  silkpath: trash('silkpath', '포자 낀 누에길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  mongsil: { key: 'mongsil', lowLevel: true, name: '포자 누에 몽실', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'mongsil', stage: 0.3, debuffs: ['독'] },
+  // S29 이슬꽃 쉼터 (Lv 19 · 버섯숲 늪가): 광역 회복과 꽃 회복 선택 (이슬꽃: 채우면 전원 15%)
+  dewpath2: trash('dewpath2', '이슬 맺힌 꽃길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  kkumul: { key: 'kkumul', lowLevel: true, name: '이슬 먹는 달팽이 꾸물', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'kkumul', stage: 0.3 },
+  // S30 포자 굴림길 (Lv 19 · 버섯숲 늪가): 적이 쓰러질 때의 피해 대비 (포자 덩이: 쓰러지면 파티에 약한 지속 피해, 최대 2중첩)
+  puffslope: trash('puffslope', '부푼 포자길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  ttoreureu: { key: 'ttoreureu', lowLevel: true, name: '포자 굴림꾼 또르르', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'ttoreureu', stage: 0.3, debuffs: ['독'] },
+  // S31 수련 근위 훈련장 (Lv 20 · 두꺼비 왕국 수련궁): 두 사람의 출혈 순서 관리 (봉합 상처 둘)
+  drillyard2: trash('drillyard2', '수련 연무장', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  spearguard: trash('spearguard', '나무창 근위병', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '나무창 근위병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'cut', name: '나무창 긋기', icon: '나무', to: 'other', dmg: 0, first: 8, period: 20, cast: 0,
+          effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '작은 봉합 상처', type: '물리', left: 10, lock: true, dropPct: 0.25, staunch: { healPct: 0.2, dotPct: 0.015 } } } },
+      ],
+    },
+  ]),
+  bandagelane: trash('bandagelane', '붕대 보급로', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  tuktuk: { key: 'tuktuk', lowLevel: true, name: '훈련교관 툭툭', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'tuktuk', stage: 0.25 },
+  // S32 수련 수문 회랑 (Lv 20 · 두꺼비 왕국 수련궁): 서로 다른 판단을 차례로 (전반 줄 물살 → 체력 50% 뒤 번호표 한 번)
+  lotuswater: trash('lotuswater', '수련 물길', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  gatespear: trash('gatespear', '수문 창병', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '수문 창병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'surge', name: '작은 물살', icon: '물살', kind: 'aoe', to: 'all', dmg: 130, first: 8, period: 14, cast: 3 },
+      ],
+    },
+  ]),
+  lowcorridor: trash('lowcorridor', '낮은 회랑', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  yeongap: { key: 'yeongap', lowLevel: true, name: '수문대장 연갑', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'yeongap', stage: 0.25 },
 };
 
 /**

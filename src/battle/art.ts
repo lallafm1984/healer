@@ -426,6 +426,14 @@ const ENC_ART: Record<string, string[]> = {
   wettiles: ['mob-cult-acolyte', 'mob-attic-bats'], chalbak: ['boss-rain-lizard', 'boss-plague-archpriest'], flagwalk: ['mob-cult-acolyte', 'mob-attic-bats'], gotge: ['boss-flagpole-statue', 'boss-plague-archpriest'],
   foggystones: ['mob-swamp-spearman', 'mob-mud-slinger'], heurit: ['boss-mist-hunter', 'boss-swamp-shaman'], glowweeds: ['mob-swamp-spearman', 'mob-mud-slinger'], ttorong: ['boss-drop-keeper', 'boss-swamp-shaman'],
   reedarrows: ['mob-swamp-spearman', 'mob-mud-slinger'], hwingnun: ['boss-reed-sentry', 'boss-swamp-huntress'], ferrypath: ['mob-swamp-spearman', 'mob-mud-slinger'], danggim: ['boss-rope-keeper', 'boss-swamp-huntress'],
+  // 113 4차 (Lv 17~20)
+  mirrorgate: ['mob-swamp-spearman', 'mob-mud-slinger'], shadowguard: ['mob-swamp-spearman-harpoon', 'boss-swamp-chief'], shallowway: ['mob-swamp-spearman', 'mob-mud-slinger'], bichim: ['boss-mirror-keeper', 'boss-swamp-chief'],
+  undamway: ['mob-swamp-spearman', 'mob-mud-slinger'], mudshield: ['mob-mud-splitling', 'mob-swamp-spearman'], brokenfort: ['mob-swamp-spearman', 'mob-mud-slinger'], mukjik: ['boss-dam-keeper', 'boss-swamp-chief'],
+  wellyard: ['mob-swamp-spearman', 'mob-mud-slinger'], bucketguard: ['mob-wart-toad', 'mob-swamp-spearman'], wellstair: ['mob-swamp-spearman', 'mob-mud-slinger'], durae: ['boss-well-keeper', 'boss-mud-elemental'],
+  woodhall: ['mob-swamp-spearman', 'mob-mud-slinger'], drumguard: ['mob-tadpole-guard', 'mob-swamp-spearman'], lowstage: ['mob-swamp-spearman', 'mob-mud-slinger'], dungtak: ['boss-drum-keeper', 'boss-mud-elemental'],
+  silkpath: ['mob-swamp-spearman', 'mob-mud-slinger'], mongsil: ['boss-spore-silkworm', 'boss-frog-captain'], dewpath2: ['mob-swamp-spearman', 'mob-mud-slinger'], kkumul: ['boss-dew-snail', 'boss-frog-captain'], puffslope: ['mob-swamp-spearman', 'mob-mud-slinger'], ttoreureu: ['boss-spore-roller', 'boss-frog-captain'],
+  drillyard2: ['mob-swamp-spearman', 'mob-mud-slinger'], spearguard: ['mob-tadpole-guard', 'mob-swamp-spearman'], bandagelane: ['mob-swamp-spearman', 'mob-mud-slinger'], tuktuk: ['boss-drill-instructor', 'boss-toad-king'],
+  lotuswater: ['mob-swamp-spearman', 'mob-mud-slinger'], gatespear: ['mob-swamp-spearman-harpoon', 'mob-swamp-spearman'], lowcorridor: ['mob-swamp-spearman', 'mob-mud-slinger'], yeongap: ['boss-sluice-captain', 'boss-toad-king'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -441,6 +449,7 @@ const MOB_ART: Record<string, string[]> = {
   '고철 망치병': ['mob-minecart-golem', 'mob-boiler-golem'], '배관 수리병': ['mob-boiler-golem'], // 113 정예 (자기 그림 없음, 같은 세력 그림)
   '밀랍 인형': ['mob-empty-armor'], '검은 향로병': ['mob-cult-acolyte-censer'], '가시 운반병': ['mob-root-vine'], '수문 방패병': ['mob-wet-armor'],
   '봉합 인형': ['mob-straw-decoy'], '거품 교반기': ['mob-sludge-barrel'],
+  '진흙 방패병': ['mob-mud-splitling', 'mob-swamp-spearman'], '두레박 경비': ['mob-wart-toad'], '북 든 근위병': ['mob-tadpole-guard'], '나무창 근위병': ['mob-tadpole-guard'], '수문 창병': ['mob-swamp-spearman-harpoon'],
   '되살아난 뼈': ['mob-risen-bones'], '교단 신도': ['mob-cult-acolyte'], '묘지 쥐떼': ['mob-crypt-rats'], '부리 가면 집행자': ['mob-beak-enforcer'],
   '늪 창병': ['mob-swamp-spearman'], '진흙 투석꾼': ['mob-mud-slinger'], '독침 사냥꾼': ['mob-dart-hunter'], '독 혹 두꺼비': ['mob-wart-toad'],
   '빈 갑옷 시종': ['mob-empty-armor'], '검은 베일 조문객': ['mob-veiled-mourner'], '유령 하녀': ['mob-ghost-maid'], '유령 사냥개': ['mob-ghost-hound'],

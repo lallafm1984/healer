@@ -758,7 +758,10 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
       f.weak = { cut: w.weak.pct, until: f.t + w.weak.sec };
     }
     if (w.vuln) f.expose = { vuln: 1 + w.vuln.pct, until: f.t + w.vuln.sec };
-    if (w.partyHeal) for (const v of living(f)) heal(f, v, v.max * w.partyHeal.pct, false, true); // 꽃의 파티 회복 (113 6.1): 간접 치유 (회복 숫자 · 받는 치유 효과 · 상한은 공통 경로대로)
+    if (w.partyHeal) { // 꽃의 파티 회복 (113 6.1): 간접 치유 (회복 숫자 · 받는 치유 효과 · 상한은 공통 경로대로)
+      emit(f, { type: 'fx', name: 'bloom', cell: at.i });
+      for (const v of living(f)) heal(f, v, v.max * w.partyHeal.pct, false, true);
+    }
     if (w.fx) emit(f, { type: 'fx', name: w.fx, all: true });
     return;
   }

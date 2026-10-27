@@ -5816,6 +5816,202 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['나룻배 발판', '약한 광역 → 나룻배 발판', '나룻배 발판 → 끝나고 강타'],
     enrage: { name: '밧줄 폭주', period: 2, dmg: 175 },
   },
+  // ---------- 113 초반 보충 장소 4차 (Lv 17~20) ----------
+  // 물그림자 경비 (S24 정예 = 보스 ①): 짧은 물거울 예습 (뒤집는 순간 체력을 기록하고 6초 뒤 되돌림)
+  shadowguard: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('그림자 창', '창', 6, 18, U.tank(0.4)),
+      { key: 'mirror', name: '작은 물거울', icon: '거울', kind: 'aoe', first: 12, period: 30, cast: 3, warn: 'aoe', how: '되돌아가기 전에 채운 체력은 사라짐. 기록 전에 채워 두기',
+        effect: { p: 'glass', sec: 6 } },
+    ],
+    enrage: { name: '그림자 폭주', period: 2, dmg: 200 },
+  },
+  // 물거울지기 비침 (S24 물그림자 관측소): 16초부터 4초 예고 뒤 전원 체력 비율 기록 → 4초 뒤 약한 광역 물결 → 기록 8초 뒤 체력만 기록 비율로 (쓰러진 사람 · 마나 · 보호막 · 디버프는 그대로).
+  // 되돌림 뒤 6초는 특수 공격 없음, 주기 40초. A 기록 → 물결, B 기록 → 딜러 지목, C 약한 광역 → 8초 뒤 기록
+  bichim: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('거울 방패 치기', '방패', 4, 40, U.tank(0.48)),
+      ...([[0, 16], [1, 16], [2, 12]] as const).map(([v, at]): SkillDef => ({
+        key: `mirror${v}`, name: '물거울 기록', icon: '거울', kind: 'aoe', first: at, period: 40, cast: 4, warn: 'aoe', when: { variant: [v] },
+        how: '거울이 비추는 순간의 체력이 기록되고 8초 뒤 그 비율로 돌아감. 기록 전에 높게 채우고, 되돌기 전에는 쓰러질 사람만',
+        effect: { p: 'glass', sec: 8 },
+      })),
+      { key: 'ripple', name: '물결', icon: '물결', kind: 'aoe', first: 21, period: 40, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'gaze', name: '거울 시선', icon: '시선', kind: 'buster', first: 21, period: 40, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] }, effect: { p: 'strike', dmg: U.dps(0.3) } },
+      { key: 'splash', name: '얕은 물결', icon: '물결', kind: 'aoe', first: 5, period: 40, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.15) } },
+    ],
+    variants: ['물거울 기록 → 물결', '물거울 기록 → 딜러 지목', '약한 광역 → 8초 뒤 물거울 기록'],
+    enrage: { name: '물거울 폭주', period: 2, dmg: 240 },
+  },
+  // 둑지기 묵직 (S25 오래된 둑 보루): 체력 50%에서 한 번 자세를 고침 (8초 동안 평타 · 특수 공격 쉼, 걸려 있는 상태 피해는 그대로) → 약한 광역 · 무력화 차례로.
+  // 무력화 실패 = 작은 피해 한 번 (시전 잠금 없음). A 쉼 → 광역 → 무력화, B 쉼 → 딜러 지목 → 무력화, C 큰 강타 → 쉼 → 무력화
+  mukjik: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('통나무 망치', '망치', 6, 18, U.tank(0.46)),
+      { key: 'mud', name: '진흙 파도', icon: '진흙', kind: 'aoe', first: 14, period: 28, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'brace', name: '자세 고치기', icon: '자세', kind: 'instant', first: null, period: 9999, cast: 0, how: '8초 동안 보스가 쉼. 마나를 아끼며 다음 무력화에 모두 65% 위로',
+        effect: { p: 'rest', sec: 8 } },
+      { key: 'after', name: '둑 흔들기', icon: '흔들', kind: 'aoe', first: null, period: 40, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: U.dps(0.15) } },
+      { key: 'aim', name: '진흙 덩이', icon: '진흙', kind: 'buster', first: null, period: 40, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] }, effect: { p: 'strike', dmg: U.dps(0.28) } },
+      { key: 'slam', name: '둑 무너뜨리기', icon: '망치', kind: 'buster', first: null, period: 9999, cast: 3, warn: 'buster', dmg: U.tank(0.58), target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+      { key: 'stagger', name: '버팀목 세우기', icon: '버팀', kind: 'instant', first: null, period: 40, cast: 0,
+        how: '12초 동안 체력 65% 이상인 파티원의 딜만 게이지. 성공하면 6초 무방비, 실패는 작은 피해 한 번',
+        effect: { p: 'stagger', sec: 12, need: 6, hp: 0.65, tank: 1, win: { sec: 6, vuln: 1.3 }, fail: { dmg: U.dps(0.18), lock: 0 } } },
+    ],
+    flow: [
+      { p: 'when', if: { variant: [0, 1], idle: 'brace', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'brace', in: 0 }, { p: 'period', skill: 'mud', sec: 9999 }, { p: 'text', text: '둑지기가 자세를 고침: 8초 쉼' }] },
+      { p: 'when', if: { variant: [0], idle: 'after', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'after', in: 9 }, { p: 'start', skill: 'stagger', in: 15 }] },
+      { p: 'when', if: { variant: [1], idle: 'aim', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'aim', in: 9 }, { p: 'start', skill: 'stagger', in: 15 }] },
+      { p: 'when', if: { variant: [2], idle: 'slam', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'slam', in: 0 }, { p: 'start', skill: 'brace', in: 4 }, { p: 'period', skill: 'mud', sec: 9999 }, { p: 'start', skill: 'stagger', in: 13 }, { p: 'text', text: '둑을 무너뜨린 뒤 자세를 고침' }] },
+    ],
+    variants: ['쉼 → 둑 흔들기 → 버팀목', '쉼 → 딜러 지목 → 버팀목', '큰 강타 → 쉼 → 버팀목'],
+    enrage: { name: '둑 폭주', period: 2, dmg: 240 },
+  },
+  // 우물지기 두레 (S26 갈대 우물집): 18초에 두 사람을 나눔 사슬로 (피해 · 치유 반씩), 5초 뒤 사슬 한쪽에 작은 지목. 균형 폭발 · 이동 지시 없음.
+  // A 사슬 → 지목, B 사슬 → 지목 → 약한 광역, C 광역 → 사슬 → 지목
+  durae: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('두레박 내려치기', '두레', 4, 36, U.tank(0.48)),
+      { key: 'rope', name: '두레박 줄', icon: '사슬', kind: 'instant', first: 18, period: 36, cast: 0, how: '이어진 둘이 피해 · 치유를 반씩. 한쪽만 힐해도 둘 다 참, 사슬 밖에서 위험한 사람도 보기',
+        effect: { p: 'link', kind: 'share', name: '두레박 줄', sec: 12, pick: 'others' } },
+      { key: 'bucket', name: '두레박 던지기', icon: '두레', kind: 'buster', first: 21, period: 36, cast: 2, warn: 'buster', target: { p: 'linked', n: 1 }, effect: { p: 'strike', dmg: U.dps(0.3) } },
+      { key: 'splash', name: '우물물 뿌리기', icon: '물', kind: 'aoe', first: 28, period: 36, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.15) } },
+      { key: 'splashc', name: '우물물 뿌리기', icon: '물', kind: 'aoe', first: 10, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+    ],
+    variants: ['두레박 줄 → 지목', '두레박 줄 → 지목 → 약한 광역', '광역 → 두레박 줄 → 지목'],
+    enrage: { name: '우물 폭주', period: 2, dmg: 240 },
+  },
+  // 북지기 둥탁 (S27 북소리 회당): 진동 (3초 예고, 시전 1초 잠김) 6초 뒤 딜러 한 명 겁먹음 (처음 최대 체력 30% 깎임 · 딜 0, 75%까지 채우거나 12초면 복귀). 진동과 겁먹음은 따로.
+  // A 진동 → 겁먹음, B 겁먹음 → 풀린 뒤 진동, C 광역 → 겁먹음 (진동은 다음 주기부터)
+  dungtak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('북채 내려치기', '북채', 4, 40, U.tank(0.48)),
+      ...([[0, 14, 40], [1, 26, 40], [2, 50, 40]] as const).map(([v, at, per]): SkillDef => ({
+        key: `drum${v}`, name: '큰 북소리', icon: '북', kind: 'aoe', first: at, period: per, cast: 3, warn: 'aoe', when: { variant: [v] }, effect: { p: 'quake', dmg: U.dps(0.1), lock: 1 },
+      })),
+      ...([[0, 23], [1, 12], [2, 17]] as const).map(([v, at]): SkillDef => ({
+        key: `fear${v}`, name: '겁먹음', icon: '겁', kind: 'instant', first: at, period: 40, cast: 0, when: { variant: [v] },
+        how: '딜러 한 명이 공격을 멈춤. 체력 75%까지 채우면 복귀 (지속 힐 틱으로 넘어도 됨), 12초면 저절로',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '겁먹음', type: '물리', left: 12, lock: true, noDps: true, cureAt: 0.75, dropPct: 0.3 } },
+      })),
+      { key: 'beat', name: '북 장단', icon: '장단', kind: 'aoe', first: 8, period: 40, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+    ],
+    variants: ['큰 북소리 → 겁먹음', '겁먹음 → 풀린 뒤 큰 북소리', '북 장단 → 겁먹음 (큰 북소리는 다음부터)'],
+    enrage: { name: '북 폭주', period: 2, dmg: 240 },
+  },
+  // 포자 누에 몽실 (S28 잠든 누에길): 딜러 한 명에게 10초 포자 정전기 (직접 힐 세 번째에 작은 방전 · 처음부터, 지속 힐 틱 · 광역은 안 쌓임, 독 해제 가능).
+  // A 정전기, B 광역 → 정전기, C 정전기 → 6초 뒤 지목
+  mongsil: {
+    phase: [1, ''],
+    skills: [
+      AUTO(90),
+      BUSTER('누에 몸통 박치기', '박치', 4, 30, 360),
+      ...([[0, 8], [1, 12], [2, 8]] as const).map(([v, at]): SkillDef => ({
+        key: `static${v}`, name: '포자 정전기', icon: '정전', kind: 'instant', first: at, period: 30, cast: 0, when: { variant: [v] },
+        how: '직접 힐 세 번째에 작은 방전. 지속 힐 · 광역 힐 · 큰 힐 한 번으로. 위험하면 방전을 감수하고 바로 (독 해제로도 지움)',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '포자 정전기', type: '독', left: 10, charge: { max: 3, self: 50, near: 0 } } },
+      })),
+      { key: 'spores', name: '포자 흩뿌리기', icon: '포자', kind: 'aoe', first: 6, period: 30, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 140 } },
+      { key: 'spit', name: '실 뱉기', icon: '실', kind: 'buster', first: 14, period: 30, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [2] }, effect: { p: 'strike', dmg: 200 } },
+    ],
+    variants: ['포자 정전기', '포자 흩뿌리기 → 포자 정전기', '포자 정전기 → 6초 뒤 실 뱉기'],
+    enrage: { name: '누에 폭주', period: 2, dmg: 195 },
+  },
+  // 이슬 먹는 달팽이 꾸물 (S29 이슬꽃 쉼터): 파티 전체에 작은 피해 뒤 이슬꽃 (채우면 전원 최대 체력 15%), 꽃이 있는 동안 탱커 평타는 계속.
+  // A 광역 → 꽃, B 광역 두 번 → 꽃, C 탱커 강타 → 약한 광역 · 꽃
+  kkumul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(90),
+      { key: 'buster', name: '껍데기 굴리기', icon: '껍데', kind: 'buster', first: 24, period: 32, cast: 2, warn: 'buster', dmg: 360, target: 'tank', effect: { p: 'tank' }, when: { variant: [0, 1] } },
+      { key: 'busterc', name: '껍데기 굴리기', icon: '껍데', kind: 'buster', first: 6, period: 32, cast: 2, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+      { key: 'slime', name: '점액 튀기기', icon: '점액', kind: 'aoe', first: 10, period: 32, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: 170 } },
+      { key: 'slime1', name: '점액 튀기기', icon: '점액', kind: 'aoe', first: 7, period: 32, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 95 } },
+      { key: 'slime2', name: '점액 튀기기', icon: '점액', kind: 'aoe', first: 13, period: 32, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 95 } },
+      { key: 'slimec', name: '점액 튀기기', icon: '점액', kind: 'aoe', first: 12, period: 32, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 120 } },
+      ...([[0, 13], [1, 16], [2, 15]] as const).map(([v, at]): SkillDef => ({
+        key: `dew${v}`, name: '이슬꽃', icon: '꽃', kind: 'instant', first: at, period: 32, cast: 0, when: { variant: [v] },
+        how: '여럿이 조금씩 다쳤으면 이슬꽃을 채워 전원 회복. 탱커가 위험하면 탱커 먼저. 놓쳐도 피해 없음',
+        effect: { p: 'soul', name: '이슬꽃', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 15% 회복', partyHeal: { pct: 0.15 } }, fail: { text: '이슬꽃이 시듦', dmg: 0 } },
+      })),
+    ],
+    variants: ['점액 → 이슬꽃', '점액 두 번 → 이슬꽃', '껍데기 굴리기 → 약한 점액 · 이슬꽃'],
+    enrage: { name: '달팽이 폭주', period: 2, dmg: 195 },
+  },
+  // 포자 굴림꾼 또르르 (S30 포자 굴림길): 20초에 포자 덩이 둘 (쓰러질 때마다 파티에 짧고 약한 독, 최대 2중첩). 딜러는 원래 순서대로 침.
+  // A 둘 한꺼번에, B 한 마리씩 사이를 두고, C 둘 뒤 한동안 강타 없음
+  ttoreureu: {
+    phase: [1, ''],
+    skills: [
+      AUTO(90),
+      { key: 'buster', name: '포자공 굴리기', icon: '포자', kind: 'buster', first: 6, period: 20, cast: 2, warn: 'buster', dmg: 360, target: 'tank', effect: { p: 'tank' }, when: { variant: [0, 1] } },
+      { key: 'busterc', name: '포자공 굴리기', icon: '포자', kind: 'buster', first: 36, period: 40, cast: 2, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+      ...([[0, 20, 2], [1, 18, 1], [1, 26, 1], [2, 20, 2]] as const).map(([v, at, n], i): SkillDef => ({
+        key: `puff${i}`, name: '포자 덩이', icon: '포자', kind: 'instant', first: at, period: 40, cast: 0, when: { variant: [v] },
+        how: '포자 덩이가 쓰러질 때마다 모두에게 약한 독 (최대 2중첩). 덩이 체력이 거의 다 깎이면 미리 채우고, 터진 뒤 지속 · 광역 힐',
+        effect: { p: 'adds', n, add: { name: '포자 덩이', short: '포자', art: 'mob-mushroom-pot', hp: 0.04, dmg: 35, every: 2,
+          down: { p: 'burst', debuff: { name: '포자 터짐', type: '독', left: 6, dot: 14, stackMax: 2 } } } },
+      })),
+    ],
+    variants: ['포자 덩이 둘', '포자 덩이 하나씩 두 번', '포자 덩이 둘 → 한동안 강타 없음'],
+    enrage: { name: '포자 폭주', period: 2, dmg: 195 },
+  },
+  // 훈련교관 툭툭 (S31 수련 근위 훈련장): 봉합 상처 두 번 (7초 사이, 동시 둘까지), 첫 상처부터 둘째 12초 뒤까지는 평타만.
+  // A 상처 둘, B 광역 → 상처 하나, C 상처 둘 → 길게 수습
+  tuktuk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      ...([[0, 14, 1], [0, 21, 2], [1, 16, 1], [2, 14, 1], [2, 21, 2]] as const).map(([v, at, i]): SkillDef => ({
+        key: `wound${v}${i}`, name: '훈련 상처', icon: '봉합', kind: 'instant', first: at, period: v === 2 ? 44 : 40, cast: 0, when: { variant: [v] },
+        how: '실제로 회복한 만큼 출혈이 줄고 최대 체력 30%를 채우면 멎음. 지속 힐로 하나를 맡기고 다른 하나를 빠른 힐로',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '훈련 상처', type: '물리', left: 12, lock: true, dropPct: 0.35, staunch: { healPct: 0.3, dotPct: 0.02 } } },
+      })),
+      ...([[0, 32, 40], [1, 28, 40], [2, 38, 44]] as const).map(([v, at, per]): SkillDef => ({
+        key: `spear${v}`, name: '나무창 찌르기', icon: '나무', kind: 'buster', first: at, period: per, cast: 2, warn: 'buster', dmg: U.tank(0.5), target: 'tank', effect: { p: 'tank' }, when: { variant: [v] },
+      })),
+      { key: 'drill', name: '훈련 함성', icon: '함성', kind: 'aoe', first: 10, period: 40, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    variants: ['훈련 상처 두 번', '훈련 함성 → 훈련 상처', '훈련 상처 두 번 → 길게 수습'],
+    enrage: { name: '교관 폭주', period: 2, dmg: 250 },
+  },
+  // 수문대장 연갑 (S32 수련 수문 회랑): 전반 = 못 피하는 줄 물살 (14초마다), 체력 50% 뒤 물살 주기를 두 배로 늘리고 번호표 ①② 한 번 (두 기믹은 같은 순간에 안 겹침).
+  // A 물살 → 번호표, B 한 명 지목 → 번호표, C 물살 → 무력화
+  yeongap: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('수문 할버드', '할버', 6, 28, U.tank(0.5)),
+      ...([[0, 'front', 10], [0, 'back', 24], [2, 'front', 10], [2, 'back', 24]] as const).map(([v, line, at], i): SkillDef => ({
+        key: `flood${i}`, name: `${line === 'front' ? '앞줄' : '뒷줄'} 물살`, icon: '물살', kind: 'zone', first: at, period: 28, cast: 3, warn: 'zone', fixed: true, hitDmg: U.dps(0.26),
+        cells: { p: 'line', at: line }, when: { variant: [v] }, how: '그 줄에 선 사람이 맞음 (못 피함). 예고된 줄을 미리 채우기',
+      })),
+      { key: 'jab', name: '연잎 창 던지기', icon: '연잎', kind: 'buster', first: 12, period: 14, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] }, effect: { p: 'strike', dmg: U.dps(0.28) } },
+      { key: 'order', name: '수문 번호표', icon: '차례', kind: 'instant', first: null, period: 9999, cast: 2, when: { variant: [0, 1] },
+        how: '번호 ①② 순서대로 단일 힐을 한 번씩 (12초). 틀리면 작은 피해 · 처음부터, 시간이 다 되면 못 받은 사람 피해',
+        effect: { p: 'order', n: 2, sec: 12, wrong: U.dps(0.1), miss: U.dps(0.1), daze: { sec: 5, vuln: 1.2 } } },
+      { key: 'brace', name: '수문 버티기', icon: '버팀', kind: 'instant', first: null, period: 9999, cast: 0, when: { variant: [2] },
+        how: '12초 동안 체력 65% 이상인 파티원의 딜만 게이지. 성공하면 6초 무방비',
+        effect: { p: 'stagger', sec: 12, need: 6, hp: 0.65, tank: 1, win: { sec: 6, vuln: 1.3 }, fail: { dmg: U.dps(0.18), lock: 0 } } },
+    ],
+    flow: [
+      { p: 'when', if: { variant: [0], idle: 'order', hpBelow: 0.5 }, do: [{ p: 'period', skill: 'flood0', sec: 56 }, { p: 'period', skill: 'flood1', sec: 56 }, { p: 'start', skill: 'order', in: 4 }, { p: 'text', text: '후반: 물살이 느려지고 번호표' }] },
+      { p: 'when', if: { variant: [1], idle: 'order', hpBelow: 0.5 }, do: [{ p: 'period', skill: 'jab', sec: 28 }, { p: 'start', skill: 'order', in: 4 }, { p: 'text', text: '후반: 번호표' }] },
+      { p: 'when', if: { variant: [2], idle: 'brace', hpBelow: 0.5 }, do: [{ p: 'period', skill: 'flood2', sec: 56 }, { p: 'period', skill: 'flood3', sec: 56 }, { p: 'start', skill: 'brace', in: 4 }, { p: 'text', text: '후반: 물살이 느려지고 무력화' }] },
+    ],
+    variants: ['전반 줄 물살 → 후반 번호표', '전반 한 명 지목 → 후반 번호표', '전반 줄 물살 → 후반 무력화'],
+    enrage: { name: '수문 폭주', period: 2, dmg: 250 },
+  },
 };
 
 /** 기술 정의 찾기 (공략 화면 숫자) */
