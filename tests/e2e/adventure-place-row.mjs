@@ -56,8 +56,8 @@ export default async function adventurePlaceRow(url,shots) {
 
         // 개발 빌드 「레벨 잠금 무시」: 전부 보임
         await seed(4,true);r=await rows();
-        ok(r.explore.keys.length===54 && r.dungeon.keys.length===43 && r.raid10.keys.length===47 && r.raid20.keys.length===31,
-          `${tag}: 레벨 잠금 무시면 네 분류 장소 전부 (54·43·47·31, 113 보충 장소 1차 포함)`,Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.keys.length])));
+        ok(r.explore.keys.length===56 && r.dungeon.keys.length===49 && r.raid10.keys.length===47 && r.raid20.keys.length===31,
+          `${tag}: 레벨 잠금 무시면 네 분류 장소 전부 (56·49·47·31, 113 보충 장소 1 · 2차 포함)`,Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.keys.length])));
 
         // 고른 장소의 난이도별 별 (예전 팝업 카드의 진행도는 난이도 칸이 보여 줌)
         await seed(100,false,{rustfort:Object.fromEntries(DIFFS.map((d,stars)=>[d,{stars,grade:'A',best:30,n:1}]))});

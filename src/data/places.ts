@@ -28,7 +28,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소
-  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
 
 export interface Faction {
   name: string;
@@ -273,6 +274,14 @@ export const PLACES: Record<PlaceKey, Place> = {
   wailhill: { key: 'wailhill', name: '묘지 곡소리 언덕', faction: 'plague', tone: ['#34322A', '#13120E'], borrow: 'cemetery' },
   washyard: { key: 'washyard', name: '오염된 빨래터', faction: 'plague', tone: ['#33322A', '#14130E'], borrow: 'alley' },
   ashalley: { key: 'ashalley', name: '잿바람 골목', faction: 'plague', tone: ['#33302C', '#141210'], borrow: 'alley' },
+  waxseal: { key: 'waxseal', name: '밀랍 봉인실', faction: 'plague', tone: ['#36302A', '#15120E'], borrow: 'crypt' },
+  censerstore: { key: 'censerstore', name: '검은 향로 보관실', faction: 'plague', tone: ['#30302A', '#12120E'], borrow: 'crypt' },
+  sproutworks: { key: 'sproutworks', name: '새싹 급수장', faction: 'plague', tone: ['#30342A', '#12140E'], borrow: 'greenhouse' },
+  pollenstore: { key: 'pollenstore', name: '꽃가루 저장실', faction: 'plague', tone: ['#36342A', '#14130E'], borrow: 'greenhouse' },
+  splitgate: { key: 'splitgate', name: '갈라진 수문', faction: 'plague', tone: ['#2C322E', '#111411'], borrow: 'sewer' },
+  gratedrain: { key: 'gratedrain', name: '철창 배수실', faction: 'plague', tone: ['#2E302C', '#121311'], borrow: 'sewer' },
+  bandagetent: { key: 'bandagetent', name: '붕대 보급천막', faction: 'plague', tone: ['#32322A', '#13130E'], borrow: 'cultcamp' },
+  herbcart: { key: 'herbcart', name: '야간 약초수레길', faction: 'plague', tone: ['#30322A', '#12130E'], borrow: 'cultcamp' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -304,6 +313,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   quarry: 'quarry', smithy: 'smithy', ferry: 'ferry', turtlecave: 'turtlecave', mistplaza: 'mistplaza', coralgarden: 'coralgarden', oasis: 'oasis', sandlibrary: 'sandlibrary', sundialroad: 'sundialroad',
   cloudbridge: 'cloudbridge', flightyard: 'flightyard', stormmeadow: 'stormmeadow', cloudlibrary: 'cloudlibrary', broomrace: 'broomrace', sunkrose: 'sunkrose', lotusway: 'lotusway', waterglow: 'waterglow', barracks: 'barracks', outpost: 'outpost', starcave: 'starcave', sunrisehill: 'sunrisehill',
   brasspress: 'brasspress', coolant: 'coolant', repairbay: 'repairbay', gravefirefly: 'gravefirefly', wailhill: 'wailhill', washyard: 'washyard', ashalley: 'ashalley',
+  waxseal: 'waxseal', censerstore: 'censerstore', sproutworks: 'sproutworks', pollenstore: 'pollenstore', splitgate: 'splitgate', gratedrain: 'gratedrain', bandagetent: 'bandagetent', herbcart: 'herbcart',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -359,6 +369,11 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   pressgate: 'brasspress', pressguard: 'brasspress', pressway: 'brasspress', kkuksoe: 'brasspress', leakhall: 'coolant', pipefixer: 'coolant', coolway: 'coolant', chiik: 'coolant',
   partshelf: 'repairbay', cutter: 'repairbay', workbench: 'repairbay', deolkeok: 'repairbay', darkpath: 'gravefirefly', huuk: 'gravefirefly', wailpath: 'wailhill', heuneuk: 'wailhill',
   soakalley: 'washyard', eolluk: 'washyard', ashpile: 'ashalley', puseokash: 'ashalley',
+  // 113 2차
+  waxhall: 'waxseal', waxdoll: 'waxseal', sealstore: 'waxseal', chorereu: 'waxseal', incensepass: 'censerstore', censerguard: 'censerstore', brokencase: 'censerstore', huljjeok: 'censerstore',
+  drycanal: 'sproutworks', vineguard: 'sproutworks', seedbench: 'sproutworks', mallim: 'sproutworks', pollenshelf: 'pollenstore', thornporter: 'pollenstore', sackstore: 'pollenstore', kkaseul: 'pollenstore',
+  floodhall: 'splitgate', gateshield: 'splitgate', drainway: 'splitgate', multeok: 'splitgate', sievehall: 'gratedrain', clawguard: 'gratedrain', cagepass: 'gratedrain', kkwakjip: 'gratedrain',
+  bandageroad: 'bandagetent', charye: 'bandagetent', cartroad: 'herbcart', humchim: 'herbcart',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
