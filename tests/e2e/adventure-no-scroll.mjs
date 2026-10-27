@@ -142,7 +142,7 @@ export default async function adventureNoScroll(url, shots) {
   let fails=0;
   const errs=[];
   const ok=(value,message,detail) => { console.log(`${value?'PASS':'FAIL'} ${message}`); if (!value) { fails++; if(detail) console.log(JSON.stringify(detail)); } };
-  const COUNTS={explore:50,dungeon:40,raid10:47,raid20:31};
+  const COUNTS={explore:65,dungeon:57,raid10:47,raid20:31}; // 113 보충 장소 탐험 15 · 던전 17
   try {
     for (const [id,name,width,height] of DEPARTURE_DEVICES) {
       const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2,isMobile:true,hasTouch:true});

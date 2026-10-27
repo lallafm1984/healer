@@ -70,9 +70,9 @@ export default async function adventureDeparture(url, shots) {
     ok(look.plates && look.lit, `${width}: 난이도 = 색 법랑 명판 4종 그림 로드 · 칸 밖으로 안 나감 · 고른 칸만 밝음`);
     await shownImagesReady(page);
     await page.screenshot({path:`${shots}/departure-explore-${width}.png`});
-    // Lv 14: 탐험 줄 = 열린 6곳만 레벨 순 (Lv 15 늪지 어귀부터 숨김)
+    // Lv 14: 탐험 줄 = 열린 14곳 (원본 6 + 보충 장소 8, 113)만 레벨 순 (Lv 15 늪지 어귀부터 숨김)
     const row=await page.locator('.b-regions [data-content]').evaluateAll(els=>els.map(el=>({key:el.dataset.content,lv:Number(el.querySelector('small').textContent.replace(/\D/g,''))})));
-    ok(row.length===6 && row[0].key==='plateau' && row.every((p,i)=>p.lv<=14 && (!i || row[i-1].lv<=p.lv)), `${width}: Lv 14 탐험 장소 줄 = Lv 14까지 6곳만 레벨 순`, row);
+    ok(row.length===14 && row[0].key==='plateau' && row.every((p,i)=>p.lv<=14 && (!i || row[i-1].lv<=p.lv)), `${width}: Lv 14 탐험 장소 줄 = Lv 14까지 14곳 (보충 장소 포함)만 레벨 순`, row);
     await page.click('.b-regions [data-content="alley"]'); await page.clock.runFor(50);
     ok(await page.locator('.b-place-modal').count()===0 && await page.locator('#s-content').getAttribute('data-selected-content')==='alley'
       && await page.locator('[data-content="alley"]').getAttribute('aria-pressed')==='true' && /잿빛 뒷골목/.test(await page.locator('#contentGo').getAttribute('aria-label'))
