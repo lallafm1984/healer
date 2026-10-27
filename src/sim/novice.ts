@@ -12,7 +12,7 @@ import { CONTENT, contentOf, stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
-import { rampDiffs, rampPlace } from '../data/progression';
+import { rampDiffs, rampPlace, recLevel } from '../data/progression';
 import { TALENTS } from '../data/talents';
 import type { Tune } from '../data/tune';
 import { autoHealer, noviceHealer } from '../engine/auto';
@@ -28,7 +28,7 @@ export type Pilot = 'novice' | 'expert';
 
 /**
  * 초보 목표 클리어율 (%): 이보다 낮으면 「초보에게 어려움」. 2026-10-22 Lim 「추천대로」 (B안), 같은 날 「레벨 10까지 쉽게」로 장소 Lv EARLY_LV까지는 A안 (NOVICE_TARGET_EARLY).
- * 튜토리얼 판은 따로 (TUT_TARGET): 처음 두 판에서 지면 바로 그만둘 수 있음. 재는 사람은 그 칸에 들어가는 내 레벨의 사람 (engine/novice noviceAt: Lv 10까지 처음, Lv 20 익숙)
+ * 튜토리얼 판은 따로 (TUT_TARGET): 처음 두 판에서 지면 바로 그만둘 수 있음. 재는 사람은 그 칸에 들어가는 내 레벨의 사람 (engine/novice noviceAt: Lv 10까지 처음, Lv 11부터 중급자 = 익숙, 2026-10-27)
  */
 export const NOVICE_TARGET: Partial<Record<DiffName, number>> = { '쉬움': 90, '보통': 75, '어려움': 50 };
 export const NOVICE_TARGET_EARLY: Partial<Record<DiffName, number>> = { '쉬움': 95, '보통': 85, '어려움': 60 };
@@ -76,7 +76,7 @@ export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pil
   const { c, d } = x, segs = c.fights(d), stageLv = stageOf(c, d);
   const first = c.key === 'tutorial';
   const rp = first ? { lv: 1, eq: {} } : rampPlayer(c, d, hero, seed);
-  const party: RosterEntry[] = first ? DUO_PARTY : x.tut ? recruitParty(segs[0], seed) : recruitParty(segs[0], seed, { abilities: true, myLv: rp.lv, stageLv });
+  const party: RosterEntry[] = first ? DUO_PARTY : x.tut ? recruitParty(segs[0], seed) : recruitParty(segs[0], seed, { abilities: true, myLv: rp.lv, stageLv: recLevel(c, d) });
   const affixes = c.kind === 'dungeon' ? diffAffixes(d, stageLv) : [];
   const talents = TALENTS.map(t => (t.lv <= rp.lv ? seed % 3 : null));
   const out: NoviceRun = { win: false, time: 0, reason: '', lv: rp.lv, gear: Object.keys(rp.eq).length, presses: 0, misTaps: 0, lapses: 0, fails: 0 };

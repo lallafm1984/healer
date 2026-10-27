@@ -1154,7 +1154,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
-  geopum46: { key: 'geopum46', lowLevel: true, name: '약품 수도사 거품이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'geopum46', stage: 0.3, debuffs: ['질병'] },
+  // 체력 2026-10-27 Lim 「교단숲속야영지의 탐험이 너무 지루하다」: 2400 → 1700 (보통 226 → 약 160초)
+  geopum46: { key: 'geopum46', lowLevel: true, name: '약품 수도사 거품이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'geopum46', stage: 0.3, debuffs: ['질병'] },
   // 던전 ㉙ 교단 약품 제조실 (Lv 48): 일반 약병 선반 복도 → 거품이 → 정예 끓는 솥 방 → 역병 대사제 말로스
   shelves: trash('shelves', '약병 선반 복도', [
     { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },

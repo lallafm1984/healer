@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { TUNE } from '../src/data/tune';
 import * as E from '../src/engine';
-import { applyRows, BUSY, closeIn, findDmg, noviceCap, seekDmg, noviceCellOf, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, BUSY, closeIn, HP_LO, findDmg, noviceCap, seekDmg, noviceCellOf, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 import { rampPlayer } from '../src/sim/ramp';
 import { recommendedFor, SLOTS } from '../src/data/equipment';
 
@@ -103,9 +103,17 @@ describe('tune 표', () => {
   it('찾은 값은 장소의 모든 구간에, 1이면 지움', () => {
     const row = (dmg: number) => ({ key: 'rustfort', diff: '어려움', next: { dmg } }) as unknown as Row;
     const t = applyRows(TUNE, [row(1.2)]);
-    for (const k of ['gate', 'scrap', 'boiler', 'warden'] as const) expect(t[k]?.['어려움']).toEqual({ dmg: 1.2 });
+    for (const k of ['gate', 'scrap', 'boiler', 'warden'] as const) expect(t[k]?.['어려움']).toEqual({ ...TUNE[k]?.['어려움'], dmg: 1.2 }); // 체력 배율 (hp)은 그대로
     expect(t.plague).toEqual(TUNE.plague);
-    expect(applyRows(t, [row(1)]).gate?.['어려움']).toBeUndefined();
+    expect(applyRows(applyRows({}, [row(1.2)]), [row(1)]).gate?.['어려움']).toBeUndefined();
+  });
+  it('체력 손잡이 (2026-10-27 A안): 찾은 체력 배율도 모든 구간에, 1이면 지움, 피해 배율만 바꾼 줄은 체력을 그대로 둠', () => {
+    const row = (dmg: number, hp?: number) => ({ key: 'rustfort', diff: '악몽', next: { dmg, ...(hp != null ? { hp } : {}) } }) as unknown as Row;
+    const t = applyRows({}, [row(0.4, 0.55)]);
+    for (const k of ['gate', 'scrap', 'boiler', 'warden'] as const) expect(t[k]?.['악몽']).toEqual({ dmg: 0.4, hp: 0.55 });
+    expect(applyRows(t, [row(0.45)]).gate?.['악몽']).toEqual({ dmg: 0.45, hp: 0.55 });
+    expect(applyRows(t, [row(0.4, 1)]).gate?.['악몽']).toEqual({ dmg: 0.4 });
+    expect(HP_LO).toBe(0.3);
   });
   it('data/tune.ts를 다시 써도 지금 내용 그대로 (위 설명은 남김)', () => {
     const src = readFileSync('src/data/tune.ts', 'utf8');

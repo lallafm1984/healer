@@ -237,3 +237,18 @@ describe('모험 길잡이 (guide)', () => {
     expect(repeats).toBe(33);
   });
 });
+
+describe('공개모집 레벨 바탕 = 권장 레벨 (2026-10-27 Lim 「권장레벨에 맞춰」 → 1)', () => {
+  it('순차 구간은 적 레벨보다 낮을 수 있고 (온실 악몽 적 Lv 16 · 권장 Lv 11), 그 밖은 적 레벨. 파티원 레벨 = 이것 ± 1', async () => {
+    const { recruitParty } = await import('../src/engine/fight');
+    const gh = contentOf('greenhouse');
+    expect(stageOf(gh, '악몽')).toBe(16);
+    expect(recLevel(gh, '악몽')).toBe(11);
+    const p = recruitParty(gh.fights('악몽')[0], 7, { abilities: true, myLv: 11, stageLv: recLevel(gh, '악몽') });
+    for (const m of p) expect(Math.abs((m.lv ?? 0) - 11)).toBeLessThanOrEqual(1);
+    for (const c of CONTENT.filter(x => !isLeveling(x))) for (const d of ALL_DIFFS) expect(recLevel(c, d)).toBe(stageOf(c, d));
+    const lower = CONTENT.flatMap(c => ALL_DIFFS.filter(d => recLevel(c, d) < stageOf(c, d)).map(d => ({ c, d })));
+    expect(lower.length).toBeGreaterThan(40);
+    for (const { c } of lower) expect(rampPlace(c)).toBe(true);
+  });
+});

@@ -5,7 +5,7 @@
  * 그래서 판단 (무엇을 · 누구에게)은 자동 힐러 것을 그대로 쓰고, 그 위에 처음 하는 사람의 눈 · 머리 · 손 한계를 겹친다 (auto.ts noviceHealer).
  * 값은 NOVICE 한 곳. 근거가 있는 값과 가정값을 주석에 나눠 적었다.
  * 익숙함 (2026-10-22 Lim 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」): 내 레벨 10까지는 처음 하는 사람 (NOVICE),
- * Lv 20에서 익숙한 사람 (FAMILIAR), 사이는 직선 (noviceAt). noviceHealer는 판의 내 레벨로 그 사람을 씀
+ * Lv 11부터 익숙한 사람 = 중급자 (FAMILIAR, 2026-10-27 Lim 「11부터는 중급자기준으로 하자」, 예전 Lv 20까지 직선) (noviceAt). noviceHealer는 판의 내 레벨로 그 사람을 씀
  */
 import { SKILLS, type SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
@@ -80,8 +80,13 @@ export const FAMILIAR: NoviceOpts = {
   queue: true,
   tactics: true,
 };
-/** 익숙함이 붙는 내 레벨: from까지 처음 하는 사람, to부터 익숙한 사람 */
-export const FAMILIAR_LV = { from: 10, to: 20 };
+/**
+ * 익숙함이 붙는 내 레벨: from까지 처음 하는 사람, to부터 익숙한 사람 (중급자).
+ * 2026-10-27 Lim 「11부터는 중급자기준으로 하자」: 예전 Lv 10 처음 → Lv 20 익숙 사이 직선을 Lv 11부터 바로 중급자로 (초보 하한 · 초보 검사)
+ */
+export const FAMILIAR_LV = { from: 10, to: 11 };
+/** 능숙해지기 시작하는 내 레벨 (익숙 → MASTER_LV 능숙 사이 직선, sim familiar · players · chal). 11부터 중급자로 바꾼 뒤에도 그대로 Lv 20 */
+export const MASTER_FROM = 20;
 /**
  * 능숙한 사람 (2026-10-22 Lim 「고친다」, 익숙한 사람 검사 다음): 고르기 · 엄지 옮기기를 앞 시전 중에 끝내 한가해진 뒤 반응만 걸림.
  * 내 Lv 20 (익숙) → MASTER_LV (능숙) 사이 직선 (noviceAt)
@@ -90,13 +95,14 @@ export const MASTER: NoviceOpts = { ...FAMILIAR, pick: 0, tap: 0 };
 export const MASTER_LV = 60;
 /** 익숙함 0 (처음) ~ 1 (익숙) */
 export const familiarity = (lv: number) => Math.max(0, Math.min(1, (lv - FAMILIAR_LV.from) / (FAMILIAR_LV.to - FAMILIAR_LV.from)));
-/** 그 레벨 사람: 숫자는 처음 → 익숙 (Lv 20) → 능숙 (Lv 60) 사이 직선, 대기열 · 기믹 공략은 사람마다 (seed) 익숙함 확률로 앎 */
+/** 그 레벨 사람: 처음 (Lv 10까지) → 익숙 = 중급자 (Lv 11부터) → 능숙 (Lv 20 → 60 사이 직선), 사이 레벨의 대기열 · 기믹 공략은 사람마다 (seed) 익숙함 확률로 앎 */
 export function noviceAt(lv: number, seed = 1): NoviceOpts {
-  if (lv > FAMILIAR_LV.to) {
-    const m = Math.min(1, (lv - FAMILIAR_LV.to) / (MASTER_LV - FAMILIAR_LV.to)), F = FAMILIAR, M = MASTER;
+  if (lv > MASTER_FROM) {
+    const m = Math.min(1, (lv - MASTER_FROM) / (MASTER_LV - MASTER_FROM)), F = FAMILIAR, M = MASTER;
     return { ...F, pick: F.pick + (M.pick - F.pick) * m, tap: F.tap + (M.tap - F.tap) * m };
   }
   const k = familiarity(lv), N = NOVICE, F = FAMILIAR, mix = (a: number, b: number) => a + (b - a) * k;
+  if (k >= 1) return { ...F };
   const r = rngFrom(Math.imul(seed >>> 0, 0x5f356495) ^ 0x2545f491), q = r(), t = r();
   return {
     react: mix(N.react, F.react), pick: mix(N.pick, F.pick), tap: mix(N.tap, F.tap), spread: mix(N.spread, F.spread),

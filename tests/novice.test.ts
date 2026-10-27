@@ -5,7 +5,7 @@ import { gearStatsOf, specsOf } from '../src/data/equipment';
 import { rampDiffs, rampFour, rampPlace, rampRefLevel } from '../src/data/progression';
 import { TALENTS } from '../src/data/talents';
 import * as E from '../src/engine';
-import { bigButton, familiarity, FAMILIAR, MASTER, NOVICE, noviceAt } from '../src/engine/novice';
+import { bigButton, familiarity, FAMILIAR, FAMILIAR_LV, MASTER, MASTER_FROM, NOVICE, noviceAt } from '../src/engine/novice';
 import { measureNovice, noviceCells, noviceTarget, runNovice, TUT_TARGET, type NoviceCell } from '../src/sim/novice';
 import { rampPlayer } from '../src/sim/ramp';
 
@@ -100,26 +100,21 @@ describe('초보 하한 지킴 (2026-10-22 Lim 「추천대로」, data/tune)', 
 });
 
 describe('익숙함 (2026-10-22 Lim 「레벨 10까지 쉽게 하고 점점 익숙해지니까 그에 맞춰서 난이도를 올리자」)', () => {
-  it('내 레벨 10까지 처음 하는 사람, 20부터 익숙한 사람, 사이는 직선', () => {
+  it('내 레벨 10까지 처음 하는 사람, 11부터 익숙한 사람 = 중급자 (2026-10-27 Lim 「11부터는 중급자기준으로 하자」, 예전 Lv 20까지 직선)', () => {
+    expect(FAMILIAR_LV).toEqual({ from: 10, to: 11 });
     expect(familiarity(1)).toBe(0);
     expect(familiarity(10)).toBe(0);
-    expect(familiarity(15)).toBeCloseTo(0.5);
-    expect(familiarity(20)).toBe(1);
+    expect(familiarity(11)).toBe(1);
     expect(familiarity(60)).toBe(1);
     expect(noviceAt(5, 3)).toEqual(NOVICE);
-    expect(noviceAt(20, 3)).toEqual(FAMILIAR);
-    // Lv 20 뒤 (2026-10-22 Lim 「고친다」): Lv 60에 능숙 (고르기 · 엄지 옮기기를 앞 시전 중에), 사이는 직선
+    expect(noviceAt(10, 3)).toEqual(NOVICE);
+    for (const lv of [11, 15, 20]) for (let s = 1; s <= 20; s++) expect(noviceAt(lv, s)).toEqual(FAMILIAR); // 대기열 · 공략도 모두 앎
+    // Lv 20 뒤 (2026-10-22 Lim 「고친다」): Lv 60에 능숙 (고르기 · 엄지 옮기기를 앞 시전 중에), 사이는 직선 (MASTER_FROM 그대로)
+    expect(MASTER_FROM).toBe(20);
     expect(noviceAt(60, 3)).toEqual(MASTER);
     expect(noviceAt(100, 3)).toEqual(MASTER);
     expect(noviceAt(40, 3).pick).toBeCloseTo((FAMILIAR.pick + MASTER.pick) / 2);
     expect(noviceAt(40, 3).react).toBe(FAMILIAR.react);
-    expect(noviceAt(15, 3).pick).toBeCloseTo((NOVICE.pick + FAMILIAR.pick) / 2);
-  });
-  it('대기열 · 기믹 공략은 사람마다 익숙함 확률로 앎 (Lv 15면 절반쯤)', () => {
-    let q = 0, t = 0;
-    for (let s = 1; s <= 200; s++) { const o = noviceAt(15, s); if (o.queue) q++; if (o.tactics) t++; }
-    expect(q).toBeGreaterThan(70); expect(q).toBeLessThan(130);
-    expect(t).toBeGreaterThan(70); expect(t).toBeLessThan(130);
   });
   it('목표: 장소 Lv 10까지 A안 (쉬움 95 · 보통 85 · 어려움 60), 그 뒤 B안 (90 · 75 · 50)', () => {
     expect(noviceTarget(cell('scrapheap', '쉬움'))).toBe(95);

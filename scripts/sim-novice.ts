@@ -25,7 +25,7 @@ const tg = (t: typeof NOVICE_TARGET) => Object.entries(t).filter(([d]) => diffs.
 console.log(`초보 검사 · ${hero} · 칸마다 ${N}판 · 목표 튜토리얼 ${TUT_TARGET}% / 장소 Lv ${EARLY_LV}까지 ${tg(NOVICE_TARGET_EARLY)} / 그 뒤 ${tg(NOVICE_TARGET)}`);
 const who = (o: typeof NOVICE) => `반응 ${o.react}초 · 바꿀 때 고르기 ${o.pick}초/bit + 누르기 ${o.tap}초 · 한눈팔기 ${o.lapse.every}초마다 ${o.lapse.min}~${o.lapse.max}초 · 체력 읽기 ±${Math.round(o.see * 100)}%p · 옆 칸 ${Math.round(o.misTap * 100)}% · 디버프 ${o.notice}초 · 큰 버튼 ${Math.round(o.recall * 100)}% · 대기열 ${o.queue ? '읽음' : '안 읽음'} · 기믹 공략 ${o.tactics ? '앎' : '모름'}`;
 console.log(`내 Lv ${FAMILIAR_LV.from}까지 처음 하는 사람: ${who(NOVICE)}`);
-console.log(`내 Lv ${FAMILIAR_LV.to}부터 익숙한 사람: ${who(FAMILIAR)} (사이는 직선, 대기열 · 공략은 사람마다 그 몫의 확률)${opts?.tactics ? ' · --tactics: 모두 공략 앎' : ''}`);
+console.log(`내 Lv ${FAMILIAR_LV.to}부터 익숙한 사람 (중급자): ${who(FAMILIAR)} (대기열 · 공략 앎)${opts?.tactics ? ' · --tactics: 모두 공략 앎' : ''}`);
 console.log('');
 console.log(`| 칸 | 적 Lv | 내 Lv | 장비 | 초보 | 목표 | ${expert ? '숙련 | ' : ''}진 이유 (초보) |`);
 console.log(`|---|---|---|---|---|---|${expert ? '---|' : ''}---|`);

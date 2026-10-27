@@ -4,7 +4,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
-import { CONTENT, isLeveling, type ContentDef, type ContentKey } from './content';
+import { CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from './content';
 import { REST_RUN_SCALE } from './economy';
 
 export const MAX_LEVEL = 100;
@@ -130,6 +130,14 @@ export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade
  * 70 9장 밸런스 기준 플레이어 (sim/ramp)와 같음. 출전 화면 난이도 적합도 · 모험 길잡이 (86)가 씀
  * (예: 녹슨 요새 보통은 적 Lv 7이지만 Lv 5에 들어가는 칸). 구간 밖 장소는 null
  */
+/**
+ * 출전 화면 · 편성 「권장 레벨」 (92): 그 칸을 맞춘 플레이어 레벨. 순차 구간 장소는 길에서 들어가는 레벨 (온실 악몽 = 적 Lv 16이지만 Lv 11,
+ * 적 레벨보다 높으면 적 레벨: 튜토리얼 녹슨 고원 쉬움), 그 밖은 적 레벨.
+ * 공개모집 파티원 레벨도 이것 ± 1 (fm.ts recruitLevel, 2026-10-27 Lim 「권장레벨에 맞춰」: 예전엔 적 레벨 ± 1이라 순차 구간 54칸에서 파티원이 권장보다 최대 5레벨 높았음).
+ * 주간 도전은 내 레벨 그대로 (runMode stage). 게임 (screens/party) · 시뮬 (sim/balance · novice · players)이 모두 이것을 씀
+ */
+export const recLevel = (c: ContentDef, d: DiffName): number => Math.min(stageOf(c, d), (isLeveling(c) && rampRefLevel(c, d)) || Infinity);
+
 const rampRefs = new Map<ContentKey, Record<DiffName, number>>();
 export function rampRefLevel(c: ContentDef, d: DiffName): number | null {
   if (!rampPlace(c)) return null;
