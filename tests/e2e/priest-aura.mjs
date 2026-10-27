@@ -4,15 +4,19 @@ import {departGo,patchSave,toParty} from './nav.mjs';
 // 독립 저장과 경계값 fixture를 사용한다. 실제 평온 소비는 휠·파티원 터치를 거친다.
 export default async function priestAura(url,shots){
  const b=await chromium.launch(),errs=[];let fails=0;
- const ok=(v,m)=>{console.log((v?'PASS ':'FAIL ')+m);if(!v)fails++;};
+ let pg=null;// DBG=1: 실패하면 전투 · 게이지 상태를 남김
+ const ok=(v,m)=>{console.log((v?'PASS ':'FAIL ')+m);if(!v){fails++;if(process.env.DBG&&pg)pg.evaluate(()=>{const f=window.__proto.F,g=document.querySelector('.job-gauge');return JSON.stringify({over:f.over,t:f.t,enc:f.enc.key,p:f.g.p,stage:g?.dataset.auraStage,ready:g?.dataset.ready,alive:f.party.filter(u=>u.alive).length,saved:f.tx?.on?.savedWord,cast:!!f.cast,hots:f.party.map(u=>(u.hots||[]).length+(u.hot?1:0))});}).then(x=>console.log('DBG '+x)).catch(()=>{});}};
  try{for(const width of [320,360,390]){
-  const p=await b.newPage({viewport:{width,height:780},isMobile:true,hasTouch:true});p.on('pageerror',e=>errs.push(e.message));
+  const p=await b.newPage({viewport:{width,height:780},isMobile:true,hasTouch:true});pg=p;p.on('pageerror',e=>errs.push(e.message));
   await p.clock.install();await p.goto(url);await p.clock.runFor(300);
   await patchSave(p,{player:{level:100},settings:{devUnlock:true,devStamina:true,auto:false,reducedEffects:false}});
   await toParty(p,{tab:'dungeon',content:'rustfort',diff:'보통'});await departGo(p);await p.clock.runFor(3400);
+  // 보스 · 잡몹 체력은 크게 (파티원 능력 딜로 잡몹이 쓰러져 구간이 끝나면 게이지가 처음으로 돌아감, 자동 밸런스 체력 배율 #453)
   const state=async(value,saved=false)=>{
-   await p.evaluate(([value,saved])=>{const f=window.__proto.F;f.tx.on.savedWord=saved;f.g.p=value;f.skills.forEach(k=>k.next=Infinity);f.party.forEach(u=>{u.dps=0;u.hp=u.max*.5;});f.gcd=0;f.cast=null;f.queued=null;},[value,saved]);
-   await p.clock.runFor(40);
+   await p.evaluate(([value,saved])=>{const f=window.__proto.F;f.tx.on.savedWord=saved;f.g.p=value;f.skills.forEach(k=>k.next=Infinity);f.party.forEach(u=>{u.dps=0;u.hp=u.max*.5;});f.bossHp=1e9;f.mobs.forEach(m=>{m.hp=1e9;});f.gcd=0;f.cast=null;f.queued=null;},[value,saved]);
+   // 화면 갱신 (매 장 updateWheel → 직업 게이지)이 CI 러너에서 한 장 늦을 때가 있어, 그 값의 단계 (100 밑 off · 200 이상 저장 특성 blue · 그 사이 gold)가 보일 때까지 20ms씩 (600ms까지)
+   const want=value<100?'off':saved&&value>=200?'blue':'gold';
+   for(let i=0;i<30;i++){await p.clock.runFor(20);if(i>=1&&await p.evaluate(w=>document.querySelector('.job-gauge')?.dataset.auraStage===w,want))break;}
   };
   const snap=()=>p.evaluate(()=>{
    const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect().toJSON(),g=q('.job-gauge'),a=q('.priest-aura'),n=q('.gauge-number'),halo=q('.priest-halo');
