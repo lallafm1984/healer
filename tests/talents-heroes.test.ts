@@ -107,7 +107,7 @@ describe('드루이드 기본 강화 (Lv 5~15)', () => {
     expect(taken(f, t)).toBeCloseTo(100 * (1 - TX.firmStem), 6);
     expect(taken(f, d)).toBeCloseTo(100, 6);
   });
-  it('이른 새싹: 체력 90% 이상 대상이면 마나 없음, 회복량 +20%', () => {
+  it('이른 새싹: 체력 90% 이상 대상이면 마나 없음, 회복량 +10%', () => {
     const f = druid(['earlySprout']), u = tanks(f)[0];
     u.hp = u.max;
     expect(costOf(f, 'sprout', u)).toBe(0);
@@ -348,7 +348,7 @@ describe('드루이드 범위 · 대규모 · 궁극 (Lv 40~50)', () => {
 });
 
 describe('성기사 기본 강화 (Lv 5~15)', () => {
-  it('곧은 손길: 빛의 손길 시전 −0.3초', () => {
+  it('곧은 손길: 빛의 손길 시전 −0.2초', () => {
     expect(castOf(paladin(['swiftLight']), 'holyLight')).toBeCloseTo(SKILLS.holyLight.cast - TX.swiftLight, 9);
   });
   it('헌신의 길: 신성한 힘 2칸부터, 마나 3%', () => {
@@ -362,7 +362,7 @@ describe('성기사 기본 강화 (Lv 5~15)', () => {
     f.power3 = 3; cast(f, 'oath', u);
     expect(v.hots.find(h => h.key === 'oath')!.rest).toBeCloseTo(480 * TX.shareOath, 6);
   });
-  it('무거운 손길: 빛의 손길이 잃은 체력 1%마다 1%, 최대 50% (2026-10-16 빛 일격에서 옮김)', () => {
+  it('무거운 손길: 빛의 손길이 잃은 체력 1%마다 0.6%, 최대 30% (2026-10-16 빛 일격에서 옮김, 10-27 하향)', () => {
     const f = paladin(['heavyStrike']), d = others(f).find(u => u.role !== 'tank')!;
     d.max = d.base = 1e6; d.hp = d.max * 0.5;
     const h = d.hp;
@@ -374,7 +374,7 @@ describe('성기사 기본 강화 (Lv 5~15)', () => {
     expect(costOf(f, 'holyLight', b)).toBeCloseTo(SKILLS.holyLight.cost * 0.75, 9);
     expect(costOf(f, 'holyLight', d)).toBe(SKILLS.holyLight.cost);
   });
-  it('두 손의 빛: 빛의 손길 30%가 옆 칸 가장 낮은 1명에게', () => {
+  it('두 손의 빛: 빛의 손길 20%가 옆 칸 가장 낮은 1명에게', () => {
     const f = paladin(['twinHands']); hurt(f);
     const u = others(f).find(u => u.role !== 'tank' && adj(f, u).some(v => v.id !== f.beacon))!;
     const v = adj(f, u).filter(v => v.id !== f.beacon)[0]; v.hp = v.max * 0.1;

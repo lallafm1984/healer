@@ -198,7 +198,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'renew') {
     u.hot = renewSec(f); u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
     if (has(f, 'hopRenew')) u.hotHop = false;
-    if (has(f, 'shareRenew')) { const v = adjLow(f, u, 1, true)[0]; if (v) { v.hot = renewSec(f); v.hotTick = 0; v.hotHop = false; } }
+    if (has(f, 'shareRenew')) { const v = adjLow(f, u, 1, true)[0], sec = Math.min(renewSec(f), TX.shareRenew.sec); if (v && v.hot < sec) { v.hot = sec; v.hotTick = 0; v.hotHop = false; } } // 나눠 주는 소생: 옆 사람 몫은 짧게, 더 길게 남은 소생은 줄이지 않음 (118)
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'poh') {
     let amt = sk.amt!, r = 1;

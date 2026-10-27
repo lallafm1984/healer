@@ -1,6 +1,6 @@
 /** 사제 특성 30개 (06 6장): 고른 특성만 켜지고, 하나씩 효과 확인 */
 import { describe, expect, it } from 'vitest';
-import { TALENT_TIER, TALENTS, talentKeys, type TalentKey } from '../src/data/talents';
+import { TALENT_TIER, TALENTS, talentKeys, TX, type TalentKey } from '../src/data/talents';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
 import { castOf, cdOf, costOf, talentReady, useTalent } from '../src/engine/talents';
@@ -291,11 +291,19 @@ describe('범위·대규모 (Lv 80~90)', () => {
     step(f, 2.1);
     expect(u.hp - hp).toBeGreaterThanOrEqual(90);
   });
-  it('나눠 주는 소생: 옆 아군 1명에게도', () => {
+  it('나눠 주는 소생: 옆 아군 1명에게도 6초 (2026-10-27 하향), 더 길게 남은 소생은 줄이지 않음', () => {
     const f = fight(['shareRenew']); hurt(f);
     const u = withAdj(f);
     cast(f, 'renew', u);
-    expect(adj(f, u).filter(v => v.hot > 0).length).toBe(1);
+    const got = adj(f, u).filter(v => v.hot > 0);
+    expect(got.length).toBe(1);
+    expect(got[0].hot).toBeLessThanOrEqual(TX.shareRenew.sec);
+    expect(u.hot).toBeGreaterThan(TX.shareRenew.sec);
+    const g = fight(['shareRenew']); hurt(g);
+    const w = withAdj(g);
+    for (const v of adj(g, w)) v.hot = 8;
+    cast(g, 'renew', w);
+    expect(adj(g, w).every(v => v.hot > TX.shareRenew.sec)).toBe(true);
   });
   it('빨라진 찬가: 재사용 대기 120초', () => {
     expect(cdOf(fight(['quickHymn']), 'hymn')).toBe(120);

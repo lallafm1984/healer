@@ -253,7 +253,7 @@ describe('특성 (79 5-7)', () => {
     for (const v of others(g).slice(0, 2)) giveAbsorb(g, v, 100, 30, 1);
     expect(taken(g, g.me)).toBeCloseTo(100 * (1 - 2 * TX.sharedBurden.step), 6);
   });
-  it('막아서기 (30% 아래 200) · 미리 친 결계 · 마지막 결계', () => {
+  it('막아서기 (30% 아래 200, 재발동 25초) · 미리 친 결계 · 마지막 결계', () => {
     const f = fight(['stepIn']), u = others(f)[0];
     u.hp = u.max * 0.2;
     calm(f, 0.1);
