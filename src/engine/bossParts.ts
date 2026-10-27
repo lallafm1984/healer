@@ -758,6 +758,7 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
       f.weak = { cut: w.weak.pct, until: f.t + w.weak.sec };
     }
     if (w.vuln) f.expose = { vuln: 1 + w.vuln.pct, until: f.t + w.vuln.sec };
+    if (w.partyHeal) for (const v of living(f)) heal(f, v, v.max * w.partyHeal.pct, false, true); // 꽃의 파티 회복 (113 6.1): 간접 치유 (회복 숫자 · 받는 치유 효과 · 상한은 공통 경로대로)
     if (w.fx) emit(f, { type: 'fx', name: w.fx, all: true });
     return;
   }
@@ -1060,6 +1061,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
   if (def.fx) emit(f, { type: 'fx', name: def.fx, on: u.id }); // 모자 · 춤바람 · 벌침 (그림 49 E)
   if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)
+  if (def.dropPct) damage(f, u, (u.max * def.dropPct) / f.dmgMult, true, 'fixed'); // 최대 체력 비율 (113 7-2: 체력선 회복 기믹의 처음 결손, 보정과 상관없이)
   if (d.debt) return lend(f, u, d); // 빌린 생명 (P-DEBT, 59 5장)
   return d;
 }

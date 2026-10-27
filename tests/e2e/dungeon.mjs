@@ -49,7 +49,7 @@ export default async function dungeon(url, shots) {
   ok(await page.getAttribute('#s-content', 'data-selected-content') === 'sewer' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '왕도 지역 던전은 준비 중 칸 없음, 역병 수로도 출전 가능');
   await chooseContent(page, 'crypt');
   await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'greenhouse' && await page.getAttribute('#s-content .b-regions [data-content="greenhouse"]', 'aria-pressed') === 'true', '› = 장소 줄의 다음 장소 (역병 약초 온실)');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'waxseal' && await page.getAttribute('#s-content .b-regions [data-content="waxseal"]', 'aria-pressed') === 'true', '› = 장소 줄의 다음 장소 (같은 레벨 보충 장소 밀랍 봉인실, 113)');
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && (await rowContentKeys(page)).slice(0, 4).join() === 'rustfort,brasspress,mine,coolant', '‹ = 장소 줄의 이전 장소 (역병 지하묘지), 다른 지역 장소도 한 줄에 레벨 순 (보충 장소는 원본 옆, 113)');
 

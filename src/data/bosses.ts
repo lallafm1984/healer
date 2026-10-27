@@ -145,6 +145,11 @@ export interface DebuffDef {
   /** 걸릴 때 한 번 피해 (마법, 파티 기준): 완치 표식이 가득 찬 사람에게 걸려도 바로 풀리지 않게 체력을 떨어뜨림 (춤바람 · 완치 모자, 48) */
   drop?: number;
   /**
+   * 걸릴 때 한 번 최대 체력 × dropPct 피해 (난이도 · 장소 보정과 상관없이, 113 7-2): 체력선 회복 기믹 (cureAt)의 처음 결손.
+   * 피해 배율 (tune)이 바뀌어도 「체력 75%까지 채우면 풀림」이 걸리자마자 풀리지 않게 (밀랍 굳음 · 겁먹음)
+   */
+  dropPct?: number;
+  /**
    * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)을 빚으로. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
    * 이 사람에게 넘친 치유가 빚을 갚음 (다 갚으면 사라짐). 시간이 다 되면 남은 빚만큼 피해 (고정). lock과 같이 적음
    */
@@ -389,10 +394,14 @@ export type SkillEffect =
    */
   | { p: 'chain'; dmg: number; jumps: number; jumpsMythic?: number; grow?: number };
 
-/** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초) */
+/**
+ * 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초).
+ * partyHeal = 살아 있는 파티원 (나 포함, 영혼 · 적 빼고) 각자 최대 체력 × pct 즉시 회복 (꽃의 파티 회복, 113 6.1). 공통 치유 경로 · 간접 치유 (직접 힐 판정 없음)
+ */
 export interface SoulWin {
   text: string;
   cure?: string;
+  partyHeal?: { pct: number };
   heal?: { pct: number; sec: number };
   weak?: { pct: number; sec: number };
   vuln?: { pct: number; sec: number };
@@ -5470,6 +5479,186 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     variants: ['앞줄 재바람 → 뒷줄 재바람', '뒷줄 재바람 → 앞줄 재바람', '앞줄 재바람 → 쉬고 → 뒷줄 재바람'],
     enrage: { name: '잿더미 폭주', period: 2, dmg: 160 },
+  },
+  // ---------- 113 초반 보충 장소 2차 (Lv 9~12) ----------
+  // 봉인사 초르르 (S08 밀랍 봉인실): 12초에 딜러 한 명 밀랍 굳음 (처음 최대 체력 30% 깎임 · 딜 0 · 해제 안 됨, 체력 75%까지 채우거나 12초면 풀림), 주기 36초.
+  // A 밀랍 → 강타, B 약한 광역 → 밀랍, C 밀랍이 끝난 뒤 큰 강타 (두 기믹의 수습 시간이 겹치지 않게)
+  chorereu: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      ...([[0, 12], [1, 15], [2, 12]] as const).map(([v, at]): SkillDef => ({
+        key: `wax${v}`, name: '밀랍 굳음', icon: '밀랍', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        how: '딜러 한 명이 굳어 공격을 멈춤. 체력을 75%까지 채우면 풀림 (해제 안 됨, 12초면 저절로)',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '밀랍 굳음', type: '물리', left: 12, lock: true, noDps: true, cureAt: 0.75, dropPct: 0.3 } },
+      })),
+      { key: 'buster', name: '봉인 도장', icon: '도장', kind: 'buster', first: 26, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'tank', effect: { p: 'tank' }, when: { variant: [0] } },
+      { key: 'busterb', name: '봉인 도장', icon: '도장', kind: 'buster', first: 30, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'tank', effect: { p: 'tank' }, when: { variant: [1] } },
+      { key: 'drip', name: '녹은 밀랍', icon: '밀랍', kind: 'aoe', first: 9, period: 36, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.16) } },
+      { key: 'slam', name: '큰 봉인 도장', icon: '도장', kind: 'buster', first: 26, period: 36, cast: 3, warn: 'buster', dmg: U.tank(0.58), target: 'tank', effect: { p: 'tank' }, when: { variant: [2] },
+        how: '밀랍이 풀린 뒤 오는 큰 강타. 굳은 딜러를 먼저 풀고 탱커로' },
+    ],
+    variants: ['밀랍 굳음 → 강타', '약한 광역 → 밀랍 굳음', '밀랍 굳음 → 풀린 뒤 큰 강타'],
+    enrage: { name: '봉인 폭주', period: 2, dmg: 220 },
+  },
+  // 향로지기 훌쩍 (S09 검은 향로 보관실): 18초에 내 마나를 빼앗는 검은 향로 하나 (딜러가 깸), 소환 뒤 12초는 강타 없이 평타 · 약한 질병만.
+  // A 향로 → 약한 질병, B 향로 → 광역 연기, C 광역 연기 → 향로
+  huljjeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('향로 휘두르기', '향로', 6, 36, U.tank(0.45)),
+      { key: 'buster2', name: '향로 휘두르기', icon: '향로', kind: 'buster', first: 32, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'tank', effect: { p: 'tank' } },
+      ...([[0, 18], [1, 18], [2, 20]] as const).map(([v, at]): SkillDef => ({
+        key: `censer${v}`, name: '검은 향로', icon: '향로', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        how: '향로가 서 있는 동안 내 마나가 조금씩 샘. 딜러가 깰 때까지 기본 힐로 아끼기',
+        effect: { p: 'adds', n: 1, add: { name: '검은 향로', short: '향로', hp: 0.035, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } },
+      })),
+      ...([[0, 22], [2, 24]] as const).map(([v, at]): SkillDef => ({
+        key: `ash${v}`, name: '향 재', icon: '향재', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        effect: { p: 'debuff', n: 1, debuff: { name: '향 재', type: '질병', left: 8, dot: U.dps(0.015) } },
+      })),
+      { key: 'smoke1', name: '검은 연기', icon: '연기', kind: 'aoe', first: 25, period: 36, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'smoke2', name: '검은 연기', icon: '연기', kind: 'aoe', first: 10, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+    ],
+    variants: ['검은 향로 → 약한 질병', '검은 향로 → 광역 연기', '광역 연기 → 검은 향로'],
+    enrage: { name: '향로 폭주', period: 2, dmg: 220 },
+  },
+  // 급수 경비덩굴 (S10 정예 = 보스 ①): 꽃봉오리 예습 (광역 뒤 꽃, 채우면 파티 회복, 놓쳐도 피해 없음)
+  vineguard: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.055)),
+      BUSTER('덩굴 채찍', '덩굴', 4, 18, U.tank(0.38)),
+      { key: 'spray', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 8, period: 30, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'bud', name: '꽃봉오리', icon: '꽃', kind: 'instant', first: 11, period: 30, cast: 0, how: '꽃봉오리를 채우면 파티 전원 회복. 한 명이 위험하면 그 사람 먼저',
+        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 10% 회복', partyHeal: { pct: 0.1 } }, fail: { text: '꽃이 시듦', dmg: 0 } } },
+    ],
+    enrage: { name: '덩굴 폭주', period: 2, dmg: 190 },
+  },
+  // 마른 덩굴 말림 (S10 새싹 급수장): 광역이 끝난 직후 꽃봉오리 (평균 딜러 체력 35%, 40%에서 시작, 14초, 채우면 살아 있는 모두 최대 체력 12% 회복), 주기 36초.
+  // A 광역 → 꽃, B 약한 탱커 타격 → 광역 → 꽃, C 광역 두 번 → 꽃
+  mallim: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'buster', name: '마른 덩굴 휘감기', icon: '덩굴', kind: 'buster', first: 4, period: 18, cast: 2, warn: 'buster', dmg: U.tank(0.42), target: 'tank', effect: { p: 'tank' }, when: { variant: [0, 2] } },
+      { key: 'tap', name: '덩굴 툭', icon: '덩굴', kind: 'buster', first: 10, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.25), target: 'tank', effect: { p: 'tank' }, when: { variant: [1] } },
+      { key: 'busterb', name: '마른 덩굴 휘감기', icon: '덩굴', kind: 'buster', first: 28, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.42), target: 'tank', effect: { p: 'tank' }, when: { variant: [1] } },
+      { key: 'thorn', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 14, period: 36, cast: 3, warn: 'aoe', when: { variant: [0, 1] }, effect: { p: 'all', dmg: U.dps(0.26) } },
+      { key: 'thorn1', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 11, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.14) } },
+      { key: 'thorn2', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 17, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.14) } },
+      ...([[0, 17], [1, 17], [2, 20]] as const).map(([v, at]): SkillDef => ({
+        key: `bud${v}`, name: '꽃봉오리', icon: '꽃', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
+        how: '여럿이 조금씩 다쳤으면 꽃을 채워 파티 전원 회복. 한 명이 위험하면 그 사람 먼저. 놓쳐도 피해 없음',
+        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 12% 회복', partyHeal: { pct: 0.12 } }, fail: { text: '꽃이 시듦', dmg: 0 } },
+      })),
+    ],
+    variants: ['광역 → 꽃봉오리', '약한 탱커 타격 → 광역 → 꽃봉오리', '광역 두 번 → 꽃봉오리'],
+    enrage: { name: '덩굴 폭주', period: 2, dmg: 230 },
+  },
+  // 가시 자루 까슬 (S11 꽃가루 저장실): 6초 가시 외피 (때리는 딜러가 한 대마다 작은 반사, 탱커는 절반), 가시가 끝난 7초 뒤에만 탱커 강타.
+  // A 가시 → 강타, B 가시 → 쉬고 → 광역, C 약한 광역 → 가시 → 강타
+  kkaseul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'thorns', name: '가시 외피', icon: '가시', kind: 'aoe', first: 14, period: 36, cast: 2, warn: 'aoe', how: '6초 동안 보스를 때리는 딜러가 조금씩 아픔. 딜러 줄에 지속 · 광역 힐, 끝나면 탱커로',
+        effect: { p: 'thorns', sec: 6, dmg: U.dps(0.05), tank: 0.5 } },
+      { key: 'buster', name: '자루 내려치기', icon: '자루', kind: 'buster', first: 27, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.48), target: 'tank', effect: { p: 'tank' }, when: { variant: [0, 2] } },
+      { key: 'busterb', name: '자루 내려치기', icon: '자루', kind: 'buster', first: 4, period: 36, cast: 2, warn: 'buster', dmg: U.tank(0.48), target: 'tank', effect: { p: 'tank' }, when: { variant: [1] } },
+      { key: 'pollen', name: '꽃가루 폭발', icon: '꽃가', kind: 'aoe', first: 30, period: 36, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.22) } },
+      { key: 'puff', name: '꽃가루 훅', icon: '꽃가', kind: 'aoe', first: 6, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.14) } },
+    ],
+    variants: ['가시 외피 → 강타', '가시 외피 → 쉬고 → 광역', '약한 광역 → 가시 외피 → 강타'],
+    enrage: { name: '가시 폭주', period: 2, dmg: 230 },
+  },
+  // 수문 파수꾼 물턱 (S12 갈라진 수문): 탱커 강타 → 7초 뒤 물살 (맞는 순간 탱커 아닌 사람 가운데 체력 비율이 가장 낮은 사람), 묶음 뒤 10초 여유. 장판 없음.
+  // A 강타 → 물살, B 약한 광역 → 강타 → 물살, C 물살 → 쉬고 → 강타
+  multeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      ...([[0, 10, 32], [1, 12, 34], [2, 24, 34]] as const).map(([v, at, per]): SkillDef => ({
+        key: `gate${v}`, name: '수문 방패 치기', icon: '방패', kind: 'buster', first: at, period: per, cast: 2, warn: 'buster', dmg: U.tank(0.5), target: 'tank', effect: { p: 'tank' }, when: { variant: [v] },
+      })),
+      ...([[0, 16, 32], [1, 18, 34], [2, 10, 34]] as const).map(([v, at, per]): SkillDef => ({
+        key: `surge${v}`, name: '물살', icon: '물살', kind: 'instant', first: at, period: per, cast: 3, when: { variant: [v] },
+        how: '맞는 순간 탱커 아닌 사람 가운데 체력 비율이 가장 낮은 사람이 맞음. 강타 뒤 다른 사람도 채우기', effect: { p: 'hunt', dmg: U.dps(0.35) },
+      })),
+      { key: 'spray', name: '물보라', icon: '물보', kind: 'aoe', first: 4, period: 34, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.15) } },
+    ],
+    variants: ['강타 → 물살 (가장 약한 사람)', '약한 광역 → 강타 → 물살', '물살 → 쉬고 → 강타'],
+    enrage: { name: '수문 폭주', period: 2, dmg: 240 },
+  },
+  // 집게 경비병 (S13 정예 = 보스 ①): 작은 철창 예습 (딜러가 깰 때까지 갇힌 사람을 힐)
+  clawguard: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.055)),
+      BUSTER('집게 꼬집기', '집게', 6, 18, U.tank(0.38)),
+      { key: 'cage', name: '작은 철창', icon: '철창', kind: 'instant', first: 12, period: 30, cast: 0, how: '갇힌 사람은 딜 0 · 초당 작은 피해. 딜러가 철창을 깰 때까지 단일 힐',
+        effect: { p: 'jail', n: 1, name: '작은 철창', short: '철창', hp: 0.03, dot: U.dps(0.02), art: 'mob-claw-jail' } },
+    ],
+    enrage: { name: '집게 폭주', period: 2, dmg: 190 },
+  },
+  // 철창 집게 꽉집 (S13 철창 배수실): 20초에 딜러 한 명을 배수 철창에 가둠 (딜 0 · 못 움직임 · 작은 지속 피해, 치유는 됨), 다른 딜러가 깸. 동시 철창 하나.
+  // A 철창 → 광역, B 철창 → 곧 약한 광역, C 철창 → 18초 뒤 강타 (느린 처치로 겹쳐도 버티게)
+  kkwakjip: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('집게 내려찍기', '집게', 8, 40, U.tank(0.45)),
+      { key: 'cage', name: '배수 철창', icon: '철창', kind: 'instant', first: 20, period: 40, cast: 0, how: '갇힌 사람은 딜 0 · 초당 피해 (해제 안 됨). 철창을 직접 칠 수 없고, 딜러가 깰 때까지 갇힌 사람과 탱커를 번갈아',
+        effect: { p: 'jail', n: 1, name: '배수 철창', short: '철창', hp: 0.035, dot: U.dps(0.025), art: 'mob-claw-jail' } },
+      { key: 'flood', name: '배수 물벼락', icon: '물벼', kind: 'aoe', first: 31, period: 40, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: U.dps(0.22) } },
+      { key: 'floodb', name: '배수 물벼락', icon: '물벼', kind: 'aoe', first: 23, period: 40, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.14) } },
+      { key: 'crush', name: '큰 집게', icon: '집게', kind: 'buster', first: 35, period: 40, cast: 3, warn: 'buster', dmg: U.tank(0.55), target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+    ],
+    variants: ['배수 철창 → 광역', '배수 철창 → 곧 약한 광역', '배수 철창 → 18초 뒤 큰 강타'],
+    enrage: { name: '집게 폭주', period: 2, dmg: 240 },
+  },
+  // 번호표 관리인 차례 (S14 붕대 보급천막): 16초에 탱커 아닌 두 사람 (나 포함)에게 ①②, 12초 안에 번호 순서대로 단일 힐이면 보스 5초 멍함.
+  // 지속 힐 틱 · 광역은 순서를 안 틀림, 틀리면 처음부터 + 작은 피해. A 번호표 → 광역, B 광역 → 번호표, C 번호표 끝나고 6초 뒤 강타
+  charye: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('표찰 지팡이', '지팡', 6, 32, 330),
+      ...([[0, 16], [1, 18], [2, 16]] as const).map(([v, at]): SkillDef => ({
+        key: `order${v}`, name: '번호표', icon: '차례', kind: 'instant', first: at, period: 32, cast: 2, when: { variant: [v] },
+        how: '번호 ①② 순서대로 단일 힐을 한 번씩 (12초). 급한 탱커 힐을 먼저 해도 시간이 남음',
+        effect: { p: 'order', n: 2, sec: 12, wrong: 60, miss: 60, daze: { sec: 5, vuln: 1.2 } },
+      })),
+      { key: 'gauze', name: '붕대 뿌리기', icon: '붕대', kind: 'aoe', first: 30, period: 32, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: 150 } },
+      { key: 'gauzeb', name: '붕대 뿌리기', icon: '붕대', kind: 'aoe', first: 10, period: 32, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 150 } },
+      { key: 'stamp', name: '번호표 도장', icon: '도장', kind: 'buster', first: 36, period: 32, cast: 2, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [2] } },
+    ],
+    variants: ['번호표 → 광역', '광역 → 번호표', '번호표 → 끝나고 6초 뒤 강타'],
+    enrage: { name: '표찰 폭주', period: 2, dmg: 195 },
+  },
+  // 약초 도둑 훔침 (S15 야간 약초수레길): 서로 간격을 둔 질병 둘 (12초, 중첩 없음) 뒤 약초 정령 (채우면 살아 있는 모두에게서 질병 하나씩, 놓쳐도 피해 없음).
+  // A 열병 → 꽃가루 → 정령, B 꽃가루 → 열병 → 정령, C 열병 → 약한 광역 → 정령
+  humchim: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('약초 낫', '약초', 26, 32, 330),
+      ...([[0, 6], [1, 12], [2, 6]] as const).map(([v, at]): SkillDef => ({
+        key: `fever${v}`, name: '약초 열병', icon: '열병', kind: 'instant', first: at, period: 32, cast: 0, when: { variant: [v] },
+        effect: { p: 'debuff', n: 1, debuff: { name: '약초 열병', type: '질병', left: 12, dot: 20 } },
+      })),
+      ...([[0, 12], [1, 6]] as const).map(([v, at]): SkillDef => ({
+        key: `pollen${v}`, name: '독한 꽃가루', icon: '꽃가', kind: 'instant', first: at, period: 32, cast: 0, when: { variant: [v] },
+        effect: { p: 'debuff', n: 1, debuff: { name: '독한 꽃가루', type: '질병', left: 12, dot: 20 } },
+      })),
+      { key: 'sack', name: '약초 자루 휘두르기', icon: '자루', kind: 'aoe', first: 10, period: 32, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 140 } },
+      { key: 'spirit', name: '약초 정령', icon: '정령', kind: 'instant', first: 16, period: 32, cast: 0,
+        how: '정령을 채우면 살아 있는 모두에게서 질병이 하나씩 사라짐. 지금 위험한 사람은 정화로 바로',
+        effect: { p: 'soul', name: '약초 정령', short: '정령', hp: 0.4, size: 0.5, sec: 14, win: { text: '모두에게서 질병 하나씩', cure: '질병' }, fail: { text: '정령이 흩어짐', dmg: 0 } } },
+    ],
+    variants: ['약초 열병 → 독한 꽃가루 → 약초 정령', '독한 꽃가루 → 약초 열병 → 약초 정령', '약초 열병 → 약한 광역 → 약초 정령'],
+    enrage: { name: '도둑 폭주', period: 2, dmg: 195 },
   },
 };
 

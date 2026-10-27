@@ -32,7 +32,11 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'swaybridge' | 'hwiparam82' | 'glideyard' | 'hwiparam' | 'windtunnel' | 'hoeori' | 'zapgrass' | 'hoeori86' | 'floatshelf' | 'peoleok' | 'forbidstair' | 'swit' | 'startline' | 'swit90' | 'drownhall' | 'gawison' | 'thornmaze' | 'rosalin' | 'lotusstep' | 'gawison94' | 'glowpond' | 'lastecho97' | 'drillyard' | 'kalnal' | 'weaponrack' | 'heukbaek' | 'palisade' | 'kalnal98' | 'crystalstair' | 'banjjak' | 'echohall' | 'lastecho' | 'sunpath' | 'banjjak99'
   // 113 초반 보충 장소 1차 (Lv 5~8)
   | 'pressgate' | 'pressguard' | 'pressway' | 'kkuksoe' | 'leakhall' | 'pipefixer' | 'coolway' | 'chiik' | 'partshelf' | 'cutter' | 'workbench' | 'deolkeok'
-  | 'darkpath' | 'huuk' | 'wailpath' | 'heuneuk' | 'soakalley' | 'eolluk' | 'ashpile' | 'puseokash';
+  | 'darkpath' | 'huuk' | 'wailpath' | 'heuneuk' | 'soakalley' | 'eolluk' | 'ashpile' | 'puseokash'
+  // 113 2차 (Lv 9~12)
+  | 'waxhall' | 'waxdoll' | 'sealstore' | 'chorereu' | 'incensepass' | 'censerguard' | 'brokencase' | 'huljjeok' | 'drycanal' | 'vineguard' | 'seedbench' | 'mallim'
+  | 'pollenshelf' | 'thornporter' | 'sackstore' | 'kkaseul' | 'floodhall' | 'gateshield' | 'drainway' | 'multeok' | 'sievehall' | 'clawguard' | 'cagepass' | 'kkwakjip'
+  | 'bandageroad' | 'charye' | 'cartroad' | 'humchim';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -57,7 +61,9 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'ttemjil62' | 'ttemjil' | 'hwalhwal' | 'jigeul66' | 'jigeul' | 'garnet' | 'malmijal70' | 'malmijal' | 'chalrang' | 'baseurak74' | 'baseurak' | 'gitpen' | 'gitpen78'
   | 'hwiparam82' | 'hwiparam' | 'hoeori' | 'hoeori86' | 'peoleok' | 'swit' | 'swit90' | 'gawison' | 'rosalin' | 'gawison94' | 'lastecho97' | 'kalnal' | 'heukbaek' | 'kalnal98' | 'banjjak' | 'lastecho' | 'banjjak99'
   // 113 초반 보충 장소 1차 (Lv 5~8)
-  | 'kkuksoe' | 'chiik' | 'cutter' | 'deolkeok' | 'huuk' | 'heuneuk' | 'eolluk' | 'puseokash';
+  | 'kkuksoe' | 'chiik' | 'cutter' | 'deolkeok' | 'huuk' | 'heuneuk' | 'eolluk' | 'puseokash'
+  // 113 2차 (Lv 9~12)
+  | 'chorereu' | 'huljjeok' | 'vineguard' | 'mallim' | 'kkaseul' | 'multeok' | 'clawguard' | 'kkwakjip' | 'charye' | 'humchim';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1597,6 +1603,124 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '잔해 투척병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   puseokash: { key: 'puseokash', lowLevel: true, name: '굴뚝 청소꾼 푸석', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'puseokash', stage: 0.3 },
+  // ---------- 113 초반 보충 장소 2차 (Lv 9~12): 역병 지하묘지 · 역병 약초 온실 · 역병 수로 · 교단 숲속 야영지 반복판 대신 ----------
+  // 정예 구간: 매 틱 갱신이 필요한 기믹 (영혼 · 감옥)은 보스 스크립트 하나 (보스 ①), 나머지는 일반 구간 정예 공격으로 예습 (113 5장)
+  // S08 밀랍 봉인실 (Lv 9 · 역병 지하묘지): 치유로 딜러 복귀
+  waxhall: trash('waxhall', '초 녹인 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  waxdoll: trash('waxdoll', '밀랍 인형', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '밀랍 인형', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 밀랍 굳음의 예습: 딜러 한 명이 굳음 (체력 75%까지 채우면 풀림)
+        { key: 'wax', name: '밀랍 튀기기', icon: '밀랍', to: 'other', dmg: 0, first: 8, period: 20, cast: 0,
+          effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '밀랍 굳음', type: '물리', left: 10, lock: true, noDps: true, cureAt: 0.75, dropPct: 0.3 } } },
+      ],
+    },
+  ]),
+  sealstore: trash('sealstore', '봉인 창고', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  chorereu: { key: 'chorereu', lowLevel: true, name: '봉인사 초르르', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5600, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'chorereu', stage: 0.25 },
+  // S09 검은 향로 보관실 (Lv 9 · 역병 지하묘지): 쫄 처리 중 마나 관리
+  incensepass: trash('incensepass', '향 가루 통로', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  censerguard: trash('censerguard', '검은 향로병', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '검은 향로병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 향로의 예습: 검은 연기가 내 마나를 조금씩 빼앗음 (해제 안 됨, 짧게)
+        { key: 'smoke', name: '검은 연기', icon: '연기', to: 'other', dmg: 0, first: 8, period: 20, cast: 0,
+          effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '검은 연기', type: '물리', left: 8, lock: true, drain: 0.4 } } },
+      ],
+    },
+  ]),
+  brokencase: trash('brokencase', '부서진 진열장', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  huljjeok: { key: 'huljjeok', lowLevel: true, name: '향로지기 훌쩍', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5600, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'huljjeok', stage: 0.25, debuffs: ['질병'] },
+  // S10 새싹 급수장 (Lv 10 · 역병 약초 온실): 별도 치유를 파티 회복으로 전환 (꽃의 파티 회복, 113 6.1)
+  drycanal: trash('drycanal', '마른 수로', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  vineguard: { key: 'vineguard', lowLevel: true, name: '급수 경비덩굴', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3000, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'vineguard', stage: 0.25 },
+  seedbench: trash('seedbench', '씨앗 작업대', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  mallim: { key: 'mallim', lowLevel: true, name: '마른 덩굴 말림', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'mallim', stage: 0.25 },
+  // S11 꽃가루 저장실 (Lv 10 · 역병 약초 온실): 피해가 옮겨 갈 때 치유 배분 (가시 갑옷)
+  pollenshelf: trash('pollenshelf', '꽃가루 선반', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  thornporter: trash('thornporter', '가시 운반병', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '가시 운반병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 가시 외피의 예습: 짧은 가시 (때리는 딜러가 조금씩 아픔)
+        { key: 'thorns', name: '가시 자루', icon: '가시', kind: 'aoe', to: 'all', dmg: 0, first: 9, period: 20, cast: 2, effect: { p: 'thorns', sec: 4, dmg: 12, tank: 0.5 } },
+      ],
+    },
+  ]),
+  sackstore: trash('sackstore', '자루 저장고', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kkaseul: { key: 'kkaseul', lowLevel: true, name: '가시 자루 까슬', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'kkaseul', stage: 0.25 },
+  // S12 갈라진 수문 (Lv 11 · 역병 수로): 강타 뒤 약한 사람 수습 (사냥), 이 보스엔 장판 없음
+  floodhall: trash('floodhall', '물 터진 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  gateshield: trash('gateshield', '수문 방패병', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '수문 방패병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 물살의 예습: 체력 비율이 가장 낮은 (탱커 아닌) 사람에게 물 튀기기
+        { key: 'splash', name: '물 튀기기', icon: '물살', to: 'other', dmg: 0, first: 9, period: 18, cast: 2, effect: { p: 'hunt', dmg: 90 } },
+      ],
+    },
+  ]),
+  drainway: trash('drainway', '배수 통로', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  multeok: { key: 'multeok', lowLevel: true, name: '수문 파수꾼 물턱', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6200, enrage: 260, manaCoef: 1.0, diffs: ALL, script: 'multeok', stage: 0.25 },
+  // S13 철창 배수실 (Lv 11 · 역병 수로): 갇힌 사람 버티게 하기 (감옥). 정예 (보스 ①)는 감옥 갱신이 있어 보스 스크립트
+  sievehall: trash('sievehall', '거름망 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  clawguard: { key: 'clawguard', lowLevel: true, name: '집게 경비병', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3200, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'clawguard', stage: 0.25 },
+  cagepass: trash('cagepass', '철창 통로', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kkwakjip: { key: 'kkwakjip', lowLevel: true, name: '철창 집게 꽉집', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 260, manaCoef: 1.0, diffs: ALL, script: 'kkwakjip', stage: 0.25 },
+  // S14 붕대 보급천막 (Lv 12 · 교단 숲속 야영지): 치유 순서 바꾸기 (차례 ①②)
+  bandageroad: trash('bandageroad', '흩어진 붕대길', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '부리 가면 집행자', hp: 150, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  charye: { key: 'charye', lowLevel: true, name: '번호표 관리인 차례', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'charye', stage: 0.3 },
+  // S15 야간 약초수레길 (Lv 12 · 교단 숲속 야영지): 정화와 집단 치료 중 선택 (약초 정령: 채우면 질병 하나씩)
+  cartroad: trash('cartroad', '버려진 약초수레', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '부리 가면 집행자', hp: 150, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  humchim: { key: 'humchim', lowLevel: true, name: '약초 도둑 훔침', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'humchim', stage: 0.3, debuffs: ['질병'] },
 };
 
 /**

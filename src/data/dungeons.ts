@@ -11,7 +11,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소
-  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -136,6 +137,15 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   wailhill: { key: 'wailhill', name: '묘지 곡소리 언덕', segments: ['wailpath', 'heuneuk'] },
   washyard: { key: 'washyard', name: '오염된 빨래터', segments: ['soakalley', 'eolluk'] },
   ashalley: { key: 'ashalley', name: '잿바람 골목', segments: ['ashpile', 'puseokash'] },
+  // 113 2차 (Lv 9~12)
+  waxseal: { key: 'waxseal', name: '밀랍 봉인실', segments: ['waxhall', 'waxdoll', 'sealstore', 'chorereu'] },
+  censerstore: { key: 'censerstore', name: '검은 향로 보관실', segments: ['incensepass', 'censerguard', 'brokencase', 'huljjeok'] },
+  sproutworks: { key: 'sproutworks', name: '새싹 급수장', segments: ['drycanal', 'vineguard', 'seedbench', 'mallim'] },
+  pollenstore: { key: 'pollenstore', name: '꽃가루 저장실', segments: ['pollenshelf', 'thornporter', 'sackstore', 'kkaseul'] },
+  splitgate: { key: 'splitgate', name: '갈라진 수문', segments: ['floodhall', 'gateshield', 'drainway', 'multeok'] },
+  gratedrain: { key: 'gratedrain', name: '철창 배수실', segments: ['sievehall', 'clawguard', 'cagepass', 'kkwakjip'] },
+  bandagetent: { key: 'bandagetent', name: '붕대 보급천막', segments: ['bandageroad', 'charye'] },
+  herbcart: { key: 'herbcart', name: '야간 약초수레길', segments: ['cartroad', 'humchim'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

@@ -31,7 +31,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소 (원본 반복판 대신)
-  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -534,6 +535,39 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'ashalley', kind: 'explore', name: '잿바람 골목', place: '왕도 변두리 · 역병 교단', stageLv: 8, unlockLv: 8, ready: true, anchor: 'alley',
     bosses: ['굴뚝 청소꾼 푸석'], tip: '재바람이 닿을 줄을 먼저 회복합니다.', fights: () => DUNGEONS.ashalley.segments, size: three,
+  },
+  // 113 2차 (Lv 9~12)
+  {
+    key: 'waxseal', kind: 'dungeon', name: '밀랍 봉인실', place: '왕도 지하 · 역병 교단', stageLv: 9, unlockLv: 9, ready: true, anchor: 'crypt',
+    bosses: ['봉인사 초르르'], tip: '체력을 표시선까지 채우면 밀랍이 풀립니다.', fights: () => DUNGEONS.waxseal.segments, size: five,
+  },
+  {
+    key: 'censerstore', kind: 'dungeon', name: '검은 향로 보관실', place: '왕도 지하 · 역병 교단', stageLv: 9, unlockLv: 9, ready: true, anchor: 'crypt',
+    bosses: ['향로지기 훌쩍'], tip: '향로가 깨질 때까지 마나를 아껴 회복합니다.', fights: () => DUNGEONS.censerstore.segments, size: five,
+  },
+  {
+    key: 'sproutworks', kind: 'dungeon', name: '새싹 급수장', place: '왕도 지하 온실 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true, anchor: 'greenhouse',
+    bosses: ['급수 경비덩굴', '마른 덩굴 말림'], tip: '꽃봉오리를 채우면 파티가 회복됩니다.', fights: () => DUNGEONS.sproutworks.segments, size: five,
+  },
+  {
+    key: 'pollenstore', kind: 'dungeon', name: '꽃가루 저장실', place: '왕도 지하 온실 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true, anchor: 'greenhouse',
+    bosses: ['가시 자루 까슬'], tip: '가시가 돋으면 딜러의 체력을 살핍니다.', fights: () => DUNGEONS.pollenstore.segments, size: five,
+  },
+  {
+    key: 'splitgate', kind: 'dungeon', name: '갈라진 수문', place: '왕도 지하 · 역병 교단', stageLv: 11, unlockLv: 11, ready: true, anchor: 'sewer',
+    bosses: ['수문 파수꾼 물턱'], tip: '강타 뒤 체력이 낮은 사람도 회복합니다.', fights: () => DUNGEONS.splitgate.segments, size: five,
+  },
+  {
+    key: 'gratedrain', kind: 'dungeon', name: '철창 배수실', place: '왕도 지하 · 역병 교단', stageLv: 11, unlockLv: 11, ready: true, anchor: 'sewer',
+    bosses: ['집게 경비병', '철창 집게 꽉집'], tip: '갇힌 사람을 회복하면 동료가 철창을 부숩니다.', fights: () => DUNGEONS.gratedrain.segments, size: five,
+  },
+  {
+    key: 'bandagetent', kind: 'explore', name: '붕대 보급천막', place: '왕도 밖 숲 · 역병 교단', stageLv: 12, unlockLv: 12, ready: true, anchor: 'cultcamp',
+    bosses: ['번호표 관리인 차례'], tip: '번호 순서대로 단일 치유를 사용합니다.', fights: () => DUNGEONS.bandagetent.segments, size: three,
+  },
+  {
+    key: 'herbcart', kind: 'explore', name: '야간 약초수레길', place: '왕도 밖 숲 · 역병 교단', stageLv: 12, unlockLv: 12, ready: true, anchor: 'cultcamp',
+    bosses: ['약초 도둑 훔침'], tip: '약초 정령을 채우면 질병이 하나씩 사라집니다.', fights: () => DUNGEONS.herbcart.segments, size: three,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
