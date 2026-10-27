@@ -19,14 +19,6 @@ export function flowHead(back: string, title: string, sub: string, mark = '', ri
   return `<header class="topbar f-hd"><button class="tb-back" type="button" data-go="${back}" aria-label="뒤로">${BACK}</button>${mark}<span class="f-tb"><b class="f-ttl">${esc(title)}</b><small class="cap f-hcap">${sub}</small></span><span class="f-sp"></span>${right}</header>`;
 }
 
-/** 경고 한 줄 (! + 글 + 오른쪽 버튼) */
-const warnRow = (cls: string, html: string, right = '') => `<p class="f-warn ${cls}"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">${html}</span>${right}</p>`;
-
-/** 편성 안내는 권장 레벨 미달일 때 레벨만 표시합니다. */
-export function recommendedLevel(stage: number): string {
-  if (G.save.player.level >= stage) return '';
-  return `<div class="f-warns" role="status">${warnRow('lv', '<span class="f-wl">권장 레벨</span>', `<b class="f-wn">Lv ${stage}</b>`)}</div>`;
-}
 
 /** 구간 노드 줄: 일반·정예 ● · 보스 ◆ */
 export function timeline(segs: EncounterKey[]): string {

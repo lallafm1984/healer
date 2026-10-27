@@ -9,22 +9,6 @@
 }
 #s-party .coachtip { background: var(--gk-card); border: 1px solid var(--gk-edge); border-radius: 10px; color: var(--gk-ink); }
 
-/* ---------- 경고 줄: 돌색 카드 · 금빛 ! ---------- */
-#s-party .f-warn { background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; }
-#s-party .f-warn .v { color: var(--gk-ink); }
-#s-party .f-warn .v .cap { color: var(--gk-mute); }
-#s-party .f-mark.warn { background: #33270f; border-color: var(--gk-head); color: var(--gk-head); }
-/* 권장 레벨: 왼쪽 이름 · 오른쪽 큰 금빛 숫자 (내 레벨은 안 보임) */
-.f-warn.lv { min-height: 40px; padding: 4px 14px 4px 10px; }
-.f-warn.lv .f-wl { font: 700 13px var(--font-body); color: var(--gk-ink2); }
-.f-warn.lv .f-wn { flex: none; font: 900 17px/1 var(--font-body); color: var(--gk-head); font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 #000; }
-/* 「직업 바꾸기」: 나무결 버튼 대신 공략 닫기와 같은 돌색 · 금테 · 노란 글자 */
-#s-party.ns .f-warn > .btn2 {
-  background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none;
-  color: var(--gk-head); font-weight: 800; text-shadow: none;
-}
-#s-party.ns .f-warn > .btn2:active { background: var(--gk-btn-on); }
-
 /* ---------- 파티원 목록: 돌색 카드 한 장, 줄 사이는 가는 선 ---------- */
 #s-party.ns .pn.f-mems {
   padding: 0; overflow: hidden;
