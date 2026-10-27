@@ -13,7 +13,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   // 113 초반 보충 장소
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
   | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
-  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry'
+  | 'mirrorpond' | 'olddam' | 'reedwell' | 'drumhall' | 'silkwalk' | 'dewrest' | 'sporetrack' | 'lilydrill' | 'lilygate';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -156,6 +157,16 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   lightbasin: { key: 'lightbasin', name: '빛고임 수초밭', segments: ['glowweeds', 'ttorong'] },
   reedwatch: { key: 'reedwatch', name: '갈대 감시초소', segments: ['reedarrows', 'hwingnun'] },
   smallferry: { key: 'smallferry', name: '작은 나룻터', segments: ['ferrypath', 'danggim'] },
+  // 113 4차 (Lv 17~20)
+  mirrorpond: { key: 'mirrorpond', name: '물그림자 관측소', segments: ['mirrorgate', 'shadowguard', 'shallowway', 'bichim'] },
+  olddam: { key: 'olddam', name: '오래된 둑 보루', segments: ['undamway', 'mudshield', 'brokenfort', 'mukjik'] },
+  reedwell: { key: 'reedwell', name: '갈대 우물집', segments: ['wellyard', 'bucketguard', 'wellstair', 'durae'] },
+  drumhall: { key: 'drumhall', name: '북소리 회당', segments: ['woodhall', 'drumguard', 'lowstage', 'dungtak'] },
+  silkwalk: { key: 'silkwalk', name: '잠든 누에길', segments: ['silkpath', 'mongsil'] },
+  dewrest: { key: 'dewrest', name: '이슬꽃 쉼터', segments: ['dewpath2', 'kkumul'] },
+  sporetrack: { key: 'sporetrack', name: '포자 굴림길', segments: ['puffslope', 'ttoreureu'] },
+  lilydrill: { key: 'lilydrill', name: '수련 근위 훈련장', segments: ['drillyard2', 'spearguard', 'bandagelane', 'tuktuk'] },
+  lilygate: { key: 'lilygate', name: '수련 수문 회랑', segments: ['lotuswater', 'gatespear', 'lowcorridor', 'yeongap'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

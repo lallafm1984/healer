@@ -33,7 +33,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   // 113 초반 보충 장소 (원본 반복판 대신)
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
   | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
-  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry'
+  | 'mirrorpond' | 'olddam' | 'reedwell' | 'drumhall' | 'silkwalk' | 'dewrest' | 'sporetrack' | 'lilydrill' | 'lilygate';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -602,6 +603,43 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'smallferry', kind: 'explore', name: '작은 나룻터', place: '늪지 · 늪의 부족', stageLv: 16, unlockLv: 16, ready: true, anchor: 'frogpond',
     bosses: ['밧줄지기 당김'], tip: '발판으로 나서는 동료를 회복합니다.', fights: () => DUNGEONS.smallferry.segments, size: three,
+  },
+  // 113 4차 (Lv 17~20)
+  {
+    key: 'mirrorpond', kind: 'dungeon', name: '물그림자 관측소', place: '늪지 · 늪의 부족', stageLv: 17, unlockLv: 17, ready: true, anchor: 'swamp',
+    bosses: ['물그림자 경비', '물거울지기 비침'], tip: '체력이 기록되기 전에 파티를 회복합니다.', fights: () => DUNGEONS.mirrorpond.segments, size: five,
+  },
+  {
+    key: 'olddam', kind: 'dungeon', name: '오래된 둑 보루', place: '늪지 · 늪의 부족', stageLv: 17, unlockLv: 17, ready: true, anchor: 'swamp',
+    bosses: ['둑지기 묵직'], tip: '자세를 고치는 동안 다음 공격을 준비합니다.', fights: () => DUNGEONS.olddam.segments, size: five,
+  },
+  {
+    key: 'reedwell', kind: 'dungeon', name: '갈대 우물집', place: '늪지 마을 · 늪의 부족', stageLv: 18, unlockLv: 18, ready: true, anchor: 'reedvillage',
+    bosses: ['우물지기 두레'], tip: '연결된 두 사람은 치유를 나눠 받습니다.', fights: () => DUNGEONS.reedwell.segments, size: five,
+  },
+  {
+    key: 'drumhall', kind: 'dungeon', name: '북소리 회당', place: '늪지 마을 · 늪의 부족', stageLv: 18, unlockLv: 18, ready: true, anchor: 'reedvillage',
+    bosses: ['북지기 둥탁'], tip: '북소리가 멎으면 겁먹은 동료를 회복합니다.', fights: () => DUNGEONS.drumhall.segments, size: five,
+  },
+  {
+    key: 'silkwalk', kind: 'explore', name: '잠든 누에길', place: '독안개 늪 끝 · 늪의 부족', stageLv: 19, unlockLv: 19, ready: true, anchor: 'mushmarsh',
+    bosses: ['포자 누에 몽실'], tip: '지속 치유 틱은 정전기를 쌓지 않습니다.', fights: () => DUNGEONS.silkwalk.segments, size: three,
+  },
+  {
+    key: 'dewrest', kind: 'explore', name: '이슬꽃 쉼터', place: '독안개 늪 끝 · 늪의 부족', stageLv: 19, unlockLv: 19, ready: true, anchor: 'mushmarsh',
+    bosses: ['이슬 먹는 달팽이 꾸물'], tip: '여럿이 다쳤다면 이슬꽃을 회복합니다.', fights: () => DUNGEONS.dewrest.segments, size: three,
+  },
+  {
+    key: 'sporetrack', kind: 'explore', name: '포자 굴림길', place: '독안개 늪 끝 · 늪의 부족', stageLv: 19, unlockLv: 19, ready: true, anchor: 'mushmarsh',
+    bosses: ['포자 굴림꾼 또르르'], tip: '포자가 터지기 전에 파티를 회복합니다.', fights: () => DUNGEONS.sporetrack.segments, size: three,
+  },
+  {
+    key: 'lilydrill', kind: 'dungeon', name: '수련 근위 훈련장', place: '독안개 늪 · 늪의 부족', stageLv: 20, unlockLv: 20, ready: true, anchor: 'lilypalace',
+    bosses: ['훈련교관 툭툭'], tip: '회복 중인 상처와 새 상처를 나눠 돌봅니다.', fights: () => DUNGEONS.lilydrill.segments, size: five,
+  },
+  {
+    key: 'lilygate', kind: 'dungeon', name: '수련 수문 회랑', place: '독안개 늪 · 늪의 부족', stageLv: 20, unlockLv: 20, ready: true, anchor: 'lilypalace',
+    bosses: ['수문대장 연갑'], tip: '물살을 넘긴 뒤 번호 순서대로 회복합니다.', fights: () => DUNGEONS.lilygate.segments, size: five,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

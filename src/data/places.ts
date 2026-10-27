@@ -30,7 +30,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   // 113 초반 보충 장소
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
   | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
-  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry'
+  | 'mirrorpond' | 'olddam' | 'reedwell' | 'drumhall' | 'silkwalk' | 'dewrest' | 'sporetrack' | 'lilydrill' | 'lilygate';
 
 export interface Faction {
   name: string;
@@ -291,6 +292,15 @@ export const PLACES: Record<PlaceKey, Place> = {
   lightbasin: { key: 'lightbasin', name: '빛고임 수초밭', faction: 'swamp', tone: ['#26342A', '#0E140F'], borrow: 'marsh' },
   reedwatch: { key: 'reedwatch', name: '갈대 감시초소', faction: 'swamp', tone: ['#28321F', '#0F130B'], borrow: 'frogpond' },
   smallferry: { key: 'smallferry', name: '작은 나룻터', faction: 'swamp', tone: ['#24302A', '#0E120F'], borrow: 'frogpond' },
+  mirrorpond: { key: 'mirrorpond', name: '물그림자 관측소', faction: 'swamp', tone: ['#22302C', '#0D1210'], borrow: 'swamp' },
+  olddam: { key: 'olddam', name: '오래된 둑 보루', faction: 'swamp', tone: ['#2C301F', '#11130B'], borrow: 'swamp' },
+  reedwell: { key: 'reedwell', name: '갈대 우물집', faction: 'swamp', tone: ['#2A331F', '#10140C'], borrow: 'reedvillage' },
+  drumhall: { key: 'drumhall', name: '북소리 회당', faction: 'swamp', tone: ['#2E301F', '#12130B'], borrow: 'reedvillage' },
+  silkwalk: { key: 'silkwalk', name: '잠든 누에길', faction: 'swamp', tone: ['#2A3224', '#10130D'], borrow: 'mushmarsh' },
+  dewrest: { key: 'dewrest', name: '이슬꽃 쉼터', faction: 'swamp', tone: ['#28342A', '#0F140F'], borrow: 'mushmarsh' },
+  sporetrack: { key: 'sporetrack', name: '포자 굴림길', faction: 'swamp', tone: ['#2C3222', '#11130C'], borrow: 'mushmarsh' },
+  lilydrill: { key: 'lilydrill', name: '수련 근위 훈련장', faction: 'swamp', tone: ['#22332A', '#0D140F'], borrow: 'lilypalace' },
+  lilygate: { key: 'lilygate', name: '수련 수문 회랑', faction: 'swamp', tone: ['#20322C', '#0C1311'], borrow: 'lilypalace' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -324,6 +334,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   brasspress: 'brasspress', coolant: 'coolant', repairbay: 'repairbay', gravefirefly: 'gravefirefly', wailhill: 'wailhill', washyard: 'washyard', ashalley: 'ashalley',
   waxseal: 'waxseal', censerstore: 'censerstore', sproutworks: 'sproutworks', pollenstore: 'pollenstore', splitgate: 'splitgate', gratedrain: 'gratedrain', bandagetent: 'bandagetent', herbcart: 'herbcart',
   stitchroom: 'stitchroom', twindistill: 'twindistill', roofgutter: 'roofgutter', flagroad: 'flagroad', mistlamp: 'mistlamp', lightbasin: 'lightbasin', reedwatch: 'reedwatch', smallferry: 'smallferry',
+  mirrorpond: 'mirrorpond', olddam: 'olddam', reedwell: 'reedwell', drumhall: 'drumhall', silkwalk: 'silkwalk', dewrest: 'dewrest', sporetrack: 'sporetrack', lilydrill: 'lilydrill', lilygate: 'lilygate',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -388,6 +399,11 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   tornhall: 'stitchroom', stitchdoll: 'stitchroom', triagebed: 'stitchroom', ttakkeum: 'stitchroom', tubehall: 'twindistill', frother: 'twindistill', stillway: 'twindistill', dubangul: 'twindistill',
   wettiles: 'roofgutter', chalbak: 'roofgutter', flagwalk: 'flagroad', gotge: 'flagroad', foggystones: 'mistlamp', heurit: 'mistlamp', glowweeds: 'lightbasin', ttorong: 'lightbasin',
   reedarrows: 'reedwatch', hwingnun: 'reedwatch', ferrypath: 'smallferry', danggim: 'smallferry',
+  // 113 4차
+  mirrorgate: 'mirrorpond', shadowguard: 'mirrorpond', shallowway: 'mirrorpond', bichim: 'mirrorpond', undamway: 'olddam', mudshield: 'olddam', brokenfort: 'olddam', mukjik: 'olddam',
+  wellyard: 'reedwell', bucketguard: 'reedwell', wellstair: 'reedwell', durae: 'reedwell', woodhall: 'drumhall', drumguard: 'drumhall', lowstage: 'drumhall', dungtak: 'drumhall',
+  silkpath: 'silkwalk', mongsil: 'silkwalk', dewpath2: 'dewrest', kkumul: 'dewrest', puffslope: 'sporetrack', ttoreureu: 'sporetrack',
+  drillyard2: 'lilydrill', spearguard: 'lilydrill', bandagelane: 'lilydrill', tuktuk: 'lilydrill', lotuswater: 'lilygate', gatespear: 'lilygate', lowcorridor: 'lilygate', yeongap: 'lilygate',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
