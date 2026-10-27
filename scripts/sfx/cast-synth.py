@@ -1,7 +1,7 @@
 """시전음 합성 (2026-10-27 Lim 「저작권 문제 없이 해당 원본을 참고해서 새롭게 만들어보자」): src/sfx/cast-loop-<직업>.ogg 7개.
 
 원본 음원은 읽지 않는다. 예전 사제 시전음 (와우 원본)에서 잰 느낌만 따름: 낮은 D 울림이 가장 크고 (150Hz 밑),
-그 위에 성가대 같은 중음, 6kHz 위 맑은 숨결 · 반짝임, 한 바퀴에 한 번 천천히 부푸는 움직임.
+그 위에 조용한 직업별 질감, 6kHz 위 옅은 숨결, 한 바퀴에 한 번 천천히 부푸는 움직임.
 모든 층을 한 바퀴 (반복 주기) 안에서 원형으로 만든다: 사인은 바퀴마다 정수 번 돌고, 잡음은 주파수 영역에서 만들고,
 울림 · 빗살 필터는 원형 합성곱, 짧은 반짝임은 끝을 처음으로 감아 넣음. 그래서 이음새 없이 반복된다.
 세기는 활성 RMS -13.4 dBFS (예전 시전음과 같음, 게임은 0.45로 재생), 첨두 -1 dBFS 밑, Ogg Vorbis 모노.
@@ -17,7 +17,7 @@ import soundfile as sf
 
 R = 44100
 RMS_DB = -13.4
-PEAK_DB = -1.0
+PEAK_DB = -1.5  # Leave headroom for Vorbis reconstruction overshoot.
 QUALITY = 0.2  # Vorbis 압축 정도 (0 = 가장 좋음)
 A4 = 440.0
 NOTE = {"C": -9, "C#": -8, "D": -7, "D#": -6, "E": -5, "F": -4, "F#": -3, "G": -2, "G#": -1, "A": 0, "A#": 1, "B": 2}
@@ -168,144 +168,89 @@ def finish(y: np.ndarray) -> np.ndarray:
     return y * min(1.0, lim / np.max(np.abs(y)))
 
 
-# ---------- 직업마다 (예전 6직업 변형의 방향을 그대로: 드루이드 낮고 따뜻하게 · 잎, 성기사 낮고 금관, 주술사 흐르는 겹침 · 물,
-# 수도사 부드럽고 안개, 점성술사 높고 밝게 · 별, 결계사 조금 높게 · 유리 울림 · 느린 맥박) ----------
+# Soft casting beds. Original synthesis only; no reference samples or extracted spectra.
+PROFILES = {
+    "priest": (6.4, 101, "D2", "A2", "D3", "A3"),
+    "druid": (7.2, 102, "C2", "G2", "C3", "G3"),
+    "paladin": (8.0, 103, "A1", "E2", "A2", "E3"),
+    "shaman": (6.8, 104, "E2", "B2", "E3", "B3"),
+    "monk": (7.6, 105, "G2", "D3", "G3", "D4"),
+    "astrologer": (6.4, 106, "A2", "E3", "A3", "E4"),
+    "warder": (6.8, 107, "F#2", "C#3", "F#3", "C#4"),
+}
 
 
-def priest() -> np.ndarray:
-    """사제: 낮은 D 성가 울림 + 「아」 성가대 + 맑은 숨결 · 높은 반짝임, 한 바퀴에 한 번 부풂 (6.4초)"""
-    L = Loop(6.4, 1)
-    drone = mix(
-        (L.pad("D2", (1, 0.45, 0.25, 0.12, 0.06)), 0),
-        (L.pad("A1", (1, 0.2)), -10),
-        (L.pad("A2", (1, 0.3, 0.15)), -5),
-        (L.pad("D3", (1, 0.25)), -8),
-        (L.pad("E3", (1, 0.2)), -14),
-        (L.pad("A3", (1,)), -14),
-    ) * L.swell(1.5, 4, 0.3)
-    choir = L.formant(L.stack("D3", 4500, 1.1) + L.stack("A3", 4500, 1.1), [(650, 120, 0), (1050, 140, -6), (2600, 250, -18), (3300, 300, -22)])
-    choir = unit(choir) * L.swell(3, 2, 1.1)
-    air = L.noise(5000, 19000) * L.swell(4, 3, 0.4) * L.swell(2, 5)
-    sparkle = L.glints(14, ["D7", "E7", "F#7", "A7", "B7"], (0.5, 1.1), ((1, 1), (2, 0.25)), attack=0.05)
-    y = mix((drone, 0), (choir, -13), (air, -15), (sparkle, -24)) * L.swell(2.5, 1)
-    return L.reverb(y, 3.0, 0.35)
+def soft_cast(name):
+    sec, seed, root, fifth, octave, upper = PROFILES[name]
+    L = Loop(sec, seed)
+    # Nearby low clusters breathe slowly; the brighter classes keep a bass bed.
+    bass = L.pad(root, (1, .32, .20, .10, .05), (-2, -1, 0, 1, 2))
+    under = L.pad(root, (1,), (0,))
+    body = mix((L.pad(fifth, (1, .16)), 0),
+               (L.pad(octave, (1, .10)), -6),
+               (L.breath([octave, upper], 2.2), -12))
+    body = L.lowpass(body, 850, 3) * L.swell(.8, 4, .6)
+    air = L.noise(6800, 16000, soft=.12, tilt=-2)
+    air *= L.swell(1.2, 3, .4) * L.swell(.6, 6, 1.1)
+    # Long-attack material textures, without exposed bells / water transients.
+    if name == "priest":
+        colour = L.formant(L.stack(octave, 1800, 1.4),
+                           [(430, 150, 0), (800, 190, -9)])
+        colour = L.lowpass(colour, 1200, 3)
+    elif name == "druid":
+        colour = L.grains(L.noise(650, 2600, tilt=-4), 24, (.22, .65))
+        colour = L.reverb(colour, 1.8, .65, hi=2300)
+    elif name == "paladin":
+        colour = L.lowpass(np.tanh(.8 * L.stack(octave, 1700, 1.3)), 900, 3)
+        colour += .15 * L.noise(180, 650, tilt=-3)
+    elif name == "shaman":
+        fade = .5 + .5 * L.lfo(1, .7)
+        colour = L.breath([octave], 9) * fade
+        colour += L.breath([upper], 7) * (1 - fade)
+        colour += .18 * L.noise(650, 2200, tilt=-3)
+    elif name == "monk":
+        colour = L.blur(L.breath([octave, upper], 12), .45)
+        colour += .3 * L.noise(300, 1500, tilt=-4)
+        colour = L.lowpass(colour, 1300, 3)
+    elif name == "astrologer":
+        colour = L.reverb(L.breath([upper], 4), 3.2, .7, hi=2000)
+        colour += .12 * L.noise(7500, 13000, soft=.12)
+    else:
+        colour = L.comb(L.noise(280, 1800, tilt=-4), upper, .87)
+        colour = L.lowpass(colour, 1700, 3) * L.swell(.8, 2, .4)
+    # Keep air quiet and the 1–6 kHz region recessed to reduce listening fatigue.
+    y = mix((bass, 0), (under, -12), (body, -5),
+            (colour, -17 if name == "priest" else -22), (air, -20))
+    y *= L.swell(2.8, 1, -.9) * L.swell(.45, 5, .2)
+    return L.reverb(y, 2.8, .18, lo=140, hi=1600)
 
 
-def druid() -> np.ndarray:
-    """드루이드: 낮은 C 따뜻한 울림 (높은 소리를 눌러) + 피리 같은 숨결 + 잎 바스락 (7.2초)"""
-    L = Loop(7.2, 2)
-    drone = mix(
-        (L.pad("C2", (1, 0.35, 0.15)), 0),
-        (L.pad("G2", (1, 0.25)), -3),
-        (L.pad("C3", (1, 0.2)), -5),
-        (L.pad("D3", (1,)), -10),
-        (L.pad("G3", (1,)), -10),
-        (L.pad("C4", (1,)), -14),
-    ) * L.swell(1.5, 3)
-    drone = L.lowpass(drone, 1800)
-    flute = L.breath(["G4", "C5", "D5"], 4.0) * L.swell(4, 2, 0.8)
-    rustle = L.grains(L.noise(2000, 7000, tilt=-2), 30) * L.swell(3, 3, 2.0)
-    air = L.noise(4000, 11000) * L.swell(3, 2)
-    y = mix((drone, 0), (flute, -16), (rustle, -21), (air, -27)) * L.swell(2.5, 1)
-    return L.reverb(y, 2.4, 0.3)
+def priest():
+    return soft_cast("priest")
 
 
-def paladin() -> np.ndarray:
-    """성기사: 낮은 A 장엄한 울림 + 눌러 데운 금관 + 낮게 일렁이는 성스러운 불길 + 드문 종 반짝임 (8.0초)"""
-    L = Loop(8.0, 3)
-    drone = mix(
-        (L.pad("A1", (1, 0.5, 0.3, 0.15)), 0),
-        (L.pad("E2", (1, 0.35, 0.15)), -4),
-        (L.pad("A2", (1, 0.25)), -7),
-        (L.pad("C#3", (1,)), -9),
-        (L.pad("E3", (1,)), -9),
-        (L.pad("A3", (1,)), -12),
-    ) * L.swell(1.5, 4)
-    brass = unit(L.stack("A2", 3500, 0.9) + 0.7 * L.stack("E3", 3500, 0.9))
-    brass = L.lowpass(np.tanh(2.5 * brass), 1800) * L.swell(3, 2, 0.5)
-    flame = L.noise(150, 900) * L.swell(3, 5) * L.swell(2, 3, 1.3)
-    bells = L.glints(6, ["A5", "C#6", "E6"], (0.8, 1.4), ((1, 1), (2.4, 0.45), (3.9, 0.2)), attack=0.01)
-    air = L.noise(6000, 12000) * L.swell(3, 2)
-    y = mix((drone, 0), (brass, -9), (flame, -24), (bells, -24), (air, -27)) * L.swell(2.5, 1)
-    return L.reverb(y, 3.2, 0.35)
+def druid():
+    return soft_cast("druid")
 
 
-def shaman() -> np.ndarray:
-    """주술사: 낮은 E 넓게 흐르는 두 겹 울림 (한 바퀴에 한 번 서로 넘어감) + 퐁퐁 물방울 + 흐르는 물결 (6.8초)"""
-    L = Loop(6.8, 4)
-    wide = (-2, -1, 0, 1, 2)
-    low = mix(
-        (L.pad("E2", (1, 0.35, 0.15), wide), 0),
-        (L.pad("B2", (1, 0.25), wide), -5),
-        (L.pad("E3", (1, 0.2), wide), -8),
-        (L.pad("F#3", (1,), wide), -13),
-        (L.pad("B3", (1,), wide), -14),
-    )
-    high = mix((L.pad("E4", (1,), wide), 0), (L.pad("B4", (1,), wide), -3), (L.pad("E5", (1,), wide), -7))
-    fade = 0.5 + 0.5 * L.lfo(1)
-    flow = unit(low) * (1 - 0.35 * fade) + unit(high) * db(-7) * (0.3 + fade)
-    drops = L.glints(40, ["E5", "G#5", "B5", "C#6", "E6"], (0.04, 0.09), ((1, 1),), glide=3.0, attack=0.004)
-    water = L.noise(800, 4000, tilt=-1) * L.swell(4, 3) * L.swell(3, 7, 0.9)
-    shimmer = L.noise(4000, 10000) * L.swell(4, 5, 0.2)
-    y = mix((flow, 0), (drops, -14), (water, -23), (shimmer, -27)) * L.swell(2, 1)
-    return L.reverb(y, 2.2, 0.3)
+def paladin():
+    return soft_cast("paladin")
 
 
-def monk() -> np.ndarray:
-    """수도사: 맑은 G 사인 울림 (부드럽게) + 위상이 번진 안개 겹침 + 천천히 오가는 바람 + 드문 대나무 풍경 (7.6초)"""
-    L = Loop(7.6, 5)
-    drone = mix(
-        (L.pad("G2", (1, 0.15)), 0),
-        (L.pad("D3", (1, 0.1)), -5),
-        (L.pad("G3", (1,)), -9),
-        (L.pad("A3", (1,)), -13),
-        (L.pad("D4", (1,)), -11),
-        (L.pad("G4", (1,)), -15),
-    ) * L.swell(1.5, 3)
-    mist = L.blur(drone, 0.35) * L.swell(3, 2, 1.7)
-    fade = 0.5 + 0.5 * L.lfo(1, 0.6)
-    fog = L.noise(300, 900) * fade + L.noise(900, 2500) * (1 - fade)
-    wind = L.noise(1000, 6000, tilt=-3) * L.swell(6, 2, 2.4)
-    chimes = L.glints(5, ["G5", "A5", "D6"], (0.4, 0.8), ((1, 1), (2.9, 0.35), (5.1, 0.12)), attack=0.006)
-    y = mix((drone, 0), (mist, -8), (fog, -13), (wind, -22), (chimes, -23)) * L.swell(2, 1)
-    return L.lowpass(L.reverb(y, 3.6, 0.45), 3500, 1)
+def shaman():
+    return soft_cast("shaman")
 
 
-def astrologer() -> np.ndarray:
-    """점성술사: 한 옥타브 높은 A 밝은 울림 + 아주 낮은 우주 울림 + 자주 반짝이는 별 종소리 + 맑은 숨결 (5.1초)"""
-    L = Loop(5.1, 6)
-    drone = mix(
-        (L.pad("A3", (1, 0.3, 0.15)), 0),
-        (L.pad("E4", (1, 0.25)), -4),
-        (L.pad("A4", (1, 0.15)), -7),
-        (L.pad("B4", (1,)), -12),
-        (L.pad("E5", (1,)), -13),
-    ) * L.swell(1.5, 3)
-    cosmos = L.pad("A1", (1, 0.3), (-1, 1)) * L.swell(3, 2, 0.4)
-    stars = L.glints(20, ["A6", "B6", "C#7", "E7", "F#7"], (0.25, 0.6), ((1, 1), (2.76, 0.4), (5.4, 0.15)), attack=0.003)
-    air = L.noise(7000, 16000) * L.swell(4, 4)
-    y = mix((drone, 0), (cosmos, -3), (stars, -15), (air, -19)) * L.swell(2.5, 1)
-    return L.reverb(y, 3.0, 0.4)
+def monk():
+    return soft_cast("monk")
 
 
-def warder() -> np.ndarray:
-    """결계사: 높은 F# 울림 (아래 F#은 옅게) + 빗살 필터로 만든 유리 울림 + 한 바퀴에 두 번 느린 맥박 + 수정 핑 (5.7초)"""
-    L = Loop(5.7, 7)
-    drone = mix(
-        (L.pad("F#2", (1, 0.3)), -4),
-        (L.pad("F#3", (1, 0.35, 0.2)), 0),
-        (L.pad("C#4", (1, 0.25)), -4),
-        (L.pad("F#4", (1, 0.2)), -7),
-        (L.pad("G#4", (1,)), -12),
-        (L.pad("C#5", (1,)), -14),
-    )
-    src = L.noise(200, 8000)
-    glass = unit(L.comb(src, "F#4", 0.985)) + 0.6 * unit(L.comb(src, "C#5", 0.985))
-    glass = L.shape(glass, lambda f: 1 / (1 + (1000 / np.maximum(f, 1)) ** 2) / (1 + (f / 6000) ** 2)) * L.swell(3, 3, 0.9)
-    pings = L.glints(8, ["F#6", "C#7", "F#7"], (0.3, 0.7), ((1, 1), (2.0, 0.3), (3.0, 0.15), (4.2, 0.08)), attack=0.002)
-    air = L.noise(6000, 14000) * L.swell(3, 3)
-    y = mix((drone, 0), (glass, -12), (pings, -22), (air, -25)) * L.swell(3, 2)
-    return L.reverb(y, 2.6, 0.3)
+def astrologer():
+    return soft_cast("astrologer")
+
+
+def warder():
+    return soft_cast("warder")
 
 
 MAKERS = {"priest": priest, "druid": druid, "paladin": paladin, "shaman": shaman, "monk": monk, "astrologer": astrologer, "warder": warder}
@@ -319,6 +264,7 @@ def write_ogg(path: Path, y: np.ndarray) -> None:
 
 def main() -> None:
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("src/sfx")
+    out.mkdir(parents=True, exist_ok=True)
     names = sys.argv[2:] or list(MAKERS)
     for h in names:
         y = finish(MAKERS[h]())
