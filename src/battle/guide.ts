@@ -314,7 +314,7 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.charge ? `직접 힐 ${d.charge.max}번째에 방전: 본인 <b>${n(d.charge.self)}</b> · 이웃 칸 <b>${n(d.charge.near)}</b> (지속 힐 · 광역은 안 셈)` : '',
     e?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(e.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(e.self)}</b> + 이웃 칸 중첩 × <b>${n(e.near)}</b>` : '',
     d.cap != null ? `치유로는 체력이 ${pctT(d.cap)}까지만 참` : '', e?.p === 'flip' ? `두면 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%), 지우면 그냥 사라짐` : '',
-    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
+    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.dropPct ? `걸릴 때 최대 체력 ${pctT(d.dropPct)} 깎임` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
     (e?.p === 'blast' || e?.p === 'trapHit') && e.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', e?.p === 'pass' ? `지우면 남은 막이 가장 건강한 아군에게 ${secT(e.sec)} 넘어감, 두면 끝날 때 남은 막만큼 피해` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
@@ -386,7 +386,10 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
       : [`${e.each ? `${e.n}명이 하나씩 다른 디버프` : `${e.n}명에게 쓸 때마다 다음 디버프`}: ${[...new Map(e.debuffs.map(x => [x.name + x.type, x])).values()].map(x => debuffText(x, n)).join(' → ')}`, '지울 수 있는 것부터 지우기'];
     case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(zoneDps(RULES, e.dps))}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
       '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
-    case 'soul': return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}. 못 채우면 ${e.fail.text}: ${e.fail.near ? '이웃 칸' : '전원'} <b>${n(e.fail.dmg)}</b>${e.fail.debuff ? ` + ${debuffText(e.fail.debuff, n)}` : ''}${e.fail.boost ? ` · 보스 피해 +${pctT(e.fail.boost)}` : ''}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
+    case 'soul': { // 113: 놓쳐도 피해 없는 영혼 (수리 정령 · 반딧불 · 꽃봉오리)은 「못 채우면 …」만
+      const hurt = e.fail.dmg > 0 || e.fail.debuff || e.fail.boost;
+      return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}. 못 채우면 ${e.fail.text}${hurt ? `: ${e.fail.near ? '이웃 칸' : '전원'} <b>${n(e.fail.dmg)}</b>${e.fail.debuff ? ` + ${debuffText(e.fail.debuff, n)}` : ''}${e.fail.boost ? ` · 보스 피해 +${pctT(e.fail.boost)}` : ''}` : ''}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
+    }
     case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : e.pick === 'tanks' ? '두 탱커를' : '두 사람을'} 「${e.name}」${roJ(e.name)} ${secT(e.sec)} 이음 (해제 안 됨): ${e.kind === 'balance'
       ? `두 사람 체력 비율 차이가 ${pctT(e.gap ?? 0.3)} 넘게 벌어지면 사슬이 끊어지며 둘 다 <b>${n(e.dmg ?? 0)}</b>`
       : '이어진 둘이 받는 피해 · 치유를 반씩 나눔 (한쪽만 힐해도 둘 다 참)'}`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
