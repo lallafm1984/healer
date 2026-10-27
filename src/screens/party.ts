@@ -1,7 +1,7 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
- * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
+ * 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
  * 아래 고정: 출발 (바로 전투, 입장 확인 팝업은 2026-10-17 없앰). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
@@ -24,7 +24,8 @@ import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen } from './kit';
 import { classEmblem, departureArrow, floorArtOf, gameIcon, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
+// 권장 레벨 미달 경고 줄은 없앰 (2026-10-28 Lim 「경고제거」, 권장 레벨은 출전 화면에만). 다시 넣지 않는다
+import { afxRows, afxTags, BOOK, flowHead, guides, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 import { FAME_LOW_GAP } from '../data/guild';
@@ -189,7 +190,6 @@ function render(keepScroll = true): void {
   const guildTab = !go2.ok ? ` ${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? ' · 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
-  const tutDone = G.save.tut >= TUT.done;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
@@ -200,7 +200,6 @@ function render(keepScroll = true): void {
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
-      ${tutDone ? recommendedLevel(Flow.chal ? stage : recLevel(c, Flow.diff)) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}

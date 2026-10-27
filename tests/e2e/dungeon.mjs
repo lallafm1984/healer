@@ -56,9 +56,8 @@ export default async function dungeon(url, shots) {
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);
   ok(/쉬움/.test(await page.textContent('#s-party .topbar')) && !/단계 Lv/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 (단계 Lv 없음)');
-  // 개발 빌드는 Lv 1로 녹슨 요새(Lv 5)에 먼저 들어감 → 권장 레벨 한 줄만 (34 5-2, 2026-10-13 Lim: 내 레벨은 안 보임). 해제 경고는 없음
-  const lvWarn = await page.textContent('#s-party .f-warns');
-  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns .f-warn').count()) === 1 && await page.isVisible('#s-party .f-warn.lv') && /권장 레벨\s*Lv 5/.test(lvWarn) && !/내/.test(lvWarn), '난이도 다시 고르기 없음, 쉬움 + 물리만 = 해제 경고 없음 (권장 레벨만, 내 레벨 없음)');
+  // 개발 빌드는 Lv 1로 녹슨 요새(Lv 5)에 먼저 들어가도 권장 레벨 경고 줄은 없음 (2026-10-28 Lim 「경고제거」)
+  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns, #s-party .f-warn').count()) === 0, '난이도 다시 고르기 없음, 권장 레벨 경고 줄 없음');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok((await page.locator('#s-party .f-gsheet .f-route [data-gseg]').count()) === 4, '공략 시트: 구간 탭 4개');
   ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden])')), '공략 시트 첫 판 = 마지막 보스 녹슨 문지기');

@@ -83,10 +83,10 @@ export default async function heroes(url, shots) {
   ok(/드루이드 특성/.test(await text('#s-char .c7-talent-title')) && /긴 새싹/.test(await text('#s-char .c7-tiers')) && (await page.locator('#s-char .c7-tier.pending').count()) === 4, '드루이드 특성 트리 (77): Lv 20 = 4단 열림');
   await page.screenshot({ path: `${shots}/heroes_druid_skill.png` });
 
-  // ---- 편성 안내: 해제 불가·직업 바꾸기 없이 권장 레벨만 ----
+  // ---- 편성 안내: 해제 불가·직업 바꾸기 · 권장 레벨 경고 줄 없음 (2026-10-28 Lim 「경고제거」) ----
   await patchSave(page, { settings: { devUnlock: true } });
   await toParty(page, { content: 'abyss1', tab: 'raid10' });
-  ok((await page.locator('#s-party .f-warns .f-warn').count()) === 1 && /권장 레벨\s*Lv 45/.test(await text('#s-party .f-warn.lv')), '편성 안내는 권장 레벨만 표시');
+  ok((await page.locator('#s-party .f-warns, #s-party .f-warn').count()) === 0 && !/권장 레벨/.test(await text('#s-party .f-pty')), '편성에 권장 레벨 경고 줄 없음');
   ok((await page.locator('#s-party .f-warn.dispel, #s-party [data-go="s-char"]').count()) === 0 && !/해제 못 함/.test(await text('#s-party .f-pty')), '해제 불가 안내와 직업 바꾸기 버튼 제거');
   await page.screenshot({ path: `${shots}/heroes_entry.png` });
   await page.click('#s-party .tb-back'); await page.clock.runFor(100);

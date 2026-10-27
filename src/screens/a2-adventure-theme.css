@@ -123,9 +123,6 @@
 #s-party :is(.f-hcap, .f-rules, .f-afd, .f-nl) { color: var(--a2-muted); }
 #s-party .f-afd small { color: #d9c19d; }
 #s-party .f-afr { border-top-color: #8a623577; }
-#s-party .f-warn { background-color: #463218; border-color: #b38a3f; }
-#s-party .f-warn .v { color: var(--a2-ink); }
-#s-party .f-warn .v .cap { color: #e3cdaa; }
 #s-party .ns-foot.f-foot2 {
   background-color: #38291c;
   background-image: var(--a2-wood);

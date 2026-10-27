@@ -59,16 +59,6 @@
 .f-rw > .h-rule { margin-bottom: 0; }
 .f-rw > .cap { line-height: 1.5; }
 
-/* ---------- 경고 줄 (준비 확인 대신, 미달·불가일 때만) ---------- */
-.f-warns { display: flex; flex-direction: column; gap: 6px; }
-.f-warn { margin: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 6px 4px 10px; box-sizing: border-box; border-radius: 6px; background: #2E2410; border: 1px solid #8A6A1E; }
-.f-mark { flex: none; width: 22px; height: 22px; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%; font: 900 13px var(--font-body); }
-.f-mark.warn { background: #3A2E10; border: 1px solid #E8A51E; color: var(--gold-hi); }
-.f-warn .v { flex: 1; min-width: 0; font-size: 13px; line-height: 1.45; color: var(--ink); }
-.f-warn .v .cap { margin-left: 2px; font-size: 12px; }
-.f-warn .f-g { font-weight: 700; }
-.f-warn > .btn2 { flex: none; min-height: 44px; padding: 0 12px; font-size: 13px; }
-
 /* ---------- 공략 시트 (구간 노드 줄 · 보스별 공략 접기 · 어픽스) ---------- */
 .f-gsheet { gap: 8px; }
 .f-gsheet .f-dnote { margin: -4px 0 0; font-size: 12px; line-height: 1.5; }
