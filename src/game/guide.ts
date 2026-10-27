@@ -90,6 +90,8 @@ export interface GuideCtx {
   open: (c: ContentDef, d: DiffName) => boolean;
   /** 마지막으로 한 판 (적정 어려움 반복을 번갈아: 같은 칸만 수십 판 돌지 않게) */
   last?: Stage | null;
+  /** 최근에 깬 장소 (앞이 최근, 최대 2곳): 원본 · 보충 장소를 돌려 추천 (113 4-1) */
+  recent?: string[];
 }
 
 interface Cand {
@@ -115,16 +117,34 @@ export function rankStages(ctx: GuideCtx): Stage[] {
   // 길 칸은 들어가는 레벨이 내 레벨 ±1이면 (쉬움은 적합도로는 여유여도) 차례대로.
   // 갈 길 칸이 없으면 (다음 장소가 아직 안 열림) 길 밖 칸이 아니라 깬 길 칸을 다시 (들어가는 레벨이 내 레벨에 가까운 것 · 높은 난이도부터):
   // 2026-10-22 가상 사용자 QA: 장소 Lv 1~9 어려움 (길 밖, 적정 꼬리표)을 Lv 4~12에 추천해 처음 하는 사람은 11~19%만 깨고 거기서 세 번씩 짐
+  // 보충 장소 (113)는 원본을 다시 돌 차례에만 (withSupps): 길 첫 클리어 · Lv 21 뒤 안 깬 칸 · 대신 갈 칸에는 안 넣음
+  const main = all.filter(x => !x.c.anchor);
   if (ctx.level <= RAMP_LV) {
-    const onPath = (x: Cand) => rampDiffs(x.c).includes(x.d);
+    const onPath = (x: Cand) => !x.c.anchor && rampDiffs(x.c).includes(x.d);
     const path = all.filter(onPath);
     const near = path.filter(x => Math.abs(x.gap) <= 1).sort((a, b) => Number(b.first) - Number(a.first) || a.c.stageLv - b.c.stageLv || di(a.d) - di(b.d) || b.xp - a.xp);
     // 가까운 길 칸이 없으면 열린 길 첫 클리어 (레벨이 뒤처진 사람: 장소 레벨 순), 그다음 깬 길 칸 다시
     const firsts = near.some(x => x.first) ? near : path.filter(x => x.first && x.fit !== '위험').sort((a, b) => a.c.stageLv - b.c.stageLv || di(a.d) - di(b.d));
     const again = path.filter(x => !x.first && x.gap <= 1).sort((a, b) => b.gap - a.gap || di(b.d) - di(a.d));
-    return uniq([...firsts, ...again, ...rest(all.filter(x => !onPath(x)), ctx.level, ctx.last), ...fallback(all)]);
+    return uniq([...firsts, ...withSupps(again, all, ctx), ...rest(main.filter(x => !onPath(x)), ctx.level, ctx.last), ...fallback(main)]);
   }
-  return uniq([...rest(all, ctx.level, ctx.last), ...fallback(all)]);
+  return uniq([...rest(main, ctx.level, ctx.last), ...fallback(main)]);
+}
+/**
+ * 원본을 다시 돌 칸 앞에 그 원본의 보충 장소 (113 4-1): 같은 난이도로 들어갈 수 있는 (위험 아닌) 보충 장소 가운데
+ * 안 가 본 곳 (어느 난이도도 안 깸)이 있으면 그곳들을 먼저 (데이터 순서), 다 가 봤으면 원본 · 보충 장소를 최근에 안 간 순서로 (방금 간 곳이 맨 뒤)
+ */
+function withSupps(again: Cand[], all: Cand[], ctx: GuideCtx): Cand[] {
+  const recent = ctx.recent ?? [];
+  const seen = (x: Cand) => Object.keys(ctx.clears[x.c.key] ?? {}).length > 0;
+  return again.flatMap(x => {
+    const sup = all.filter(y => y.c.anchor === x.c.key && y.d === x.d && y.fit !== '위험');
+    if (!sup.length) return [x];
+    const fresh = sup.filter(y => !seen(y));
+    if (fresh.length) return [...fresh, x];
+    const age = (y: Cand) => { const i = recent.indexOf(y.c.key); return i < 0 ? -1 : recent.length - i; }; // 안 간 곳 -1, 오래전 1, 방금 recent.length
+    return [x, ...sup].sort((a, b) => age(a) - age(b));
+  });
 }
 /** 앞에 나온 칸은 한 번만 */
 const uniq = (xs: Cand[]): Stage[] => [...new Set(xs)].map(stage);
@@ -163,7 +183,7 @@ export const realOpen = (c: ContentDef, d: DiffName) => {
 /** 지금 캐릭터의 길잡이 맥락 */
 export function guideCtx(): GuideCtx {
   const lv = G.save.player.level, last = G.save.last;
-  return { level: lv, gear: avgScore(G.save.gear.equipped, lv), clears: G.save.clears, open: realOpen, last: last ? { content: last.content as ContentKey, diff: last.diff } : null };
+  return { level: lv, gear: avgScore(G.save.gear.equipped, lv), clears: G.save.clears, open: realOpen, last: last ? { content: last.content as ContentKey, diff: last.diff } : null, recent: G.save.recent ?? [] };
 }
 
 /** 지금 추천 칸 (없으면 null) */

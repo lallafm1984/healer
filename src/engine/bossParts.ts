@@ -4,7 +4,7 @@
  */
 import { ABILITIES } from '../data/abilities';
 import type { DamageAim } from '../data/armor';
-import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import { inVariant, type AddDef, type AddDown, type AddJob, type BossDef, type DebuffDef, type DebuffEnd, type FlowDo, type FlowIf, type FlowStep, type SkillEffect, type SkillWhen, type ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { STAT_ACT, zoneDps } from '../data/rules';
 import { gain, lack } from '../data/fm';
@@ -761,11 +761,10 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
     if (w.fx) emit(f, { type: 'fx', name: w.fx, all: true });
     return;
   }
-  emit(f, { type: 'sound', name: 'aoe' });
-  emit(f, { type: 'fx', name: 'splash', cell: at.i });
+  if (s.fail.dmg > 0 || s.fail.debuff) { emit(f, { type: 'sound', name: 'aoe' }); emit(f, { type: 'fx', name: 'splash', cell: at.i }); } // 놓쳐도 피해 없는 영혼 (113: 수리 정령 · 반딧불)은 조용히
   emit(f, { type: 'msg', text: `${s.name} 놓침: ${s.fail.text}` });
   const hit = s.fail.near ? living(f).filter(v => hexDist(cellOf(f, v), at) === 1) : living(f);
-  for (const v of hit) { damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
+  if (s.fail.dmg > 0 || s.fail.debuff) for (const v of hit) { if (s.fail.dmg > 0) damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
   if (s.fail.fx) emit(f, { type: 'fx', name: s.fail.fx, all: true }); // 성소 문이 한 칸 열림 (52 E)
   if (s.fail.boost) empowerBoss(f, s.fail.boost, `${s.name} 놓침`); // 악몽 오르말: 조각을 잃을 때마다 +5% (51 4-3)
 }
@@ -1511,7 +1510,8 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells, mirror = false):
 }
 
 const flowIf = (f: Fight, c: FlowIf): boolean =>
-  (c.phase == null || f.phase === c.phase)
+  inVariant(c, f.cfg.variant) // 먼저: 다른 변주의 기술은 아예 없음 (idle · start가 그 기술을 봄)
+  && (c.phase == null || f.phase === c.phase)
   && (c.mythic == null || f.mythic === c.mythic)
   && (c.idle == null || f.bs[c.idle].next === Infinity)
   && (c.hpBelow == null || f.bossHp / f.bossMax <= c.hpBelow)

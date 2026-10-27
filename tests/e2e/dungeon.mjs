@@ -51,7 +51,7 @@ export default async function dungeon(url, shots) {
   await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content', 'data-selected-content') === 'greenhouse' && await page.getAttribute('#s-content .b-regions [data-content="greenhouse"]', 'aria-pressed') === 'true', '› = 장소 줄의 다음 장소 (역병 약초 온실)');
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && (await rowContentKeys(page)).slice(0, 4).join() === 'rustfort,mine,crypt,greenhouse', '‹ = 장소 줄의 이전 장소 (역병 지하묘지), 다른 지역 장소도 한 줄에 레벨 순');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && (await rowContentKeys(page)).slice(0, 4).join() === 'rustfort,brasspress,mine,coolant', '‹ = 장소 줄의 이전 장소 (역병 지하묘지), 다른 지역 장소도 한 줄에 레벨 순 (보충 장소는 원본 옆, 113)');
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);

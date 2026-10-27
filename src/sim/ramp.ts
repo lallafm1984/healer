@@ -10,14 +10,14 @@ import { CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/cont
 import type { DiffName } from '../data/difficulty';
 import { itemScore, rollItem, type Equipped } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
-import { addXp, rampDiffs, rampFour, rampPlace, rampXp, xpToNext } from '../data/progression';
+import { addXp, rampDiffs, rampFour, rampMain, rampPlace, rampXp, xpToNext } from '../data/progression';
 import { rngFrom } from '../engine/rng';
 
 /** 이 기준을 쓰는 칸: 장소 Lv RAMP_LV까지의 탐험 · 던전 어려움 · 악몽 */
 export const usesRamp = (c: ContentDef, d: DiffName) => rampPlace(c) && (d === '어려움' || d === '악몽');
 
 /** 구간 장소 (레벨 순) */
-const rampPlaces = () => CONTENT.filter(c => rampPlace(c) && c.ready).sort((a, b) => a.stageLv - b.stageLv);
+const rampPlaces = () => CONTENT.filter(c => rampMain(c) && c.ready).sort((a, b) => a.stageLv - b.stageLv);
 
 export interface RampPlayer { lv: number; eq: Equipped }
 type Flow = Map<ContentKey, Partial<Record<DiffName, RampPlayer>>>;
@@ -61,7 +61,7 @@ function flowOf(hero: HeroKey, seed: number): Flow {
 
 /** 그 칸의 기준 플레이어 (어려움 · 악몽 = 자동 밸런스 usesRamp, 쉬움 · 보통 = 그 칸에 처음 들어갈 때 · 초보 검사 sim/novice) */
 export function rampPlayer(c: ContentDef, d: DiffName, hero: HeroKey, seed: number): RampPlayer {
-  const p = flowOf(hero, seed).get(c.key)?.[d];
+  const p = flowOf(hero, seed).get(c.anchor ?? c.key)?.[d]; // 보충 장소 (113) = 원본 칸에 들어가는 사람 (원본을 다시 돌 차례)
   if (!p) throw new Error(`순차 레벨링 기준 없음: ${c.key} ${d}`);
   return p;
 }

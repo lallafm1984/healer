@@ -5,6 +5,7 @@
  * 효과는 engine/specials.ts가 엔진 훅에 붙임. ready = 엔진에 붙어서 드롭에 나와도 되는 것.
  */
 import { GRADE_MULT, type ItemGrade, type SlotKey } from './equipment';
+import { CONTENT } from './content';
 import type { HeroKey } from './heroes';
 import type { SkillKey } from './skills';
 
@@ -707,6 +708,8 @@ export const FEATURED: Record<string, readonly string[]> = {
   starcave: ['crystalBreak', 'goldEcho', 'constellation'],
   sunrisehill: ['sunrise', 'brightMorning', 'cleanHands'],
 };
+// 보충 장소 (113 4-3): 원본과 같은 특수능력 3개
+for (const c of CONTENT) if (c.anchor) (FEATURED as Record<string, readonly string[]>)[c.key] ??= FEATURED[c.anchor];
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */
 export function fmtSpec(v: number, unit: SpecUnit): string {

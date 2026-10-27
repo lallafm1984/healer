@@ -391,6 +391,27 @@ const ENC_ART: Record<string, string[]> = {
   lastecho: ['boss-final-echo', 'boss-last-shadow'],
   sunpath: ['mob-stone-monk', 'mob-stone-giant'],
   banjjak99: ['boss-crystal-giant', 'boss-heart-shard'],
+  // 113 초반 보충 장소 1차 (Lv 5~8): 새 보스 그림, 없으면 원본 장소 보스 그림. 정예 (보스 ①)는 그 세력 졸개 그림
+  pressgate: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-rust-guardian'],
+  pressguard: ['mob-minecart-golem', 'mob-boiler-golem', 'boss-rust-guardian'],
+  pressway: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-rust-guardian'],
+  kkuksoe: ['boss-press-golem', 'boss-rust-guardian'],
+  leakhall: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-mine-foreman'],
+  pipefixer: ['mob-boiler-golem', 'boss-mine-foreman'],
+  coolway: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-mine-foreman'],
+  chiik: ['boss-valve-keeper', 'boss-mine-foreman'],
+  partshelf: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-mine-foreman'],
+  cutter: ['mob-minecart-golem', 'mob-boiler-golem', 'boss-mine-foreman'],
+  workbench: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-mine-foreman'],
+  deolkeok: ['boss-scrap-overseer', 'boss-mine-foreman'],
+  darkpath: ['mob-risen-bones', 'mob-cult-acolyte'],
+  huuk: ['boss-lamp-thief', 'boss-bone-collector'],
+  wailpath: ['mob-risen-bones', 'mob-crypt-rats'],
+  heuneuk: ['boss-wail-mourner', 'boss-bone-collector'],
+  soakalley: ['mob-cult-acolyte', 'mob-crypt-rats'],
+  eolluk: ['boss-laundry-keeper', 'boss-herbalist-monk'],
+  ashpile: ['mob-cult-acolyte', 'mob-debris-thrower'],
+  puseokash: ['boss-chimney-sweep', 'boss-herbalist-monk'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -403,6 +424,7 @@ export function encArt(key: string, script = key): string {
  */
 const MOB_ART: Record<string, string[]> = {
   '고철 졸개': ['mob-scrap-minion'], '잔해 투척병': ['mob-debris-thrower'], '보일러 골렘': ['mob-boiler-golem'], '광차 골렘': ['mob-minecart-golem', 'mob-boiler-golem'],
+  '고철 망치병': ['mob-minecart-golem', 'mob-boiler-golem'], '배관 수리병': ['mob-boiler-golem'], // 113 정예 (자기 그림 없음, 같은 세력 그림)
   '되살아난 뼈': ['mob-risen-bones'], '교단 신도': ['mob-cult-acolyte'], '묘지 쥐떼': ['mob-crypt-rats'], '부리 가면 집행자': ['mob-beak-enforcer'],
   '늪 창병': ['mob-swamp-spearman'], '진흙 투석꾼': ['mob-mud-slinger'], '독침 사냥꾼': ['mob-dart-hunter'], '독 혹 두꺼비': ['mob-wart-toad'],
   '빈 갑옷 시종': ['mob-empty-armor'], '검은 베일 조문객': ['mob-veiled-mourner'], '유령 하녀': ['mob-ghost-maid'], '유령 사냥개': ['mob-ghost-hound'],

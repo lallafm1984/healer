@@ -9,7 +9,7 @@
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
  */
-import { contentOf, RAID10_LV, type ContentDef } from './content';
+import { CONTENT, contentOf, RAID10_LV, type ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
@@ -547,6 +547,8 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   // 묶음 H4 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
   cloudbridge: ['gloves', 'signet'], flightyard: ['coat', 'helm', 'starneck'], stormmeadow: ['scepter', 'sleeve'], cloudlibrary: ['vestment', 'bracer', 'pendant'], broomrace: ['staff', 'signet'], sunkrose: ['crown', 'sleeve', 'ring'], lotusway: ['scepter', 'wraps'], waterglow: ['robe', 'bracer'], barracks: ['mail', 'gauntlet', 'medal'], outpost: ['plume', 'ring'], starcave: ['crown', 'gloves', 'starneck'], sunrisehill: ['wreath', 'beads'],
 };
+// 보충 장소 (113 4-3): 원본과 같은 장비 종류 표
+for (const c of CONTENT) if (c.anchor) (PLACE_KINDS as Record<string, readonly string[]>)[c.key] ??= PLACE_KINDS[c.anchor];
 export const KIND_WEIGHT = 3;
 
 /** 세력 생김새 (34 6-10 ②): 세력 장소들에서 잘 나오는 종류. 이 종류만 세력 그림이 따로 있고, 나머지는 종류 그림 + 세력 색 테두리 */

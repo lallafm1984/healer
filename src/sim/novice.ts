@@ -12,7 +12,7 @@ import { CONTENT, contentOf, stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
-import { rampDiffs, rampPlace, recLevel } from '../data/progression';
+import { rampDiffs, rampMain, recLevel } from '../data/progression';
 import { TALENTS } from '../data/talents';
 import type { Tune } from '../data/tune';
 import { autoHealer, noviceHealer } from '../engine/auto';
@@ -45,7 +45,7 @@ export interface NoviceCell { c: ContentDef; d: DiffName; tut: boolean; off?: bo
  */
 export function noviceCells(diffs: DiffName[] = ['쉬움', '보통']): NoviceCell[] {
   const out: NoviceCell[] = [{ c: contentOf('tutorial'), d: '쉬움', tut: true }];
-  for (const c of CONTENT.filter(x => rampPlace(x) && x.ready).sort((a, b) => a.stageLv - b.stageLv)) {
+  for (const c of CONTENT.filter(x => rampMain(x) && x.ready).sort((a, b) => a.stageLv - b.stageLv)) { // 보충 장소 (113)는 길이 아님
     for (const d of rampDiffs(c)) if (diffs.includes(d)) out.push({ c, d, tut: c.key === 'plateau' && d === '쉬움' });
     if (!rampDiffs(c).includes('어려움') && diffs.includes('어려움')) out.push({ c, d: '어려움', tut: false, off: true });
   }

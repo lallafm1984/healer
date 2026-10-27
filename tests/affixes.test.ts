@@ -381,7 +381,7 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
 
   it('주간 도전 던전: 주마다 내 레벨 이하 던전 가운데 하나, 한 주 동안 그대로, 지난주 것은 안 나옴 (110 2차)', () => {
     // 모든 던전에 표가 있음 (새 던전을 넣으면 npm run sim:chal -- --tune)
-    for (const c of CONTENT.filter(x => x.kind === 'dungeon' && x.ready)) expect(CHAL_DUN[c.key], c.key).toBeTruthy();
+    for (const c of CONTENT.filter(x => x.kind === 'dungeon' && x.ready && !x.anchor)) expect(CHAL_DUN[c.key], c.key).toBeTruthy(); // 보충 장소 (113 4-3)는 주간 도전 후보 아님
     for (const lv of [1, 20, 45, 70, 100]) {
       const pool = chalPool(lv);
       expect(pool.length).toBeGreaterThan(1);

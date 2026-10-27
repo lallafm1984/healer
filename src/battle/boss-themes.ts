@@ -701,6 +701,49 @@ export const BOSS_SKILL_SOUND: Record<string, string> = {
   "warden:buster": 'boss-metal-hit', // 녹슨 문지기 · 내려찍기
   "warden:zone": 'boss-poison-ground', // 녹슨 문지기 · 녹물 웅덩이
   "whelps:boom": 'boss-fire-wave', // 새끼 용 삼남매 · 불꽃 재채기
+  // 113 초반 보충 장소 1차 (Lv 5~8, 착탄)
+  "kkuksoe:press10": 'boss-metal-hit',
+  "kkuksoe:press20": 'boss-metal-hit',
+  "kkuksoe:press11": 'boss-metal-hit',
+  "kkuksoe:press21": 'boss-metal-hit',
+  "kkuksoe:press12": 'boss-metal-hit',
+  "kkuksoe:press22": 'boss-metal-hit',
+  "kkuksoe:shower": 'boss-metal-wave',
+  "kkuksoe:shard": 'boss-projectile-hit',
+  "kkuksoe:shower2": 'boss-metal-wave',
+  "chiik:buster": 'boss-metal-hit',
+  "chiik:quake": 'boss-metal-wave',
+  "chiik:steam": 'boss-water-wave',
+  "chiik:steamb": 'boss-water-wave',
+  "chiik:quakeb": 'boss-metal-wave',
+  "chiik:jet": 'boss-water-hit',
+  "chiik:steamc": 'boss-water-wave',
+  "cutter:buster": 'boss-blade-hit',
+  "deolkeok:buster": 'boss-metal-hit',
+  "deolkeok:scrap0": 'boss-metal-wave',
+  "deolkeok:scrap1": 'boss-metal-wave',
+  "deolkeok:scrap2": 'boss-metal-wave',
+  "huuk:buster": 'boss-blunt-hit',
+  "huuk:wind": 'boss-wind-wave',
+  "huuk:snatch": 'boss-blade-hit',
+  "huuk:windb": 'boss-wind-wave',
+  "heuneuk:buster": 'boss-blunt-hit',
+  "heuneuk:wail1": 'boss-sound-wave',
+  "heuneuk:wail2": 'boss-sound-wave',
+  "heuneuk:wail2c": 'boss-sound-wave',
+  "heuneuk:point": 'boss-shadow-hit',
+  "eolluk:buster": 'boss-blunt-hit',
+  "eolluk:wash": 'boss-water-wave',
+  "puseokash:buster": 'boss-blunt-hit',
+  "puseokash:ash0": 'boss-wind-ground',
+  "puseokash:ash1": 'boss-wind-ground',
+  "puseokash:ash2": 'boss-wind-ground',
+  "puseokash:ash3": 'boss-wind-ground',
+  "puseokash:ash4": 'boss-wind-ground',
+  "puseokash:ash5": 'boss-wind-ground',
+  "puseokash:dust0": 'boss-earth-ground',
+  "puseokash:dust1": 'boss-earth-ground',
+  "puseokash:dust2": 'boss-earth-ground',
 };
 
 /**
@@ -1623,6 +1666,18 @@ export const BOSS_CAST_SOUND: Record<string, string> = {
   "whelps:eggm": 'boss-fire-cast',
   "whelps:melt": 'boss-fire-cast',
   "whelps:snort": 'boss-fire-cast',
+  // 113 초반 보충 장소 1차 (Lv 5~8, 바로 쓰는 기술)
+  "cutter:spirit": 'boss-metal-cast',
+  "deolkeok:spirit0": 'boss-metal-cast',
+  "deolkeok:spirit1": 'boss-metal-cast',
+  "deolkeok:spirit2": 'boss-metal-cast',
+  "huuk:fly": 'boss-nature-cast',
+  "huuk:flyc": 'boss-nature-cast',
+  "eolluk:stain0": 'boss-poison-cast',
+  "eolluk:stain1": 'boss-poison-cast',
+  "eolluk:stain2": 'boss-poison-cast',
+  "eolluk:mold0": 'boss-poison-cast',
+  "eolluk:mold1": 'boss-poison-cast',
 };
 /** 주요 보스의 바로 쓰는 기술마다 따로 (bc-<대본>-<기술>, scripts/sfx/boss-cast.mjs). 있으면 특성 소리보다 먼저 */
 export const BOSS_CAST_OWN: Record<string, string> = {

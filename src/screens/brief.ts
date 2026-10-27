@@ -48,10 +48,10 @@ export function segTabs(segs: EncounterKey[], sel: number): string {
 }
 
 /** 구간별 공략: 구간마다 한 판 (고른 구간만 보임). 보스 하나뿐이면 탭 없이 기술 목록만 */
-export function guides(segs: EncounterKey[], d: DiffName, stage: number, sel = segs.length - 1): string {
+export function guides(segs: EncounterKey[], d: DiffName, stage: number, sel = segs.length - 1, variant = 0): string {
   const lv = G.save.player.level;
-  if (segs.length === 1) return `<div class="guides f-one">${battle().guide(segs[0], d, stage, lv)}</div>`;
-  return `<div class="guides">${segs.map((k, i) => `<div class="gpane" role="tabpanel" id="gpane${i}" data-gpane="${i}" aria-labelledby="gtab${i}"${i === sel ? '' : ' hidden'}>${battle().guide(k, d, stage, lv)}</div>`).join('')}</div>`;
+  if (segs.length === 1) return `<div class="guides f-one">${battle().guide(segs[0], d, stage, lv, variant)}</div>`;
+  return `<div class="guides">${segs.map((k, i) => `<div class="gpane" role="tabpanel" id="gpane${i}" data-gpane="${i}" aria-labelledby="gtab${i}"${i === sel ? '' : ' hidden'}>${battle().guide(k, d, stage, lv, variant)}</div>`).join('')}</div>`;
 }
 
 /** 어픽스 줄 (07 3장, 13 3-3): 빨간 이름 칸 + 설명 */

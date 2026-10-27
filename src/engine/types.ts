@@ -601,6 +601,8 @@ export interface FightConfig {
   tune?: { dmg?: number; hp?: number };
   /** 장비 특수능력 (42): 켜지는 값 (data/specials specTotals). 없으면 특수능력 없음 = 옛 결과 그대로 */
   specs?: Record<string, number>;
+  /** 전투 변주 (113 7-4: 0 = A · 1 = B · 2 = C): 보스 기술 · 흐름의 when.variant. 없으면 A */
+  variant?: number;
 }
 
 /** 보조 버튼 특성 하나의 상태 */
@@ -919,6 +921,8 @@ export interface Fight {
   cheer: { until: number; mult: number } | null;
   /** 영원한 저녁 (05 6-G): 판의 체력 숫자를 숨김 */
   dark: boolean;
+  /** 전투 변주 한 줄 (113 7-4): 시작 1초 뒤 화면 가운데에 한 번 띄우고 지움 */
+  vtext?: string | null;
   /** 몸통을 고르게 깎음 (쌍둥이 여군주, data/bosses.ts BossDef.split) */
   split: boolean;
 }

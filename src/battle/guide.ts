@@ -11,7 +11,7 @@ import { SKILLS } from '../data/skills';
 import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
-import { BOSSES, hardDef, hardOn, mythicDef, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, inVariant, mythicDef, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
 import { bossNums } from './guideNums';
 import { RULES, zoneDps } from '../data/rules';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
@@ -30,10 +30,10 @@ interface ProbeSkill { name: string; icon: string; next: number; period: number;
 interface Probe { sk: Record<string, ProbeSkill>; m: number; bossMax: number; hp: { tank: number; dps: number; me: number } }
 const probeCache: Record<string, Probe> = {};
 /** 시험 전투 하나로 숫자를 읽음. 단계 레벨 배율(24 10장)을 넣어야 레이드 숫자가 전투와 같음 */
-function probe(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number): Probe {
-  const k = `${encKey}|${diff}|${stageLv ?? 1}|${heroLv ?? ''}`;
+function probe(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number, variant = 0): Probe {
+  const k = `${encKey}|${diff}|${stageLv ?? 1}|${heroLv ?? ''}|${variant}`;
   if (!probeCache[k]) {
-    const f = create({ encounter: encKey, diff, seed: 1, stageLv, heroLv });
+    const f = create({ encounter: encKey, diff, seed: 1, stageLv, heroLv, variant });
     const sk: Record<string, ProbeSkill> = {};
     for (const s of f.skills) sk[s.key] = { name: s.name ?? '', icon: s.icon ?? '', next: s.next, period: s.period, cast: s.cast, dmg: s.dmg ?? 0, dps: s.dps ?? 0, dur: s.dur ?? 0, hitDmg: s.hitDmg ?? 0 };
     // 2인·3인 판엔 근접이 없을 수 있어서 딜러 아무나
@@ -56,7 +56,7 @@ const EUL: [string, string] = ['을', '를'], RO: [string, string] = ['으로', 
 const cantDispel = (type: string) => `${HEROES[S.hero].name}${josa(HEROES[S.hero].name, '은', '는')} ${type}${josa(type, '을', '를')} 못 지움. ${act('renew', EUL)} 걸고 ${act('heal', RO)} 버티기`;
 const ENRAGE_HOW = '버티는 기술이 아님. 그 전에 잡으려면 딜러가 쓰러지지 않게';
 
-interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; mythic: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number }
+interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; mythic: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number; /** 전투 변주 (113 7-4) */ variant: number }
 export interface GuidePhase { id: string; name: string; at: string; text: string; enr?: boolean }
 /** art = 기술 아이콘 그림 이름 (battle/skillArt.ts, 없으면 글자 아이콘) */
 export interface GuideSkill { ic: string; name: string; art?: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[] }
@@ -390,12 +390,12 @@ function dataGuide(c: GuideCtx): GuideBody {
   const def = BOSSES[c.enc.script as Exclude<ScriptKey, 'trash'>], { sk, B, n } = c;
   // 대기열에 안 보이는 기술도 공략 글(how)이 있으면 공략에 (가시 중첩 · 짙어지는 저녁)
   const hard = hardOn(c.diff) ? def.hard : undefined; // 어려움 변화 (111 공통 ②): 바뀐 값으로 보여 줌
-  const shown = def.skills.filter(d => (!d.hidden || d.how) && (d.when?.mythic == null || d.when.mythic === c.mythic)).map(d => mythicDef(hardDef(d, hard), c.mythic ? def.mythicStep : undefined));
+  const shown = def.skills.filter(d => (!d.hidden || d.how) && (d.when?.mythic == null || d.when.mythic === c.mythic) && inVariant(d.when, c.variant)).map(d => mythicDef(hardDef(d, hard), c.mythic ? def.mythicStep : undefined));
   const phases: GuidePhase[] = [{ id: 'p1', name: '시작', at: '처음부터', text: shown.filter(d => !whenText(d)).map(d => d.name).join(' · ') }];
   // 체력 문턱 · 페이즈 흐름: 문턱마다 한 줄
   const marks = new Map<number, string[]>();
   for (const d of shown) if (d.when?.hpBelow != null) marks.set(d.when.hpBelow, [...(marks.get(d.when.hpBelow) ?? []), `${iga(d.name!)} 더해짐`]);
-  for (const st of def.flow ?? []) if (st.p === 'when' && st.if.hpBelow != null && (st.if.mythic == null || st.if.mythic === c.mythic)) {
+  for (const st of def.flow ?? []) if (st.p === 'when' && st.if.hpBelow != null && (st.if.mythic == null || st.if.mythic === c.mythic) && inVariant(st.if, c.variant)) {
     const t = st.do.find(x => x.p === 'text') as { text: string } | undefined;
     if (t) marks.set(st.if.hpBelow, [t.text]);
   }
@@ -418,11 +418,11 @@ function dataGuide(c: GuideCtx): GuideBody {
 }
 
 export type GuideModel = GuideBody & { enc: Encounter; diff: DiffName; m: number; dodge: number; bossMax: number; hp: Probe['hp']; tier: string; B: Record<string, Num> };
-export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number): GuideModel {
-  const enc = ENCOUNTERS[encKey], P = probe(encKey, diff, stageLv, heroLv);
+export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number, variant = 0): GuideModel {
+  const enc = ENCOUNTERS[encKey], P = probe(encKey, diff, stageLv, heroLv, variant);
   const m = P.m, n = (x: number) => Math.round(x * m);
   const B = bossNums(enc.script);
-  const g = (GUIDE[enc.script] ?? dataGuide)({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B, hpMult: P.bossMax / enc.hp });
+  const g = (GUIDE[enc.script] ?? dataGuide)({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B, hpMult: P.bossMax / enc.hp, variant });
   return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B }, g);
 }
 // 지금 돌고 있는 기술인지 (일시정지에서 '지금' 표시): 엔진 기술 상태 그대로 읽음

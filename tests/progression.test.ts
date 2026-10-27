@@ -282,7 +282,7 @@ describe('정산 (09 S08·S09)', () => {
 });
 
 describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10~20 네 난이도 첫 클리어만으로 다음 장소 레벨', () => {
-  const ramp = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV)
+  const ramp = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV && !c.anchor) // 보충 장소 (113)는 길이 아님
     .sort((a, b) => a.stageLv - b.stageLv || (a.kind === 'explore' ? -1 : 1));
   const play = (s: ReturnType<typeof newSave>, content: BattleResult['content'], diff: BattleResult['diff'], deaths: number, win = true) =>
     settle(s, result({ content, diff, deaths, win, segIdx: 0, segN: 1 }), rngFrom(1));

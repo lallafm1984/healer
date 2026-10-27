@@ -28,7 +28,7 @@ describe('모든 장소', () => {
   });
   it('같은 종류는 같은 레벨에 두 곳 없음 (한 레이드의 층 · 구역은 한 곳)', () => {
     const seen = new Map<string, string>();
-    for (const c of shown) {
+    for (const c of shown.filter(x => !x.anchor)) { // 보충 장소 (113)는 원본과 같은 레벨 · 같은 종류에 나란히
       const k = `${kindOf(c)} Lv ${c.unlockLv}`, g = groupOf(c);
       expect(seen.get(k) ?? g, `${c.key}와 ${seen.get(k)}`).toBe(g);
       seen.set(k, g);

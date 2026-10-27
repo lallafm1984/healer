@@ -3,7 +3,7 @@
  * 기술이 하는 일은 부품(bossParts.ts). 일반·정예 구간은 encounters.ts의 적 목록 (23 2장).
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
-import { BOSSES, hardDef, hardOn, mythicDef, type SkillDef } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, inVariant, mythicDef, type SkillDef } from '../data/bosses';
 import { busterDmg, lingerDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
@@ -138,14 +138,16 @@ export function initBoss(f: Fight): void {
   f.split = !!def.split;
   const hard = !f.cfg.proto && hardOn(f.cfg.diff) ? def.hard : undefined; // 어려움 변화 (111 공통 ②)
   const myth = !f.cfg.proto && f.mythic ? def.mythicStep : undefined; // 악몽 변화 (111 공통 ③)
-  for (const d of def.skills) fromDef(f, mythicDef(hardDef(d, hard), myth));
+  for (const d of def.skills) if (inVariant(d.when, f.cfg.variant)) fromDef(f, mythicDef(hardDef(d, hard), myth)); // 다른 변주 (113 7-4)의 기술은 만들지 않음
   if (def.watch && !def.watch.from) watchInit(f, def.watch);
+  if (def.variants) f.vtext = def.variants[f.cfg.variant ?? 0] ?? null; // 첫 주기 전에 이번 순서 한 줄 (113 7-4)
 }
 
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
 function bossUpdate(f: Fight): void {
   if (f.enc.script === 'trash') { if (f.mobs.some(m => m.down)) trashDown(f); return; } // 일반·정예 구간은 광폭화 없음
   const def = BOSSES[f.enc.script];
+  if (f.vtext && f.t >= 1) { emit(f, { type: 'phase', text: f.vtext }); f.vtext = null; } // 변주 한 줄 (113 7-4): 시작 1초 뒤 화면 가운데
   if (def.flow) runFlow(f, def.flow);
   if (def.watch?.from && !f.watch && f.phase === def.watch.from) watchInit(f, def.watch); // 주시가 이 페이즈부터 (심연의 군주 3페이즈)
   if (f.mobs.length) addsTick(f);

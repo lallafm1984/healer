@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { contentOf, CONTENT, stageOf } from '../src/data/content';
 import { gearStatsOf, specsOf } from '../src/data/equipment';
-import { rampDiffs, rampFour, rampPlace, rampRefLevel } from '../src/data/progression';
+import { rampDiffs, rampFour, rampMain, rampPlace, rampRefLevel } from '../src/data/progression';
 import { TALENTS } from '../src/data/talents';
 import * as E from '../src/engine';
 import { bigButton, familiarity, FAMILIAR, FAMILIAR_LV, MASTER, MASTER_FROM, NOVICE, noviceAt } from '../src/engine/novice';
@@ -70,7 +70,7 @@ describe('초보 검사 (초반 순차 레벨링 구간)', () => {
     expect(xs[0].c.key).toBe('tutorial');
     expect(xs[1]).toMatchObject({ d: '쉬움', tut: true });
     expect(xs[1].c.key).toBe('plateau');
-    const places = CONTENT.filter(c => rampPlace(c) && c.ready);
+    const places = CONTENT.filter(c => rampMain(c) && c.ready); // 보충 장소 (113)는 길이 아님
     expect(xs.length).toBe(1 + places.reduce((a, c) => a + rampDiffs(c).length, 0) + places.filter(c => !rampFour(c)).length);
     expect(xs.filter(x => x.tut).length).toBe(2);
     expect(xs.filter(x => x.off).every(x => x.d === '어려움' && !rampFour(x.c))).toBe(true);
