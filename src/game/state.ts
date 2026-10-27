@@ -84,7 +84,7 @@ export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boole
   const lv = Math.max(c.unlockLv, (d && c.diffUnlock?.[d]) || 0);
   const under = G.save.player.level < lv;
   const dev = under && G.save.settings.devUnlock && c.ready;
-  const chain = !!d && !chainOpen(c, d, G.save.clears[c.key], G.save.player.level);
+  const chain = !!d && !chainOpen(c, d, G.save.clears[c.key], G.save.player.level, c.anchor && G.save.clears[c.anchor]);
   return { lv, locked: (under && !dev) || chain, dev, need: chain ? chainNeed(c, d!) : null };
 }
 

@@ -220,6 +220,8 @@ export interface SaveData {
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */
   last: { content: string; diff: DiffName; win: boolean; grade: string | null } | null;
+  /** 최근에 깬 장소 (앞이 최근, 최대 2곳, 113 4-1): 길잡이가 원본 · 보충 장소를 돌려 추천할 때 방금 간 곳을 뒤로 */
+  recent?: string[];
   /** 장비 id 발급용 */
   nextId: number;
   /** 첫 5분 튜토리얼 진행 (game/tutorial.ts TUT) */
@@ -266,7 +268,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, sfxVol: 1,
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, clears: {}, last: null, recent: [], nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     daily: newDaily(), weekly: newWeekly(),
     stamina: newStamina(now), bought: [], chalOpen: 1, chalChest: 0,
@@ -296,6 +298,7 @@ export function migrate(raw: unknown): SaveData {
     gear: gearOf(o, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.nextId),
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,
+    recent: Array.isArray(o.recent) ? o.recent.filter((k): k is string => typeof k === 'string').slice(0, 2) : [],
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
     // 튜토리얼 전에 만든 저장: 이미 해 본 사람이면 끝난 걸로 (3 = TUT.done). 2 = 예전 「녹슨 요새 첫 클리어」 단계 → 끝 (34 5-2)
     tut: typeof o.tut === 'number' ? (o.tut === 2 ? 3 : o.tut) : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,

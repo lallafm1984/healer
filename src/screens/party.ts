@@ -5,11 +5,12 @@
  * 아래 고정: 출발 (바로 전투, 입장 확인 팝업은 2026-10-17 없앰). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
-import { contentOf, isRaid } from '../data/content';
+import { contentOf, isRaid, variantOf, VARIANT_NAMES, type ContentDef } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
-import { ENCOUNTERS } from '../data/encounters';
+import { ENCOUNTERS, type ScriptKey } from '../data/encounters';
+import { BOSSES } from '../data/bosses';
 import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { recommendPick } from '../game/recommend';
@@ -150,8 +151,15 @@ function guideSheetHtml(): string {
   return sheetBox('f-gsheet', '공략', `<header class="f-gh"><h2 class="f-gt">${BOOK}<span>공략</span></h2><p class="f-gp"><b>${esc(c.name)}</b><span class="f-gc d">${Flow.diff}</span><span class="f-gc">${c.size(Flow.diff)}인</span></p></header>
     ${Flow.diff === '악몽' && isRaid(c) ? '<p class="f-dnote">보스마다 악몽 전용 기술</p>' : ''}
     ${afxRows(m.affixes, Flow.chal ? '이번 주' : Flow.diff)}
+    ${variantNote(c)}
     ${segs.length > 1 ? segTabs(segs, sel) : ''}
-    ${guides(segs, Flow.diff, m.stage, sel)}`);
+    ${guides(segs, Flow.diff, m.stage, sel, Flow.chal ? 0 : variantOf(G.save.clears[c.key]))}`);
+}
+/** 보충 장소 (113 8장): 한 줄 안내 · 이번 전투 순서 (변주 A · B · C, 최종 보스 데이터의 variants) */
+function variantNote(c: ContentDef): string {
+  const boss = BOSSES[ENCOUNTERS[c.fights('보통').at(-1)!].script as Exclude<ScriptKey, 'trash'>], v = variantOf(G.save.clears[c.key]);
+  const order = !Flow.chal && boss?.variants ? `<p class="f-dnote">이번 순서 ${VARIANT_NAMES[v]} · ${esc(boss.variants[v])}</p>` : '';
+  return `${c.tip ? `<p class="f-dnote">${esc(c.tip)}</p>` : ''}${order}`;
 }
 
 /** 공략 시트 구간 탭 바꾸기: 다시 그리지 않고 판만 바꿈 (스크롤이 길 아래면 길 위치로) */
@@ -263,8 +271,9 @@ export function depart(): string {
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
     // 「길드 첫 킬!」 대사: 정산의 첫 처치와 같은 조건 (낮은 장소 · 주간 도전은 아님, 105 QA)
-    guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !Flow.chal && m.stage >= G.save.player.level - FAME_LOW_GAP && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
+    guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !Flow.chal && !c.anchor && m.stage >= G.save.player.level - FAME_LOW_GAP && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
     party: Flow.party!, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
+    variant: Flow.chal ? 0 : variantOf(G.save.clears[c.key]), // 113 7-4: 깬 횟수로 A · B · C, 진 판 다시 도전은 같은 변주
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random, Flow.party!);

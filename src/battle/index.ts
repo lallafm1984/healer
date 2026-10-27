@@ -61,7 +61,7 @@ function startBattle(guideSec = 0): void {
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined,
     carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, specs: S.specs,
-    affixes: S.affixes, bossMult: S.bossMult,
+    affixes: S.affixes, bossMult: S.bossMult, variant: S.variant,
   });
   B.F = F;
   void preloadSfx(bossSoundsFor(F.enc.script)); // 이 보스의 기술 착탄 소리만 풀어 둠 (다른 보스 것은 내려 놓음)
@@ -719,7 +719,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: partyResult(R, f),
     detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })),
-    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, giveUp: how === 'giveUp' || undefined,
+    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, giveUp: how === 'giveUp' || undefined, variant: S.variant,
   } as BattleResult;
   ui.lastResult = result;
   Snd.play(win ? 'win' : 'lose');
@@ -942,14 +942,14 @@ function frame(now: number): void {
     closeTip();
     S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.onEnd = o.onEnd || null;
     S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() } as Run;
-    try { setBattleRegion(adventureRegionOf(o.content as ContentKey).key); } catch { /* 모르는 장소: 앞 지역 곡 그대로 */ } // 배경음 = 지역 곡
+    try { setBattleRegion(adventureRegionOf(o.content as ContentKey).key, o.content); } catch { /* 모르는 장소: 앞 지역 곡 그대로 */ } // 배경음 = 장소 전용 곡, 없으면 지역 곡
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;
     S.coach = o.coach || null;
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
     S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
     S.specs = o.specs && Object.keys(o.specs).length ? { ...o.specs } : undefined;
-    S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0; S.guildFirst = !!o.guildFirst;
+    S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0; S.guildFirst = !!o.guildFirst; S.variant = o.variant ?? 0;
     applyLayout();
     resetRun();
     Snd.init();
@@ -971,7 +971,7 @@ function frame(now: number): void {
     if (B.F && !$('battle').hidden) layoutBattle();
   },
   /** 전투 전 공략 (단계 레벨을 주면 그 레벨 숫자로) */
-  guide: (encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number) => guideHtml(guideModel(encKey, diff, stageLv, heroLv), null),
+  guide: (encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number, variant?: number) => guideHtml(guideModel(encKey, diff, stageLv, heroLv, variant ?? 0), null),
   bossSvg: (script: string, key?: string) => bossSvg(script, key),
   layout: { GRID, ARROW, READ_ORDER, DEFAULT_LAYOUT, LAYOUT_SKILLS, valid: validLayout, label: layoutLabel, text: layoutText },
   tapKeys: TAP_KEYS,

@@ -1,6 +1,6 @@
 /** 보스 데이터 틀 (38 0-2): 데이터가 서로 맞는지, 공략 숫자가 데이터에서 그대로 나오는지 */
 import { describe, expect, it } from 'vitest';
-import { BOSSES, CHOIR, type FlowDo } from '../src/data/bosses';
+import { BOSSES, CHOIR, inVariant, type FlowDo } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { GB } from '../src/battle/guideNums';
 import * as E from '../src/engine';
@@ -34,8 +34,9 @@ describe('보스 데이터', () => {
     for (const k of KEYS) {
       const enc = Object.values(ENCOUNTERS).find(e => e.script === k)!;
       const f = E.create({ encounter: enc.key, diff: '보통', seed: 1 });
-      expect(f.skills.map(s => s.key)).toEqual(BOSSES[k].skills.map(s => s.key));
-      for (const s of BOSSES[k].skills) expect(f.bs[s.key]).toBe(f.skills.find(x => x.key === s.key));
+      const own = BOSSES[k].skills.filter(s => inVariant(s.when, 0)); // 다른 변주 (113 7-4)의 기술은 안 만들어짐
+      expect(f.skills.map(s => s.key)).toEqual(own.map(s => s.key));
+      for (const s of own) expect(f.bs[s.key]).toBe(f.skills.find(x => x.key === s.key));
       expect([f.phase, f.phaseName]).toEqual(BOSSES[k].phase);
     }
   });

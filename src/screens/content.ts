@@ -280,9 +280,11 @@ function placeRow(c: ContentDef): string {
     <div class="b-section-title"><h2 id="bRegionTitle">장소 선택</h2></div>
     <nav class="b-regions" aria-label="${esc(KINDS.find(k => k.kind === tab)!.name)} 장소">${shownOf(tab).map(x => {
       const on = x.key === c.key, off = isOff(x), rec = gd?.content === x.key;
-      const label = `${x.name} · ${!x.ready ? '준비 중' : off ? `Lv ${lockOf(x).lv}에 열림` : `Lv ${x.unlockLv}`}${rec ? ` · 추천 ${gd!.diff}` : ''}`;
+      // 보충 장소 (113 8장): 처음 가 보기 전까지 「새 장소」 (추천이면 추천만)
+      const fresh = !!x.anchor && !off && !rec && !Object.keys(G.save.clears[x.key] ?? {}).length;
+      const label = `${x.name} · ${!x.ready ? '준비 중' : off ? `Lv ${lockOf(x).lv}에 열림` : `Lv ${x.unlockLv}`}${rec ? ` · 추천 ${gd!.diff}` : fresh ? ' · 새 장소' : ''}`;
       return `<button type="button" class="b-region${on ? ' on' : ''}${rec ? ' rec' : ''}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}">
-        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(SHORT[x.key] ?? x.name)}</span><small>Lv ${x.unlockLv}</small>${rec ? '<span class="b-rec" aria-hidden="true">추천</span>' : ''}</button>`;
+        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(SHORT[x.key] ?? x.name)}</span><small>Lv ${x.unlockLv}</small>${rec ? '<span class="b-rec" aria-hidden="true">추천</span>' : fresh ? '<span class="b-rec new" aria-hidden="true">새 장소</span>' : ''}</button>`;
     }).join('')}</nav>
   </section>`;
 }

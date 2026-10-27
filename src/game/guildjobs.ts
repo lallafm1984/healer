@@ -32,7 +32,7 @@ export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) 
   const g = save.guild, week = weekKey(now);
   if (!g.founded || g.exped.week > week) return; // 시계를 뒤로 돌린 주는 그대로 (103)
   if (g.exped.week < week && expedReady(save)) return; // 다 끝냈는데 못 받은 원정 상자는 주가 바뀌어도 받게 둠 (받은 뒤 새 주 목록, 105 QA 2)
-  const my = topLevel(save), ok = (c: ContentDef) => c.ready && !c.hidden && open(c, '보통') && stageOf(c, '보통') <= my;
+  const my = topLevel(save), ok = (c: ContentDef) => c.ready && !c.hidden && !c.anchor && open(c, '보통') && stageOf(c, '보통') <= my; // 보충 장소 (113 4-3)는 원정 후보 아님
   const best = (xs: ContentDef[]) => xs.filter(ok).sort((a, b) => stageOf(b, '보통') - stageOf(a, '보통'));
   const dungeons = best(CONTENT.filter(c => c.kind === 'dungeon' && c.size('보통') === 5));
   // 원정은 길드파티로만 (103 다른 문제점 5 · 105 QA): 지금 길드원으로 그 레이드 길드파티를 못 꾸리면 (역할 자리로 셈) 그 칸은 던전으로

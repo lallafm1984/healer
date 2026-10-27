@@ -63,6 +63,8 @@ export interface BattleResult {
   limit?: number;
   /** 탱커 전멸 뒤 포기 버튼으로 끝냄 (이어하기 안 물어봄) */
   giveUp?: boolean;
+  /** 전투 변주 (113 7-4: 0 = A · 1 = B · 2 = C). 출전 때 정한 값, 재현 · 분석용 */
+  variant?: number;
 }
 
 export interface Settlement {
@@ -222,6 +224,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
+  // 최근에 깬 장소 2곳 (113 4-1): 길잡이가 원본 · 보충 장소를 돌려 추천할 때
+  if (r.win && !r.chal && play) save.recent = [r.content, ...(save.recent ?? []).filter(k => k !== r.content)].slice(0, 2);
   const tutEnd = advanceTutorial(save, r.content, r.win && !r.quit);
   // 튜토리얼 끝 첫 장비는 빈 칸에 바로 장착 (2026-10-13 Lim: 결과 화면 「장착」 버튼 뺌)
   if (tutEnd) for (const it of items) {

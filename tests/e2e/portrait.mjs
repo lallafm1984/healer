@@ -201,7 +201,7 @@ export default async function portrait(url, shots) {
         chal: !!document.querySelector('#s-content > .b-body > .b-chal'),
       };
     });
-    ok(selection.selected === 'rustfort' && selection.places.slice(0, 2).join() === 'rustfort,mine' && !selection.modal
+    ok(selection.selected === 'rustfort' && selection.places.slice(0, 3).join() === 'rustfort,brasspress,mine' && !selection.modal
       && selection.lvs.every((lv, i) => i === 0 || selection.lvs[i - 1] <= lv)
       && selection.cards.every(r => r.width >= 44 && r.height >= 44) && selection.row.left >= 0 && selection.row.right <= width + 1,
       `${width}: 던전 장소 줄 = 녹슨 요새·광산부터 레벨 순, 팝업·지역 단계 없음, 카드 터치 영역과 가로 경계 정상`);

@@ -29,7 +29,10 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30'
   | 'sacks' | 'jipdan' | 'millwheel' | 'nadal' | 'crowfield' | 'nadal34' | 'wetcave' | 'peg' | 'powder' | 'pado' | 'reefpool' | 'peg38' | 'iceflowers' | 'jiji42' | 'messhall' | 'jiji' | 'lounge' | 'eomgyeok' | 'campfire' | 'geopum46' | 'shelves' | 'geopum' | 'cauldron' | 'malos' | 'tiles' | 'malos50' | 'flourstore' | 'polpol' | 'oven' | 'monggeul' | 'dewpath' | 'polpol54' | 'mushpath' | 'poljjak58' | 'lilybridge' | 'poljjak' | 'tadpond' | 'umulluk'
   | 'scalepile' | 'ttemjil62' | 'charcoal' | 'ttemjil' | 'bellowway' | 'hwalhwal' | 'hotdock' | 'jigeul66' | 'steamcave' | 'jigeul' | 'gemvein' | 'garnet' | 'miststeps' | 'malmijal70' | 'kelphall' | 'malmijal' | 'pearlpond' | 'chalrang' | 'palmshade' | 'baseurak74' | 'sandshelf' | 'baseurak' | 'sealedstack' | 'gitpen' | 'obelisks' | 'gitpen78'
-  | 'swaybridge' | 'hwiparam82' | 'glideyard' | 'hwiparam' | 'windtunnel' | 'hoeori' | 'zapgrass' | 'hoeori86' | 'floatshelf' | 'peoleok' | 'forbidstair' | 'swit' | 'startline' | 'swit90' | 'drownhall' | 'gawison' | 'thornmaze' | 'rosalin' | 'lotusstep' | 'gawison94' | 'glowpond' | 'lastecho97' | 'drillyard' | 'kalnal' | 'weaponrack' | 'heukbaek' | 'palisade' | 'kalnal98' | 'crystalstair' | 'banjjak' | 'echohall' | 'lastecho' | 'sunpath' | 'banjjak99';
+  | 'swaybridge' | 'hwiparam82' | 'glideyard' | 'hwiparam' | 'windtunnel' | 'hoeori' | 'zapgrass' | 'hoeori86' | 'floatshelf' | 'peoleok' | 'forbidstair' | 'swit' | 'startline' | 'swit90' | 'drownhall' | 'gawison' | 'thornmaze' | 'rosalin' | 'lotusstep' | 'gawison94' | 'glowpond' | 'lastecho97' | 'drillyard' | 'kalnal' | 'weaponrack' | 'heukbaek' | 'palisade' | 'kalnal98' | 'crystalstair' | 'banjjak' | 'echohall' | 'lastecho' | 'sunpath' | 'banjjak99'
+  // 113 초반 보충 장소 1차 (Lv 5~8)
+  | 'pressgate' | 'pressguard' | 'pressway' | 'kkuksoe' | 'leakhall' | 'pipefixer' | 'coolway' | 'chiik' | 'partshelf' | 'cutter' | 'workbench' | 'deolkeok'
+  | 'darkpath' | 'huuk' | 'wailpath' | 'heuneuk' | 'soakalley' | 'eolluk' | 'ashpile' | 'puseokash';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -52,7 +55,9 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30'
   | 'jipdan' | 'nadal' | 'nadal34' | 'peg' | 'pado' | 'peg38' | 'jiji42' | 'jiji' | 'eomgyeok' | 'geopum46' | 'geopum' | 'malos' | 'malos50' | 'polpol' | 'monggeul' | 'polpol54' | 'poljjak58' | 'poljjak' | 'umulluk'
   | 'ttemjil62' | 'ttemjil' | 'hwalhwal' | 'jigeul66' | 'jigeul' | 'garnet' | 'malmijal70' | 'malmijal' | 'chalrang' | 'baseurak74' | 'baseurak' | 'gitpen' | 'gitpen78'
-  | 'hwiparam82' | 'hwiparam' | 'hoeori' | 'hoeori86' | 'peoleok' | 'swit' | 'swit90' | 'gawison' | 'rosalin' | 'gawison94' | 'lastecho97' | 'kalnal' | 'heukbaek' | 'kalnal98' | 'banjjak' | 'lastecho' | 'banjjak99';
+  | 'hwiparam82' | 'hwiparam' | 'hoeori' | 'hoeori86' | 'peoleok' | 'swit' | 'swit90' | 'gawison' | 'rosalin' | 'gawison94' | 'lastecho97' | 'kalnal' | 'heukbaek' | 'kalnal98' | 'banjjak' | 'lastecho' | 'banjjak99'
+  // 113 초반 보충 장소 1차 (Lv 5~8)
+  | 'kkuksoe' | 'chiik' | 'cutter' | 'deolkeok' | 'huuk' | 'heuneuk' | 'eolluk' | 'puseokash';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1514,6 +1519,84 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '신전 돌거인', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   banjjak99: { key: 'banjjak99', lowLevel: true, name: '수정 거인 반짝돌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'banjjak99', stage: 0.3, debuffs: HEAL4 },
+  // ---------- 113 초반 보충 장소 1차 (Lv 5~8): 원본 반복판을 대신하는 새 장소. 던전 = 일반 → 정예 (최종 보스 판단 예습) → 일반 → 보스, 탐험 = 일반 → 보스 ----------
+  // 체력 · 광폭화는 원본 장소 줄 (녹슨 요새 · 녹슨 광산 · 잿빛 공동묘지 · 잿빛 뒷골목), 클리어율은 밸런스 단계에서 맞춤
+  // S01 황동 압착장 (Lv 5 · 녹슨 요새): 연속 강타 사이 회복
+  pressgate: trash('pressgate', '휘어진 철문', [
+    { ...CHAFF, count: 3 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  pressguard: trash('pressguard', '고철 망치병', [
+    { ...CHAFF, count: 2 },
+    {
+      name: '고철 망치병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 연속 압착의 예습: 망치 두 번 (7초 사이)
+        { key: 'ham1', name: '망치 내려찍기', icon: '망치', kind: 'buster', to: 'tank', dmg: 150, first: 8, period: 20, cast: 3 },
+        { key: 'ham2', name: '망치 내려찍기', icon: '망치', kind: 'buster', to: 'tank', dmg: 150, first: 15, period: 20, cast: 3 },
+      ],
+    },
+  ]),
+  pressway: trash('pressway', '압착기 통로', [
+    { ...CHAFF, count: 2 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kkuksoe: { key: 'kkuksoe', lowLevel: true, name: '압착 골렘 꾹쇠', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'kkuksoe', stage: 0.25 },
+  // S02 냉각수 배관실 (Lv 6 · 녹슨 광산): 진동 전후 시전 배분
+  leakhall: trash('leakhall', '물 샌 복도', [
+    { ...CHAFF, count: 3 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  pipefixer: trash('pipefixer', '배관 수리병', [
+    { ...CHAFF, count: 2 },
+    {
+      name: '배관 수리병', elite: true, hp: 800, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        // 최종 보스 진동의 예습: 약한 렌치 진동 (시전 1초 잠김)
+        { key: 'quake', name: '렌치 진동', icon: '진동', kind: 'aoe', to: 'all', dmg: 0, first: 9, period: 18, cast: 4, effect: { p: 'quake', dmg: 40, lock: 1 } },
+      ],
+    },
+  ]),
+  coolway: trash('coolway', '냉각 통로', [
+    { ...CHAFF, count: 2 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  chiik: { key: 'chiik', lowLevel: true, name: '밸브지기 치익', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'chiik', stage: 0.25 },
+  // S03 버려진 정비동 (Lv 6 · 녹슨 광산): 아군과 보조 대상 사이 선택. 정예 (보스 ①)는 영혼 (수리 정령) 매 틱 갱신이 있어 보스 스크립트
+  partshelf: trash('partshelf', '부품 선반', [
+    { ...CHAFF, count: 3 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  cutter: { key: 'cutter', lowLevel: true, name: '고장 난 절삭기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 2600, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'cutter', stage: 0.25 },
+  workbench: trash('workbench', '정비 작업대', [
+    { ...CHAFF, count: 2 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  deolkeok: { key: 'deolkeok', lowLevel: true, name: '고철 감독관 덜컥', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'deolkeok', stage: 0.25 },
+  // S04 반딧불 묘지길 (Lv 7 · 잿빛 공동묘지): 전투를 단축하는 구조
+  darkpath: trash('darkpath', '꺼진 묘지길', [
+    { name: '되살아난 뼈', hp: 150, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 150, count: 1, attacks: [{ key: 'hit', to: 'other', dmg: 60, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  huuk: { key: 'huuk', lowLevel: true, name: '등불 도둑 후욱', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'huuk', stage: 0.3 },
+  // S05 묘지 곡소리 언덕 (Lv 7 · 잿빛 공동묘지): 광역 피해 사이 회복 (113 원안 「종지기」는 종 금지 (58 1-2)라 곡쟁이로)
+  wailpath: trash('wailpath', '울음 언덕길', [
+    { name: '되살아난 뼈', hp: 150, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 150, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 70, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  heuneuk: { key: 'heuneuk', lowLevel: true, name: '곡쟁이 흐느낌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'heuneuk', stage: 0.3 },
+  // S06 오염된 빨래터 (Lv 8 · 잿빛 뒷골목): 해제 우선순위
+  soakalley: trash('soakalley', '축축한 골목', [
+    { name: '교단 신도', hp: 150, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 150, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  eolluk: { key: 'eolluk', lowLevel: true, name: '빨래지기 얼룩', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1900, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'eolluk', stage: 0.3, debuffs: ['질병'] },
+  // S07 잿바람 골목 (Lv 8 · 잿빛 뒷골목): 맞을 사람 미리 회복 (못 피하는 줄 피해 + 피하는 먼지)
+  ashpile: trash('ashpile', '재 쌓인 골목', [
+    { name: '교단 신도', hp: 150, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '잔해 투척병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  puseokash: { key: 'puseokash', lowLevel: true, name: '굴뚝 청소꾼 푸석', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'puseokash', stage: 0.3 },
 };
 
 /**

@@ -112,7 +112,7 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
       expect(ks.length, place).toBe(c.kind === 'dungeon' ? 3 : c.kind === 'explore' ? 2 : 1);
     }
     // 종류가 16가지라 레이드 칸 하나짜리 조합은 70곳 전체에서는 겹칠 수밖에 없음 → 열림 레벨이 5 안쪽인 장소끼리만 다르게
-    const rows = Object.entries(PLACE_KINDS).map(([place, ks]) => ({ place, lv: contentOf(place as ContentKey).unlockLv, combo: [...ks].sort().join() }));
+    const rows = Object.entries(PLACE_KINDS).filter(([place]) => !contentOf(place as ContentKey).anchor).map(([place, ks]) => ({ place, lv: contentOf(place as ContentKey).unlockLv, combo: [...ks].sort().join() })); // 보충 장소 (113)는 원본 표 그대로
     for (const x of rows) for (const y of rows) if (x.place < y.place && Math.abs(x.lv - y.lv) <= 5) expect(x.combo, `${x.place} · ${y.place}`).not.toBe(y.combo);
     // 지금 열린 탐험 · 던전은 모두 표가 있음
     for (const c of CONTENT) if (c.ready && !c.hidden && (c.kind === 'explore' || c.kind === 'dungeon')) expect(PLACE_KINDS[c.key], c.key).toBeDefined();

@@ -50,14 +50,14 @@ export default async function adventurePlaceRow(url,shots) {
 
         // 레벨이 되면 보임: Lv 5 녹슨 요새 열림, Lv 6 녹슨 광산이 줄에 나타남
         await seed(5);r=await rows();
-        ok(r.dungeon.keys.join()==='rustfort' && r.dungeon.go,`${tag}: Lv 5 녹슨 요새 열림·출전 가능`,r.dungeon);
+        ok(r.dungeon.keys.join()==='rustfort,brasspress' && r.dungeon.go,`${tag}: Lv 5 녹슨 요새 열림·출전 가능 (보충 장소 황동 압착장이 나란히, 113)`,r.dungeon);
         await seed(6);r=await rows();
-        ok(r.dungeon.keys.join()==='rustfort,mine' && r.explore.keys.length===2,`${tag}: Lv 6 녹슨 광산이 장소 줄에 나타남`,{dungeon:r.dungeon.keys,explore:r.explore.keys});
+        ok(r.dungeon.keys.join()==='rustfort,brasspress,mine,coolant,repairbay' && r.explore.keys.length===2,`${tag}: Lv 6 녹슨 광산이 장소 줄에 나타남 (보충 장소가 원본 옆에, 113)`,{dungeon:r.dungeon.keys,explore:r.explore.keys});
 
         // 개발 빌드 「레벨 잠금 무시」: 전부 보임
         await seed(4,true);r=await rows();
-        ok(r.explore.keys.length===50 && r.dungeon.keys.length===40 && r.raid10.keys.length===47 && r.raid20.keys.length===31,
-          `${tag}: 레벨 잠금 무시면 네 분류 장소 전부 (50·40·47·31)`,Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.keys.length])));
+        ok(r.explore.keys.length===54 && r.dungeon.keys.length===43 && r.raid10.keys.length===47 && r.raid20.keys.length===31,
+          `${tag}: 레벨 잠금 무시면 네 분류 장소 전부 (54·43·47·31, 113 보충 장소 1차 포함)`,Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.keys.length])));
 
         // 고른 장소의 난이도별 별 (예전 팝업 카드의 진행도는 난이도 칸이 보여 줌)
         await seed(100,false,{rustfort:Object.fromEntries(DIFFS.map((d,stars)=>[d,{stars,grade:'A',best:30,n:1}]))});

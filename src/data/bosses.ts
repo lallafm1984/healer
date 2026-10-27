@@ -451,6 +451,8 @@ export interface SkillWhen {
   bodyAlive?: number[];
   /** 악몽에서만 (true) / 악몽이 아닐 때만 (false): 「악몽 변화」로 기술을 바꿀 때 (35 10장 1번) */
   mythic?: boolean;
+  /** 이 전투 변주에서만 (113 7-4: 0 = A · 1 = B · 2 = C). 다른 변주에서는 기술이 아예 없음 (대기열 · 공략에도 안 나옴) */
+  variant?: number[];
 }
 
 export interface SkillDef {
@@ -520,6 +522,8 @@ export interface FlowIf {
   interOver?: boolean;
   /** 이 몸통이 모두 쓰러짐 */
   bodiesDead?: number[];
+  /** 이 전투 변주에서만 (113 7-4) */
+  variant?: number[];
 }
 
 /** 페이즈가 바뀔 때 하는 일 (적은 순서대로) */
@@ -615,7 +619,12 @@ export interface BossDef {
   hard?: HardStep;
   /** 악몽 변화 (111 공통 ③, MythicStep): 악몽 차이가 없던 보스만 */
   mythicStep?: MythicStep;
+  /** 전투 변주 A · B · C 한 줄 (113 7-4): 첫 주기 전에 화면 가운데 · 공략 시트에 이번 순서를 보여 줌 */
+  variants?: [string, string, string];
 }
+
+/** 이 변주에 있는 기술인지 (113 7-4, 변주가 없는 기술은 언제나) */
+export const inVariant = (w: { variant?: number[] } | undefined, v = 0) => !w?.variant || w.variant.includes(v);
 
 const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, period: 2, cast: 0, effect: { p: 'auto', dmg } });
 const BUSTER = (name: string, icon: string, first: number, period: number, dmg: number): SkillDef =>
@@ -5312,6 +5321,155 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     hard: { skill: 'loan', period: 0.85 }, // 111 어려움 변화: 빌린 생명 더 자주
     mythicStep: { skill: 'buster', kind: 'rot' }, // 111 악몽 변화: 빛 손바닥 강타가 썩는 상처
     enrage: { name: '마지막 울림', period: 2, dmg: 200 },
+  },
+  // ---------- 113 초반 보충 장소 1차 (Lv 5~8): 새 부품 없이 있는 부품의 시간표. 변주 A · B · C (when.variant)는 회복을 나누는 순서만 바꿈 ----------
+  // 서로 다른 큰 피해는 실제 타격 사이 6초 이상 (113 7-1), 수치 세기는 원본 보스 줄 (밸런스 단계에서 tune으로 맞춤)
+  // 압착 골렘 꾹쇠 (S01 황동 압착장): 1차 압착 → 7초 뒤 2차 압착 (각각 3초 예고) → 쉼. A 압착 둘 → 쇳조각 비, B 압착 둘 → 딜러 한 명 파편, C 쇳조각 비 → 압착 둘
+  kkuksoe: {
+    phase: [1, ''],
+    skills: [
+      AUTO(70),
+      ...([[0, 12, 19], [1, 12, 19], [2, 18, 25]] as const).flatMap(([v, a, b]): SkillDef[] => [
+        { key: `press1${v}`, name: '1차 압착', icon: '압착', kind: 'buster', first: a, period: 36, cast: 3, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [v] },
+          how: '7초 뒤 2차 압착이 또 옴. 첫 압착 뒤 탱커를 바로 채우기' },
+        { key: `press2${v}`, name: '2차 압착', icon: '압착', kind: 'buster', first: b, period: 36, cast: 3, warn: 'buster', dmg: 380, target: 'tank', effect: { p: 'tank' }, when: { variant: [v] } },
+      ]),
+      { key: 'shower', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', first: 30, period: 36, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: 160 } },
+      { key: 'shard', name: '튀는 파편', icon: '파편', kind: 'buster', first: 28, period: 36, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] },
+        how: '압착이 끝난 뒤 딜러 한 명이 맞음. 예고된 사람을 채우기', effect: { p: 'strike', dmg: 200 } },
+      { key: 'shower2', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', first: 8, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 160 } },
+    ],
+    variants: ['압착 두 번 → 쇳조각 비', '압착 두 번 → 딜러 한 명 파편', '쇳조각 비 → 압착 두 번'],
+    enrage: { name: '압착 폭주', period: 2, dmg: 200 },
+  },
+  // 밸브지기 치익 (S02 냉각수 배관실): 진동 4초 예고 (시전 1초 잠김, 지속 힐은 그대로) → 6초 뒤 광역 증기, 주기 28초.
+  // A 진동 → 증기, B 증기 → 진동, C 첫 주기 증기 한 명 → 다음부터 광역
+  chiik: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('렌치 내려치기', '렌치', 6, 28, U.tank(0.4)),
+      { key: 'quake', name: '배관 진동', icon: '진동', kind: 'aoe', first: 14, period: 28, cast: 4, warn: 'aoe', when: { variant: [0, 2] }, effect: { p: 'quake', dmg: U.dps(0.08), lock: 1 } },
+      { key: 'steam', name: '냉각 증기', icon: '증기', kind: 'aoe', first: 21, period: 28, cast: 3, warn: 'aoe', when: { variant: [0] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+      { key: 'steamb', name: '냉각 증기', icon: '증기', kind: 'aoe', first: 12, period: 28, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+      { key: 'quakeb', name: '배관 진동', icon: '진동', kind: 'aoe', first: 19, period: 28, cast: 4, warn: 'aoe', when: { variant: [1] }, effect: { p: 'quake', dmg: U.dps(0.08), lock: 1 } },
+      { key: 'jet', name: '증기 분사', icon: '증기', kind: 'buster', first: 21, period: 999, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [2] },
+        how: '첫 주기만 한 명. 다음 주기부터는 광역 증기', effect: { p: 'strike', dmg: U.dps(0.3) } },
+      { key: 'steamc', name: '냉각 증기', icon: '증기', kind: 'aoe', first: 49, period: 28, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    variants: ['진동 → 광역 증기', '광역 증기 → 진동', '진동 → 증기 한 명 (다음부터 광역)'],
+    enrage: { name: '밸브 폭주', period: 2, dmg: 200 },
+  },
+  // 고장 난 절삭기 (S03 정예 = 보스 ①): 수리 정령 예습 (낮은 압력, 놓쳐도 피해 없음)
+  cutter: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.055)),
+      BUSTER('절삭 날', '절삭', 8, 18, U.tank(0.35)),
+      { key: 'spirit', name: '수리 정령', icon: '정령', kind: 'instant', first: 10, period: 40, cast: 0,
+        effect: { p: 'soul', name: '수리 정령', short: '정령', art: 'mob-soul-repair', hp: 0.4, size: 0.6, sec: 18,
+          win: { text: '10초 동안 적 피해 −20%', weak: { pct: 0.2, sec: 10 } }, fail: { text: '도움만 사라짐', dmg: 0 } } },
+    ],
+    enrage: { name: '절삭기 폭주', period: 2, dmg: 180 },
+  },
+  // 고철 감독관 덜컥 (S03 버려진 정비동): 12초에 수리 정령 (평균 딜러 체력 60%, 40%에서 시작, 18초, 채우면 10초 적 피해 −20%), 45초마다.
+  // 놓쳐도 피해 없음 (도움만 사라짐). A 정령 → 한참 뒤 광역 파편, B 정령 → 곧 광역 파편, C 광역 파편 → 정령
+  deolkeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('크레인 갈고리', '갈고', 8, 15, U.tank(0.42)),
+      ...([[0, 12], [1, 12], [2, 18]] as const).map(([v, at]): SkillDef => ({
+        key: `spirit${v}`, name: '수리 정령', icon: '정령', kind: 'instant', first: at, period: 45, cast: 0, when: { variant: [v] },
+        how: '빈 칸의 정령에 단일 힐. 파티가 안정됐을 때. 놓쳐도 피해는 없음',
+        effect: { p: 'soul', name: '수리 정령', short: '정령', art: 'mob-soul-repair', hp: 0.4, size: 0.6, sec: 18,
+          win: { text: '10초 동안 적 피해 −20%', weak: { pct: 0.2, sec: 10 } }, fail: { text: '도움만 사라짐', dmg: 0 } },
+      })),
+      ...([[0, 33], [1, 18], [2, 9]] as const).map(([v, at]): SkillDef => ({
+        key: `scrap${v}`, name: '광역 파편', icon: '파편', kind: 'aoe', first: at, period: 45, cast: 3, warn: 'aoe', when: { variant: [v] }, effect: { p: 'all', dmg: U.dps(0.24) },
+      })),
+    ],
+    variants: ['수리 정령 → 한참 뒤 광역 파편', '수리 정령 → 곧 광역 파편', '광역 파편 → 수리 정령'],
+    enrage: { name: '감독관 폭주', period: 2, dmg: 220 },
+  },
+  // 등불 도둑 후욱 (S04 반딧불 묘지길): 등불 바람 뒤 빛을 잃은 반딧불 (16초, 채우면 12초 보스 받는 피해 +25%). 놓쳐도 피해 없음.
+  // A 바람 → 반딧불, B 딜러 지목 → 반딧불, C 체력 절반 아래에서 반딧불 한 번
+  huuk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('갈고리 장대', '장대', 6, 16, 340),
+      { key: 'wind', name: '등불 바람', icon: '바람', kind: 'aoe', first: 14, period: 32, cast: 3, warn: 'aoe', when: { variant: [0, 2] }, effect: { p: 'all', dmg: 170 } },
+      { key: 'snatch', name: '등불 낚아채기', icon: '낚아', kind: 'buster', first: 14, period: 32, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] },
+        how: '딜러 한 명이 맞음. 예고된 사람을 채우기', effect: { p: 'strike', dmg: 220 } },
+      { key: 'windb', name: '등불 바람', icon: '바람', kind: 'aoe', first: 26, period: 32, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 150 } },
+      { key: 'fly', name: '빛을 잃은 반딧불', icon: '반딧', kind: 'instant', first: 19, period: 32, cast: 0, when: { variant: [0, 1] },
+        how: '빈 칸의 반딧불에 단일 힐. 살리면 보스가 약해져 판이 짧아짐. 놓쳐도 피해 없음',
+        effect: { p: 'soul', name: '빛을 잃은 반딧불', short: '반딧', art: 'mob-soul-firefly', hp: 0.4, size: 0.5, sec: 16,
+          win: { text: '12초 동안 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 12 } }, fail: { text: '반딧불이 꺼짐', dmg: 0 } } },
+      { key: 'flyc', name: '빛을 잃은 반딧불', icon: '반딧', kind: 'instant', first: null, period: 999, cast: 0, when: { variant: [2] },
+        effect: { p: 'soul', name: '빛을 잃은 반딧불', short: '반딧', art: 'mob-soul-firefly', hp: 0.4, size: 0.5, sec: 16,
+          win: { text: '12초 동안 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 12 } }, fail: { text: '반딧불이 꺼짐', dmg: 0 } } },
+    ],
+    flow: [{ p: 'when', if: { variant: [2], idle: 'flyc', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'flyc', in: 1 }, { p: 'text', text: '반딧불 하나가 빠져나옴' }] }],
+    variants: ['등불 바람 → 반딧불', '딜러 한 명 지목 → 반딧불', '체력 절반에 반딧불 한 번'],
+    enrage: { name: '등불 폭주', period: 2, dmg: 150 },
+  },
+  // 곡쟁이 흐느낌 (S05 묘지 곡소리 언덕): 18초부터 곡소리 두 번 (6초 사이, 각각 3초 예고), 사이엔 강타 없음, 뒤 12초는 평타만.
+  // A 곡소리 둘, B 한 명 지목 → 곡소리 둘, C 첫 주기 한 번 → 다음부터 두 번. 113 원안 「종소리」는 종 금지 (58 1-2)라 곡소리로
+  heuneuk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('상장 지팡이', '지팡', 6, 32, 340),
+      { key: 'wail1', name: '곡소리', icon: '곡성', kind: 'aoe', first: 15, period: 32, cast: 3, warn: 'aoe', how: '6초 뒤 한 번 더 옴. 첫 곡소리 뒤 모자란 사람을 먼저, 두 번째에 광역 힐', effect: { p: 'all', dmg: 130 } },
+      { key: 'wail2', name: '곡소리', icon: '곡성', kind: 'aoe', first: 21, period: 32, cast: 3, warn: 'aoe', when: { variant: [0, 1] }, effect: { p: 'all', dmg: 130 } },
+      { key: 'wail2c', name: '곡소리', icon: '곡성', kind: 'aoe', first: 53, period: 32, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 130 } },
+      { key: 'point', name: '손가락질', icon: '지목', kind: 'buster', first: 10, period: 32, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] },
+        how: '딜러 한 명이 맞음. 곡소리 전에 채워 두기', effect: { p: 'strike', dmg: 200 } },
+    ],
+    variants: ['곡소리 두 번', '한 명 지목 → 곡소리 두 번', '곡소리 한 번 (다음부터 두 번)'],
+    enrage: { name: '통곡', period: 2, dmg: 150 },
+  },
+  // 빨래지기 얼룩 (S06 오염된 빨래터): 10초 오래가는 질병 → 7초 뒤 짧은 질병 (8초 뒤 작은 추가 피해), 둘 다 1중첩, 주기 30초. 정화 재사용 4초로 우선순위.
+  // A 오래가는 → 짧은, B 짧은 → 오래가는, C 오래가는 → 광역 구정물
+  eolluk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('빨랫방망이', '방망', 3, 30, 330),
+      ...([[0, 10], [1, 17], [2, 10]] as const).map(([v, at]): SkillDef => ({
+        key: `stain${v}`, name: '찌든 얼룩', icon: '얼룩', kind: 'instant', first: at, period: 30, cast: 0, when: { variant: [v] },
+        how: '오래가지만 약한 질병. 급하지 않으면 짧은 곰팡이를 먼저 지우기',
+        effect: { p: 'debuff', n: 1, debuff: { name: '찌든 얼룩', type: '질병', left: 16, dot: 14 } },
+      })),
+      ...([[0, 17], [1, 10]] as const).map(([v, at]): SkillDef => ({
+        key: `mold${v}`, name: '젖은 곰팡이', icon: '곰팡', kind: 'instant', first: at, period: 30, cast: 0, when: { variant: [v] },
+        how: '8초 뒤 작은 피해가 한 번 더. 그 전에 지우거나, 못 지우면 채워 두기',
+        effect: { p: 'debuff', n: 1, debuff: { name: '젖은 곰팡이', type: '질병', left: 8, dot: 14, end: { p: 'hit', dmg: 120 } } },
+      })),
+      { key: 'wash', name: '구정물 세탁', icon: '구정', kind: 'aoe', first: 18, period: 30, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 150 } },
+    ],
+    variants: ['오래가는 얼룩 → 짧은 곰팡이', '짧은 곰팡이 → 오래가는 얼룩', '오래가는 얼룩 → 광역 구정물'],
+    enrage: { name: '빨래터 폭주', period: 2, dmg: 160 },
+  },
+  // 굴뚝 청소꾼 푸석 (S07 잿바람 골목): 못 피하는 재바람 (앞줄 · 뒷줄, 4초 예고, 최대 체력 25% 안팎)과 피하는 먼지 (재바람과 7초 이상 띄움).
+  // A 앞줄 → 뒷줄, B 뒷줄 → 앞줄, C 앞줄 → 쉬고 → 뒷줄
+  puseokash: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('굴뚝 솔', '굴뚝', 4, 32, 330),
+      ...([[0, 'front', 10, 32], [0, 'back', 26, 32], [1, 'back', 10, 32], [1, 'front', 26, 32], [2, 'front', 10, 40], [2, 'back', 30, 40]] as const).map(([v, line, at, per], i): SkillDef => ({
+        key: `ash${i}`, name: `${line === 'front' ? '앞줄' : '뒷줄'} 재바람`, icon: '재', kind: 'zone', first: at, period: per, cast: 4, warn: 'zone', fixed: true, hitDmg: 150,
+        cells: { p: 'line', at: line }, when: { variant: [v] }, how: '그 줄에 선 사람이 맞음 (못 피함). 예고된 줄을 미리 채우기',
+      })),
+      ...([[0, 19, 32], [1, 19, 32], [2, 19, 40]] as const).map(([v, at, per]): SkillDef => ({
+        key: `dust${v}`, name: '굴뚝 먼지', icon: '먼지', kind: 'zone', first: at, period: per, cast: 2.5, dps: 40, dur: 6, warn: 'zone', cells: { p: 'around' }, when: { variant: [v] },
+      })),
+    ],
+    variants: ['앞줄 재바람 → 뒷줄 재바람', '뒷줄 재바람 → 앞줄 재바람', '앞줄 재바람 → 쉬고 → 뒷줄 재바람'],
+    enrage: { name: '잿더미 폭주', period: 2, dmg: 160 },
   },
 };
 

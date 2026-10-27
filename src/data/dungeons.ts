@@ -9,7 +9,9 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
   | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
-  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill';
+  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
+  // 113 초반 보충 장소
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -126,6 +128,14 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   outpost: { key: 'outpost', name: '그림자 초소', segments: ['palisade', 'kalnal98'] },
   starcave: { key: 'starcave', name: '별빛 수정 동굴', segments: ['crystalstair', 'banjjak', 'echohall', 'lastecho'] },
   sunrisehill: { key: 'sunrisehill', name: '아침 햇살 언덕', segments: ['sunpath', 'banjjak99'] },
+  // 113 초반 보충 장소 1차 (Lv 5~8): 던전 = 일반 → 정예 → 일반 → 보스, 탐험 = 일반 → 보스
+  brasspress: { key: 'brasspress', name: '황동 압착장', segments: ['pressgate', 'pressguard', 'pressway', 'kkuksoe'] },
+  coolant: { key: 'coolant', name: '냉각수 배관실', segments: ['leakhall', 'pipefixer', 'coolway', 'chiik'] },
+  repairbay: { key: 'repairbay', name: '버려진 정비동', segments: ['partshelf', 'cutter', 'workbench', 'deolkeok'] },
+  gravefirefly: { key: 'gravefirefly', name: '반딧불 묘지길', segments: ['darkpath', 'huuk'] },
+  wailhill: { key: 'wailhill', name: '묘지 곡소리 언덕', segments: ['wailpath', 'heuneuk'] },
+  washyard: { key: 'washyard', name: '오염된 빨래터', segments: ['soakalley', 'eolluk'] },
+  ashalley: { key: 'ashalley', name: '잿바람 골목', segments: ['ashpile', 'puseokash'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

@@ -41,7 +41,7 @@ export function placeGiveUp(): void {
 }
 
 /** 지금 판의 공략 (단계 레벨까지 반영한 숫자) */
-export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cfg.diff, F.cfg.stageLv, F.cfg.heroLv);
+export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cfg.diff, F.cfg.stageLv, F.cfg.heroLv, F.cfg.variant ?? 0);
 
 /** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {

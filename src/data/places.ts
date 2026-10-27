@@ -26,7 +26,9 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
   | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
-  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill';
+  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
+  // 113 초반 보충 장소
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
 
 export interface Faction {
   name: string;
@@ -263,6 +265,14 @@ export const PLACES: Record<PlaceKey, Place> = {
   outpost: { key: 'outpost', name: '그림자 초소', faction: 'deep', tone: ['#1E2236', '#0A0C15'], borrow: 'cathedral' },
   starcave: { key: 'starcave', name: '별빛 수정 동굴', faction: 'deep', tone: ['#2A2040', '#0E0B17'], borrow: 'cathedral' },
   sunrisehill: { key: 'sunrisehill', name: '아침 햇살 언덕', faction: 'hill', tone: ['#3C3624', '#17140C'], borrow: 'hillpath' },
+  // 113 초반 보충 장소: 풍경은 새 그림 (scene-<장소>), 바닥은 원본 장소 것을 빌림 (113 9장 「전투 바닥 필수 신규 0장」)
+  brasspress: { key: 'brasspress', name: '황동 압착장', faction: 'golem', tone: ['#36302A', '#151210'], borrow: 'rustfort' },
+  coolant: { key: 'coolant', name: '냉각수 배관실', faction: 'golem', tone: ['#2E3230', '#121413'], borrow: 'mine' },
+  repairbay: { key: 'repairbay', name: '버려진 정비동', faction: 'golem', tone: ['#34302C', '#141210'], borrow: 'mine' },
+  gravefirefly: { key: 'gravefirefly', name: '반딧불 묘지길', faction: 'plague', tone: ['#32332A', '#13130E'], borrow: 'cemetery' },
+  wailhill: { key: 'wailhill', name: '묘지 곡소리 언덕', faction: 'plague', tone: ['#34322A', '#13120E'], borrow: 'cemetery' },
+  washyard: { key: 'washyard', name: '오염된 빨래터', faction: 'plague', tone: ['#33322A', '#14130E'], borrow: 'alley' },
+  ashalley: { key: 'ashalley', name: '잿바람 골목', faction: 'plague', tone: ['#33302C', '#141210'], borrow: 'alley' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -293,6 +303,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   granary: 'granary', scarefield: 'scarefield', smuggler: 'smuggler', reef: 'reef', frostgarden: 'frostgarden', dorm: 'dorm', cultcamp: 'cultcamp', apothecary: 'apothecary', rooftop: 'rooftop', bakery: 'bakery', dewhill: 'dewhill', mushmarsh: 'mushmarsh', lilypalace: 'lilypalace',
   quarry: 'quarry', smithy: 'smithy', ferry: 'ferry', turtlecave: 'turtlecave', mistplaza: 'mistplaza', coralgarden: 'coralgarden', oasis: 'oasis', sandlibrary: 'sandlibrary', sundialroad: 'sundialroad',
   cloudbridge: 'cloudbridge', flightyard: 'flightyard', stormmeadow: 'stormmeadow', cloudlibrary: 'cloudlibrary', broomrace: 'broomrace', sunkrose: 'sunkrose', lotusway: 'lotusway', waterglow: 'waterglow', barracks: 'barracks', outpost: 'outpost', starcave: 'starcave', sunrisehill: 'sunrisehill',
+  brasspress: 'brasspress', coolant: 'coolant', repairbay: 'repairbay', gravefirefly: 'gravefirefly', wailhill: 'wailhill', washyard: 'washyard', ashalley: 'ashalley',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -344,6 +355,10 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   sacks: 'granary', jipdan: 'granary', millwheel: 'granary', nadal: 'granary', crowfield: 'scarefield', nadal34: 'scarefield', wetcave: 'smuggler', peg: 'smuggler', powder: 'smuggler', pado: 'smuggler', reefpool: 'reef', peg38: 'reef', iceflowers: 'frostgarden', jiji42: 'frostgarden', messhall: 'dorm', jiji: 'dorm', lounge: 'dorm', eomgyeok: 'dorm', campfire: 'cultcamp', geopum46: 'cultcamp', shelves: 'apothecary', geopum: 'apothecary', cauldron: 'apothecary', malos: 'apothecary', tiles: 'rooftop', malos50: 'rooftop', flourstore: 'bakery', polpol: 'bakery', oven: 'bakery', monggeul: 'bakery', dewpath: 'dewhill', polpol54: 'dewhill', mushpath: 'mushmarsh', poljjak58: 'mushmarsh', lilybridge: 'lilypalace', poljjak: 'lilypalace', tadpond: 'lilypalace', umulluk: 'lilypalace',
   scalepile: 'quarry', ttemjil62: 'quarry', charcoal: 'smithy', ttemjil: 'smithy', bellowway: 'smithy', hwalhwal: 'smithy', hotdock: 'ferry', jigeul66: 'ferry', steamcave: 'turtlecave', jigeul: 'turtlecave', gemvein: 'turtlecave', garnet: 'turtlecave', miststeps: 'mistplaza', malmijal70: 'mistplaza', kelphall: 'coralgarden', malmijal: 'coralgarden', pearlpond: 'coralgarden', chalrang: 'coralgarden', palmshade: 'oasis', baseurak74: 'oasis', sandshelf: 'sandlibrary', baseurak: 'sandlibrary', sealedstack: 'sandlibrary', gitpen: 'sandlibrary', obelisks: 'sundialroad', gitpen78: 'sundialroad',
   swaybridge: 'cloudbridge', hwiparam82: 'cloudbridge', glideyard: 'flightyard', hwiparam: 'flightyard', windtunnel: 'flightyard', hoeori: 'flightyard', zapgrass: 'stormmeadow', hoeori86: 'stormmeadow', floatshelf: 'cloudlibrary', peoleok: 'cloudlibrary', forbidstair: 'cloudlibrary', swit: 'cloudlibrary', startline: 'broomrace', swit90: 'broomrace', drownhall: 'sunkrose', gawison: 'sunkrose', thornmaze: 'sunkrose', rosalin: 'sunkrose', lotusstep: 'lotusway', gawison94: 'lotusway', glowpond: 'waterglow', lastecho97: 'waterglow', drillyard: 'barracks', kalnal: 'barracks', weaponrack: 'barracks', heukbaek: 'barracks', palisade: 'outpost', kalnal98: 'outpost', crystalstair: 'starcave', banjjak: 'starcave', echohall: 'starcave', lastecho: 'starcave', sunpath: 'sunrisehill', banjjak99: 'sunrisehill',
+  // 113 초반 보충 장소 1차
+  pressgate: 'brasspress', pressguard: 'brasspress', pressway: 'brasspress', kkuksoe: 'brasspress', leakhall: 'coolant', pipefixer: 'coolant', coolway: 'coolant', chiik: 'coolant',
+  partshelf: 'repairbay', cutter: 'repairbay', workbench: 'repairbay', deolkeok: 'repairbay', darkpath: 'gravefirefly', huuk: 'gravefirefly', wailpath: 'wailhill', heuneuk: 'wailhill',
+  soakalley: 'washyard', eolluk: 'washyard', ashpile: 'ashalley', puseokash: 'ashalley',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

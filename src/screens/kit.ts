@@ -172,13 +172,13 @@ export interface BattleApi {
     /** 착용 장비 특수능력 값 (42, data/equipment specsOf) */
     specs?: Record<string, number>;
     /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
-    affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number; guildFirst?: boolean;
+    affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number; guildFirst?: boolean; variant?: number;
   }): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
   onSetting: ((key: string, val: unknown) => void) | null;
   /** 전투 전 공략. 단계 레벨을 주면 그 레벨 숫자로 */
-  guide(encKey: string, diff: string, stageLv?: number, heroLv?: number): string;
+  guide(encKey: string, diff: string, stageLv?: number, heroLv?: number, variant?: number): string;
   bossSvg(script: string, key?: string): string;
   layout: {
     GRID: (string | null)[]; ARROW: Record<string, string>; READ_ORDER: string[]; DEFAULT_LAYOUT: Record<string, string | null>;

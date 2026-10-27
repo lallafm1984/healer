@@ -29,7 +29,9 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
   | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
   | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
-  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill';
+  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
+  // 113 초반 보충 장소 (원본 반복판 대신)
+  | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -55,6 +57,14 @@ export interface ContentDef {
   diffUnlock?: Partial<Record<DiffName, number>>;
   /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
   hidden?: boolean;
+  /**
+   * 보충 장소 (113, 2026-10-27 Lim): 초반 (장소 Lv 20까지) 같은 장소를 다시 도는 판을 새 장소 첫 방문으로 바꿈. 원본 장소 (같은 레벨 · 같은 종류).
+   * 경험치는 원본 반복판과 같고 (rampXp 원본 · 처음 아님), 장소 몫 · 기준 레벨 · 길 (rampSpan · rampRefLevel)에는 안 들어감.
+   * 원본에서 연 난이도로 바로 들어가고, 길잡이는 원본을 다시 돌 차례에 안 가 본 보충 장소를 먼저 추천 (game/guide)
+   */
+  anchor?: ContentKey;
+  /** 출전 화면 한 줄 안내 (113 카드 「한 줄 안내」) */
+  tip?: string;
 }
 
 const three = () => 3;
@@ -495,6 +505,36 @@ export const CONTENT: ContentDef[] = [
     key: 'sunrisehill', kind: 'explore', name: '아침 햇살 언덕', place: '해바라기 언덕 · 혼합', stageLv: 43, unlockLv: 43, ready: true, bosses: ['수정 거인 반짝돌'],
     fights: () => DUNGEONS.sunrisehill.segments, size: three,
   },
+  // ---------- 113 초반 보충 장소 (2026-10-27 Lim): Lv 5~20 원본 장소를 다시 도는 판 대신 같은 지역 · 같은 레벨 · 같은 종류의 새 장소 ----------
+  // 원본 (anchor) 반복판과 같은 경험치 · 원본에서 연 난이도로 바로 입장 · 길잡이는 원본을 다시 돌 차례에 추천 (113 4장). 1차 Lv 5~8
+  {
+    key: 'brasspress', kind: 'dungeon', name: '황동 압착장', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true, anchor: 'rustfort',
+    bosses: ['압착 골렘 꾹쇠'], tip: '두 번째 압착 전 탱커를 회복합니다.', fights: () => DUNGEONS.brasspress.segments, size: five,
+  },
+  {
+    key: 'coolant', kind: 'dungeon', name: '냉각수 배관실', place: '녹슨 고원 아래 · 골렘', stageLv: 6, unlockLv: 6, ready: true, anchor: 'mine',
+    bosses: ['밸브지기 치익'], tip: '진동 뒤 광역 치유를 시전합니다.', fights: () => DUNGEONS.coolant.segments, size: five,
+  },
+  {
+    key: 'repairbay', kind: 'dungeon', name: '버려진 정비동', place: '녹슨 고원 · 골렘', stageLv: 6, unlockLv: 6, ready: true, anchor: 'mine',
+    bosses: ['고장 난 절삭기', '고철 감독관 덜컥'], tip: '수리 정령을 채우면 적의 공격이 약해집니다.', fights: () => DUNGEONS.repairbay.segments, size: five,
+  },
+  {
+    key: 'gravefirefly', kind: 'explore', name: '반딧불 묘지길', place: '왕도 변두리 · 역병 교단', stageLv: 7, unlockLv: 7, ready: true, anchor: 'cemetery',
+    bosses: ['등불 도둑 후욱'], tip: '반딧불을 살리면 적의 약점이 드러납니다.', fights: () => DUNGEONS.gravefirefly.segments, size: three,
+  },
+  {
+    key: 'wailhill', kind: 'explore', name: '묘지 곡소리 언덕', place: '왕도 변두리 · 역병 교단', stageLv: 7, unlockLv: 7, ready: true, anchor: 'cemetery',
+    bosses: ['곡쟁이 흐느낌'], tip: '곡소리 사이에 파티를 회복합니다.', fights: () => DUNGEONS.wailhill.segments, size: three,
+  },
+  {
+    key: 'washyard', kind: 'explore', name: '오염된 빨래터', place: '왕도 변두리 · 역병 교단', stageLv: 8, unlockLv: 8, ready: true, anchor: 'alley',
+    bosses: ['빨래지기 얼룩'], tip: '남은 시간과 체력을 보고 먼저 정화합니다.', fights: () => DUNGEONS.washyard.segments, size: three,
+  },
+  {
+    key: 'ashalley', kind: 'explore', name: '잿바람 골목', place: '왕도 변두리 · 역병 교단', stageLv: 8, unlockLv: 8, ready: true, anchor: 'alley',
+    bosses: ['굴뚝 청소꾼 푸석'], tip: '재바람이 닿을 줄을 먼저 회복합니다.', fights: () => DUNGEONS.ashalley.segments, size: three,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 45, unlockLv: 45, ready: true,
@@ -683,12 +723,24 @@ export function chainNeed(c: ContentDef, d: DiffName): DiffName | null {
  * level을 주면 그 난이도 적 레벨이 내 레벨 이하일 때도 열림 (86, 2026-10-16 Lim 「컨텐츠를 찾아가면서 깨야 하는 불친절함」):
  * 레벨이 지나간 장소의 어려움 · 악몽을 쉬움부터 다시 깨지 않아도 됨. 내 레벨보다 높은 난이도만 사슬이 막음
  */
-export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined, level?: number): boolean {
+export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined, level?: number, anchorClears?: Partial<Record<DiffName, unknown>>): boolean {
   const need = chainNeed(c, d);
   if (!need) return true;
   if (level != null && stageOf(c, d) <= level) return true;
-  return ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x]);
+  if (ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x])) return true;
+  // 보충 장소 (113 4-1): 원본에서 연 난이도로 바로 들어감 (원본 보통을 깼으면 보충 장소 어려움도 열림, 쉬움 · 보통을 다시 깨지 않음)
+  return !!c.anchor && !!anchorClears && chainOpen(contentOf(c.anchor), d, anchorClears, level);
 }
+
+/** 보충 장소 (113): 원본 장소가 있음 */
+export const isSupplement = (c: ContentDef) => !!c.anchor;
+/** 보충 장소의 원본 (아니면 그 장소) */
+export const anchorOf = (c: ContentDef): ContentDef => (c.anchor ? contentOf(c.anchor) : c);
+
+/** 전투 변주 A · B · C (113 7-4): 그 장소를 깬 횟수 합 % 3 (처음 = A). 출전 때 정하고 그 판 끝까지 (모든 구간) 그대로. 직업 · 난이도와 상관없음 */
+export const VARIANT_NAMES = ['A', 'B', 'C'] as const;
+export const variantOf = (clears: Partial<Record<DiffName, { n?: number } | undefined>> | undefined): number =>
+  Object.values(clears ?? {}).reduce((a, x) => a + (x?.n ?? 0), 0) % VARIANT_NAMES.length;
 
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';

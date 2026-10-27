@@ -4,7 +4,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
-import { CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from './content';
+import { anchorOf, CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from './content';
 import { REST_RUN_SCALE } from './economy';
 
 export const MAX_LEVEL = 100;
@@ -90,8 +90,13 @@ export const RAMP_FOUR_LV = 10;
 export const RAMP_FIRST_FOUR: Record<DiffName, number> = { '쉬움': 0.3, '보통': 0.36, '어려움': 0.44, '악몽': 0.34 };
 export const RAMP_REPEAT = 0.4;
 
-/** 순차 레벨링 구간 장소: 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고) */
+/** 순차 레벨링 구간 장소: 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고). 보충 장소 (113)도 들어감 (경험치 · 권장 레벨 · 밸런스는 원본 따라) */
 export const rampPlace = (c: ContentDef) => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV;
+/**
+ * 길 장소 (113 4-2): 장소 몫을 나누고 길 (첫 클리어) · 기준 레벨을 이루는 순차 구간 장소 = 보충 장소 빼고.
+ * 보충 장소를 넣으면 같은 레벨 원본과 몫을 나눠 판 수가 늘어남 (113 2장 「장소를 그냥 추가하면 해결되지 않는 이유」)
+ */
+export const rampMain = (c: ContentDef) => rampPlace(c) && !c.anchor;
 /** 세 난이도를 차례로 처음 깨는 구간 장소 (장소 Lv RAMP_FOUR_LV ~ RAMP_LV, 이름은 예전 네 난이도 그대로) */
 export const rampFour = (c: ContentDef) => rampPlace(c) && c.stageLv >= RAMP_FOUR_LV;
 /** 그 장소 · 난이도 첫 클리어가 장소 몫에서 차지하는 비율 */
@@ -104,9 +109,10 @@ export const inRamp = (c: ContentDef, level: number) => level <= RAMP_LV && ramp
 const spans = new Map<ContentKey, number>();
 /** 장소 몫: 장소 레벨 → 다음 탐험 · 던전이 열리는 레벨까지 필요한 경험치 (같은 레벨에 장소가 여럿이면 나눔). 녹슨 고원 1 → 3, 고철 더미 언덕 3 → 5 */
 export function rampSpan(c: ContentDef): number {
+  if (c.anchor) return rampSpan(anchorOf(c)); // 보충 장소는 원본 몫 (113)
   let s = spans.get(c.key);
   if (s == null) {
-    const lv = CONTENT.filter(x => isLeveling(x) && !x.hidden && x.ready).map(x => x.stageLv);
+    const lv = CONTENT.filter(x => isLeveling(x) && !x.hidden && x.ready && !x.anchor).map(x => x.stageLv);
     const next = Math.min(MAX_LEVEL, ...lv.filter(l => l > c.stageLv));
     let need = 0;
     for (let l = c.stageLv; l < next; l++) need += xpToNext(l);
@@ -116,8 +122,12 @@ export function rampSpan(c: ContentDef): number {
   return s;
 }
 
-/** 순차 레벨링 구간 장소 한 판 경험치 (first = 이 캐릭터가 이 난이도를 처음 깸) */
+/**
+ * 순차 레벨링 구간 장소 한 판 경험치 (first = 이 캐릭터가 이 난이도를 처음 깸).
+ * 보충 장소 (113 4-2)는 첫 방문도 원본 반복판과 같음: 원본 몫 × 난이도 몫 × RAMP_REPEAT × 등급 (첫 클리어 110% 몫을 더 주지 않음)
+ */
 export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade: Grade | null; win: boolean }): number {
+  if (c.anchor) return rampXp(anchorOf(c), diff, { ...o, first: false });
   if (!o.win) return 0;
   const x = rampSpan(c) * rampShare(c, diff) * (o.first ? 1 : RAMP_REPEAT);
   return Math.max(1, Math.round(o.first || !o.grade ? x : x * REWARD_GRADE[o.grade]));
@@ -141,11 +151,12 @@ export const recLevel = (c: ContentDef, d: DiffName): number => Math.min(stageOf
 const rampRefs = new Map<ContentKey, Record<DiffName, number>>();
 export function rampRefLevel(c: ContentDef, d: DiffName): number | null {
   if (!rampPlace(c)) return null;
+  if (c.anchor) return rampRefLevel(anchorOf(c), d); // 보충 장소 = 원본 칸의 권장 레벨 (113 4-2)
   if (!rampRefs.size) {
     const p = { level: 1, xp: 0 };
     const first = (x: ContentDef, d: DiffName, q: { level: number; xp: number }) => addXp(q, rampXp(x, d, { first: true, grade: 'A', win: true }));
     addXp(p, xpToNext(1));
-    for (const x of CONTENT.filter(y => rampPlace(y) && y.ready).sort((a, b) => a.stageLv - b.stageLv)) {
+    for (const x of CONTENT.filter(y => rampMain(y) && y.ready).sort((a, b) => a.stageLv - b.stageLv)) {
       const ref = {} as Record<DiffName, number>;
       for (const d of rampDiffs(x)) { ref[d] = p.level; first(x, d, p); }
       if (rampFour(x)) ref['악몽'] = p.level;

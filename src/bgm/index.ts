@@ -18,11 +18,14 @@ for (const [path, url] of Object.entries(files).sort(([a], [b]) => a.localeCompa
   if (m) (lists[m[1]] ??= []).push(url);
 }
 
-export type BgmKey = 'title' | 'lobby' | 'victory' | 'defeat' | AdventureRegionKey;
+export type BgmKey = 'title' | 'lobby' | 'victory' | 'defeat' | AdventureRegionKey | `place-${string}`;
 
 let battleRegion: AdventureRegionKey = 'rust';
-/** 전투 시작 때 (battle start): 이번 전투 장소의 지역 */
-export function setBattleRegion(k: AdventureRegionKey): void { battleRegion = k; }
+let battlePlace: string | null = null;
+/**
+ * 전투 시작 때 (battle start): 이번 전투 장소의 지역 · 장소 key. 장소 전용 곡 (place-<장소>-<n>.ogg, 113 초반 추가 스테이지부터)이 있으면 그 곡, 없으면 지역 곡
+ */
+export function setBattleRegion(k: AdventureRegionKey, place?: string): void { battleRegion = k; battlePlace = place ?? null; }
 let resultWin = true;
 /** 결과 화면에 들어갈 때 (result enter): 이긴 판인가 (2026-10-21 Lim 「전투 종료후 결과 화면의 사운드」) */
 export function setResultWin(v: boolean): void { resultWin = v; }
@@ -37,7 +40,7 @@ const ONE_SHOT = new Set<BgmKey>(['victory', 'defeat']);
  */
 export function bgmFor(screen: string): BgmKey | null {
   if (screen === 'rest') return null;
-  if (screen === 'battle') return battleRegion;
+  if (screen === 'battle') return battlePlace && lists[`place-${battlePlace}`] ? `place-${battlePlace}` : battleRegion;
   if (screen === 's-settle') return resultWin ? 'victory' : 'defeat';
   if (screen === 's-title' || screen === 's-story' || screen === 's-tut') return 'title';
   return 'lobby';

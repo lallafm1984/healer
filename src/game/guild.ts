@@ -5,6 +5,7 @@
 import { resourceBalance, spendResource } from './resources';
 import { ABILITIES } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
+import { CONTENT } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
@@ -340,7 +341,8 @@ export function guildAfter(
   const cap = topLevel(save), went = new Set<number>(), requests = new Set(o.requestNicks);
   const firstKey = `${o.content}|${o.diff}`;
   const guildParty = isGuildParty(o.roster), low = guildParty && o.stage < (o.myLv ?? cap) - FAME_LOW_GAP; // 낮은 장소: 명성 · 첫 처치 없음 (103), 판 전 레벨로
-  const first = guildParty && !low && !o.chal && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey); // 주간 도전은 첫 처치 아님 (105 QA)
+  // 주간 도전은 첫 처치 아님 (105 QA), 보충 장소 (113 4-3)도 아님: 새 장소 수만큼 길드 성장이 빨라지지 않게
+  const first = guildParty && !low && !o.chal && (o.kind === 'dungeon' || o.kind === 'raid') && !CONTENT.find(c => c.key === o.content)?.anchor && !g.firsts.includes(firstKey);
   for (const e of o.roster) {
     const m = e.gid != null ? g.members.find(x => x.id === e.gid) : null;
     if (!m) continue;
