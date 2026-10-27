@@ -235,7 +235,7 @@ describe('다른 스킬 · 패시브', () => {
 });
 
 describe('특성 (79 3-7)', () => {
-  it('묵직한 손바닥 탱커 +20% · 급한 손바닥 30% 아래 +40%', () => {
+  it('묵직한 손바닥 탱커 +12% · 급한 손바닥 30% 아래 +20% (2026-10-27 하향)', () => {
     const f = fight(['heavyPalm']), t = f.party.find(u => u.role === 'tank')!;
     big(t);
     expect(healOn(cast(f, 'vitalPalm', t.cell), t)).toBe(Math.round(P * (1 + STEP) * (1 + TX.heavyPalm)));
@@ -251,7 +251,7 @@ describe('특성 (79 3-7)', () => {
     f.beat = 5;
     expect(costOf(f, 'vitalPalm')).toBeCloseTo(SKILLS.vitalPalm.cost * 0.5, 6);
   });
-  it('튀는 손바닥: 30%가 붙은 가장 다친 1명에게 · 퍼지는 박자: 리듬 5 이상이면 2명에게 40%', () => {
+  it('튀는 손바닥: 15%가 붙은 가장 다친 1명에게 · 퍼지는 박자: 리듬 5 이상이면 2명에게 40%', () => {
     const f = fight(['palmSplash']); full(f);
     const u = withAdj(f, 1), v = adj(f, u)[0];
     big(u); v.hp = v.max * 0.5;
