@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 const N = Number(opt('--n') || 12);
 const [pi, pk] = (opt('--part') ?? '1/1').split('/').map(Number);
-const all = CONTENT.filter(c => c.kind === 'dungeon' && c.ready).map(c => c.key as ContentKey);
+const all = CONTENT.filter(c => c.kind === 'dungeon' && c.ready && !c.anchor).map(c => c.key as ContentKey); // 보충 장소 (113 4-3)는 주간 도전 후보 아님
 const keys = ((opt('--keys')?.split(',') as ContentKey[] | undefined) ?? all).filter((_, i) => i % pk === pi - 1);
 const hp15 = 1 + CHAL.hpStep * (CHAL.pivot - 1);
 const lvIn = (k: ContentKey) => Math.max(CHAL.lv, contentOf(k).stageLv);
