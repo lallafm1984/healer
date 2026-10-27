@@ -63,7 +63,7 @@ export interface ContentDef {
   /**
    * 보충 장소 (113, 2026-10-27 Lim): 초반 (장소 Lv 20까지) 같은 장소를 다시 도는 판을 새 장소 첫 방문으로 바꿈. 원본 장소 (같은 레벨 · 같은 종류).
    * 경험치는 원본 반복판과 같고 (rampXp 원본 · 처음 아님), 장소 몫 · 기준 레벨 · 길 (rampSpan · rampRefLevel)에는 안 들어감.
-   * 원본에서 연 난이도로 바로 들어가고, 길잡이는 원본을 다시 돌 차례에 안 가 본 보충 장소를 먼저 추천 (game/guide)
+   * 난이도는 그 장소에서 쉬움부터 차례로 열리고 (2026-10-27 Lim, chainOpen), 길잡이는 원본을 다시 돌 차례에 안 가 본 보충 장소를 먼저 추천 (game/guide)
    */
   anchor?: ContentKey;
   /** 출전 화면 한 줄 안내 (113 카드 「한 줄 안내」) */
@@ -509,7 +509,7 @@ export const CONTENT: ContentDef[] = [
     fights: () => DUNGEONS.sunrisehill.segments, size: three,
   },
   // ---------- 113 초반 보충 장소 (2026-10-27 Lim): Lv 5~20 원본 장소를 다시 도는 판 대신 같은 지역 · 같은 레벨 · 같은 종류의 새 장소 ----------
-  // 원본 (anchor) 반복판과 같은 경험치 · 원본에서 연 난이도로 바로 입장 · 길잡이는 원본을 다시 돌 차례에 추천 (113 4장). 1차 Lv 5~8
+  // 원본 (anchor) 반복판과 같은 경험치 · 난이도는 그 장소에서 쉬움부터 (2026-10-27) · 길잡이는 원본을 다시 돌 차례에 추천 (113 4장). 1차 Lv 5~8
   {
     key: 'brasspress', kind: 'dungeon', name: '황동 압착장', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true, anchor: 'rustfort',
     bosses: ['압착 골렘 꾹쇠'], tip: '두 번째 압착 전 탱커를 회복합니다.', fights: () => DUNGEONS.brasspress.segments, size: five,
@@ -825,17 +825,13 @@ export function chainNeed(c: ContentDef, d: DiffName): DiffName | null {
 }
 
 /**
- * 그 난이도가 사슬로 열렸는지: 앞 난이도나 그 위를 한 번이라도 깼으면 (옛 저장에서 보통부터 깬 장소도 이어짐).
- * level을 주면 그 난이도 적 레벨이 내 레벨 이하일 때도 열림 (86, 2026-10-16 Lim 「컨텐츠를 찾아가면서 깨야 하는 불친절함」):
- * 레벨이 지나간 장소의 어려움 · 악몽을 쉬움부터 다시 깨지 않아도 됨. 내 레벨보다 높은 난이도만 사슬이 막음
+ * 그 난이도가 사슬로 열렸는지: 그 장소에서 앞 난이도나 그 위를 한 번이라도 깼으면 (옛 저장에서 보통부터 깬 장소도 이어짐).
+ * 장소마다 쉬움 → 보통 → 어려움 → 악몽 차례로만 열림 (2026-10-27 Lim 「스테이지별로 클리어 안해도 쉬움, 보통이 열려있다. 각 스테이지별로 순차적으로」):
+ * 예전 「그 난이도 적 레벨이 내 레벨 이하면 사슬 없이」 (86) · 보충 장소 「원본에서 연 난이도로 바로」 (113 4-1)는 없앰. 다시 넣지 않는다
  */
-export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined, level?: number, anchorClears?: Partial<Record<DiffName, unknown>>): boolean {
+export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined): boolean {
   const need = chainNeed(c, d);
-  if (!need) return true;
-  if (level != null && stageOf(c, d) <= level) return true;
-  if (ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x])) return true;
-  // 보충 장소 (113 4-1): 원본에서 연 난이도로 바로 들어감 (원본 보통을 깼으면 보충 장소 어려움도 열림, 쉬움 · 보통을 다시 깨지 않음)
-  return !!c.anchor && !!anchorClears && chainOpen(contentOf(c.anchor), d, anchorClears, level);
+  return !need || ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x]);
 }
 
 /** 보충 장소 (113): 원본 장소가 있음 */

@@ -17,20 +17,25 @@ const rec = (...ds: DiffName[]) => Object.fromEntries(ds.map(d => [d, { stars: 1
 /** 등급 이상 확률 (누적, 높은 등급부터) */
 const atLeast = (row: number[]) => row.map((_, i) => row.slice(i).reduce((a, p) => a + p, 0));
 
-describe('난이도 열림 (86): 앞 난이도를 깼거나, 적 레벨이 내 레벨 이하', () => {
-  it('레벨이 지난 장소는 쉬움을 안 깨도 악몽까지 열림, 내 레벨보다 높은 난이도만 사슬', () => {
+describe('난이도 열림: 장소마다 앞 난이도를 깨야 (2026-10-27 Lim 「각 스테이지별로 순차적으로」, 예전 86 「적 레벨이 내 레벨 이하면 사슬 없이」는 없앰)', () => {
+  it('쉬움 → 보통 → 어려움 → 악몽 차례, 위 난이도를 깬 옛 기록은 그 아래가 다 열림, 레이드는 사슬 없음', () => {
     const fort = contentOf('rustfort'); // 적 Lv 5 · 7 · 9 · 11
-    expect(chainOpen(fort, '악몽', undefined, 11)).toBe(true);
-    expect(chainOpen(fort, '악몽', undefined, 10)).toBe(false);
-    expect(chainOpen(fort, '악몽', rec('어려움'), 10)).toBe(true);
-    expect(chainOpen(fort, '보통', undefined)).toBe(false); // 레벨을 안 주면 예전 사슬 그대로
-    expect(chainOpen(contentOf('abyss1'), '악몽', undefined, 1)).toBe(true); // 레이드는 사슬 없음
+    expect(chainOpen(fort, '쉬움', undefined)).toBe(true);
+    expect(chainOpen(fort, '보통', undefined)).toBe(false);
+    expect(chainOpen(fort, '보통', rec('쉬움'))).toBe(true);
+    expect(chainOpen(fort, '어려움', rec('쉬움'))).toBe(false);
+    expect(chainOpen(fort, '악몽', rec('어려움'))).toBe(true);
+    expect(chainOpen(fort, '보통', rec('악몽'))).toBe(true); // 옛 저장에서 위를 깼으면 그대로 열림
+    expect(chainOpen(contentOf('abyss1'), '악몽', undefined)).toBe(true); // 레이드는 사슬 없음
   });
-  it('게임 잠금 (lockOf)이 내 레벨을 씀', () => {
-    G.save = newSave(1); G.save.settings.devUnlock = false; G.save.player.level = 11;
-    expect(lockOf(contentOf('rustfort'), '악몽').locked).toBe(false);
-    G.save.player.level = 10;
+  it('게임 잠금 (lockOf): 내 레벨이 높아도 앞 난이도를 깨야 열림', () => {
+    G.save = newSave(1); G.save.settings.devUnlock = false; G.save.player.level = 100;
+    expect(lockOf(contentOf('rustfort'), '쉬움').locked).toBe(false);
+    expect(lockOf(contentOf('rustfort'), '보통')).toMatchObject({ locked: true, need: '쉬움' });
     expect(lockOf(contentOf('rustfort'), '악몽')).toMatchObject({ locked: true, need: '어려움' });
+    G.save.clears.rustfort = rec('어려움') as never;
+    expect(lockOf(contentOf('rustfort'), '악몽').locked).toBe(false);
+    expect(lockOf(contentOf('brasspress'), '보통')).toMatchObject({ locked: true, need: '쉬움' }); // 보충 장소도 원본 기록과 상관없이 쉬움부터
   });
 });
 
@@ -214,7 +219,7 @@ describe('모험 길잡이 (guide)', () => {
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 80판. 길 밖 어려움을 추천하던 때 73판 · 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 88판. 보충 장소를 원본 난이도로 바로 들어가던 때 80판 · 길 밖 어려움을 추천하던 때 73판 · 악몽을 길에서 빼기 전 87판 · 예전 56판)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
     G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
@@ -235,9 +240,11 @@ describe('모험 길잡이 (guide)', () => {
     // (2026-10-20 악몽은 추천 안 함, 2026-10-22 지나온 장소 어려움도 추천 안 함: 다시 하기 19 → 33판)
     // 2026-10-27 (113): 다시 하기 자리에 안 가 본 보충 장소 (같은 경험치)가 들어감. 판 수는 그대로, 32곳 가운데 31곳이 길에 (Lv 7 둘째는 휴식 · 등급이 모자랄 때),
     // Lv 5~20 다시 하기는 0판 (남은 2판은 Lv 4 고철 더미 언덕, 113 4-4 대입표와 같음)
+    // 2026-10-27 Lim 「각 스테이지별로 순차적으로」: 보충 장소도 쉬움부터라 첫 방문은 쉬움 (경험치 = 원본 쉬움 다시 하기, 어려움 다시 하기의 약 70%).
+    // 그만큼 모자라 원본 어려움 다시 하기 8판이 더 끼어 80 → 88판
     expect(G.save.player.level).toBe(21);
-    expect(runs).toBe(80);
-    expect(repeats).toBe(2);
+    expect(runs).toBe(88);
+    expect(repeats).toBe(10);
     expect(supp).toBe(31);
   });
 });

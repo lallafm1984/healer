@@ -86,7 +86,7 @@ export interface GuideCtx {
   /** 착용 장비 평균 점수 */
   gear: number;
   clears: Partial<Record<string, Partial<Record<DiffName, unknown>>>>;
-  /** 들어갈 수 있는 칸 (레벨 · 사슬 잠금) */
+  /** 들어갈 수 있는 칸 (레벨 · 사슬 잠금, 사슬은 그 장소에서 쉬움부터 차례로) */
   open: (c: ContentDef, d: DiffName) => boolean;
   /** 마지막으로 한 판 (적정 어려움 반복을 번갈아: 같은 칸만 수십 판 돌지 않게) */
   last?: Stage | null;
@@ -131,14 +131,18 @@ export function rankStages(ctx: GuideCtx): Stage[] {
   return uniq([...rest(main, ctx.level, ctx.last), ...fallback(main)]);
 }
 /**
- * 원본을 다시 돌 칸 앞에 그 원본의 보충 장소 (113 4-1): 같은 난이도로 들어갈 수 있는 (위험 아닌) 보충 장소 가운데
+ * 원본을 다시 돌 칸 앞에 그 원본의 보충 장소 (113 4-1): 보충 장소마다 그 난이도 이하에서 열린 가장 높은 (위험 아닌) 칸
+ * (난이도는 그 장소에서 쉬움부터 차례로 열려서 (2026-10-27 Lim, chainOpen) 처음 가면 쉬움, 앞 난이도를 깨 가며 원본 난이도까지).
  * 안 가 본 곳 (어느 난이도도 안 깸)이 있으면 그곳들을 먼저 (데이터 순서), 다 가 봤으면 원본 · 보충 장소를 최근에 안 간 순서로 (방금 간 곳이 맨 뒤)
  */
 function withSupps(again: Cand[], all: Cand[], ctx: GuideCtx): Cand[] {
   const recent = ctx.recent ?? [];
   const seen = (x: Cand) => Object.keys(ctx.clears[x.c.key] ?? {}).length > 0;
   return again.flatMap(x => {
-    const sup = all.filter(y => y.c.anchor === x.c.key && y.d === x.d && y.fit !== '위험');
+    const sup = [...new Set(all.filter(y => y.c.anchor === x.c.key).map(y => y.c))].flatMap(s => {
+      const ys = all.filter(y => y.c === s && di(y.d) <= di(x.d) && y.fit !== '위험');
+      return ys.length ? [ys.reduce((a, b) => (di(b.d) > di(a.d) ? b : a))] : [];
+    });
     if (!sup.length) return [x];
     const fresh = sup.filter(y => !seen(y));
     if (fresh.length) return [...fresh, x];

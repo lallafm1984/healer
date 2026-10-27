@@ -17,7 +17,7 @@ export default async function adventureDeparture(url, shots) {
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('healer.save'));
       s.tut = 99; s.player.level = 14; s.settings.devUnlock = false;
-      s.clears.plateau = { '쉬움':{stars:3,grade:'S',best:30,n:1} };
+      s.clears.plateau = { '쉬움':{stars:3,grade:'S',best:30,n:1}, '보통':{stars:3,grade:'S',best:30,n:1} }; // 어려움은 그 장소 보통을 깨야 열림 (2026-10-27 사슬)
       localStorage.setItem('healer.save',JSON.stringify(s));
     });
     await page.reload(); await page.clock.runFor(300); await pastTitle(page);
