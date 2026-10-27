@@ -221,24 +221,63 @@ def soft_cast(name):
     # Keep air quiet and the 1–6 kHz region recessed to reduce listening fatigue.
     y = mix((bass, 0), (under, -12), (body, -5),
             (colour, -17 if name == "priest" else -22), (air, -20))
-    if name == "priest":
-        # Fine, irregular sizzling rather than exposed crackles. Circular Hann
-        # grains have soft attacks, and every tail wraps across the loop join.
-        sizzle = L.grains(L.noise(5700, 14500, soft=.14, tilt=-2.5),
-                          480, (.008, .032))
-        sizzle = L.reverb(sizzle, .24, .22, lo=5200, hi=13000)
-        sizzle *= L.swell(1.4, 3, .8) * L.swell(.7, 7, .2)
-        # A very quiet lower texture keeps it audible on small speakers without
-        # filling the fatiguing 2.5–6 kHz region or distorting the bass bed.
-        grain = L.grains(L.noise(1100, 2200, soft=.12, tilt=-2),
-                         160, (.025, .075))
-        y = y + unit(sizzle) * db(-17) + unit(grain) * db(-33)
     y *= L.swell(2.8, 1, -.9) * L.swell(.45, 5, .2)
     return L.reverb(y, 2.8, .18, lo=140, hi=1600)
 
 
 def priest():
-    return soft_cast("priest")
+    """Reference-informed texture, synthesized independently from authored tones/noise.
+
+    The reference was analyzed at Lim's request on 2026-10-27. Only coarse
+    observations inform this design: a clustered bass bed, filled 400–1000 Hz
+    body, recessed presence, and continuous fine air rather than crackle events.
+    No reference file, samples, FFT bins, phases, or envelopes enter synthesis.
+    """
+    L = Loop(6.4, 211)
+
+    def band(y, lo, hi):
+        # Smooth circular band filters, so there is no time-domain filter reset.
+        return L.shape(y, lambda f:
+            1 / np.sqrt(1 + (lo / np.maximum(f, .1)) ** 12)
+            / np.sqrt(1 + (f / hi) ** 12))
+
+    # Closely spaced low voices make a dark, restless cluster instead of an
+    # exposed D-major-like chord. Periodic FM gently diffuses each voice.
+    low = np.zeros(L.n)
+    for note, gain in [("B1", -7), ("C2", -6), ("D2", 0),
+                       ("A2", -12), ("B2", -5), ("C3", -3), ("D3", -6)]:
+        for detune in (-1, 0, 1):
+            ph = L.rng.uniform(0, 2 * np.pi)
+            phase = 2 * np.pi * (L.k(hz(note)) + detune) * L.t + ph
+            phase += .12 * L.lfo(3 + detune, ph * .7)
+            low += db(gain) * np.sin(phase)
+    low = band(low, 42, 148) * L.swell(2.1, 1, -.5)
+    low *= L.swell(.65, 5, .4) * L.swell(.4, 7, 1.2)
+
+    # Diffuse many voices across the body, not a recognisable tune or vowel.
+    body = np.zeros(L.n)
+    for _ in range(85):
+        freq = np.exp(L.rng.uniform(np.log(165), np.log(980)))
+        ph = L.rng.uniform(0, 2 * np.pi)
+        body += np.sin(2 * np.pi * L.k(freq) * L.t + ph
+                       + .22 * L.lfo(int(L.rng.integers(2, 9)), ph))
+    warm = band(body, 155, 390) + .22 * L.noise(170, 370, soft=.1)
+    glow = band(body, 405, 980) + .3 * L.noise(420, 950, soft=.1)
+    warm *= L.swell(.9, 1, -.2) * L.swell(.35, 4, .4)
+    glow *= L.swell(.65, 1, .7) * L.swell(.45, 19, .1)
+    upper = L.noise(1100, 2350, soft=.08, tilt=-2) * L.swell(.65, 1)
+    presence = L.noise(2800, 5400, soft=.1, tilt=-1)
+
+    # Continuous fine sizzle: no sparse grain envelopes or transient bursts.
+    # Slow independent colour drift keeps it alive without a harsh pulse.
+    air = L.noise(6400, 11800, soft=.06, tilt=.2)
+    air *= L.swell(.7, 1, .5) * L.swell(.35, 3, 1.1)
+    top = L.noise(12200, 18500, soft=.08, tilt=-1)
+    top *= L.swell(1.5, 3, 1.2) * L.swell(.7, 6, -.2)
+    y = mix((low, 0), (warm, -10), (glow, -11.5), (upper, -25),
+            (presence, -32), (air, -20), (top, -22))
+    return y
+
 
 
 def druid():
