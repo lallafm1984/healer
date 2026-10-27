@@ -7,6 +7,7 @@ import { rampMain, rampRefLevel, rampSpan, rampXp, recLevel } from '../src/data/
 import { rankStages, type GuideCtx } from '../src/game/guide';
 import * as E from '../src/engine';
 import { step } from '../src/engine/fight';
+import { heal } from '../src/engine/core';
 
 const supps = CONTENT.filter(c => c.anchor);
 const rec = { stars: 1, grade: 'A', best: 99, n: 1 };
@@ -87,6 +88,23 @@ describe('새 공통 기믹 (113 6장)', () => {
     step(f);
     expect(f.souls.length).toBe(0);
     f.party.forEach((u, i) => { if (u.alive) expect(u.hp - before[i]).toBeGreaterThan(u.max * 0.05); });
+  });
+  it('봉합 상처: 실제로 오른 체력만큼 봉합량이 줄고 (넘친 치유는 안 셈), 다 채우면 멎음', () => {
+    const f = E.create({ encounter: 'ttakkeum', diff: '보통', seed: 4, variant: 0 });
+    while (!f.party.some(u => u.debuffs.some(d => d.staunch)) && f.t < 20) step(f);
+    const u = f.party.find(x => x.debuffs.some(d => d.staunch))!, d = u.debuffs.find(x => x.staunch)!;
+    expect(d.staunchNeed).toBeCloseTo(u.max * 0.3, 0);
+    expect(u.hp / u.max).toBeLessThan(0.7);
+    const left0 = d.staunchLeft!, gain = u.max * 0.1, hp0 = u.hp;
+    heal(f, u, gain, true, true);
+    expect(left0 - d.staunchLeft!).toBeCloseTo(u.hp - hp0, 3);
+    u.hp = u.max; // 가득 찬 채로 힐 = 모두 넘친 치유 → 봉합량 그대로
+    const left1 = d.staunchLeft!;
+    heal(f, u, gain, true, true);
+    expect(d.staunchLeft).toBe(left1);
+    u.hp = u.max * 0.2;
+    heal(f, u, u.max * 0.5, true, true);
+    expect(u.debuffs.includes(d)).toBe(false);
   });
   it('dropPct: 걸리자마자 최대 체력 비율만큼 깎여 체력선 (75%) 아래에서 시작', () => {
     const f = E.create({ encounter: 'chorereu', diff: '보통', seed: 2, variant: 0 });

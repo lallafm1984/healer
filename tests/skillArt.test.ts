@@ -34,7 +34,7 @@ const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ l
 /** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45, 57 4장 D (천둥 숫양 · 번개 실험 정령) */
 const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge', 'spark-burst', 'trap-hex', 'root-slam'].map(n => `icon-mob-${n}`);
 /** 모자 뽑기 모자 (37 4장 H 3~5) · 111 단단한 껍질 · 충전 (65): 걸린 사람 칸 위 표식 (디버프 art, 대기열 기믹 표에는 없음) */
-const DOC_HAT = [...['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`), 'icon-gim-shell', 'icon-gim-charge'];
+const DOC_HAT = [...['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`), 'icon-gim-shell', 'icon-gim-charge', 'icon-gim-staunch'];
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);
 /** 아직 데이터에 없는 적 (47 4장 D 45 닻 든 거한은 다음 해적 장소 몫) */
 const NOT_IN_DATA = /^icon-mob-anchor-spin$/;

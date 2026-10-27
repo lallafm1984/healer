@@ -105,6 +105,10 @@ export interface Debuff {
   /** 치유 흡수 (P-ABSORB): 데이터 값 · 남은 막 (보스 피해 배율을 곱한 양) */
   absorb?: number;
   absorbLeft?: number;
+  /** 봉합 상처 (113 6.2, data/bosses.ts DebuffDef.staunch): 남은 봉합량 · 처음 봉합량 (체력 단위) */
+  staunch?: { healPct: number; dotPct: number };
+  staunchLeft?: number;
+  staunchNeed?: number;
   /** 부풀기 (P-SWELL): every초마다 1중첩 (최대 max). swellT = 다음 중첩까지 모은 시간 */
   swell?: { every: number; max: number };
   swellT?: number;

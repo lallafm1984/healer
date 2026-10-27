@@ -151,7 +151,10 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }
     if (d.grow) { if (d.stack) dripDamage(f, u, d.stack * d.grow.dot * dt * (f.sp ? dotSpec(f, d) : 1), true); }
-    else if (d.dot) {
+    else if (d.staunch) { // 봉합 상처 (113 6.2): 남은 봉합량만큼만 출혈 (최대 체력 비율, 보정과 상관없이)
+      const k = (d.staunchLeft ?? 0) / Math.max(1, d.staunchNeed ?? 1);
+      dripDamage(f, u, (u.max * d.staunch.dotPct * k * dt) / f.dmgMult, true, 'fixed');
+    } else if (d.dot) {
       const x = (d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt) * (f.sp ? dotSpec(f, d) : 1); // 감기약 · 해독초 · 상처 소독 … (42 2-5 · 2-8)
       const hp0 = u.hp;
       dripDamage(f, u, x, true);

@@ -146,6 +146,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
   if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail, state, seconds }; }
+  // 봉합 상처 (113 6.2): 배지에 남은 봉합 %
+  if (debuff.staunch) return { text: `${short ? '' : '봉합 '}${Math.ceil(((debuff.staunchLeft ?? 0) / Math.max(1, debuff.staunchNeed ?? 1)) * 100)}%`, detail, state, seconds };
   // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
   if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail, state, seconds };
   if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · ${brief}`, state, seconds: 0 };
@@ -164,6 +166,7 @@ export function debuffBrief(d: Debuff): string {
   if (d.link) out.push(d.link.kind === 'share' ? '이어진 둘이 피해 · 치유를 반씩 나눔' : '이어진 둘의 체력 차이가 벌어지면 끊어지며 둘 다 피해');
   if (d.jail) out.push('갇혀 딜 0 · 못 움직임, 딜러가 감옥을 깨면 풀림');
   if (d.debt) out.push('채워 준 체력이 빚, 초마다 불어남'); // 갚기 · 끝 피해는 상세창의 「남은 빚」 줄
+  if (d.staunch) out.push('실제로 회복할수록 출혈이 줄어듦'); // 남은 봉합량은 상세창 줄 (113 6.2)
   if (d.count) out.push('스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해');
   if (d.swell) out.push('점점 부풀어 끝나면 나와 옆 칸이 터짐 (지우면 옆 칸만)');
   if (d.charge) out.push(`직접 힐 ${d.charge.max}번째에 방전, 나와 옆 칸 피해`);

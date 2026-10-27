@@ -32,7 +32,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소 (원본 반복판 대신)
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
-  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -568,6 +569,39 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'herbcart', kind: 'explore', name: '야간 약초수레길', place: '왕도 밖 숲 · 역병 교단', stageLv: 12, unlockLv: 12, ready: true, anchor: 'cultcamp',
     bosses: ['약초 도둑 훔침'], tip: '약초 정령을 채우면 질병이 하나씩 사라집니다.', fights: () => DUNGEONS.herbcart.segments, size: three,
+  },
+  // 113 3차 (Lv 13~16)
+  {
+    key: 'stitchroom', kind: 'dungeon', name: '응급 봉합실', place: '왕도 지하 · 역병 교단', stageLv: 13, unlockLv: 13, ready: true, anchor: 'apothecary',
+    bosses: ['봉합사 따끔'], tip: '회복할수록 출혈이 약해집니다.', fights: () => DUNGEONS.stitchroom.segments, size: five,
+  },
+  {
+    key: 'twindistill', kind: 'dungeon', name: '쌍둥이 증류실', place: '왕도 지하 · 역병 교단', stageLv: 13, unlockLv: 13, ready: true, anchor: 'apothecary',
+    bosses: ['증류사 두방울'], tip: '치유로 흡수막을 없앤 뒤 체력을 회복합니다.', fights: () => DUNGEONS.twindistill.segments, size: five,
+  },
+  {
+    key: 'roofgutter', kind: 'explore', name: '빗물받이 지붕', place: '왕도 지붕 · 역병 교단', stageLv: 14, unlockLv: 14, ready: true, anchor: 'rooftop',
+    bosses: ['빗물 도마뱀 찰박'], tip: '물벼락 예고가 붙은 사람을 회복합니다.', fights: () => DUNGEONS.roofgutter.segments, size: three,
+  },
+  {
+    key: 'flagroad', kind: 'explore', name: '낡은 깃발길', place: '왕도 지붕 · 역병 교단', stageLv: 14, unlockLv: 14, ready: true, anchor: 'rooftop',
+    bosses: ['깃대 수호상 곧게'], tip: '파티를 체력선 위로 회복해 수호상을 멈춥니다.', fights: () => DUNGEONS.flagroad.segments, size: three,
+  },
+  {
+    key: 'mistlamp', kind: 'explore', name: '안개등 징검길', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true, anchor: 'marsh',
+    bosses: ['안개 사냥꾼 흐릿'], tip: '안개등을 채우면 다음 공격을 약하게 받습니다.', fights: () => DUNGEONS.mistlamp.segments, size: three,
+  },
+  {
+    key: 'lightbasin', kind: 'explore', name: '빛고임 수초밭', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true, anchor: 'marsh',
+    bosses: ['물방울지기 또롱'], tip: '넘친 치유를 모으면 다음 공격이 약해집니다.', fights: () => DUNGEONS.lightbasin.segments, size: three,
+  },
+  {
+    key: 'reedwatch', kind: 'explore', name: '갈대 감시초소', place: '늪지 · 늪의 부족', stageLv: 16, unlockLv: 16, ready: true, anchor: 'frogpond',
+    bosses: ['감시병 휙눈'], tip: '이번 지목 대상을 보고 회복합니다.', fights: () => DUNGEONS.reedwatch.segments, size: three,
+  },
+  {
+    key: 'smallferry', kind: 'explore', name: '작은 나룻터', place: '늪지 · 늪의 부족', stageLv: 16, unlockLv: 16, ready: true, anchor: 'frogpond',
+    bosses: ['밧줄지기 당김'], tip: '발판으로 나서는 동료를 회복합니다.', fights: () => DUNGEONS.smallferry.segments, size: three,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

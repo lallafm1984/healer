@@ -314,7 +314,7 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.charge ? `직접 힐 ${d.charge.max}번째에 방전: 본인 <b>${n(d.charge.self)}</b> · 이웃 칸 <b>${n(d.charge.near)}</b> (지속 힐 · 광역은 안 셈)` : '',
     e?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(e.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(e.self)}</b> + 이웃 칸 중첩 × <b>${n(e.near)}</b>` : '',
     d.cap != null ? `치유로는 체력이 ${pctT(d.cap)}까지만 참` : '', e?.p === 'flip' ? `두면 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%), 지우면 그냥 사라짐` : '',
-    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.dropPct ? `걸릴 때 최대 체력 ${pctT(d.dropPct)} 깎임` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
+    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.dropPct ? `걸릴 때 최대 체력 ${pctT(d.dropPct)} 깎임` : '', d.staunch ? `봉합량 = 최대 체력 ${pctT(d.staunch.healPct)}, 실제로 회복할수록 출혈 (처음 초당 최대 체력 ${pctT(d.staunch.dotPct)})이 줄고 다 채우면 멎음` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
     (e?.p === 'blast' || e?.p === 'trapHit') && e.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', e?.p === 'pass' ? `지우면 남은 막이 가장 건강한 아군에게 ${secT(e.sec)} 넘어감, 두면 끝날 때 남은 막만큼 피해` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }

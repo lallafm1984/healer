@@ -103,6 +103,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   const hp0 = u.hp, eff = Math.max(0, Math.min(amt, healTop(u) - u.hp)); // 치유 상한 (P-CAP): 상한 위는 넘친 치유
   u.hp += eff;
   u.got += eff;
+  if (eff > 0 && u.debuffs.length) stitch(f, u, eff); // 봉합 상처 (113 6.2): 실제로 오른 체력만
   f.stats.healed += eff;
   f.stats.overheal += amt - eff;
   if (amt - eff > 1e-9) { // 넘치는 빛 (P-OVER): 그릇에 모이고, 과부하 표식이면 이웃이 아픔
@@ -128,6 +129,19 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   else if (eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit }); // 지속 · 간접 회복도 숫자 (2026-10-16 Lim 「비구름 회복량이 안 보임」)
   if (f.sp && !raw) afterHeal(f, u, amt, eff, crit, direct, hp0);
   return eff;
+}
+
+/** 봉합 상처 (113 6.2): 실제로 오른 체력만큼 봉합량을 줄이고, 다 채우면 출혈이 멎음 (넘친 치유 · 흡수막 깎은 몫은 안 셈) */
+function stitch(f: Fight, u: Unit, eff: number): void {
+  for (const d of u.debuffs) {
+    if (d.staunchLeft == null) continue;
+    d.staunchLeft -= eff;
+    if (d.staunchLeft > 1e-6) continue;
+    u.debuffs = u.debuffs.filter(x => x !== d);
+    emit(f, { type: 'cure', id: u.id, name: d.name });
+    emit(f, { type: 'msg', text: `${d.name} 봉합: 출혈이 멎음` });
+    return;
+  }
 }
 
 /** 흐르는 회복 숫자를 모으는 시간 (초): 틱 (0.05초)마다 숫자가 뜨면 못 읽음 */

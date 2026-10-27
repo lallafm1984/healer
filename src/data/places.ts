@@ -29,7 +29,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill'
   // 113 초반 보충 장소
   | 'brasspress' | 'coolant' | 'repairbay' | 'gravefirefly' | 'wailhill' | 'washyard' | 'ashalley'
-  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart';
+  | 'waxseal' | 'censerstore' | 'sproutworks' | 'pollenstore' | 'splitgate' | 'gratedrain' | 'bandagetent' | 'herbcart'
+  | 'stitchroom' | 'twindistill' | 'roofgutter' | 'flagroad' | 'mistlamp' | 'lightbasin' | 'reedwatch' | 'smallferry';
 
 export interface Faction {
   name: string;
@@ -282,6 +283,14 @@ export const PLACES: Record<PlaceKey, Place> = {
   gratedrain: { key: 'gratedrain', name: '철창 배수실', faction: 'plague', tone: ['#2E302C', '#121311'], borrow: 'sewer' },
   bandagetent: { key: 'bandagetent', name: '붕대 보급천막', faction: 'plague', tone: ['#32322A', '#13130E'], borrow: 'cultcamp' },
   herbcart: { key: 'herbcart', name: '야간 약초수레길', faction: 'plague', tone: ['#30322A', '#12130E'], borrow: 'cultcamp' },
+  stitchroom: { key: 'stitchroom', name: '응급 봉합실', faction: 'plague', tone: ['#32302A', '#13120E'], borrow: 'apothecary' },
+  twindistill: { key: 'twindistill', name: '쌍둥이 증류실', faction: 'plague', tone: ['#34302A', '#14120E'], borrow: 'apothecary' },
+  roofgutter: { key: 'roofgutter', name: '빗물받이 지붕', faction: 'plague', tone: ['#30322E', '#121311'], borrow: 'rooftop' },
+  flagroad: { key: 'flagroad', name: '낡은 깃발길', faction: 'plague', tone: ['#36322A', '#14120E'], borrow: 'rooftop' },
+  mistlamp: { key: 'mistlamp', name: '안개등 징검길', faction: 'swamp', tone: ['#26322A', '#0E130F'], borrow: 'marsh' },
+  lightbasin: { key: 'lightbasin', name: '빛고임 수초밭', faction: 'swamp', tone: ['#26342A', '#0E140F'], borrow: 'marsh' },
+  reedwatch: { key: 'reedwatch', name: '갈대 감시초소', faction: 'swamp', tone: ['#28321F', '#0F130B'], borrow: 'frogpond' },
+  smallferry: { key: 'smallferry', name: '작은 나룻터', faction: 'swamp', tone: ['#24302A', '#0E120F'], borrow: 'frogpond' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -314,6 +323,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   cloudbridge: 'cloudbridge', flightyard: 'flightyard', stormmeadow: 'stormmeadow', cloudlibrary: 'cloudlibrary', broomrace: 'broomrace', sunkrose: 'sunkrose', lotusway: 'lotusway', waterglow: 'waterglow', barracks: 'barracks', outpost: 'outpost', starcave: 'starcave', sunrisehill: 'sunrisehill',
   brasspress: 'brasspress', coolant: 'coolant', repairbay: 'repairbay', gravefirefly: 'gravefirefly', wailhill: 'wailhill', washyard: 'washyard', ashalley: 'ashalley',
   waxseal: 'waxseal', censerstore: 'censerstore', sproutworks: 'sproutworks', pollenstore: 'pollenstore', splitgate: 'splitgate', gratedrain: 'gratedrain', bandagetent: 'bandagetent', herbcart: 'herbcart',
+  stitchroom: 'stitchroom', twindistill: 'twindistill', roofgutter: 'roofgutter', flagroad: 'flagroad', mistlamp: 'mistlamp', lightbasin: 'lightbasin', reedwatch: 'reedwatch', smallferry: 'smallferry',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -374,6 +384,10 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   drycanal: 'sproutworks', vineguard: 'sproutworks', seedbench: 'sproutworks', mallim: 'sproutworks', pollenshelf: 'pollenstore', thornporter: 'pollenstore', sackstore: 'pollenstore', kkaseul: 'pollenstore',
   floodhall: 'splitgate', gateshield: 'splitgate', drainway: 'splitgate', multeok: 'splitgate', sievehall: 'gratedrain', clawguard: 'gratedrain', cagepass: 'gratedrain', kkwakjip: 'gratedrain',
   bandageroad: 'bandagetent', charye: 'bandagetent', cartroad: 'herbcart', humchim: 'herbcart',
+  // 113 3차
+  tornhall: 'stitchroom', stitchdoll: 'stitchroom', triagebed: 'stitchroom', ttakkeum: 'stitchroom', tubehall: 'twindistill', frother: 'twindistill', stillway: 'twindistill', dubangul: 'twindistill',
+  wettiles: 'roofgutter', chalbak: 'roofgutter', flagwalk: 'flagroad', gotge: 'flagroad', foggystones: 'mistlamp', heurit: 'mistlamp', glowweeds: 'lightbasin', ttorong: 'lightbasin',
+  reedarrows: 'reedwatch', hwingnun: 'reedwatch', ferrypath: 'smallferry', danggim: 'smallferry',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
