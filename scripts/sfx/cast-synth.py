@@ -221,6 +221,18 @@ def soft_cast(name):
     # Keep air quiet and the 1–6 kHz region recessed to reduce listening fatigue.
     y = mix((bass, 0), (under, -12), (body, -5),
             (colour, -17 if name == "priest" else -22), (air, -20))
+    if name == "priest":
+        # Fine, irregular sizzling rather than exposed crackles. Circular Hann
+        # grains have soft attacks, and every tail wraps across the loop join.
+        sizzle = L.grains(L.noise(5700, 14500, soft=.14, tilt=-2.5),
+                          480, (.008, .032))
+        sizzle = L.reverb(sizzle, .24, .22, lo=5200, hi=13000)
+        sizzle *= L.swell(1.4, 3, .8) * L.swell(.7, 7, .2)
+        # A very quiet lower texture keeps it audible on small speakers without
+        # filling the fatiguing 2.5–6 kHz region or distorting the bass bed.
+        grain = L.grains(L.noise(1100, 2200, soft=.12, tilt=-2),
+                         160, (.025, .075))
+        y = y + unit(sizzle) * db(-17) + unit(grain) * db(-33)
     y *= L.swell(2.8, 1, -.9) * L.swell(.45, 5, .2)
     return L.reverb(y, 2.8, .18, lo=140, hi=1600)
 
