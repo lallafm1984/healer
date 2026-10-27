@@ -158,7 +158,7 @@ export default async function adventureRewards(url,shots) {
         const arrowState=await page.locator('.b-arw').evaluateAll(els=>els.map(el=>({step:el.dataset.step,hasImage:!!el.querySelector('img') || /url\(/.test(getComputedStyle(el).backgroundImage),visible:!!el.getClientRects().length})));
         ok(arrowState.length===2 && arrowState.every(a=>a.visible && a.hasImage),`${tag}: 좌우 화살표를 이미지 버튼으로 표시`,arrowState);
         await page.click('[data-step="1"]');await page.clock.runFor(50);
-        ok(await page.locator('#s-content').getAttribute('data-selected-content')==='greenhouse',`${tag}: 다음 화살표로 역병 약초 온실 선택`);
+        ok(await page.locator('#s-content').getAttribute('data-selected-content')==='waxseal',`${tag}: 다음 화살표로 밀랍 봉인실 선택 (같은 레벨 보충 장소, 113)`);
         await page.click('[data-step="-1"]');await page.clock.runFor(50);
         ok(await page.locator('#s-content').getAttribute('data-selected-content')==='crypt',`${tag}: 이전 화살표로 역병 지하묘지 복귀`);
 
