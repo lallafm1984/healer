@@ -1,6 +1,6 @@
 """시전음 합성 (2026-10-27 Lim 「저작권 문제 없이 해당 원본을 참고해서 새롭게 만들어보자」): src/sfx/cast-loop-<직업>.ogg 7개.
 
-원본 음원은 읽지 않는다. 예전 사제 시전음 (와우 원본)에서 잰 느낌만 따름: 낮은 D 울림이 가장 크고 (150Hz 밑),
+합성기는 원본 음원을 읽지 않는다. 예전 사제 시전음 (와우 원본)에서 잰 느낌만 따름: 낮은 D 울림이 가장 크고 (150Hz 밑),
 그 위에 조용한 직업별 질감, 6kHz 위 옅은 숨결, 한 바퀴에 한 번 천천히 부푸는 움직임.
 모든 층을 한 바퀴 (반복 주기) 안에서 원형으로 만든다: 사인은 바퀴마다 정수 번 돌고, 잡음은 주파수 영역에서 만들고,
 울림 · 빗살 필터는 원형 합성곱, 짧은 반짝임은 끝을 처음으로 감아 넣음. 그래서 이음새 없이 반복된다.
@@ -168,64 +168,20 @@ def finish(y: np.ndarray) -> np.ndarray:
     return y * min(1.0, lim / np.max(np.abs(y)))
 
 
-# Soft casting beds. Original synthesis only; no reference samples or extracted spectra.
+# Shared continuous-sizzle casting family, based on the approved priest design.
+# (seconds, independent seed, bass semitone shift, air level, top-air level)
 PROFILES = {
-    "priest": (6.4, 101, "D2", "A2", "D3", "A3"),
-    "druid": (7.2, 102, "C2", "G2", "C3", "G3"),
-    "paladin": (8.0, 103, "A1", "E2", "A2", "E3"),
-    "shaman": (6.8, 104, "E2", "B2", "E3", "B3"),
-    "monk": (7.6, 105, "G2", "D3", "G3", "D4"),
-    "astrologer": (6.4, 106, "A2", "E3", "A3", "E4"),
-    "warder": (6.8, 107, "F#2", "C#3", "F#3", "C#4"),
+    "priest": (6.4, 211, 0, -20, -22),
+    "druid": (7.2, 212, -2, -23, -27),
+    "paladin": (8.0, 213, -5, -22, -26),
+    "shaman": (6.8, 214, 2, -20.5, -23),
+    "monk": (7.6, 215, -2, -24, -28),
+    "astrologer": (6.4, 216, 5, -19.5, -21.5),
+    "warder": (6.8, 217, 4, -21, -23),
 }
 
 
-def soft_cast(name):
-    sec, seed, root, fifth, octave, upper = PROFILES[name]
-    L = Loop(sec, seed)
-    # Nearby low clusters breathe slowly; the brighter classes keep a bass bed.
-    bass = L.pad(root, (1, .32, .20, .10, .05), (-2, -1, 0, 1, 2))
-    under = L.pad(root, (1,), (0,))
-    body = mix((L.pad(fifth, (1, .16)), 0),
-               (L.pad(octave, (1, .10)), -6),
-               (L.breath([octave, upper], 2.2), -12))
-    body = L.lowpass(body, 850, 3) * L.swell(.8, 4, .6)
-    air = L.noise(6800, 16000, soft=.12, tilt=-2)
-    air *= L.swell(1.2, 3, .4) * L.swell(.6, 6, 1.1)
-    # Long-attack material textures, without exposed bells / water transients.
-    if name == "priest":
-        colour = L.formant(L.stack(octave, 1800, 1.4),
-                           [(430, 150, 0), (800, 190, -9)])
-        colour = L.lowpass(colour, 1200, 3)
-    elif name == "druid":
-        colour = L.grains(L.noise(650, 2600, tilt=-4), 24, (.22, .65))
-        colour = L.reverb(colour, 1.8, .65, hi=2300)
-    elif name == "paladin":
-        colour = L.lowpass(np.tanh(.8 * L.stack(octave, 1700, 1.3)), 900, 3)
-        colour += .15 * L.noise(180, 650, tilt=-3)
-    elif name == "shaman":
-        fade = .5 + .5 * L.lfo(1, .7)
-        colour = L.breath([octave], 9) * fade
-        colour += L.breath([upper], 7) * (1 - fade)
-        colour += .18 * L.noise(650, 2200, tilt=-3)
-    elif name == "monk":
-        colour = L.blur(L.breath([octave, upper], 12), .45)
-        colour += .3 * L.noise(300, 1500, tilt=-4)
-        colour = L.lowpass(colour, 1300, 3)
-    elif name == "astrologer":
-        colour = L.reverb(L.breath([upper], 4), 3.2, .7, hi=2000)
-        colour += .12 * L.noise(7500, 13000, soft=.12)
-    else:
-        colour = L.comb(L.noise(280, 1800, tilt=-4), upper, .87)
-        colour = L.lowpass(colour, 1700, 3) * L.swell(.8, 2, .4)
-    # Keep air quiet and the 1–6 kHz region recessed to reduce listening fatigue.
-    y = mix((bass, 0), (under, -12), (body, -5),
-            (colour, -17 if name == "priest" else -22), (air, -20))
-    y *= L.swell(2.8, 1, -.9) * L.swell(.45, 5, .2)
-    return L.reverb(y, 2.8, .18, lo=140, hi=1600)
-
-
-def priest():
+def textured_cast(name):
     """Reference-informed texture, synthesized independently from authored tones/noise.
 
     The reference was analyzed at Lim's request on 2026-10-27. Only coarse
@@ -233,7 +189,9 @@ def priest():
     body, recessed presence, and continuous fine air rather than crackle events.
     No reference file, samples, FFT bins, phases, or envelopes enter synthesis.
     """
-    L = Loop(6.4, 211)
+    sec, seed, shift, air_db, top_db = PROFILES[name]
+    L = Loop(sec, seed)
+    ratio = 2 ** (shift / 12)
 
     def band(y, lo, hi):
         # Smooth circular band filters, so there is no time-domain filter reset.
@@ -248,10 +206,10 @@ def priest():
                        ("A2", -12), ("B2", -5), ("C3", -3), ("D3", -6)]:
         for detune in (-1, 0, 1):
             ph = L.rng.uniform(0, 2 * np.pi)
-            phase = 2 * np.pi * (L.k(hz(note)) + detune) * L.t + ph
+            phase = 2 * np.pi * (L.k(hz(note) * ratio) + detune) * L.t + ph
             phase += .12 * L.lfo(3 + detune, ph * .7)
             low += db(gain) * np.sin(phase)
-    low = band(low, 42, 148) * L.swell(2.1, 1, -.5)
+    low = band(low, 42 * ratio, 148 * ratio) * L.swell(2.1, 1, -.5)
     low *= L.swell(.65, 5, .4) * L.swell(.4, 7, 1.2)
 
     # Diffuse many voices across the body, not a recognisable tune or vowel.
@@ -274,34 +232,75 @@ def priest():
     air *= L.swell(.7, 1, .5) * L.swell(.35, 3, 1.1)
     top = L.noise(12200, 18500, soft=.08, tilt=-1)
     top *= L.swell(1.5, 3, 1.2) * L.swell(.7, 6, -.2)
+    # Keep the same fine continuous air and full body across jobs. Class
+    # identity is a quiet material / movement layer rather than attack sounds.
+    colour = None
+    if name == "druid":
+        colour = L.breath(["C3", "G3"], 18)
+        colour = L.lowpass(colour, 850, 3) * L.swell(.8, 2, .5)
+    elif name == "paladin":
+        colour = L.lowpass(np.tanh(.7 * unit(warm + .4 * glow)), 850, 3)
+    elif name == "shaman":
+        fade = .5 + .5 * L.lfo(1, .6)
+        colour = L.breath(["E3"], 14) * fade
+        colour += L.breath(["B3"], 12) * (1 - fade)
+        colour = L.reverb(colour, 2.4, .45, hi=1400)
+    elif name == "monk":
+        colour = L.blur(L.breath(["C3", "G3"], 22), .45)
+        colour = L.lowpass(colour, 1000, 3)
+    elif name == "astrologer":
+        colour = L.breath(["A3", "E4"], 5) * L.swell(.8, 3, .2)
+        colour = L.reverb(colour, 3.0, .6, hi=1900)
+    elif name == "warder":
+        colour = L.comb(L.noise(300, 1500, tilt=-3), "F#3", .83)
+        colour = L.lowpass(colour, 1600, 3) * L.swell(1.1, 2, .4)
     y = mix((low, 0), (warm, -10), (glow, -11.5), (upper, -25),
-            (presence, -32), (air, -20), (top, -22))
+            (presence, -32), (air, air_db), (top, top_db))
+    if colour is not None:
+        y += unit(colour) * db(-24)
+        # Choose a calm start within the already periodic cycle. This only
+        # rotates the loop; no fades, truncation or spectral changes are added.
+        w = int(.02 * R)
+        energy = np.concatenate(([0.], np.cumsum(np.tile(y * y, 3))))
+        at = np.arange(0, L.n, max(1, L.n // 512)) + L.n
+        before = (energy[at] - energy[at - w]) / w
+        after = (energy[at + w] - energy[at]) / w
+        local = .5 * (before + after)
+        score = np.abs(np.log((after + 1e-12) / (before + 1e-12)))
+        score += .05 * np.abs(np.log((local + 1e-12) / np.mean(y * y)))
+        seam = np.abs(y[at % L.n] - y[(at - 1) % L.n])
+        score += .05 * seam / rms(np.diff(y))
+        y = np.roll(y, -int(at[np.argmin(score)] % L.n))
     return y
 
 
 
+def priest():
+    return textured_cast("priest")
+
+
 def druid():
-    return soft_cast("druid")
+    return textured_cast("druid")
 
 
 def paladin():
-    return soft_cast("paladin")
+    return textured_cast("paladin")
 
 
 def shaman():
-    return soft_cast("shaman")
+    return textured_cast("shaman")
 
 
 def monk():
-    return soft_cast("monk")
+    return textured_cast("monk")
 
 
 def astrologer():
-    return soft_cast("astrologer")
+    return textured_cast("astrologer")
 
 
 def warder():
-    return soft_cast("warder")
+    return textured_cast("warder")
 
 
 MAKERS = {"priest": priest, "druid": druid, "paladin": paladin, "shaman": shaman, "monk": monk, "astrologer": astrologer, "warder": warder}
