@@ -1,10 +1,12 @@
 /** 113 초반 추가 스테이지 (보충 장소): 원본 연결 경험치 · 입장 · 길잡이 · 변주 · 새 공통 기믹 */
 import { describe, expect, it } from 'vitest';
-import { chainOpen, CONTENT, contentOf, variantOf } from '../src/data/content';
+import { chainOpen, CONTENT, contentOf, variantOf, type ContentKey } from '../src/data/content';
 import { BOSSES, inVariant } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { rampMain, rampRefLevel, rampSpan, rampXp, recLevel } from '../src/data/progression';
 import { rankStages, type GuideCtx } from '../src/game/guide';
+import { noviceCells, noviceTarget, SUPP_HARD } from '../src/sim/novice';
+import { noviceCellOf } from '../src/sim/balance';
 import * as E from '../src/engine';
 import { step } from '../src/engine/fight';
 import { heal } from '../src/engine/core';
@@ -50,6 +52,17 @@ describe('보충 장소 (113 4장)', () => {
     const top = rankStages(ctx({ recent: ['ashalley', 'washyard'] }))[0];
     expect(top.content).toBe('alley'); // 원본 · 보충 둘 다 최근에 갔으니 원본
     expect(rankStages(ctx({ recent: ['alley', 'washyard'] }))[0].content).toBe('ashalley');
+  });
+  it('초보 하한 (113 7-1): 보충 장소도 자동 밸런스가 봄, 어려움은 Lv 10 80% · Lv 11~20 75%, 쉬움 · 보통 · 길 밖은 원본 목표', () => {
+    expect(noviceCells(['쉬움', '보통', '어려움']).some(x => x.c.anchor)).toBe(false); // sim:novice 기본은 길만
+    const all = noviceCells(['쉬움', '보통', '어려움'], true);
+    expect(supps.every(c => all.some(x => x.c.key === c.key))).toBe(true);
+    const at = (key: ContentKey, d: '쉬움' | '보통' | '어려움') => noviceTarget(noviceCellOf(contentOf(key), d)!);
+    expect(at('sproutworks', '어려움')).toBe(SUPP_HARD.early); // 장소 Lv 10
+    expect(at('lilygate', '어려움')).toBe(SUPP_HARD.later); // 장소 Lv 20
+    expect(at('washyard', '어려움')).toBe(at('alley', '어려움')); // 장소 Lv 8: 길 밖 (원본과 같음)
+    expect(at('lilygate', '보통')).toBe(at('lilypalace', '보통'));
+    expect(at('sproutworks', '쉬움')).toBe(at('greenhouse', '쉬움'));
   });
   it('Lv 21부터는 보충 장소를 첫 클리어로 추천하지 않음 (원본 길과 같은 규칙)', () => {
     const r = rankStages({ level: 25, gear: 10, clears: {}, open: c => c.unlockLv <= 25 });

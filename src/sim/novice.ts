@@ -12,7 +12,7 @@ import { CONTENT, contentOf, stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
-import { rampDiffs, rampMain, recLevel } from '../data/progression';
+import { rampDiffs, rampMain, rampPlace, recLevel } from '../data/progression';
 import { TALENTS } from '../data/talents';
 import type { Tune } from '../data/tune';
 import { autoHealer, noviceHealer } from '../engine/auto';
@@ -34,6 +34,11 @@ export const NOVICE_TARGET: Partial<Record<DiffName, number>> = { '쉬움': 90, 
 export const NOVICE_TARGET_EARLY: Partial<Record<DiffName, number>> = { '쉬움': 95, '보통': 85, '어려움': 60 };
 export const EARLY_LV = 10;
 export const TUT_TARGET = 95;
+/**
+ * 보충 장소 (113 7-1) 어려움 목표: 장소 Lv 10 80% · Lv 11 ~ 20 75%. 길잡이가 원본 다시 하기 대신 보내는 칸이라 원본 어려움 (60 · 50)보다 높게
+ * (원본 어려움 최저치만 통과한 장소로 반복판을 바꾸면 레벨업 체감이 막힘). 쉬움 · 보통 · 장소 Lv 1 ~ 9 어려움 (길 밖)은 원본 목표 그대로
+ */
+export const SUPP_HARD = { early: 80, later: 75 };
 
 /** 검사하는 칸 하나 (tutorial = 첫 전투, tut = 튜토리얼 판으로 하는 녹슨 고원 쉬움, off = 길 밖 칸: 장소 Lv 1 ~ 9 어려움) */
 export interface NoviceCell { c: ContentDef; d: DiffName; tut: boolean; off?: boolean }
@@ -43,9 +48,10 @@ export interface NoviceCell { c: ContentDef; d: DiffName; tut: boolean; off?: bo
  * 장소 Lv 1 ~ 9 어려움 (길 밖, off)도 넣는다 (2026-10-22 가상 사용자 QA: 길잡이가 추천하지 않아도 열린 칸 가운데 높은 곳을 고르는 사람이 가는데
  * 처음 하는 사람은 11 ~ 19%만 깼음): 들어가는 사람 = 그 장소 보통을 깬 뒤 (sim/ramp)
  */
-export function noviceCells(diffs: DiffName[] = ['쉬움', '보통']): NoviceCell[] {
+export function noviceCells(diffs: DiffName[] = ['쉬움', '보통'], supps = false): NoviceCell[] {
   const out: NoviceCell[] = [{ c: contentOf('tutorial'), d: '쉬움', tut: true }];
-  for (const c of CONTENT.filter(x => rampMain(x) && x.ready).sort((a, b) => a.stageLv - b.stageLv)) { // 보충 장소 (113)는 길이 아님
+  // 보충 장소 (113)는 길이 아님: supps면 함께 (원본 다시 하기 차례에 들어가는 칸, 원본과 같은 난이도)
+  for (const c of CONTENT.filter(x => (supps ? rampPlace(x) : rampMain(x)) && x.ready).sort((a, b) => a.stageLv - b.stageLv)) {
     for (const d of rampDiffs(c)) if (diffs.includes(d)) out.push({ c, d, tut: c.key === 'plateau' && d === '쉬움' });
     if (!rampDiffs(c).includes('어려움') && diffs.includes('어려움')) out.push({ c, d: '어려움', tut: false, off: true });
   }
@@ -123,4 +129,8 @@ export function measureNovice(x: NoviceCell, hero: HeroKey, n: number, pilot: Pi
 }
 
 /** 이 칸의 초보 목표 (없으면 null = 검사 안 함) */
-export const noviceTarget = (x: NoviceCell): number | null => (x.c.key === 'tutorial' || x.tut ? TUT_TARGET : (x.c.stageLv <= EARLY_LV ? NOVICE_TARGET_EARLY : NOVICE_TARGET)[x.d] ?? null);
+export const noviceTarget = (x: NoviceCell): number | null => {
+  if (x.c.key === 'tutorial' || x.tut) return TUT_TARGET;
+  if (x.c.anchor && x.d === '어려움' && !x.off) return x.c.stageLv <= EARLY_LV ? SUPP_HARD.early : SUPP_HARD.later;
+  return (x.c.stageLv <= EARLY_LV ? NOVICE_TARGET_EARLY : NOVICE_TARGET)[x.d] ?? null;
+};

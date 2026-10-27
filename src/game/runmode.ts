@@ -28,7 +28,7 @@ export const nextWeekAffixes = (now = Date.now()): AffixKey[] => weekAffixes(now
  * 열린 레벨이 내 레벨 이하인 던전 (해금 전 개발 빌드는 Lv 20까지), 표 (chal-dungeons)가 있는 것만
  */
 export const chalPool = (lv: number): ContentKey[] =>
-  CONTENT.filter(c => c.kind === 'dungeon' && c.ready && c.unlockLv <= Math.max(CHAL.lv, lv) && CHAL_DUN[c.key]).map(c => c.key as ContentKey);
+  CONTENT.filter(c => c.kind === 'dungeon' && c.ready && !c.anchor && c.unlockLv <= Math.max(CHAL.lv, lv) && CHAL_DUN[c.key]).map(c => c.key as ContentKey); // 보충 장소 (113 4-3)는 빼고
 /** 새 주 던전: 후보 가운데 무작위, 지난주 던전은 빼고 (후보가 하나면 그것) */
 export function pickChalContent(lv: number, r: () => number, last?: ContentKey): ContentKey {
   const pool = chalPool(lv), pick = pool.length > 1 ? pool.filter(k => k !== last) : pool;
