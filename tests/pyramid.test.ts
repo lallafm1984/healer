@@ -1,5 +1,6 @@
 /** 묶음 E3 (54 1장 · 3-2 · 4-3 · 4-6): 10인 ⑫ 낮잠 피라미드, 20인 ④ 별빛 저수지, 탐험 ⑳ 바람개비 언덕, 던전 ⑯ 해시계 천문대 */
 import { describe, expect, it } from 'vitest';
+import { PACE, pacePeriod } from '../src/data/pace';
 import { ABILITIES } from '../src/data/abilities';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
@@ -103,7 +104,7 @@ describe('가짜 반격 틈 (별바라기, 반격 틈 × 신기루)', () => {
       seen.push(!!t.fake);
     }
     expect(seen.filter(Boolean)).toHaveLength(1);
-    expect(s.next).toBeGreaterThan(f.t + 20); // 두 번째 틈 뒤에는 원래 주기
+    expect(s.next).toBeGreaterThan(f.t + 20 * PACE.skill); // 두 번째 틈 뒤에는 원래 주기 (보스 빠르기 × 0.7)
   });
   it('성급한 끊기 담당은 첫 틈에 바로 끊음: 가짜면 능력만 쓰고 진짜를 놓쳐 별똥비 (전원)', () => {
     const { f, u } = twoGaps('딜 욕심쟁이', true);
@@ -294,7 +295,7 @@ describe('탐험 ⑳ · 던전 ⑯', () => {
     expect(u.debuffs.some(d => d.name === '해 질 녘 표식')).toBe(false);
     const g = E.create({ encounter: 'geuneul', diff: '보통', seed: 3 });
     g.bossHp = g.bossMax * 0.29; steps(g, 0.1);
-    expect([g.phase, g.bs.glass.period]).toEqual([2, 24]);
+    expect([g.phase, g.bs.glass.period]).toEqual([2, pacePeriod(24)]);
     quiet(g);
     skillOn(g, 'glass');
     steps(g, 3.2);

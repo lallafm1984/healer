@@ -1,7 +1,9 @@
 // 공략 한눈에 (2026-10-12): 기술 대상 칩 · 피해 없이 디버프만 거는 잡몹 기술 · 새 공략 카드 모양
 import { describe, expect, it } from 'vitest';
 import { guideHtml, guideModel, skillWho } from '../src/battle/guide';
+import { secT } from '../src/battle/core';
 import { CONTENT } from '../src/data/content';
+import { pacePeriod } from '../src/data/pace';
 
 describe('공략 대상 칩', () => {
   it('기술 글 첫머리에서 대상을 읽음', () => {
@@ -32,7 +34,7 @@ describe('공략 카드', () => {
     expect(html).toMatch(/<b>\d+<\/b> 피해/);
     expect(html).not.toMatch(/class="gs-how"/);
     expect(html).toContain('<h4 class="gd-h">보스 기술</h4>');
-    expect(html).toMatch(/class="gs-every">16초마다/);
+    expect(html).toContain(`class="gs-every">${secT(pacePeriod(16))}마다`); // 16초 × 보스 빠르기 (data/pace)
   });
   it('잡몹 구간은 잡는 순서 · 적 기술', () => {
     const html = guideHtml(guideModel(frog.fights('쉬움')[0], '쉬움', frog.stageLv, 20), null);

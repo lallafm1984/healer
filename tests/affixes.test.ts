@@ -545,7 +545,7 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
   it('제한시간 안에 깨면 기록·다음 단계, 넘기면 안 열림, 지면 단계 유지', () => {
     const s = save();
     const chal = (o: Partial<BattleResult>) => settle(s, result({ chal: s.chalOpen, limit: chalLimit(s.chalOpen, 'rustfort'), stage: 30, ...o }), rng, [], T0);
-    let x = chal({ time: 400 });
+    let x = chal({ time: chalLimit(1, 'rustfort') - 1 });
     expect(x.chal).toMatchObject({ stage: 1, inTime: true, opened: true, best: 1 });
     expect(s.chalOpen).toBe(2);
     x = chal({ time: chalLimit(2, 'rustfort') + 1 });
@@ -557,13 +557,13 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
     expect(s.weekly.chalBest).toBe(1);
     // 주간 임무 「5단계 이상」은 제한시간 안 클리어만
     s.chalOpen = 5;
-    chal({ time: 400 });
+    chal({ time: chalLimit(5, 'rustfort') - 1 });
     expect(s.weekly.chalBest).toBe(5);
   });
 
   it('최고 단계는 월요일에 상자로, 열린 단계는 그대로', () => {
     const s = save();
-    settle(s, result({ chal: 1, limit: chalLimit(1, 'rustfort'), time: 300 }), rng, [], T0);
+    settle(s, result({ chal: 1, limit: chalLimit(1, 'rustfort'), time: chalLimit(1, 'rustfort') - 1 }), rng, [], T0);
     rollover(s, new Date(2026, 9, 12, 7).getTime(), rng);
     expect(s.chalChest).toBe(1);
     expect(s.weekly.chalBest).toBe(0);

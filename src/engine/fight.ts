@@ -2,7 +2,8 @@ import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
 import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
-import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
+import { ENCOUNTERS, RAW_ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
+import { PACE_DIFF_HP, pacedTier } from '../data/pace';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
@@ -32,7 +33,7 @@ import type { Cell, Fight, FightConfig, FightResult, Mob, Role, RosterEntry, Tal
 
 /** 전투 만들기 */
 export function create(cfg: FightConfig): Fight {
-  const enc = ENCOUNTERS[cfg.encounter];
+  const enc = (cfg.proto ? RAW_ENCOUNTERS : ENCOUNTERS)[cfg.encounter]; // 프로토타입 일치는 보스 빠르기 (data/pace) 전 표
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
   const gear = cfg.gearStats ? { ...cfg.gearStats } : cfg.proto ? protoGearStats(cfg.gear || 'none') : gearStats(cfg.gear || 'none', cfg.stageLv ?? cfg.heroLv ?? cfg.level); // 프리셋 장비의 아이템 레벨 = 그 장소 적 레벨
@@ -52,7 +53,8 @@ export function create(cfg: FightConfig): Fight {
   const power = R.lv(Math.max(cfg.heroLv ?? stageLv, stageLv)) * R.apex(cfg.heroLv ?? stageLv);
   const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
   const tn = cfg.proto ? undefined : (cfg.tune ?? TUNE[enc.key]?.[cfg.diff]);
-  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1);
+  const paceDiff = !cfg.proto && pacedTier(enc.tier, enc.script) ? PACE_DIFF_HP[cfg.diff] ?? 1 : 1; // 쉬움 · 보통 탐험 · 던전 보스 체력 더 (data/pace)
+  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1) * paceDiff;
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,

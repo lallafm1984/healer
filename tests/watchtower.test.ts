@@ -1,5 +1,6 @@
 /** 던전 ⑦ 무너진 망루 (39 3장, 새): 돌무더기 계단 → 망루 파수꾼 (끌어당김 × 받침) → 검은 틈 → 금 간 공명 수정 (진동 × 옮겨붙음) */
 import { describe, expect, it } from 'vitest';
+import { pacePeriod } from '../src/data/pace';
 import { contentOf } from '../src/data/content';
 import { BOSSES, type DebuffDef } from '../src/data/bosses';
 import * as E from '../src/engine';
@@ -69,8 +70,8 @@ describe('무너진 망루', () => {
     const f = E.create({ encounter: 'sentinel', diff: '보통', seed: 2, level: 35 });
     until(f, 5, () => false);
     f.bossHp = f.bossMax * 0.45;
-    until(f, 8, () => f.bs.chain.period === 20);
-    expect(f.bs.chain.period).toBe(20);
+    until(f, 8, () => f.bs.chain.period === pacePeriod(20));
+    expect(f.bs.chain.period).toBe(pacePeriod(20));
   });
 
   it('공명 수정 메아리: 진동이 울리면 이웃 1명에게 옮겨붙고 +50%, 남은 시간 그대로', () => {
@@ -110,7 +111,7 @@ describe('무너진 망루', () => {
     until(f, 5, () => false);
     f.bossHp = f.bossMax * 0.38;
     until(f, 8, () => f.phase === 2);
-    expect(f.bs.quake.period).toBe(11);
+    expect(f.bs.quake.period).toBe(pacePeriod(11));
     expect(f.bs.echo2.next).toBeLessThan(Infinity);
   });
 

@@ -1,5 +1,6 @@
 /** 묶음 D1 불꽃 봉우리 (51 1장 · 3장 · 4-1): 탐험 ⑯ 화산재 고갯길, 던전 ⑬ 용암 온천장 · ⑭ 용암 대장간, 10인 ⑧ 코볼트 보물 굴 */
 import { describe, expect, it } from 'vitest';
+import { pacePeriod } from '../src/data/pace';
 import { BOSSES } from '../src/data/bosses';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
@@ -56,6 +57,7 @@ describe('던전 보스', () => {
     const f = boss('mungsil');
     const sk = (k: string) => BOSSES.mungsil.skills.find(x => x.key === k)!;
     expect(sk('steam').first! + sk('steam').cast - sk('melt').first!).toBe(8);
+    expect(sk('steam').period).toBe(sk('melt').period); // 보스 빠르기 (data/pace)는 주기만 같은 비로: 다음 번에도 열기 끝에 김
     skillOn(f, 'melt');
     steps(f, 0.1);
     expect(f.melt).toMatchObject({ name: '김 서린 수건', rate: 0.25 });
@@ -72,7 +74,7 @@ describe('던전 보스', () => {
     steps(f, 2.1);
     expect(f.phase).toBe(2);
     expect(f.bs.greed2.target!(f)).toHaveLength(2);
-    expect(f.bs.melt.period).toBe(20);
+    expect(f.bs.melt.period).toBe(pacePeriod(20, f.bs.melt.cast));
     const m = boss('bulttung', true);
     const tel = { units: [m.party.find(u => u.role === 'ranged')!.id] } as unknown as E.Telegraph;
     m.bs.greed1m.hit!(m, tel);
@@ -99,7 +101,7 @@ describe('던전 보스', () => {
     f.bossHp = f.bossMax * 0.29;
     steps(f, 2.1);
     expect(f.phase).toBe(2);
-    expect(f.bs.stagger.period).toBe(30);
+    expect(f.bs.stagger.period).toBe(pacePeriod(30));
     expect(f.bs.sea.next).toBeLessThan(Infinity);
   });
 });

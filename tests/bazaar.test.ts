@@ -1,5 +1,6 @@
 /** 묶음 E1 (54 1장 · 3-1 · 4-1 · 4-4): 10인 ⑩ 노을 시장, 탐험 ⑱ 물밑 계단, 20인 ② 물밑 수도원, 던전 ⑮ 모래시계 궁전 */
 import { describe, expect, it } from 'vitest';
+import { pacePeriod } from '../src/data/pace';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { LOOK_WORD, PLACE_KINDS } from '../src/data/equipment';
@@ -224,7 +225,7 @@ describe('던전 ⑮ 모래시계 궁전', () => {
     f.bossHp = f.bossMax * 0.39;
     steps(f, 0.1);
     expect(f.phase).toBe(2);
-    expect(f.bs.glass.period).toBe(24);
+    expect(f.bs.glass.period).toBe(pacePeriod(24));
     steps(f, 3.1);
     expect(f.party.filter(u => u.debuffs.some(d => d.name === '칭칭 붕대')).length).toBeGreaterThanOrEqual(3);
     for (const [mythic, more] of [[false, false], [true, true]] as const) {

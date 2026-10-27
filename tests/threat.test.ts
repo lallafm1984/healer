@@ -374,8 +374,9 @@ describe('고렙 어그로 대사 · 간격 (2026-10-19 Lim 「계속 어그로 
     });
     f.skills.forEach(s => { s.next = Infinity; });
     f.bossHp = f.bossMax = 1e9;
+    f.enraged = true; // 300초를 다 봄: 보스 빠르기 (data/pace)로 문지기 광폭화가 340 → 185초라 그 뒤 전멸하면 시간이 멈춤
     const tk = who(f, '탱'), said: { t: number; sit?: string }[] = [];
-    while (f.t < 300) {
+    while (f.t < 300 && !f.over) {
       f.thr!.heal = 1e9; f.thr!.taken = 1; // 힐러가 계속 뺏음
       E.step(f);
       for (const ev of f.events) if (ev.type === 'bark' && ev.id === tk.id && ev.sit?.startsWith('aggro')) said.push({ t: f.t, sit: ev.sit });

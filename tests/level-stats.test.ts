@@ -1,7 +1,7 @@
 /** 102 레벨별 능력치 균형 → 104 레벨업 점수 · 광폭화 배율 · 빗나감 대사 (2026-10-19 Lim) */
 import { describe, expect, it } from 'vitest';
 import type { ClassKey } from '../src/data/classes';
-import { ENCOUNTERS, ENRAGE_MULT } from '../src/data/encounters';
+import { ENCOUNTERS, ENRAGE_MULT, RAW_ENCOUNTERS } from '../src/data/encounters';
 import { GROW_TYPES, growthOf, lvAdds, LV_PTS, lvPoints, statsAt, STAT_KEYS, type Stats } from '../src/data/fm';
 import type { PersName } from '../src/data/personalities';
 import { STAT_ACT } from '../src/data/rules';
@@ -90,8 +90,9 @@ describe('성장 결 (Lim 「고렙 파티원 … 좀더 개성있게」 → 「
 describe('광폭화 배율 (Lim 「광폭화 시간을 전체적으로 늘려주고」)', () => {
   it('모든 전투의 광폭화 × 1.25 (5초 반올림): 녹슨 문지기 270 → 340 · 역병 군주 390 → 490', () => {
     expect(ENRAGE_MULT).toBe(1.25);
-    expect(ENCOUNTERS.warden.enrage).toBe(340);
-    expect(ENCOUNTERS.plague.enrage).toBe(490);
+    expect(RAW_ENCOUNTERS.warden.enrage).toBe(340); // 보스 빠르기 전 (data/pace)
+    expect(ENCOUNTERS.warden.enrage).toBe(185); // 탐험 · 던전 보스는 × 0.55 (2026-10-27, 5초 반올림)
+    expect(ENCOUNTERS.plague.enrage).toBe(490); // 레이드는 그대로
     for (const e of Object.values(ENCOUNTERS)) if (Number.isFinite(e.enrage)) expect(e.enrage % 5, e.key).toBe(0);
   });
 });
@@ -101,9 +102,10 @@ describe('빗나감 대사 (Lim 「빗나갈때의 대사가 너무 자주나온
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, stageLv: 30, heroLv: 30, party: [R('tank', 'warrior', '탱'), R('melee', 'rogue', '근', { skill: 1 }), R('ranged', 'mage', '마', { skill: 1 }), R('ranged', 'archer', '궁', { skill: 1 })] });
     f.skills.forEach(s => { s.next = Infinity; });
     f.bossHp = f.bossMax = 1e9;
+    f.enraged = true; // 300초를 다 봄: 보스 빠르기 (data/pace)로 문지기 광폭화가 340 → 185초라 그 뒤 전멸하면 시간이 멈춤
     const said = new Map<number, number[]>();
     let miss = 0;
-    while (f.t < 300) {
+    while (f.t < 300 && !f.over) {
       E.step(f);
       for (const ev of f.events) { if (ev.type === 'miss') miss++; if (ev.type === 'bark' && ev.sit === 'whiff') said.set(ev.id, [...(said.get(ev.id) ?? []), f.t]); }
       f.events.length = 0;
