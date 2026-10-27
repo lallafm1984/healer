@@ -1,6 +1,7 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
 import { classGaugeState } from './class-gauge-state';
-import { waveNeed } from '../engine/talents';
+import { talentCd, waveNeed } from '../engine/talents';
+import { chalTime } from '../engine/affixes';
 /**
  * 전투 화면의 HTML 부분: 스킬 휠 · 특성 버튼 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
@@ -258,11 +259,11 @@ export function buildAux(): void {
 export function updateAux(): void {
   const F = fight();
   for (const el of $('aux').querySelectorAll<HTMLElement>('[data-tal]')) {
-    const k = el.dataset.tal as TalentKey, a = F.tx.act[k], def = TALENT_DEF[k].active!;
+    const k = el.dataset.tal as TalentKey, a = F.tx.act[k];
     if (!a) continue;
     const on = activeOn(F, k), spent = talentUsesSpent(F, k), cd = !spent && !on ? a.cd : 0;
     if (spent && ui.talArmed === k) ui.talArmed = null;
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 ? `${Math.min(1, cd / def.cd) * 100}%` : '0%');
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 ? `${Math.min(1, cd / talentCd(F, k)) * 100}%` : '0%');
     setText(el.querySelector('.ct')!, on ? `${Math.ceil(a.left)}초` : '');
     setText(el.querySelector('.cds')!, spent ? '사용 완료' : cd > 0 ? `${Math.ceil(cd)}초` : '');
     const label = `${TALENT_DEF[k].name}, ${spent ? '사용 완료, 전투당 사용 횟수 소진' : on ? `효과 중 ${Math.ceil(a.left)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : '사용 가능'}${ui.talArmed === k ? ', 선택됨. 칸 선택 또는 다시 눌러 취소' : ''}`;
@@ -499,7 +500,7 @@ export function updateStage(now: number): void {
   const noTank = F.noTankAt != null && !F.enraged ? Math.max(0, Math.ceil(NO_TANK_SEC - (F.t - F.noTankAt))) : null;
   if (S.limit) {
     // 주간 도전 (13 3-2): 던전 전체 제한시간 (휴식 뺀 전투 시간 합)
-    const used = R.time + F.t;
+    const used = R.time + chalTime(F); // 도전자의 위기 (115): 쓰러질 때마다 더한 초
     setText($('timer'), `${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ' · 광폭화!' : noTank != null ? ` · 탱커 없음 ${noTank}` : ''}`);
     $('timer').classList.toggle('over', used > S.limit);
   } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : noTank != null ? `${mmss(F.t)} · 탱커 없음 · 광폭까지 ${mmss(noTank)}` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · 광폭까지 ${mmss(Math.ceil(F.enc.enrage - F.t))}` : mmss(F.t));

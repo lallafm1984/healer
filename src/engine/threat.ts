@@ -10,6 +10,7 @@
 import { STAT_ACT, THREAT } from '../data/rules';
 import { gain, lack, lerp3 } from '../data/fm';
 import { holdGuard } from './abilities';
+import { affTankThreat } from './affixes';
 import { hexDist } from './board';
 import { aggroTarget } from './bossParts';
 import { bark, cellOf, DT, emit, living, regrouping, slip } from './core';
@@ -218,7 +219,7 @@ export function threatTick(f: Fight): void {
   t.vN *= decay; t.heal *= decay; t.taken *= decay;
   // 탱커: 이번 틱 딜러 한 사람 몫의 딜 × K × 배율
   const dealers = living(f).filter(u => u.role !== 'tank' && !u.me).length;
-  const inc = t.inc / Math.max(1, dealers) * THREAT.tank;
+  const inc = t.inc / Math.max(1, dealers) * THREAT.tank * (f.aff ? affTankThreat(f) : 1); // 산만함 (115)
   t.inc = 0;
   t.vN += inc;
   for (const u of f.party) if (u.role === 'tank' && u.alive) { const m = tankMult(f, u); if (m) t.v.set(u.id, (t.v.get(u.id) ?? 0) + inc * m); }

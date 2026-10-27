@@ -26,10 +26,8 @@ export const CHAL = {
   /** 제한시간 = 던전 1단계 가운데 시간 × (timeSlack + timeGrow × (단계 − 1)), 5초 단위 */
   timeSlack: 1.2,
   timeGrow: 0.03,
-  /** 축제 주간 경험치 (v16: 골드를 없애 골드 +20% → 경험치 +20%) */
-  festivalXp: 1.2,
-  /** 풍요 주간 골드 (110) */
-  bountyGold: 1.3,
+  /** 셋째 어픽스가 붙는 단계 (115 나안, 2026-10-27 Lim 「나안」): 1 ~ 9단계는 이번 주 어픽스 앞 둘, 이 단계부터 셋 다 */
+  third: 10,
   /** 단계 보너스 (110): 클리어 골드 · 경험치 × (1 + rewardStep × (단계 − 1)). 10단계 ×1.27 · 20단계 ×1.57 */
   rewardStep: 0.03,
   /** 클리어 골드 · 경험치 · 월요일 상자 골드 × rewardCut (110 2차 Lim 「경험치 및 골드 지급은 반으로」): 보통 던전 한 판의 반 (단계 보너스는 그 위에) */
@@ -71,25 +69,37 @@ export function chalLimit(stage: number, key: ContentKey): number {
 /** 도전 어픽스 순서의 기준 주 (월요일). 예전 시즌 1 시작 날 (시즌 패스는 2026-10-20 Lim 「시즌패스 시스템 제거」로 없앰, 순서가 안 바뀌게 같은 날) */
 export const CHAL_ROTA_START = '2026-10-05';
 /**
- * 주간 어픽스 순환 (16주, 110: 2026-10-22 Lim 「다양한 어픽스를 추가」, 예전 8주 · 8종). 어픽스 16종이 저마다 1~2번, 4주마다 좋은 주 (축제 · 풍요 번갈아) + 어픽스 하나.
- * 같은 조합이 이어서 안 나오고, 메마름 + 서두름 · 불안정 + 서두름 · 센 것끼리 (폭군 · 지진 · 폭주 · 혼돈)는 같이 안 나오게 함.
- * 2번 칸 (혼돈 + 동요)은 바꾸는 주 (2026-10-19 주)의 예전 순서 그대로라 주 중간에 어픽스가 안 바뀜
+ * 주간 어픽스 순환 (24주 · 주마다 셋, 115: 2026-10-27 Lim 「좋은 어픽스는 제거. 나안」). 1 ~ 9단계는 앞 둘, 10단계부터 셋째까지 (CHAL.third).
+ * 24종이 칸 (첫째 · 둘째 · 셋째)마다 한 번씩 = 저마다 세 번. 이어지는 두 주에 같은 어픽스 없음, 같은 둘이 두 번 같이 안 나옴.
+ * 한 주에 센 것 (폭군 · 지진 · 폭주 · 혼돈 · 결속 · 도전자의 위기) · 내 손 (고갈 · 한기 · 시간의 족쇄 · 진동) · 받는 치유 (메마름 · 괴저 · 넘침)는 하나씩,
+ * 메마름 + 서두름 · 불안정 + 서두름 · 진동 + 한기 · 복수심 + 결속 · 산만함 + 동요는 같이 안 나옴 (tests/affixes.test.ts).
+ * 예전 16주 (110)의 4번째 칸 (축제 + 폭군)이 바꾸는 주 (2026-10-26 주)라 그 주는 폭군을 첫째로 둠
  */
 export const CHAL_ROTA: AffixKey[][] = [
-  ['grievous', 'contagion'],
-  ['pulse', 'echo'],
-  ['chaos', 'panic'],
-  ['festival', 'tyrant'],
-  ['necrotic', 'unstable'],
-  ['drain', 'frenzy'],
-  ['chill', 'quake'],
-  ['bounty', 'spite'],
-  ['dry', 'chaos'],
-  ['haste', 'spite'],
-  ['grievous', 'panic'],
-  ['festival', 'frenzy'],
-  ['tyrant', 'echo'],
-  ['quake', 'drain'],
-  ['necrotic', 'chill'],
-  ['bounty', 'haste'],
+  ['blight', 'echo', 'contagion'],
+  ['dry', 'skittish', 'peril'],
+  ['chaos', 'contagion', 'spite'],
+  ['tyrant', 'tremor', 'overflow'],
+  ['doom', 'drain', 'grievous'],
+  ['pulse', 'spite', 'blight'],
+  ['peril', 'necrotic', 'chains'],
+  ['tremor', 'unstable', 'skittish'],
+  ['grievous', 'chaos', 'haste'],
+  ['skittish', 'frenzy', 'doom'],
+  ['drain', 'haste', 'echo'],
+  ['panic', 'chains', 'quake'],
+  ['contagion', 'peril', 'drain'],
+  ['chains', 'tyrant', 'pulse'],
+  ['necrotic', 'chill', 'panic'],
+  ['echo', 'bolster', 'unstable'],
+  ['frenzy', 'overflow', 'chill'],
+  ['bolster', 'pulse', 'tremor'],
+  ['spite', 'panic', 'frenzy'],
+  ['chill', 'quake', 'dry'],
+  ['overflow', 'blight', 'chaos'],
+  ['haste', 'doom', 'bolster'],
+  ['unstable', 'dry', 'tyrant'],
+  ['quake', 'grievous', 'necrotic'],
 ];
+/** 그 단계에 붙는 어픽스 (115 나안): 1 ~ 9단계는 이번 주 어픽스 앞 둘, 10단계부터 셋 다 */
+export const chalAffixes = (week: AffixKey[], stage: number): AffixKey[] => (stage >= CHAL.third ? week.slice() : week.slice(0, 2));

@@ -132,10 +132,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 공개모집 일일 보너스: 오늘 첫 3번 (이긴 판만 셈, 13 2-2)
   const pub = !isGuildParty(roster);
   const pubBonus = play && r.win && pub && (c.kind === 'dungeon' || c.kind === 'raid') && save.daily.pub < PUB_BONUS.runs ? ++save.daily.pub : 0;
-  // 축제 주간 (주간 도전 어픽스): 경험치 +20% (v16, 예전 골드 +20%)
-  const festival = r.affixes?.includes('festival') ? CHAL.festivalXp : 1;
-  // 주간 도전 (110): 골드 · 경험치 = 보통 던전 한 판의 반 (2차 Lim 「경험치 및 골드 수급처가 되어선 안된다」) × 단계 보너스 (1 + 3% × (단계 − 1)), 풍요 주간 골드 +30%
-  const stageBonus = r.chal ? CHAL.rewardCut * chalReward(r.chal) : 1, bounty = r.affixes?.includes('bounty') ? CHAL.bountyGold : 1;
+  // 주간 도전 (110): 골드 · 경험치 = 보통 던전 한 판의 반 (2차 Lim 「경험치 및 골드 수급처가 되어선 안된다」) × 단계 보너스 (1 + 3% × (단계 − 1))
+  const stageBonus = r.chal ? CHAL.rewardCut * chalReward(r.chal) : 1;
   // 탐험은 짧고 쉬워서 골드 · 경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
@@ -150,9 +148,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const replay = !play && tutReplay(save);
   const xp0 = replay || !r.win || r.quit ? 0
     : run(!r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
-      : clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival * stageBonus);
+      : clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * stageBonus);
   // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD
-  const gold0 = r.win && !replay ? run(clearGold(stage, r.diff, grade!, raid) * kind * stageBonus * bounty) : 0;
+  const gold0 = r.win && !replay ? run(clearGold(stage, r.diff, grade!, raid) * kind * stageBonus) : 0;
   const share = rest ? rest.share : 1;
   const xp = restGain(xp0, share), gold = restGain(gold0, share);
   const restBonus = rest && rest.share > 0 && (xp > restBase(xp0) || gold > restBase(gold0)) ? { xp: xp - restBase(xp0), gold: gold - restBase(gold0) } : null;

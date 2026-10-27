@@ -48,7 +48,6 @@
 
 /* 어픽스 이름 칸 (시안: 진홍 바탕 노란 글자) */
 .f-afx { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; background: #6E1414; border: 1px solid #B0302A; font: 900 11px var(--font-body); color: var(--gold-hi); white-space: nowrap; }
-.f-afx.good { background: #1C2A18; border-color: #3F6B36; color: #CFEBC5; }
 
 /* ---------- 주간 도전 입장 (S04) ---------- */
 /* 상단 뒤에 장소 그림 (어둡게) */

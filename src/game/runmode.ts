@@ -7,7 +7,7 @@
  * 2026-10-21 Lim 「레이드에서 공개모집 멤버는 해당 던전에 맞는 레벨대여야한다」: 10인 · 20인도 장소 레벨에 고정 (예전엔 max(내 Lv, 열림 레벨)). 내가 높으면 던전처럼 힐러만 셈.
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
-import { CHAL, CHAL_ROTA, CHAL_ROTA_START, chalLimit, chalMult } from '../data/challenge';
+import { CHAL, CHAL_ROTA, CHAL_ROTA_START, chalAffixes, chalLimit, chalMult } from '../data/challenge';
 import { CHAL_DUN } from '../data/chal-dungeons';
 import { CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
@@ -15,7 +15,7 @@ import type { SaveData } from '../platform/storage';
 import { daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
 
-/** 이번 주 도전 어픽스 (월요일 오전 6시에 바뀜) */
+/** 이번 주 도전 어픽스 셋 (월요일 오전 6시에 바뀜). 1 ~ 9단계는 앞 둘만 (chalAffixes, 115 나안) */
 export function weekAffixes(now = Date.now()): AffixKey[] {
   const n = CHAL_ROTA.length, w = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7);
   return CHAL_ROTA[((w % n) + n) % n].slice();
@@ -66,7 +66,7 @@ export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: n
   if (o.chal) {
     const st = Math.max(1, Math.min(CHAL.max, o.chal));
     const lv = Math.max(CHAL.lv, save.player.level), key = c.key as ContentKey;
-    return { stage: lv, affixes: weekAffixes(now), bossMult: chalMult(st, key, lv), limit: chalLimit(st, key), chal: st };
+    return { stage: lv, affixes: chalAffixes(weekAffixes(now), st), bossMult: chalMult(st, key, lv), limit: chalLimit(st, key), chal: st };
   }
   if (save.tut < TUT.done) return { stage: stageOf(c, d), affixes: [], chal: 0 };
   const stage = stageOf(c, d);

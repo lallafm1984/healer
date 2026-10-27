@@ -15,6 +15,7 @@ import { create, recruitParty, step } from '../engine/fight';
 import { noviceAt } from '../engine/novice';
 import type { Carry } from '../engine/types';
 import { midGear } from './familiar';
+import { chalTime } from '../engine/affixes';
 
 export const CHAL_HEROES: HeroKey[] = ['priest', 'druid', 'paladin'];
 
@@ -31,7 +32,7 @@ export function chalRun(key: ContentKey, lv: number, hero: HeroKey, seed: number
     const f = create({ encounter: segs[i], diff: d, seed: seed + i * 7919, hero, level: lv, heroLv: lv, stageLv, talents, party, carry,
       affixes: affixes.length ? affixes : undefined, bossMult: mult, gearStats: gearStatsOf(eq, lv), specs: specsOf(eq, hero) });
     while (!f.over && f.t < 900) { noviceHealer(f, who); step(f); f.events.length = 0; }
-    time += f.t;
+    time += chalTime(f); // 도전자의 위기 (115)
     if (f.over !== 'win') return { win: false, time, why: f.over ? f.reason : '시간 초과' };
     carry = restCarry(f, 10);
   }

@@ -33,6 +33,7 @@ import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_TALENT_FX, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
+import { chalTime } from '../engine/affixes';
 import {
   bossFx, bossHealNum, fitBossTitle, LOCK_SVG, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, missNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateStage, updateWheel,
@@ -699,7 +700,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
   dialogs.closeAll(); setPauseInert(false);
   const R = S.run!, f = B.F!, st = f.stats, quitted = how === 'quit', win = how === 'end' && f.over === 'win';
   const acc = tapAccuracy(), min = Math.max(1 / 60, f.t / 60);
-  if (how !== 'end') { R.time += f.t; R.deaths += st.deaths; addStats(R, f, st); }
+  if (how !== 'end') { R.time += chalTime(f); R.deaths += st.deaths; addStats(R, f, st); } // 도전자의 위기 (115)로 더한 초까지 (주간 도전 제한시간)
   const detail: [string, string][] = [
     ['마지막 전투', `${f.enc.name} ${mmss(f.t)}`],
   ];
@@ -781,7 +782,7 @@ function runData(f: Fight) {
 // ---------- 구간 끝 · 휴식 (09 S07, 23 4장) ----------
 function endSegment(): void {
   const R = S.run!, F = B.F!;
-  R.time += F.t; R.deaths += F.stats.deaths; addStats(R, F, F.stats);
+  R.time += chalTime(F); R.deaths += F.stats.deaths; addStats(R, F, F.stats);
   const next = F.over === 'win' && R.idx < R.segs.length - 1;
   // 화면이 넘어가기 전 판에 결과 띠: 구간 처치 · 마지막 승리 · 전멸 (이유는 아래 줄). 지면 판을 잿빛으로
   if (F.over === 'win') banner(next ? '처치' : '승리', { tone: 'win', sub: next ? F.enc.name : R.name });

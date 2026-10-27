@@ -6,7 +6,7 @@ import { DRUID_BIG, HAND_GUARD, WAVE } from '../data/heroConst';
 import { TALENT_DEF, TALENT_TREES, talentKeys, TX, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { affCast } from './affixes';
+import { affCast, affCd } from './affixes';
 import { cellOf, emit, heal, healFlow, living } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
@@ -126,8 +126,11 @@ export function cdOf(f: Fight, key: SkillKey): number {
   if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
   if (key === 'lightBarrier' && f.tx.on.quickBarrier) cd = TX.quickBarrier; // 빠른 막 (79 5-7)
   if (f.sp) cd = cdSpec(f, key, cd);
-  return cd;
+  return f.aff ? cd * affCd(f) : cd; // 시간의 족쇄 (115)
 }
+
+/** 특성 버튼 재사용 대기 (쓸 때 거는 값 · 화면 막대 기준): 시간의 족쇄 (115) */
+export const talentCd = (f: Fight, k: TalentKey): number => TALENT_DEF[k].active!.cd * (f.aff ? affCd(f) : 1);
 
 /** 화면의 재사용 대기 바 기준 */
 export function cdMax(f: Fight, key: SkillKey): number {
@@ -227,7 +230,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
     const any = key === 'totemCall' || key === 'chiBurst'; // 토템 부르기 · 기 폭발은 사람이 선 칸도 (토템은 길을 안 막음)
     if (any ? c.block === 'hole' : c.unit || c.block) return { ok: false, reason: any ? '무너진 바닥은 못 고름' : '빈 칸만 고를 수 있음' };
   }
-  a.cd = def.active!.cd; a.left = def.active!.dur; a.used = true;
+  a.cd = talentCd(f, key); a.left = def.active!.dur; a.used = true;
   f.tx.lastAct = f.t;
   if (key === 'miracle') {
     const b = f.g.p;

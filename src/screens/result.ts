@@ -20,7 +20,7 @@ import { specKeysOf } from '../data/equipment';
 import { art } from '../art';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
-import { CHAL, chalReward } from '../data/challenge';
+import { chalReward } from '../data/challenge';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
@@ -191,15 +191,15 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false
   const gb = x.restBonus?.gold ?? 0;
   const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur${add ? ' rb' : ''}"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
-  // 주간 도전 단계 보너스 · 풍요 주간 (110): 받은 판만 머리 옆에 작게
-  const bonus = r.chal && x.gold ? chalReward(r.chal) - 1 : 0, rich = x.gold && r.affixes?.includes('bounty');
-  const tags = [x.pubBonus ? pubBonusText(x.pubBonus) : '', bonus > 0 ? `${r.chal}단계 +${Math.round(bonus * 100)}%` : '', rich ? `풍요 골드 +${Math.round((CHAL.bountyGold - 1) * 100)}%` : ''].filter(Boolean);
+  // 주간 도전 단계 보너스 (110): 받은 판만 머리 옆에 작게
+  const bonus = r.chal && x.gold ? chalReward(r.chal) - 1 : 0;
+  const tags = [x.pubBonus ? pubBonusText(x.pubBonus) : '', bonus > 0 ? `${r.chal}단계 +${Math.round(bonus * 100)}%` : ''].filter(Boolean);
   const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${tags.length ? ` <small>${tags.join(' · ')}</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
-      ${xpRow(x, !!r.affixes?.includes('festival'), anim)}
+      ${xpRow(x, anim)}
       ${guildRow(x, fameAnim)}
       ${fx}
     </section>`;
@@ -244,14 +244,14 @@ function itemRow(id: number): string {
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
-/** fest = 축제 주간 (경험치 +20%, v16), anim = 휴식 보너스 연출 (90). 휴식 보너스 꼬리표는 바 아래 (바 안은 S25에서 잘림) */
-function xpRow(x: Settlement, fest = false, anim = false): string {
+/** anim = 휴식 보너스 연출 (90). 휴식 보너스 꼬리표는 바 아래 (바 안은 S25에서 잘림) */
+function xpRow(x: Settlement, anim = false): string {
   const xb = x.restBonus?.xp ?? 0;
   const rest = xb ? `<small class="r-rest${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(xb)}</small>` : '';
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${countUp(x.xp, xb, anim)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
+      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${countUp(x.xp, xb, anim)}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
 }
 
 /**

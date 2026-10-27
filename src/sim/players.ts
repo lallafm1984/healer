@@ -38,6 +38,7 @@ import { equip, G, sell, switchHero } from '../game/state';
 import { DUO_PARTY, TUT } from '../game/tutorial';
 import { deedOf } from '../data/guild';
 import { heroSaveOf, newSave, type SaveData } from '../platform/storage';
+import { chalTime } from '../engine/affixes';
 
 /** 가상 사용자 타입 */
 export interface PlayerType {
@@ -201,7 +202,7 @@ function fightOnce(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number
     });
     const hp0 = f.party.reduce((a, u) => a + u.hp, 0);
     while (!f.over && f.t < MAX_T) { noviceHealer(f, o.who); step(f); f.events.length = 0; }
-    st.time += f.t; st.deaths += f.stats.deaths; st.healed += f.stats.healed; st.overheal += f.stats.overheal; st.dispels += f.stats.dispels; st.dispellable += f.stats.dispellable;
+    st.time += chalTime(f); st.deaths += f.stats.deaths; st.healed += f.stats.healed; st.overheal += f.stats.overheal; st.dispels += f.stats.dispels; st.dispellable += f.stats.dispellable;
     st.presses += noviceOf(f).stats.presses;
     st.busy += (f.stats.healed + hp0 - f.party.reduce((a, u) => a + Math.max(0, u.hp), 0)) / (SKILLS.heal.amt! * f.gear.heal * f.power);
     for (const u of f.party) {

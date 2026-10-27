@@ -255,7 +255,6 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 /* 어픽스·던전 레벨 단계·주간 도전 (07 3장, 13 3-2) */
 .afxlist ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .afxlist li b { color: #F2C6D0; margin-right: 4px; }
-.afxlist li.good b { color: #CFEBC5; }
 .afxlist li small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
 .chalstep { display: flex; align-items: center; justify-content: center; gap: 18px; }
 .chalstep b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); min-width: 110px; text-align: center; }
