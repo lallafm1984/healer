@@ -2,6 +2,7 @@ import type { TelKind } from '../engine/types';
 import type { BoardId } from './boards';
 import type { AddDown, DebuffDef, SkillEffect } from './bosses';
 import type { DiffName } from './difficulty';
+import { paceEnrage, paceHp, pacedTier } from './pace';
 
 /** 보스 전투 (05)와 던전 일반·정예 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
 export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol'
@@ -1176,8 +1177,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
         effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
-  // 체력 2026-10-27 Lim 「교단숲속야영지의 탐험이 너무 지루하다」: 2400 → 1700 (보통 226 → 약 160초)
-  geopum46: { key: 'geopum46', lowLevel: true, name: '약품 수도사 거품이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'geopum46', stage: 0.3, debuffs: ['질병'] },
+  // 체력 #453 1700은 보스 빠르기 (data/pace, 2026-10-27)로 대신함
+  geopum46: { key: 'geopum46', lowLevel: true, name: '약품 수도사 거품이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'geopum46', stage: 0.3, debuffs: ['질병'] },
   // 던전 ㉙ 교단 약품 제조실 (Lv 48): 일반 약병 선반 복도 → 거품이 → 정예 끓는 솥 방 → 역병 대사제 말로스
   shelves: trash('shelves', '약병 선반 복도', [
     { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1204,8 +1205,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '다락 박쥐 떼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
-  // 체력 2026-10-27 Lim 「지붕길」 (교단 숲속 야영지처럼 지루함): 2400 → 1500
-  malos50: { key: 'malos50', lowLevel: true, name: '역병 대사제 말로스', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malos50', stage: 0.3, debuffs: ['질병'] },
+  // 체력 #455 1500은 보스 빠르기 (data/pace)로 대신함
+  malos50: { key: 'malos50', lowLevel: true, name: '역병 대사제 말로스', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malos50', stage: 0.3, debuffs: ['질병'] },
   // 던전 ㉚ 반딧불 빵집 (Lv 53): 일반 밀가루 창고 → 밀가루 요정 폴폴 → 정예 오븐 앞 → 케이크 골렘 몽글이
   flourstore: trash('flourstore', '밀가루 창고', [
     { name: '버섯 꼬마 경비', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1945,6 +1946,11 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
  */
 export const ENRAGE_MULT = 1.25;
 for (const e of Object.values(ENCOUNTERS)) if (Number.isFinite(e.enrage)) e.enrage = Math.round((e.enrage * ENRAGE_MULT) / 5) * 5;
+
+/** 보스 빠르기 (data/pace)를 곱하기 전 표 (광폭화 배율은 곱한 뒤): 프로토타입 일치 테스트 (cfg.proto)만 씀 */
+export const RAW_ENCOUNTERS = Object.fromEntries(Object.entries(ENCOUNTERS).map(([k, e]) => [k, { ...e }])) as Record<EncounterKey, Encounter>;
+// 탐험 · 던전 보스 빠르기 (2026-10-27 Lim, data/pace): 체력 · 광폭화
+for (const e of Object.values(ENCOUNTERS)) if (pacedTier(e.tier, e.script)) { e.hp = paceHp(e.hp); e.enrage = paceEnrage(e.enrage); }
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
 export const PROTO_ENCOUNTERS: EncounterKey[] = ['warden', 'plague'];

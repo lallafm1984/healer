@@ -6,7 +6,8 @@
  */
 import type { FxName, TelKind } from '../engine/types';
 import { CLASSES } from './classes';
-import { sneeze, soaps, type ScriptKey } from './encounters';
+import { ENCOUNTERS, RAW_ENCOUNTERS, sneeze, soaps, type ScriptKey } from './encounters';
+import { pacePeriod, pacedTier } from './pace';
 import { SKILLS } from './skills';
 
 /**
@@ -6013,6 +6014,29 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     enrage: { name: '수문 폭주', period: 2, dmg: 250 },
   },
 };
+
+/** 보스 빠르기 (data/pace)를 곱하기 전 정의: 프로토타입 일치 테스트 (cfg.proto)만 씀 */
+export const RAW_BOSSES = Object.fromEntries(Object.entries(BOSSES).map(([k, b]) => [k, {
+  ...b, skills: b.skills.map(x => ({ ...x })), bodies: b.bodies?.map(x => ({ ...x })), flow: b.flow?.map(st => (st.p === 'when' ? { ...st, do: st.do.map(x => ({ ...x })) } : { ...st })),
+}])) as typeof BOSSES;
+// 탐험 · 던전 보스 빠르기 (2026-10-27 Lim, data/pace): 기술 주기 (평타 빼고), 흐름의 「주기 바꾸기」
+{
+  const pacedEnc = Object.values(ENCOUNTERS).filter(e => pacedTier(e.tier, e.script)), paced = new Set(pacedEnc.map(e => e.script));
+  for (const [k, b] of Object.entries(BOSSES)) {
+    if (!paced.has(k as ScriptKey)) continue;
+    // 몸통 체력도 전투 체력과 같은 비 (몸통 합 = enc.hp, 엔진은 bossMax ÷ enc.hp를 곱함)
+    const e = pacedEnc.find(x => x.script === k)!, r = e.hp / RAW_ENCOUNTERS[e.key].hp;
+    if (b.bodies) {
+      b.bodies = b.bodies.map(x => ({ ...x, hp: Math.round(x.hp * r) }));
+      const left = e.hp - b.bodies.reduce((a, x) => a + x.hp, 0); // 반올림 나머지는 맨 뒤 몸통에 (합 = enc.hp 그대로)
+      if (b.bodies.length) b.bodies[b.bodies.length - 1].hp += left;
+    }
+    // 첫 시각 (first · 흐름의 start.in)은 그대로, 주기만: 기술끼리 · 지속 시간과 맞춘 사이 (돌가루 4초 전 · 열기 8초 끝 김 · 플라스크 12초 뒤 번개)가 첫 번째부터 그대로 남고,
+    // 주기가 같은 (또는 두 배인) 기술끼리는 다음 번에도 그대로
+    b.skills = b.skills.map(d => (d.key === 'auto' ? d : { ...d, period: pacePeriod(d.period, d.cast) }));
+    b.flow = b.flow?.map(st => (st.p !== 'when' ? st : { ...st, do: st.do.map(x => (x.p === 'period' ? { ...x, sec: pacePeriod(x.sec) } : x)) }));
+  }
+}
 
 /** 기술 정의 찾기 (공략 화면 숫자) */
 export const bossSkill = (key: Exclude<ScriptKey, 'trash'>, skill: string): SkillDef => BOSSES[key].skills.find(s => s.key === skill)!;

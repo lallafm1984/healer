@@ -190,6 +190,7 @@ describe('(다) 딜 · 직업 스킬', () => {
   function swings(st: Partial<Stats>, sec: number, seed = 1) {
     const f = fight({ st, seed }), u = who(f, '근');
     f.bossHp = f.bossMax = 1e9;
+    f.enraged = true; // 광폭화 없이 끝까지: 보스 빠르기 (data/pace)로 문지기 광폭화가 185초
     let hit = 0, miss = 0, crit = 0;
     const end = f.t + sec;
     while (f.t < end && !f.over) {
@@ -383,6 +384,8 @@ describe('(라) 방어 · 회피 · 나머지', () => {
   it('평타 막기: 방어가 높을수록 가끔 반만 맞음 (「막음」, 1 = 0 · 10 ≈ 5.7% · 20 = 12%, 2026-10-26 예전 15 넘어야)', () => {
     const count = (st: Partial<Stats>) => {
       const f = E.create({ encounter: 'warden', diff: '보통', seed: 9, stageLv: 30, heroLv: 30, party: [R('tank', 'warrior', '사교형', '탱', st, 15), R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')] });
+      f.bossHp = f.bossMax = 1e9; // 400초를 다 봄: 보스 빠르기 (data/pace)로 문지기가 일찍 쓰러지면 막음 수가 너무 적음
+      f.enraged = true;
       let n = 0;
       while (f.t < 400 && !f.over) { E.step(f); n += f.events.filter(e => e.type === 'parry').length; f.events.length = 0; who(f, '탱').hp = who(f, '탱').max; }
       return n;
@@ -460,6 +463,7 @@ describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있
   function long(st: Partial<Stats>, sec: number, seed = 1, setup?: (f: F, u: Unit) => void) {
     const f = fight({ st, seed }), u = who(f, '근');
     f.bossHp = f.bossMax = 1e9;
+    f.enraged = true; // 광폭화 없이 끝까지: 보스 빠르기 (data/pace)로 문지기 광폭화가 185초
     setup?.(f, u);
     const daze: number[] = [], miss: number[] = [];
     while (f.t < sec && !f.over) {

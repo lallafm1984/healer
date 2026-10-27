@@ -66,7 +66,7 @@ export const targetOf = (c: ContentDef | undefined, d: DiffName): { min: number;
  * 바쁨 하한 (쉬움 · 보통): 파티가 받는 피해 ÷ 치유 한 번 (사제 치유, 지능의 100%)을 분당. GCD 1.5초면 분당 40번이 끝이라
  * 보통 24 = 피해만 따라가도 GCD의 60%, 넘친 치유 · 해제까지 치면 거의 쉬지 않고 누름. 쉬움은 그 0.8 (난이도 피해 배율과 같은 비)
  */
-export const BUSY: Partial<Record<DiffName, number>> = { '쉬움': 19, '보통': 24 };
+export const BUSY: Partial<Record<DiffName, number>> = { '쉬움': 22, '보통': 27 }; // 2026-10-27 Lim 「바쁘게」 (보스 빠르기와 함께): 19 · 24 → 22 · 27. 초보 하한이 먼저라 그 아래로는 안 감
 /** 권장 장비 (data/equipment RECOMMENDED: 어려움 고급, 악몽 희귀 +5) */
 export const STD_GEAR: Record<DiffName, GearId> = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
 /** 던전 구간 사이 휴식 (초, scripts/sim-dungeon과 같음) */
@@ -306,7 +306,7 @@ export function designMeasure(c: ContentDef, d: DiffName, base: Tune, n = design
  * 레벨 디자인 바쁨 하한 (2026-10-23 Lim 「추천으로 작업」, 111 8장 공통 ④): 보통에서 중급자 · 중간 등급 장비의 바쁨 (받는 피해 ÷ 치유 한 번, 분당)이
  * 이 값 아래면 띠 아래 선을 넘지 않는 만큼 피해 배율을 올림. 기믹을 더해도 자동 밸런스가 피해를 내려 한가한 칸 (심연의 탑 · 판단 던전)이 그대로라서
  */
-export const DESIGN_BUSY: Partial<Record<DiffName, number>> = { '보통': 15 };
+export const DESIGN_BUSY: Partial<Record<DiffName, number>> = { '쉬움': 18, '보통': 21 }; // 2026-10-27 Lim 「바쁘게」: 보통 15 → 21, 쉬움 18 새로 (띠 아래 선 아래로는 안 감)
 /**
  * 바쁨 하한에서 뺀 장소 (2026-10-23 Lim 「추천데로」, 111 8-4): 하한으로 올리자 가상 사용자 (길잡이를 따라 적보다 1 ~ 2레벨 낮게 · 장비도 덜 갖추고 들어감) 보통 진 판이
  * 20% 넘게 올라 (장원 36 → 58%) 올리기 전과 뒤의 가운데 배율을 손으로 둠. 띠 안이면 그대로 두고, 띠 밖이면 예전처럼 띠만 맞춤
@@ -346,6 +346,12 @@ function balanceDesign(c: ContentDef, d: DiffName, n: number, search: boolean, c
   if (!search || verdict === 'ok') return row;
   let dmg = verdict === 'idle' ? curDmg : designDmg(rate, d, curDmg, tg);
   if (floor != null) dmg = designBusyDmg(dm, floor, dmg, tg.min); // 바쁨 하한 (띠 아래 선 아래로는 안 감)
+  if (dmg <= LO + 0.02 && rate(dmg) < tg.min) { // 체력 손잡이 (HP_LO, 순차 구간과 같음): 피해가 바닥인데도 띠 아래면 체력 배율을 띠 가운데에 맞춤
+    const hs = new Map<number, number>(), atHp = (hp: number) => { if (!hs.has(hp)) hs.set(hp, designMeasure(c, d, { ...base, hp })(LO).rate); return hs.get(hp)!; };
+    const hp0 = base.hp ?? 1, hp = seekDmg(atHp, tg.aim, hp0, HP_LO, hp0, 7, 2).dmg;
+    row.next = { dmg: LO, hp, m: expert ? measure(c, d, n, { ...base, dmg: LO, hp }) : NO_MEASURE }; row.design!.after = atHp(hp);
+    return row;
+  }
   if (dmg !== curDmg) { row.next = { dmg, m: expert ? measure(c, d, n, { ...base, dmg }) : NO_MEASURE }; row.design!.after = rate(dmg); if (row.design!.busy) row.design!.busy.after = dm(dmg).busy; }
   return row;
 }

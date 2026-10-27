@@ -3,7 +3,7 @@
  * 기술이 하는 일은 부품(bossParts.ts). 일반·정예 구간은 encounters.ts의 적 목록 (23 2장).
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
-import { BOSSES, hardDef, hardOn, inVariant, mythicDef, type SkillDef } from '../data/bosses';
+import { BOSSES, hardDef, hardOn, inVariant, mythicDef, RAW_BOSSES, type SkillDef } from '../data/bosses';
 import { busterDmg, lingerDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
@@ -128,7 +128,7 @@ function initTrash(f: Fight): void {
 /** 보스 데이터 (data/bosses.ts)로 전투 시작: 페이즈 · 몸통 · 기술 */
 export function initBoss(f: Fight): void {
   if (f.enc.script === 'trash') { initTrash(f); return; }
-  const def = BOSSES[f.enc.script];
+  const def = (f.cfg.proto ? RAW_BOSSES : BOSSES)[f.enc.script];
   [f.phase, f.phaseName] = def.phase;
   if (def.bodies) {
     f.bodyHp = true;
@@ -146,7 +146,7 @@ export function initBoss(f: Fight): void {
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
 function bossUpdate(f: Fight): void {
   if (f.enc.script === 'trash') { if (f.mobs.some(m => m.down)) trashDown(f); return; } // 일반·정예 구간은 광폭화 없음
-  const def = BOSSES[f.enc.script];
+  const def = (f.cfg.proto ? RAW_BOSSES : BOSSES)[f.enc.script];
   if (f.vtext && f.t >= 1) { emit(f, { type: 'phase', text: f.vtext }); f.vtext = null; } // 변주 한 줄 (113 7-4): 시작 1초 뒤 화면 가운데
   if (def.flow) runFlow(f, def.flow);
   if (def.watch?.from && !f.watch && f.phase === def.watch.from) watchInit(f, def.watch); // 주시가 이 페이즈부터 (심연의 군주 3페이즈)

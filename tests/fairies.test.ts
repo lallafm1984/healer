@@ -1,5 +1,6 @@
 /** 묶음 C 반딧불 버섯숲 (48 1장 · 3장 · 4장): 탐험 ⑬~⑮, 던전 ⑪ ⑫, 10인 ⑤ 요정 축제 마당 · ⑥ 포자 동굴 정원 · ⑦ 버섯 여왕의 궁전 */
 import { describe, expect, it } from 'vitest';
+import { pacePeriod } from '../src/data/pace';
 import { contentOf } from '../src/data/content';
 import { BOSSES, type SkillEffect } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
@@ -137,7 +138,7 @@ describe('던전 보스', () => {
     f.bossHp = f.bossMax * 0.34;
     steps(f, 0.1);
     expect(f.phase).toBe(2);
-    expect(f.bs.quake.period).toBe(15);
+    expect(f.bs.quake.period).toBe(pacePeriod(15));
     expect([f.bs.hats2.active(f), f.bs.hats2m.active(f)]).toEqual([true, false]);
   });
   it('우가: 독버섯 고리가 탱커 아닌 사람 발밑에, 50% 아래 고리 2개 · 악몽 최대 3겹', () => {
@@ -163,7 +164,7 @@ describe('던전 보스', () => {
     f.bossHp = f.bossMax * 0.39;
     steps(f, 0.1);
     expect(f.phase).toBe(2);
-    expect(f.bs.stagger.period).toBe(28);
+    expect(f.bs.stagger.period).toBe(pacePeriod(28));
     expect(f.bs.spit2.active(f)).toBe(true);
     expect(ENCOUNTERS.shellgod.debuffs).toContain('독');
   });
