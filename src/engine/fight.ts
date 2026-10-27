@@ -2,7 +2,7 @@ import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
 import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
-import { ENCOUNTERS, RAW_ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
+import { ENCOUNTERS, enrageOf, RAW_ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { PACE_DIFF_HP, pacedTier } from '../data/pace';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
@@ -33,7 +33,9 @@ import type { Cell, Fight, FightConfig, FightResult, Mob, Role, RosterEntry, Tal
 
 /** 전투 만들기 */
 export function create(cfg: FightConfig): Fight {
-  const enc = (cfg.proto ? RAW_ENCOUNTERS : ENCOUNTERS)[cfg.encounter]; // 프로토타입 일치는 보스 빠르기 (data/pace) 전 표
+  const enc0 = (cfg.proto ? RAW_ENCOUNTERS : ENCOUNTERS)[cfg.encounter]; // 프로토타입 일치는 보스 빠르기 (data/pace) 전 표
+  const enrage = cfg.proto ? enc0.enrage : enrageOf(cfg.encounter, cfg.diff); // 탐험 · 던전 보스 광폭화는 난이도마다 (data/pace PACE_DIFF_ENRAGE)
+  const enc = enrage === enc0.enrage ? enc0 : { ...enc0, enrage };
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
   const gear = cfg.gearStats ? { ...cfg.gearStats } : cfg.proto ? protoGearStats(cfg.gear || 'none') : gearStats(cfg.gear || 'none', cfg.stageLv ?? cfg.heroLv ?? cfg.level); // 프리셋 장비의 아이템 레벨 = 그 장소 적 레벨

@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { ALL_DIFFS, CONTENT } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
-import { ENCOUNTERS } from '../src/data/encounters';
+import { ENCOUNTERS, enrageOf } from '../src/data/encounters';
 import { TUNE, type Tune } from '../src/data/tune';
 import { applyRows, balanceable, balanceOne, BASE_HEROES, BUSY, NOVICE_N, renderTune, rewriteTuneFile, stdLabel, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
@@ -37,7 +37,7 @@ const rows: Row[] = [];
 for (const c of places) {
   const segs = c.fights('보통');
   // 목표 시간 = 광폭화 ÷ 1.35 (35 1-2). 모든 구간에 광폭화가 있을 때만
-  const enr = segs.map(k => ENCOUNTERS[k].enrage);
+  const enr = segs.map(k => enrageOf(k, '보통'));
   const goal = enr.every(Number.isFinite) ? ` · 목표 시간 ${fmtT(enr.reduce((a, b) => a + b, 0) / 1.35)}` : '';
   console.log(`\n${c.name} (${c.key}) · ${segs.map(k => ENCOUNTERS[k].name).join(' → ')}${goal}`);
   for (const d of diffs) {

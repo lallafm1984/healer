@@ -4,7 +4,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
-import { anchorOf, CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from './content';
+import { ALL_DIFFS, anchorOf, CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from './content';
 import { REST_RUN_SCALE } from './economy';
 
 export const MAX_LEVEL = 100;
@@ -141,12 +141,14 @@ export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade
  * (예: 녹슨 요새 보통은 적 Lv 7이지만 Lv 5에 들어가는 칸). 구간 밖 장소는 null
  */
 /**
- * 출전 화면 · 편성 「권장 레벨」 (92): 그 칸을 맞춘 플레이어 레벨. 순차 구간 장소는 길에서 들어가는 레벨 (온실 악몽 = 적 Lv 16이지만 Lv 11,
- * 적 레벨보다 높으면 적 레벨: 튜토리얼 녹슨 고원 쉬움), 그 밖은 적 레벨.
+ * 출전 화면 · 편성 「권장 레벨」 (92): 순차 구간 장소 (장소 Lv 20까지)는 장소 Lv + 난이도 0 · 1 · 2 · 3 (적 레벨 0 · 2 · 4 · 6보다 낮음, 2026-10-28 Lim
+ * 「탐험 및 던전의 권장 레벨이 쉬움, 보통이 같고 어려움, 악몽이 같다」: 예전엔 길에서 들어가는 레벨 (rampRefLevel)이라 쉬움 · 보통 · 어려움을 한 레벨에서 깨는 길이
+ * 같은 숫자로 보였음. 길에서 들어가는 레벨은 이 값 이하라 길잡이 적합도 (guide refLevel)는 그대로), 그 밖은 적 레벨.
  * 공개모집 파티원 레벨도 이것 ± 1 (fm.ts recruitLevel, 2026-10-27 Lim 「권장레벨에 맞춰」: 예전엔 적 레벨 ± 1이라 순차 구간 54칸에서 파티원이 권장보다 최대 5레벨 높았음).
  * 주간 도전은 내 레벨 그대로 (runMode stage). 게임 (screens/party) · 시뮬 (sim/balance · novice · players)이 모두 이것을 씀
  */
-export const recLevel = (c: ContentDef, d: DiffName): number => Math.min(stageOf(c, d), (isLeveling(c) && rampRefLevel(c, d)) || Infinity);
+export const recLevel = (c: ContentDef, d: DiffName): number =>
+  rampPlace(c) ? Math.min(stageOf(c, d), c.stageLv + ALL_DIFFS.indexOf(d)) : stageOf(c, d);
 
 const rampRefs = new Map<ContentKey, Record<DiffName, number>>();
 export function rampRefLevel(c: ContentDef, d: DiffName): number | null {

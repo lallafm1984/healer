@@ -1951,6 +1951,14 @@ for (const e of Object.values(ENCOUNTERS)) if (Number.isFinite(e.enrage)) e.enra
 export const RAW_ENCOUNTERS = Object.fromEntries(Object.entries(ENCOUNTERS).map(([k, e]) => [k, { ...e }])) as Record<EncounterKey, Encounter>;
 // 탐험 · 던전 보스 빠르기 (2026-10-27 Lim, data/pace): 체력 · 광폭화
 for (const e of Object.values(ENCOUNTERS)) if (pacedTier(e.tier, e.script)) { e.hp = paceHp(e.hp); e.enrage = paceEnrage(e.enrage); }
+/**
+ * 그 난이도의 광폭화 시각 (초): 탐험 · 던전 보스는 난이도마다 (data/pace PACE_DIFF_ENRAGE, 위 표는 쉬움), 그 밖은 표 그대로.
+ * 엔진 (fight.ts create가 f.enc에 넣음) · 공략 시트 · 쉬는 화면 · 자동 밸런스 보고가 모두 이것을 씀
+ */
+export const enrageOf = (k: EncounterKey, d: DiffName): number => {
+  const e = ENCOUNTERS[k];
+  return pacedTier(e.tier, e.script) ? paceEnrage(RAW_ENCOUNTERS[k].enrage, d) : e.enrage;
+};
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
 export const PROTO_ENCOUNTERS: EncounterKey[] = ['warden', 'plague'];
