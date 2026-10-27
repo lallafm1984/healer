@@ -10,7 +10,7 @@ import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { judgeReady } from '../engine/warder';
-import { canDispel, HEROES } from '../data/heroes';
+import { HEROES } from '../data/heroes';
 import { contentOf, type ContentKey } from '../data/content';
 import { mobGrade } from '../data/encounters';
 import { INT_BASE } from '../data/rules';
@@ -21,10 +21,10 @@ import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUse
 import { art, cssUrl } from '../art';
 import { encArt, mobLook, skillMark } from './art';
 import { L, screenCenter } from './board';
-import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
+import { $, alarm, arrowOf, B, DIR_VEC, DIRS, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
-import { shieldTimerOf } from './party-display';
+import { debuffBrief, shieldTimerOf } from './party-display';
 import { fightSkillArt, skillArtImg } from './skillArt';
 
 const fight = () => B.F!;
@@ -234,8 +234,6 @@ function setBar(el: HTMLElement | null, v: number): void {
   if (el.style.width !== w) el.style.width = w;
 }
 
-const dispelName = (F: Fight) => { const n = SKILLS[HEROES[F.hero].slots.dispel!].name; return n + josa(n, '으로', '로'); };
-
 /** 승인된 직업별 배경과 분할 게이지를 같은 전투 상태에 연결합니다. */
 export function buildGauges(F: Fight): void {
   buildClassGauge($('gauges'), $('controls'), F.hero);
@@ -319,7 +317,7 @@ export function updateCastbar(): void {
       const hp = `${Math.ceil(selected.hp)}/${Math.ceil(selected.max)} (${Math.ceil(selected.hp / selected.max * 100)}%)`;
       const types = [...new Set(selected.debuffs.map(d => d.type))];
       label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : '쓰러짐'}${types.length ? ` · ${types.join('/')}` : ''}`;
-      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}, ${!canDispel(F.hero, d.type) ? '해제 불가' : d.trap ? '해제 주의: 옆 칸으로 전파' : '해제 가능'}`).join('. ') : '디버프 없음'}`;
+      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : '디버프 없음'}`;
     } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
   }
   const casting = !!F.cast || F.channel > 0;
@@ -669,8 +667,8 @@ function drawPreview(u: Unit): void {
   }
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${u.pers}</b><small class="pv-label">성격</small></div><div class="d">${u.p.desc}</div></div>`);
   const items: string[] = [];
-  const hero = HEROES[F.hero];
-  for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
+  // 디버프마다 하는 일을 짧게 (debuffBrief). 직업별 해제 가능 · 불가 글은 쓰지 않는다 (2026-10-27 Lim 「"드루이드 해제 불가" 텍스트를 제거하고 간략하게 … 효과를 설명」)
+  for (const d of u.debuffs) { const b = debuffBrief(d); items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${b ? ` · ${b}` : ''}`); }
   if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
   for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
   { const sh = shieldTimerOf(u, F.t); if (sh) items.push(`보호막 ${Math.ceil(sh.left)}초 (남은 흡수 ${Math.round(sh.amt).toLocaleString('ko-KR')})`); }

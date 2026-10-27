@@ -132,43 +132,69 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   const seconds = Math.max(0, Math.ceil(debuff.left));
   // 함정은 실제로 해제되며 폭발한다. 해제불가와 혼동하지 않는다.
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
-  // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 설명에서만 안내합니다.
+  // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 글에도 직업별 해제 가능 · 불가는 쓰지 않습니다 (2026-10-27 Lim)
   const kind = short ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
-  // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
-  if (debuff.count) return { text: `${short ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
-  if (debuff.link) return { // 생명 사슬 (P-LINK)
-    text: `${short ? '사슬' : debuff.name} ${seconds}`,
-    detail: `${debuff.name} · ${seconds}초 · ${debuff.link.kind === 'share' ? '이어진 두 사람이 받는 피해·치유를 반씩 나눔' : '이어진 두 사람 체력 차이가 크게 벌어지면 끊어지며 둘 다 피해'} · 해제 불가`,
-    state, seconds,
-  };
-  // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수. 지우면 이웃만, 두면 본인 + 이웃이 터짐
-  if (debuff.swell) return { text: `${short ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
-  // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
-  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
-  // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
-  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
-  // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
-  if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail: `${debuff.name} · ${seconds}초 · 직접 힐이 들어올 때마다 1중첩, ${debuff.charge.max}중첩이면 방전 (본인 · 이웃 칸 피해) · 지속 힐 · 광역 힐은 안 셈 · ${debuff.lock ? '해제 불가' : state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능'}`, state, seconds };
-  if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
-  const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
-    : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
-    : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
-  // 받는 치유가 바뀌는 디버프 (35 4-3): 뒤집힌 축복 · 얼룩진 장갑 · 먼지 범벅
-  const heal = debuff.invert ? ' · 받는 치유가 피해로' : debuff.healCut ? ` · 받는 치유 -${Math.round(debuff.healCut * (debuff.stack ?? 1) * 100)}%`
-    : debuff.over ? ' · 넘친 치유만큼 옆 칸 아군 피해' : debuff.cap != null ? ` · 체력이 ${Math.round(debuff.cap * 100)}%까지만 참` : '';
-  // 매혹 · 옮겨붙음 · 마나 갈취 (35 3장): 길게 눌렀을 때 판단 근거
-  const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
-    : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
-    : debuff.drain ? ` · 마나 초당 -${debuff.drain}`
-    : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해`
-    : (debuff.shellLeft ?? 0) > 0 ? ` · 단단한 껍질 ${Math.round(debuff.shellLeft ?? 0)}, 최대 체력 ${Math.round((debuff.shellMin ?? 0.25) * 100)}% 넘는 직접 힐만 깎임 (작은 힐 · 지속 틱은 튕김), 두면 끝날 때 남은 막만큼 피해` : '';
-  return {
-    text: `${kind}${short ? '' : ' '}${seconds}`,
-    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
-    state,
-    seconds,
-  };
+  const brief = debuffBrief(debuff);
+  const detail = `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${brief ? ` · ${brief}` : ''}`;
+  // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
+  if (debuff.count) return { text: `${short ? '' : '역류 '}${debuff.stack ?? 0}중`, detail, state, seconds };
+  if (debuff.link) return { text: `${short ? '사슬' : debuff.name} ${seconds}`, detail, state, seconds }; // 생명 사슬 (P-LINK)
+  // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수
+  if (debuff.swell) return { text: `${short ? '' : '거품 '}${debuff.stack ?? 1}중`, detail, state, seconds };
+  // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
+  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail, state, seconds };
+  // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
+  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail, state, seconds }; }
+  // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
+  if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail, state, seconds };
+  if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · ${brief}`, state, seconds: 0 };
+  return { text: `${kind}${short ? '' : ' '}${seconds}`, detail, state, seconds };
+}
+
+const pctT = (x: number) => `${Math.round(x * 100)}%`;
+/**
+ * 디버프가 하는 일을 가장 짧게: 전투 중 파티원 상세창 「현재 효과」 · 칸 상세 글 (2026-10-27 Lim 「역병사슬이 걸리면 어떻게 되는지 … 설명이 없어서 읽어도 효과를 알수 없다.
+ * "드루이드 해제 불가" 텍스트를 제거하고 간략하게 최소한의 텍스트로 효과를 설명하고, 공략에서는 상세히」). 직업별 해제 가능 · 불가는 쓰지 않는다.
+ * 하는 일이 여럿이면 앞의 둘만 (특별한 규칙 → 받는 치유 · 받는 피해 · 딜 → 지속 피해). 숫자까지 다 적은 글은 보스 공략 (guide.ts debuffText)
+ */
+export function debuffBrief(d: Debuff): string {
+  const n = d.stack ?? 1, e = d.end;
+  const out: string[] = [];
+  if (d.link) out.push(d.link.kind === 'share' ? '이어진 둘이 피해 · 치유를 반씩 나눔' : '이어진 둘의 체력 차이가 벌어지면 끊어지며 둘 다 피해');
+  if (d.jail) out.push('갇혀 딜 0 · 못 움직임, 딜러가 감옥을 깨면 풀림');
+  if (d.debt) out.push('채워 준 체력이 빚, 초마다 불어남'); // 갚기 · 끝 피해는 상세창의 「남은 빚」 줄
+  if (d.count) out.push('스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해');
+  if (d.swell) out.push('점점 부풀어 끝나면 나와 옆 칸이 터짐 (지우면 옆 칸만)');
+  if (d.charge) out.push(`직접 힐 ${d.charge.max}번째에 방전, 나와 옆 칸 피해`);
+  if (d.shell) out.push('큰 직접 힐만 껍질을 깎음, 끝나면 남은 껍질만큼 피해');
+  else if (d.absorb) out.push(e?.p === 'pass' ? '받는 치유가 막을 먼저 깎음, 지우면 다른 사람에게 넘어감' : '받는 치유가 막을 먼저 깎음');
+  if (d.charm) out.push('딜을 멈추고 옆 사람을 때림, 힐하면 길어짐');
+  if (d.untilBossLoss != null) out.push(`보스 체력을 ${pctT(d.untilBossLoss)} 깎으면 풀림`);
+  if (d.cureAt != null) out.push(d.grow ? `체력 ${pctT(d.cureAt)} 아래면 점점 아파짐, 채우면 떨어짐` : `체력 ${pctT(d.cureAt)} 채우면 떨어짐`);
+  if (d.trap && (!e || e.p === 'spread')) out.push('끝나거나 지우면 옆 칸에 번짐');
+  else if (e?.p === 'spread') out.push('끝나면 옆 칸에 번짐');
+  else if (e?.p === 'blast') out.push('끝나거나 지우면 옆 칸이 터짐');
+  else if (e?.p === 'trapHit') out.push('두면 끝날 때 피해, 지우면 옆 칸이 터짐');
+  else if (e?.p === 'trapLoan') out.push('두면 끝날 때 피해, 지우면 옆 칸에 빚');
+  else if (e?.p === 'colDmg') out.push('끝나면 선 줄 전체 피해');
+  else if (e?.p === 'hit' && !d.absorb) out.push('두면 끝날 때 피해');
+  else if (e?.p === 'hit') out.push('남은 막이 있으면 끝날 때 피해');
+  else if (e?.p === 'jump') out.push(e.on === 'quake' ? '진동이 울리면 옆 칸으로 옮겨붙음' : `지우면 옆 사람에게 옮겨붙음${e.boost ? ', 두면 보스가 강해짐' : ''}`);
+  else if (e?.p === 'flip') out.push('끝나면 체력 비율이 뒤집힘');
+  if (d.invert) out.push('받는 치유가 피해로');
+  if (d.over) out.push('넘친 치유만큼 옆 칸 피해');
+  if (d.cap != null) out.push(`치유로는 체력 ${pctT(d.cap)}까지만 참`);
+  if (d.healCut) out.push(`받는 치유 −${pctT(d.healCut * n)}`);
+  if (d.vuln) out.push(`받는 피해 +${pctT(d.vuln * n)}${d.swap ? `, ${d.swap}중첩이면 탱커 교대` : ''}`);
+  if (d.maxCut || e?.p === 'restoreMax') out.push(`${d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '최대 체력 줄어듦'}, 끝나면 돌아옴`);
+  if (d.noDps && !d.jail && !d.charm) out.push(d.noMove ? '딜 0 · 못 움직임' : '딜 0');
+  else if (d.noMove && !d.jail) out.push('못 움직임');
+  if (d.dpsCut) out.push(`딜 −${pctT(d.dpsCut)}`);
+  if (d.drain) out.push('내 마나가 줄어듦');
+  if (d.feed) out.push('빨린 체력만큼 보스 회복');
+  if (d.dot && !d.count && !d.grow) out.push(d.stackMax ? '지속 피해, 겹칠수록 아픔' : '지속 피해');
+  return out.slice(0, 2).join(' · ');
 }
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
