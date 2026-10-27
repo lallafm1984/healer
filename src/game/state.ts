@@ -76,15 +76,15 @@ export const setTestLevelUp = (): boolean => setTestLevel(G.save.player.level + 
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);
 
 /**
- * 잠금: 콘텐츠·난이도 해금 레벨 (지금 직업 레벨 기준, 34 4장 1번) + 탐험 · 던전 난이도 사슬 (앞 난이도를 깨야 열림, 61 1-1.
- * 적 레벨이 내 레벨 이하인 난이도는 사슬 없이 열림, 86).
+ * 잠금: 콘텐츠·난이도 해금 레벨 (지금 직업 레벨 기준, 34 4장 1번) + 탐험 · 던전 난이도 사슬 (그 장소에서 앞 난이도를 깨야 열림, 61 1-1.
+ * 내 레벨이 높아도 · 보충 장소도 쉬움부터 차례로, 2026-10-27 Lim).
  * dev = 개발 빌드 레벨 잠금 무시. 사슬은 레벨 잠금이 아니라 개발 빌드에서도 그대로 (플레이 테스트에서 보이게). need = 사슬로 잠겼을 때 먼저 깰 난이도
  */
 export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boolean; dev: boolean; need: DiffName | null } {
   const lv = Math.max(c.unlockLv, (d && c.diffUnlock?.[d]) || 0);
   const under = G.save.player.level < lv;
   const dev = under && G.save.settings.devUnlock && c.ready;
-  const chain = !!d && !chainOpen(c, d, G.save.clears[c.key], G.save.player.level, c.anchor && G.save.clears[c.anchor]);
+  const chain = !!d && !chainOpen(c, d, G.save.clears[c.key]);
   return { lv, locked: (under && !dev) || chain, dev, need: chain ? chainNeed(c, d!) : null };
 }
 

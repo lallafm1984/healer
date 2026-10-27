@@ -35,23 +35,25 @@ describe('보충 장소 (113 4장)', () => {
       expect(rampXp(c, d, { first: true, grade: 'A', win: true })).toBeLessThan(rampXp(a, d, { first: true, grade: 'A', win: true }));
     }
   });
-  it('입장: 원본에서 연 난이도로 바로 (보충 장소 쉬움 · 보통을 다시 깨지 않음)', () => {
+  it('입장: 보충 장소도 그 장소에서 쉬움부터 차례로 (원본에서 연 난이도로 바로 들어가지 않음, 2026-10-27 Lim 「각 스테이지별로 순차적으로」)', () => {
     const c = contentOf('washyard');
-    expect(chainOpen(c, '어려움', {}, 1)).toBe(false);
-    expect(chainOpen(c, '어려움', {}, 1, { '보통': rec })).toBe(true);
-    expect(chainOpen(c, '보통', {}, 1, { '쉬움': rec })).toBe(true);
+    expect(chainOpen(c, '쉬움', {})).toBe(true);
+    expect(chainOpen(c, '보통', {})).toBe(false);
+    expect(chainOpen(c, '보통', { '쉬움': rec })).toBe(true);
+    expect(chainOpen(c, '어려움', { '쉬움': rec })).toBe(false);
+    expect(chainOpen(c, '어려움', { '보통': rec })).toBe(true); // 옛 저장: 원본에서 열고 보통부터 깬 보충 장소도 그대로 이어짐
   });
-  it('길잡이: 원본 다시 하기 차례에 안 가 본 보충 장소, 다 가 봤으면 최근에 안 간 곳', () => {
+  it('길잡이: 원본 다시 하기 차례에 안 가 본 보충 장소 (처음엔 쉬움, 깨 가며 원본 난이도까지), 다 가 봤으면 최근에 안 간 곳', () => {
     const clears: GuideCtx['clears'] = {};
     for (const x of CONTENT.filter(y => rampMain(y) && y.stageLv <= 8)) clears[x.key] = { '쉬움': rec, '보통': rec };
-    const ctx = (o: Partial<GuideCtx> = {}): GuideCtx => ({ level: 8, gear: 0, clears, open: c => c.unlockLv <= 8, ...o });
+    const ctx = (o: Partial<GuideCtx> = {}): GuideCtx => ({ level: 8, gear: 0, clears, open: (c, d) => c.unlockLv <= 8 && chainOpen(c, d, clears[c.key]), ...o });
     const first = rankStages(ctx())[0];
     expect(['washyard', 'ashalley']).toContain(first.content);
-    expect(first.diff).toBe('보통');
-    clears.washyard = { '보통': rec }; clears.ashalley = { '보통': rec };
-    const top = rankStages(ctx({ recent: ['ashalley', 'washyard'] }))[0];
-    expect(top.content).toBe('alley'); // 원본 · 보충 둘 다 최근에 갔으니 원본
-    expect(rankStages(ctx({ recent: ['alley', 'washyard'] }))[0].content).toBe('ashalley');
+    expect(first.diff).toBe('쉬움'); // 보통은 그 보충 장소 쉬움을 깨야 열림
+    clears.washyard = { '쉬움': rec }; clears.ashalley = { '쉬움': rec };
+    const next = rankStages(ctx({ recent: ['ashalley', 'washyard'] }))[0];
+    expect(next).toEqual({ content: 'alley', diff: '보통' }); // 원본 · 보충 둘 다 최근에 갔으니 원본
+    expect(rankStages(ctx({ recent: ['alley', 'washyard'] }))[0]).toEqual({ content: 'ashalley', diff: '보통' }); // 쉬움을 깬 보충 장소는 보통으로
   });
   it('초보 하한 (113 7-1): 보충 장소도 자동 밸런스가 봄, 어려움은 Lv 10 80% · Lv 11~20 75%, 쉬움 · 보통 · 길 밖은 원본 목표', () => {
     expect(noviceCells(['쉬움', '보통', '어려움']).some(x => x.c.anchor)).toBe(false); // sim:novice 기본은 길만
