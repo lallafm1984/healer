@@ -29,7 +29,7 @@ const fresh = () => {
 };
 afterEach(() => { Flow.running = false; });
 
-describe('공통 성장과 직업별 착용 조합', () => {
+describe('공통 성장과 공통 장착 장비', () => {
   beforeEach(fresh);
   it('무료 전환은 현재 캐릭터·레벨·경험치·재화·진행을 그대로 유지', () => {
     const d = G.save, snapshot = JSON.stringify([d.player, d.daily, d.weekly, d.clears, d.guild]);
@@ -70,16 +70,38 @@ describe('공통 성장과 직업별 착용 조합', () => {
     G.save.player.level = 20; G.save.settings.devJobs = true;
     expect(heroStatus('druid')).toMatchObject({ state: 'open', dev: false });
   });
-  it('아이템 ID로 세팅을 복원하며 잠근 같은 실물을 사용, 판매한 아이템은 재생성하지 않음', () => {
+  it('직업을 바꿔도 장착 장비는 한 벌 그대로 (v33, 2026-10-28 Lim): 다른 직업에서 바꿔 낀 것도 그대로, 판매한 장비는 되살리지 않음', () => {
     const one = makeItem(() => .5, 'weapon', '희귀', 1), two = makeItem(() => .5, 'weapon', '희귀', 2);
     G.save.gear.equipped.weapon = one; G.save.gear.bag = [two];
-    switchHero('druid'); equip(2); two.lock = true;
-    switchHero('priest'); expect(G.save.gear.equipped.weapon?.id).toBe(1);
-    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.lock).toBe(true);
-    expect(owned()).toEqual([1,2]);
-    sell([1]); switchHero('priest');
-    expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon).toBeUndefined();
-    switchHero('druid'); expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon?.id).toBe(2);
+    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(one);
+    equip(2); two.lock = true;
+    switchHero('priest'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.lock).toBe(true);
+    expect(G.save.gear.bag.map(x => x.id)).toEqual([1]);
+    sell([1]); switchHero('druid');
+    expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon).toBe(two);
+    expect(HERO_KEYS.some(h => 'loadout' in (G.save.heroes[h] ?? {}))).toBe(false);
+  });
+  it('직업 전용 특수능력은 다른 직업일 때 효과만 꺼지고 능력치는 그대로', () => {
+    const w = makeItem(() => .5, 'weapon', '영웅', 1); w.specs = [{ key: 'deepWord', roll: 1 }];
+    G.save.gear.equipped.weapon = w;
+    const opts = JSON.stringify(w.lines);
+    switchHero('druid');
+    expect(G.save.gear.equipped.weapon).toBe(w); expect(JSON.stringify(w.lines)).toBe(opts);
+    expect(specsOf(G.save.gear.equipped, 'druid').deepWord).toBeUndefined();
+    switchHero('priest'); expect(specsOf(G.save.gear.equipped, 'priest').deepWord).toBeGreaterThan(0);
+  });
+  it('v32 저장: 지금 장착은 그대로, 다른 직업 착용 조합 (loadout)은 버리고 그 장비는 가방에 남음', () => {
+    const one = makeItem(() => .5, 'weapon', '희귀', 1), two = makeItem(() => .5, 'weapon', '희귀', 2), ring = makeItem(() => .5, 'ring', '희귀', 3);
+    G.save.gear.equipped = { weapon: one }; G.save.gear.bag = [two, ring];
+    const raw = JSON.parse(JSON.stringify(G.save)); raw.v = 32;
+    raw.heroes.druid = { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 3, loadout: { weapon: 2, ring: 3 } };
+    raw.heroes.priest = { ...(raw.heroes.priest ?? { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0 }), loadout: { weapon: 1 } };
+    const s = migrate(raw);
+    expect(s.v).toBe(33);
+    expect(s.gear.equipped.weapon?.id).toBe(1);
+    expect(s.gear.bag.map(x => x.id).sort()).toEqual([2, 3]);
+    expect(s.heroes.druid).toEqual({ layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 3 });
+    for (const h of HERO_KEYS) expect(s.heroes[h] && 'loadout' in s.heroes[h]!).toBeFalsy();
   });
   it('스킬 설정·특성을 직업별로 보관하고 기기 저장 후 복원', () => {
     G.save.settings.tapKey = 'flash'; G.save.settings.layout = { N: 'hymn' };

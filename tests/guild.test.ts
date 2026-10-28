@@ -703,7 +703,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, SPONSOR.runs, SPONSOR.runs]);
-    expect(SAVE_VERSION).toBe(32);
+    expect(SAVE_VERSION).toBe(33);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, SPONSOR.runs, SPONSOR.runs]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     expect(migrate(JSON.parse(JSON.stringify({ ...s, guild: { ...s.guild, members: [{ ...b, boost: 5 }] } }))).guild.members[0].boost).toBe(5); // 3판으로 줄이기 전에 산 5판은 그대로 (2026-10-28)

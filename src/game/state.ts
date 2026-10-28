@@ -1,7 +1,7 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
 import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
+import { HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
 import { sellGold, SLOTS, type GearItem } from '../data/equipment';
 import { MAX_LEVEL, xpToNext } from '../data/progression';
@@ -130,29 +130,12 @@ export function sell(ids: number[]): { n: number; gold: number } {
     if (i < 0 || g.bag[i].lock) continue;
     const v = sellGold(g.bag[i]);
     g.bag.splice(i, 1);
-    for (const h of HERO_KEYS) {
-      const refs = G.save.heroes[h]?.loadout;
-      if (refs) for (const { key } of SLOTS) if (refs[key] === id) delete refs[key];
-    }
     got.n++; got.gold += v;
     if (G.save.tut >= TUT.done) onAct(G.save, 'sell');
   }
   G.save.player.gold += got.gold;
   if (got.n) commit();
   return got;
-}
-
-/** 이 장비를 착용 조합에 넣어 둔 다른 직업 (72 「남은 일」, 2026-10-27): 가방 꼬리표 · 상세 · 판매 확인에 씀 */
-export function loadoutHeroes(id: number): HeroKey[] {
-  return HERO_KEYS.filter(h => h !== G.save.hero && Object.values(G.save.heroes[h]?.loadout ?? {}).includes(id));
-}
-
-/** h로 바꾸면 착용할 장비 (switchHero와 같은 규칙: 그 직업 착용 조합이 있으면 그 실물, 없으면 지금 착용 그대로) */
-export function gearAfterSwitch(h: HeroKey): GearItem[] {
-  const d = G.save, worn = Object.values(d.gear.equipped).filter((it): it is GearItem => !!it), lo = d.heroes[h]?.loadout;
-  if (h === d.hero || !lo) return worn;
-  const owned = new Map([...d.gear.bag, ...worn].map(it => [it.id, it]));
-  return SLOTS.map(({ key }) => { const it = owned.get(lo[key]!); return it?.slot === key ? it : null; }).filter((it): it is GearItem => !!it);
 }
 
 /** 장비 잠금 켜기·끄기 (27 4-3). 바뀐 뒤 잠김 여부 */
@@ -238,7 +221,10 @@ function heroEarned(h: HeroKey): boolean {
   return !!G.save.heroes[h]?.unlocked || (u.buy ? G.save.bought.includes(jobProductId(h)) : G.save.player.level >= u.lv);
 }
 
-/** v12: 같은 캐릭터에서 직업·스킬·착용 조합만 전환. 보상·성장·실물 장비는 공유 */
+/**
+ * v12: 같은 캐릭터에서 직업 · 스킬 설정 · 특성만 전환. 보상 · 성장 · 장비는 공유.
+ * v33 (2026-10-28 Lim): 장착 장비도 한 벌을 그대로 (직업마다 착용 조합 없음). 다른 직업 전용 특수능력은 능력치는 그대로 두고 그 효과만 꺼짐 (specTotals)
+ */
 export function switchHero(h: HeroKey, now = Date.now()): boolean {
   if (!HEROES[h] || h === G.save.hero || !switchOpen().ok || heroStatus(h).state !== 'open') return false;
   const d = G.save, old = heroSaveOf(d, d.hero), next = heroSaveOf(d, h);
@@ -246,16 +232,6 @@ export function switchHero(h: HeroKey, now = Date.now()): boolean {
   old.tapKey = d.settings.tapKey;
   // 「전 직업 선택」으로만 들어간 직업은 해금으로 남기지 않음 (설정을 끄면 다시 잠김)
   if (heroEarned(d.hero)) old.unlocked = true;
-  old.loadout = Object.fromEntries(Object.entries(d.gear.equipped).filter(([, it]) => !!it).map(([slot, it]) => [slot, it!.id]));
-  if (next.loadout) {
-    const owned = new Map([...d.gear.bag, ...Object.values(d.gear.equipped).filter((it): it is GearItem => !!it)].map(it => [it.id, it]));
-    d.gear.equipped = {};
-    for (const { key } of SLOTS) {
-      const it = owned.get(next.loadout[key]!);
-      if (it?.slot === key) { d.gear.equipped[key] = it; owned.delete(it.id); }
-    }
-    d.gear.bag = [...owned.values()];
-  }
   if (heroEarned(h)) next.unlocked = true;
   d.hero = h;
   d.settings.layout = next.layout ? { ...next.layout } : null;
