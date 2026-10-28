@@ -132,12 +132,10 @@ function render(keep = true, resetInventory = false): void {
   if (sub === 'skill') fitDesc();
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
-  placeTalentSheet();
   const inventory = s.el.querySelector<HTMLElement>('.c7-bags');
   bagWatch?.disconnect();
   if (inventory) { fillBags(); bagWatch?.observe(inventory); inventory.scrollTop = inventoryTop; }
-  const path = !sheet || sheet.k === 'talent' ? []
-    : sheet.k === 'item' ? [`item:${sheet.id}`] : [sheet.k];
+  const path = !sheet ? [] : sheet.k === 'item' ? [`item:${sheet.id}`] : [sheet.k];
   if (pending) path.push(`confirm:${pending.kind}`);
   modal.sync(path.length ? s.el.querySelector<HTMLElement>(pending ? '.c7-confirm' : '.sheet') : null, path);
 }
@@ -723,40 +721,20 @@ function talentHtml(): string {
 }
 
 /**
- * 특성 설명 창 (탭 막대 위, 어둡게 하지 않음). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음.
+ * 특성 설명 창 = 화면 가운데 · 뒤를 어둡게 (2026-10-28 Lim, 직업 상세 창과 같은 방식). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음.
  * 2026-10-16 Lim: 입장 팝업 (#160)과 같은 돌 카드 · 황동 테 · 금빛 주 버튼 + 돌색 「닫기」, 「이 단에서 한 가지 선택 · 변경 비용 없음」 글은 없앰
  */
 function talentSheet(i: number, j: number): string {
   const h = hero(), t = TALENT_TREES[h][i], p = t?.picks[j];
   if (!p || t.lv > healerLevel()) return '';
   const chosen = (heroSave(h).talents || [])[i] === j;
-  return `<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
+  return `${dim}<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
       <header class="c7-tp-head"><span class="c7-tp-ic${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
         <span class="c7-tp-tt"><b>${p.name}</b><span class="c7-tp-tags"><i>Lv ${t.lv}</i><i>${p.active ? '사용 효과' : '지속 효과'}</i>${chosen ? '<i class="on">선택 중</i>' : ''}</span></span></header>
       <p class="c7-tp-desc">${esc(healText(p.desc, statParts().int.total))}</p>
       ${p.active ? '<p class="c7-tp-note">전투 화면 아래 특성 버튼으로 나옵니다.</p>' : ''}
       <footer class="c7-tp-btns"><button type="button" class="c7-tp-btn c7-tclose" data-sheetx aria-label="특성 설명 닫기">닫기</button>
         <button type="button" class="c7-tp-btn${chosen ? '' : ' primary'}" data-talent="${i}:${j}">${chosen ? '풀기' : '고르기'}</button></footer></section>`;
-}
-
-/**
- * 특성 설명 창은 목록에 여백을 붙이지 않음 (2026-10-16 Lim 「맨 아래에서 누르면 더 스크롤된다」), 스크롤도 건드리지 않음.
- * 아래 자리가 누른 단 (세 선택지)을 가리면 하위 탭 바로 아래로, 그래도 가리면 (화면 가운데 단 · 긴 설명) 하위 탭을 덮는 자리까지. 덜 가리는 쪽
- */
-function placeTalentSheet(): void {
-  if (sheet?.k !== 'talent') return;
-  const sh = s.el.querySelector<HTMLElement>('.c7-tsheet'), nodes = s.el.querySelector<HTMLElement>(`[data-tier="${sheet.i}"] .c7-tnodes`);
-  const tabs = s.el.querySelector<HTMLElement>('.c7-tabs');
-  if (!sh || !nodes || !tabs) return;
-  const t = nodes.getBoundingClientRect(), h = sh.offsetHeight;
-  // 올라오는 움직임 (translate) 중이라 세로 이동만큼 뺀 자리
-  const low = sh.getBoundingClientRect().top - new DOMMatrixReadOnly(getComputedStyle(sh).transform).m42;
-  const tb = tabs.getBoundingClientRect();
-  const over = (top: number) => Math.max(0, Math.min(t.bottom, top + h) - Math.max(t.top, top));
-  const top = [tb.bottom + 8, tb.top].reduce((a, b) => (over(b) < over(a) ? b : a));
-  if (over(top) >= over(low)) return;
-  sh.classList.add('top');
-  sh.style.top = `${top}px`;
 }
 
 // ---------- 직업: 선택 시안 1 (2026-10-14), 일곱 직업을 한 목록에서 비교 ----------
@@ -891,7 +869,7 @@ function closeSheet(): void {
   }
 }
 
-/** 특성은 비모달 시트. DOM을 다시 그려도 키보드 작업 위치는 이어 준다. */
+/** 특성 창을 닫거나 다시 그려도 키보드 작업 위치는 이어 준다. */
 function focusTalentControl(selector: string): void {
   s.el.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }
@@ -1035,13 +1013,7 @@ function onClick(t: HTMLElement): boolean {
   return false;
 }
 
-s.el.addEventListener('click', e => {
-  const t = e.target as HTMLElement;
-  // 특성 시트는 어둡게 하지 않으니, 시트 밖을 누르면 닫고 그 누름도 그대로 처리
-  let dirty = false;
-  if (sheet?.k === 'talent' && !t.closest('.sheet, [data-tcell]')) { sheet = null; dirty = true; }
-  if (!onClick(t) && dirty) render();
-});
+s.el.addEventListener('click', e => { onClick(e.target as HTMLElement); });
 
 // 시트를 아래로 밀면 닫힘 (버튼 위에서 시작한 건 빼고)
 let dragY: number | null = null;

@@ -1,10 +1,11 @@
 /*
  * 특성 설명 창 (2026-10-16 Lim 「팝업 디자인을 다시」): 입장 팝업 (departure-hall.css .st-pop, #160)과 같은 한 벌.
  * 길드 홀 돌 카드 (--gk-*, guide-sheet.css) + 분류 칸과 같은 황동 테 그림, 돌색 「닫기」 · 「풀기」 + 금빛 주 버튼 「고르기」.
- * 목록에 아래 여백을 붙이지 않고 스크롤도 그대로: 아래 자리가 누른 단을 가리면 탭 바로 아래로 (.top, character.ts placeTalentSheet)
+ * 2026-10-28 Lim: 화면 가운데 · 뒤를 어둡게 (.sheet-dim), 직업 상세 창 (class-jobs.css .c7-job-sheet)과 같은 자리 · 방식.
+ * 예전 「탭 막대 위 · 누른 단을 가리면 탭 바로 아래로」 (.top, placeTalentSheet)는 없앰.
  */
 #s-char .sheet.c7-tsheet {
-  left: 50%; right: auto; top: auto; bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 10px);
+  left: 50%; right: auto; top: calc(50% + var(--banner-h, 70px) / 2); bottom: auto; transform: translate(-50%, -50%);
   width: calc(100% - 24px); max-width: 456px; max-height: none; overflow: visible;
   display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 15px 16px 14px;
   background: var(--gk-card); background-blend-mode: normal; border: 0; border-radius: 4px;
@@ -14,9 +15,9 @@
   content: ''; position: absolute; inset: -3px; pointer-events: none;
   border: 16px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 16px / 0 stretch;
 }
-#s-char .sheet.c7-tsheet.top { bottom: auto; }
-#s-char .sheet.c7-tsheet.top:not(.still) { animation-name: c7-tp-down; }
-@keyframes c7-tp-down { from { transform: translate(-50%, -16px); opacity: 0; } }
+#s-char .sheet.c7-tsheet:focus { outline: none; }
+@media (prefers-reduced-motion: no-preference) { #s-char .sheet.c7-tsheet:not(.still) { animation-name: c7-tp-pop; } }
+@keyframes c7-tp-pop { from { transform: translate(-50%, calc(-50% + 12px)) scale(0.97); opacity: 0; } }
 
 #s-char .c7-tp-head { display: flex; align-items: center; gap: 12px; }
 #s-char .c7-tp-ic {
