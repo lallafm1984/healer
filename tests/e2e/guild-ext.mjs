@@ -48,10 +48,8 @@ export default async function guildExt(url, shots) {
   ok(await page.isVisible('#tabs [data-tab="guild"] .rdot'), '안 끝낸 부탁 = 길드 탭 빨간 점');
   const requestRewards = await page.locator('#s-guild .g-job .g-rewards').allTextContents();
   ok(requestRewards.length === 2 && requestRewards.every(t => /경험치 ×2/.test(t) && !/명성/.test(t)), '부탁 보상: 요청한 길드원 경험치 ×2');
-  await page.click('#s-guild [data-tip="todo"]'); await page.clock.runFor(50);
-  ok(/완료한 전투에서 부탁한 길드원의 경험치가 2배/.test(await text('#s-guild .g-tip')) && /부탁마다 한 번/.test(await text('#s-guild .g-tip')), '부탁 설명: 대상 · 완료 전투 · 한 번 지급 안내');
+  ok((await page.locator('#s-guild .g-info, #s-guild [data-tip]').count()) === 0, '부탁 묶음: 도움말 ⓘ 없음 (2026-10-28 Lim)');
   await page.screenshot({ path: `${shots}/guild_request_xp.png` });
-  await page.click('#s-guild [data-tip="todo"]'); await page.clock.runFor(50);
 
   ok((await page.locator('#s-guild .g-hub, #s-guild .g-fac, #s-guild [data-fac]').count()) === 0 && !/시설|작전실|모집소/.test(await text('#s-guild .g-home')), '현황에는 시설 없이 할 일만 표시');
   await page.screenshot({ path: `${shots}/guild_ext_home.png`, fullPage: false });

@@ -70,15 +70,13 @@ export default async function guild(url, shots) {
   // 현황은 메뉴 칸 없이 오늘의 부탁과 주간 할 일을 바로 표시.
   ok((await page.locator('#s-guild .g-hub, #s-guild [data-fac]').count()) === 0 && /오늘의 부탁/.test(await text('#s-guild .g-home')) && /이번 주/.test(await text('#s-guild .g-home')) && /0 \/ 10/.test(await text('#s-guild .g-goal')), '현황: 시설 · 중복 메뉴 없이 할 일만 바로 표시');
   ok((await page.locator('#s-guild [data-csel="rec"], .g-firsts').count()) === 0, '현황 기록 메뉴 제거');
-  await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
-  ok(/주간 목표/.test(await text('#s-guild .g-tip')) && await page.getAttribute('#s-guild .g-card[data-sec="todo"] .g-info', 'aria-expanded') === 'true', 'ⓘ = 설명 펼침');
-  await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
-  ok((await page.locator('#s-guild .g-tip').count()) === 0, 'ⓘ 다시 = 접힘');
+  ok((await page.locator('#s-guild .g-info, #s-guild .g-tip, #s-guild [data-tip]').count()) === 0, '현황: 도움말 ⓘ 없음 (2026-10-28 Lim)');
   ok((await text('#guildGo')).trim() === '길드파티로 출전', '아래 버튼 「길드파티로 출전」 한 줄');
 
   // 영입은 모집 공고 하나 (명성 지원자는 2026-10-20 없앰). 친구·명부·인연 안내가 없다.
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-csel="friend"], #s-guild [data-csel="roster"], #s-guild [data-friend]').count()) === 0 && !/친구|인연|명부/.test(await page.locator('#s-guild .g-recruit').evaluate(el => { const x = el.cloneNode(true); x.querySelectorAll('.g-candidates').forEach(n => n.remove()); return x.textContent; })), '친구 초대 · 명부 · 인연 안내 제거 (지원자 닉네임은 빼고 봄)');
+  ok((await page.locator('#s-guild .g-info, #s-guild [data-tip]').count()) === 0, '영입: 도움말 ⓘ 없음');
   ok(await page.isVisible('#s-guild [data-sec="post"]') && (await page.locator('#s-guild [data-csel], #s-guild [data-sec="app"], #s-guild .g-hub').count()) === 0 && !/명성 지원자/.test(await text('#s-guild .g-recruit')), '모집 공고 판 하나만 (길드 Lv 5여도 명성 지원자 없음)');
   ok((await page.locator('#s-guild [data-pkind], #s-guild [data-role], #s-guild [data-pickcls]').count()) === 0 && !/명문 공고/.test(await text('#s-guild .g-recruit')), '명문 · 역할 · 직업 선택 제거');
   // 2026-10-22 Lim: 공고는 무료 · 매일 3명 · Lv 1 ~ 내 레벨, 희귀 · 스킬 등급 표시 없음. 영입 골드 = 능력치 (2026-10-28 Lim, 값은 단위 테스트 guild.test)
@@ -92,6 +90,7 @@ export default async function guild(url, shots) {
   ok(skillColors.length === 1, `스킬 이름은 한 색 (일반 · 고급 · 희귀 색 없음) ${JSON.stringify(skillColors)}`);
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(await text('#s-guild .g-msheet')), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
+  ok((await page.locator('#s-guild .g-msheet .g-info').count()) === 0, '지원자 상세: ⓘ 없음 (길드원 상세에만)');
   ok((await page.locator('#s-guild .g-msheet .trait-grade').count()) === 0 && !/(일반|고급|희귀)$/.test((await text('#s-guild .g-msheet .pab .trait-heading')).trim()), '지원자 상세: 스킬 등급 (일반 · 고급 · 희귀) 글 없음');
   const hireTxt = (await text('#s-guild .g-hire-actions [data-hire]')).replace(/\s+/g, '');
   ok(/^영입/.test(hireTxt) && rowCosts.length === 3 && Number(hireTxt.replace(/[^0-9]/g, '')) === rowCosts[0] && !/추가 비용/.test(await text('#s-guild .g-msheet')), `상세 하단: 영입 버튼에 줄과 같은 영입 골드 (${rowCosts[0]}) ${hireTxt}`);
@@ -117,9 +116,20 @@ export default async function guild(url, shots) {
   await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid:not(.fog) li').count()) === 12, '길드원 시트: 능력치 12칸 숫자');
   ok((await page.locator('#s-guild [data-reroll]').count()) === 0 && !await page.isDisabled('#s-guild [data-release]'), '스킬 뽑기 제거 · 누구든 보내기 가능 (스토리 동료 없음)');
-  ok((await page.locator('#s-guild .g-msheet .g-meter').count()) === 1 && !/직업 스킬 LV/.test(await text('#s-guild .g-msheet')), '레벨 경험치 막대 하나, 규칙 글은 ⓘ 전엔 안 보임');
-  await page.click('#s-guild .g-msheet [data-tip="msheet"]'); await page.clock.runFor(50);
-  ok(/직업 스킬 LV 2 \/ 5/.test(await text('#s-guild .g-msheet .g-tip')), 'ⓘ: 직업 스킬 LV 2 / 5 (길드원 Lv 30)');
+  ok((await page.locator('#s-guild .g-msheet .g-meter').count()) === 1 && (await page.locator('#s-guild .g-info').count()) === 1, '레벨 경험치 막대 하나, ⓘ는 길드원 상세 머리 하나');
+  // 2026-10-28 Lim: 길드원 상세 ⓘ = 능력치 12칸 한 줄 설명 팝업 (신체 · 기술 · 정신), 닫으면 상세로
+  await page.click('#s-guild .g-msheet [data-stathelp]'); await page.clock.runFor(50);
+  const help = '#s-guild .g-stat-help';
+  const helpRows = await page.locator(`${help} .g-stat-row`).evaluateAll(els => els.map(e => [e.querySelector('b').textContent, e.querySelector('span').textContent]));
+  ok(await page.isVisible(help) && helpRows.length === 12 && helpRows.every(([k, v]) => k && v.length > 4) && (await page.locator(`${help} .g-stat-card`).count()) === 3 && /공격/.test(helpRows[0][0]) && /집중/.test(helpRows[11][0]), `ⓘ: 능력치 12칸 설명 팝업 (${helpRows.map(r => r[0]).join(' · ')})`);
+  const helpBox = await page.locator(help).boundingBox();
+  ok(helpBox && helpBox.y >= 0 && helpBox.y + helpBox.height <= 780 && await page.evaluate(sel => { const el = document.querySelector(sel); return el.scrollHeight <= el.clientHeight + 1; }, help), `S25: 설명 팝업이 화면 안 · 스크롤 없음 (높이 ${helpBox && Math.round(helpBox.height)})`);
+  await page.screenshot({ path: `${shots}/guild_stat_help.png` });
+  await page.click(`${help} .g-action-buttons [data-shut]`); await page.clock.runFor(50);
+  ok(await sheetOpen() && (await page.locator(help).count()) === 0, '닫기 = 길드원 상세로 돌아옴');
+  await page.click('#s-guild .g-msheet [data-stathelp]'); await page.clock.runFor(50);
+  await page.keyboard.press('Escape'); await page.clock.runFor(50);
+  ok(await sheetOpen() && (await page.locator(help).count()) === 0, 'Esc (뒤로가기) = 설명만 닫힘');
   await shut();
   await page.click(`#s-guild [data-mem="${hired.id}"] .f-mt`); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-acts > button').count()) === 2 && (await page.locator('#s-guild .g-msheet .g-tiles').count()) === 0, '길드원 상세: 후원 · 보내기 두 버튼, 기록 통계 제거');
