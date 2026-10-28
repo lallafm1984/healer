@@ -4,8 +4,8 @@
 설치된 Agent Audio의 Stable Audio 3 Medium으로 audio-to-audio 변주를 만들었다.
 원본 파일은 수정하거나 업로드하지 않았다. 유료 API 호출은 없다.
 
-- 청음: `http://127.0.0.1:5173/audio-comparison/priest-heal-20261021/index.html`
-- 결과: `public/audio-comparison/priest-heal-20261021/`
+- 청음: `http://127.0.0.1:5173/scripts/sfx/audio-comparison/priest-heal-20261021/index.html`
+- 결과: `scripts/sfx/audio-comparison/priest-heal-20261021/` (2026-10-28 APK에서 빼려고 public에서 옮김)
 - `heal-priest-close.wav` / `.ogg`: 원본에 가까운 변주
 - `heal-priest-holy.wav` / `.ogg`: 화음 변화가 더 있는 사제 치유 변주
 - 두 파일 모두 2.60초, 44.1kHz, 스테레오. 현재 게임 음원은 유지했다.
