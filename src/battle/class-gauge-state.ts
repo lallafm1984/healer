@@ -45,7 +45,7 @@ export function classGaugeState(f: Fight): ClassGaugeState {
       s.count = Math.floor(f.g.p); s.max = 100; s.description = `평온 ${s.count}%`; break;
     case 'druid': // 잎 (2026-10-28 Lim 「성기사처럼 모아서 터트려」 1안): 새싹으로 모으고 들꽃 군락이 씀
       s.count = f.leaves; s.max = LEAF.max; s.lit = f.leaves;
-      s.description = `잎 ${s.count}/${s.max}, 들꽃 군락 회복 +${Math.round((f.enc.big ? LEAF.big.heal : LEAF.heal) * s.count * 100)}%${s.count >= s.max ? ', 바로 시전' : ''}`; break;
+      { const per = f.enc.big ? LEAF.big.heal : LEAF.heal; s.description = `잎 ${s.count}/${s.max}${per ? `, 들꽃 군락 회복 +${Math.round(per * s.count * 100)}%` : ''}${s.count >= s.max ? ', 바로 시전' : ''}`; } break;
     case 'paladin':
       s.count = f.power3; s.max = powerMax(f); // 넘치는 신성한 힘 (성기 05)이면 4칸
       s.paladinWaveReady=paladinWaveReady(f);
