@@ -62,6 +62,14 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     expect(classGaugeState(f)).toMatchObject({count:1,lit:1});
     f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
+  it('신성한 힘 칸 수는 실제 최대치: 넘치는 신성한 힘이면 4칸 (2026-10-28 Lim)',()=>{
+    const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'paladin'});
+    f.power3=3;expect(classGaugeState(f)).toMatchObject({count:3,max:3,percent:100});
+    const g=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'paladin',specs:{morePower:1}});
+    g.power3=3;expect(classGaugeState(g)).toMatchObject({count:3,max:4,percent:75});
+    expect(classGaugeState(g).description).toContain('신성한 힘 3/4');
+    g.power3=4;expect(classGaugeState(g).percent).toBe(100);
+  });
   it('파도 후광은 실제 힘 소모와 끝없는 빛·가벼운 파도 조건을 따른다',()=>{
     for(const endless of [false,true])for(const free of [false,true]){
       const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'paladin'});
