@@ -1,5 +1,5 @@
 /**
- * 휴식 화면 조각 (90, 예전 81 2장): 위 줄 칸 · 휴식 창 (다음 충전 시간 · 광고 충전) · 출전 (입장 확인 팝업은 2026-10-17에 없앰).
+ * 휴식 화면 조각 (90, 예전 81 2장): 위 줄 칸 · 휴식 창 (막대 · 광고 충전) · 출전 (입장 확인 팝업은 2026-10-17에 없앰).
  * 규칙은 game/stamina.ts (코드 이름은 stamina 그대로). 팝업은 .admodal 위에 그리고, 닫으면 연 버튼으로 초점을 돌려준다.
  */
 import { REST_BONUS, STAMINA } from '../data/economy';
@@ -17,7 +17,7 @@ const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
 /**
  * 위 줄 (topBar) 휴식 칸: 누르면 휴식 창. 숫자는 1초마다 고침 (refreshCells).
  * 2026-10-16 「+1」 배지 · 남은 시간은 2026-10-20에, 다음 +1까지 차던 달 둘레 고리는 2026-10-22 Lim 「휴식 아이콘 사이즈를 골드와 동일하게해서 두줄 로 나란히」로 뺌.
- * 그림 + 지금/최대 한 줄, 그 아래 줄에 골드 (kit.ts goldCell). 남은 시간은 휴식 창에
+ * 그림 + 지금/최대 한 줄, 그 아래 줄에 골드 (kit.ts goldCell). 남은 시간은 읽어 주는 글에만 (휴식 창에서도 2026-10-28에 뺌)
  */
 export function staminaCell(): string {
   const v = view(), label = staminaLabel();
@@ -70,14 +70,6 @@ function meter(extraCls = ''): string {
     <span class="st-bar${v.n > v.max ? ' over' : ''}" aria-hidden="true"><i style="width:${pct.toFixed(1)}%"></i></span></div>`;
 }
 
-/** 다음 충전 · 가득까지 */
-function timeRows(): string {
-  const v = view();
-  if (v.unlimited) return '<p class="st-time">개발 빌드 · 휴식 무제한</p>';
-  if (!v.next) return `<p class="st-time">${v.n > v.max ? '최대치 넘음 · 쓰면 다시 참' : '가득 참'}</p>`;
-  return `<p class="st-time"><span>다음 +1 <b data-stam-next>${staminaClock(v.next)}</b></span><span>가득까지 <b data-stam-full>${staminaClock(v.full)}</b></span></p>`;
-}
-
 /** 광고 충전 버튼 (광고 제거 패키지면 광고 없이 바로) */
 function adButton(): string {
   const v = view(), free = adsFree(G.save), left = v.adsLeft;
@@ -98,10 +90,11 @@ async function charge(): Promise<boolean> {
 }
 
 // ---------- 휴식 창 (위 줄 칸 · 상점) ----------
+/** 2026-10-28 Lim: 「다음 +1 · 가득까지」 시간 줄은 없앰, 설명은 두 줄 (남은 시간은 위 칸 읽어 주는 글에만) */
 export function openStamina(): void {
   const render = (msg = '') => {
-    const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}${timeRows()}
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어할 때 콘텐츠만큼 쓰고 경험치 · 골드를 휴식 보너스로 ×${REST_BONUS} 받습니다. 모자라면 있는 만큼 쓰고 보너스도 그만큼 받습니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
+    const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어할 때 써서 경험치 · 골드를 ${REST_BONUS}배로 받습니다.</p>
       ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
     el.onclick = async e => {
@@ -126,14 +119,12 @@ export function sortie(): void {
   go('s-party');
 }
 
-// ---------- 1초마다: 보이는 휴식 숫자 · 시간 ----------
+// ---------- 1초마다: 보이는 휴식 숫자 ----------
 export function refreshCells(): void {
   if (typeof document === 'undefined') return;
   const v = view();
   document.querySelectorAll<HTMLElement>('[data-stam-n]').forEach(el => { el.textContent = amount(v.n, v.unlimited); });
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
-  document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
-  document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
   document.querySelectorAll<HTMLElement>('[data-stamina-open]').forEach(el => { const l = staminaLabel(); el.setAttribute('aria-label', l); el.title = l; });
 }
 
