@@ -19,6 +19,18 @@ export interface ClassGaugeState {
   priestAura: 'off' | 'gold' | 'blue';
   paladinWaveReady: boolean;
   beaconName: string | null;
+  /** 드루이드 잎 · 결계사 인장처럼 사람을 세는 다섯 칸에서 켜는 칸 수 (통째로만, 다른 직업은 null) */
+  lit: number | null;
+}
+/**
+ * 사람을 세는 다섯 칸 (2026-10-28 Lim 「인장 둘째 칸이 제대로 안 차는」): 칸을 일부만 채우지 않는다.
+ * 살아 있는 사람이 칸 수 이하면 칸 하나 = 한 명. 레이드처럼 더 많으면 비율대로 반올림하되, 한 명이라도 있으면 1칸 · 다 차야 마지막 칸
+ */
+export function wholeCells(count: number, live: number, slots = 5): number {
+  if (count <= 0 || live <= 0) return 0;
+  if (count >= live) return Math.min(slots, live);
+  if (live <= slots) return count;
+  return Math.max(1, Math.min(slots - 1, Math.round(count / live * slots)));
 }
 const nicknameSegments = new Intl.Segmenter('ko', { granularity: 'grapheme' });
 /** 닉네임은 표시 글자 단위로 5자까지. 전체 이름은 접근성 설명에 보존한다. */
@@ -37,13 +49,13 @@ export function paladinWaveReady(f: Fight): boolean {
 }
 export function classGaugeState(f: Fight): ClassGaugeState {
   const live = f.party.filter(u => u.alive);
-  const s: ClassGaugeState = { count: 0, max: 1, percent: 0, remaining: 0, earthRemaining: 0, earthMax: 1, earth: false, targets: 0, targetMax: 3, description: '', priestAura: 'off', paladinWaveReady:false, beaconName:null };
+  const s: ClassGaugeState = { count: 0, max: 1, percent: 0, remaining: 0, earthRemaining: 0, earthMax: 1, earth: false, targets: 0, targetMax: 3, description: '', priestAura: 'off', paladinWaveReady:false, beaconName:null, lit:null };
   switch (f.hero) {
     case 'priest':
       s.count = Math.floor(f.g.p); s.max = 100; s.description = `평온 ${s.count}%`; break;
     case 'druid':
       s.count = live.filter(u => u.hots.some(h => h.key === 'sprout' && h.left > 0)).length;
-      s.max = Math.max(1, live.length); s.description = `새싹 적용 ${s.count}/${live.length}명`; break;
+      s.max = Math.max(1, live.length); s.lit = wholeCells(s.count, live.length); s.description = `새싹 적용 ${s.count}/${live.length}명`; break;
     case 'paladin':
       s.count = f.power3; s.max = 3;
       s.paladinWaveReady=paladinWaveReady(f);
@@ -63,7 +75,7 @@ export function classGaugeState(f: Fight): ClassGaugeState {
       s.count = f.shards; s.max = shardMax(f);
       s.description = `별 조각 ${s.count}/${s.max}, 다음 별자리 별 ${starsNow(f)}개`; break;
     case 'warder':
-      s.count = live.filter(u => sealed(f, u)).length; s.max = Math.max(1, live.length);
+      s.count = live.filter(u => sealed(f, u)).length; s.max = Math.max(1, live.length); s.lit = wholeCells(s.count, live.length);
       s.targetMax = judgeCount(f); s.targets = sealTargets(f, s.targetMax).length;
       s.description = `인장 ${s.count}/${live.length}명, 심판 회복 대상 ${s.targets}/${s.targetMax}명`; break;
   }

@@ -231,7 +231,7 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
     const c=job==='priest'?null:gaugeConfig[job];
     // 주술사: 샘 물방울 · 대지 호박 보석 (묶음마다 첫 조각)이 남은 시간만큼 위에서부터 비고, 나머지 조각은 서 있는 동안 켜짐
     const earthFirst=job==='shaman'?c!.groups!.indexOf(1):-1;
-    const n=job==='priest'?s.percent/100:job==='shaman'?((c!.groups?.[i]??i)===0?(i===0?s.percent/100:s.remaining>0?1:0):i===earthFirst?Math.min(1,s.earthRemaining/s.earthMax):s.earth?1:0):Math.max(0,Math.min(1,s.percent/100*c!.masks.length-i));
+    const n=job==='priest'?s.percent/100:job==='shaman'?((c!.groups?.[i]??i)===0?(i===0?s.percent/100:s.remaining>0?1:0):i===earthFirst?Math.min(1,s.earthRemaining/s.earthMax):s.earth?1:0):s.lit!=null?(i<s.lit?1:0):Math.max(0,Math.min(1,s.percent/100*c!.masks.length-i));
     m.hidden=n<=0;
     const ys=(job==='priest'?priestWindow:c!.masks[i]).map(v=>v[1]),lo=Math.min(...ys),hi=Math.max(...ys);
     (m.firstElementChild as HTMLElement).style.clipPath=n>=1?'none':`inset(${(hi-(hi-lo)*n)/1161*100}% 0 0 0)`;
