@@ -2,6 +2,7 @@
  * 배경음 (2026-10-21 Lim 「mureka를 이용한 배경음 만들기」 · 「노래는 자르지 말고 … 구간별로 등록」).
  * 곡은 구간마다 여럿: 이 폴더의 <구간>-<번호>.ogg (Mureka로 만들어 배경음 등록판에 올린 곡을 scripts/bgm/import.py가 줄여 넣음).
  * 곡을 자르지 않고 통째로 틀고, 끝나면 그 구간의 다음 곡. 구간이 바뀌면 줄이며 바꾸고, 돌아오면 멈췄던 곡 · 자리부터 이어서.
+ * 차례는 무작위 (2026-10-28 Lim 「순차 재생이 아닌 랜덤재생 … 4개 다 재생되었다면 다시 처음 나온 순서로 순차재생」): 구간을 처음 틀 때 곡 차례를 한 번 섞고 (playOrder), 다 돌면 그 차례 그대로 다시.
  * 화면이 바뀌면 (kit go · 전투 show) syncBgm(화면 id) → 구간은 bgmFor. 전투 곡은 지역마다 (Lim 「탐험 던전 레이드는 각 지역에 맞는 테마 곡」):
  * 전투 시작 때 setBattleRegion으로 그 장소의 지역 (출전 화면 지역, data/adventure-regions)을 알려 두고, 그 지역의 탐험 · 던전 · 레이드가 같은 곡을 씀.
  * 설정 「배경음」을 끄면 멈춤 (효과음 「소리」와 따로). 앱을 내리면 멈추고 돌아오면 이어서. 곡이 없는 구간은 조용히.
@@ -58,14 +59,29 @@ const DELAY: Record<string, number> = {};
 
 let on = true;
 let want: BgmKey | null = null;
-let cur: { key: BgmKey; el: HTMLAudioElement; idx: number } | null = null;
-/** 구간마다 멈췄던 곡 · 자리 (돌아오면 이어서) */
-const pos = new Map<string, { idx: number; t: number }>();
+let cur: { key: BgmKey; el: HTMLAudioElement; idx: number; step: number } | null = null;
+/** 구간마다 멈췄던 차례 (playOrder 안의 몇 번째) · 자리 (돌아오면 이어서) */
+const pos = new Map<string, { step: number; t: number }>();
+/** 구간마다 곡 차례 (앱을 켠 동안 그대로) */
+const orders = new Map<string, number[]>();
 let token = 0;
 let unlockWait = false;
 
 /** 이 구간의 곡 수 */
 export const bgmCount = (key: string): number => lists[key]?.length ?? 0;
+
+/** 0 ~ n−1을 고르게 섞음 (Fisher–Yates) */
+export function shuffled(n: number, rnd: () => number = Math.random): number[] {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/** 구간의 곡 차례: 처음 부를 때 한 번 섞고 그 뒤로는 같은 차례 (곡 수가 바뀌면 다시 섞음) */
+export function playOrder(key: string, n = bgmCount(key), rnd: () => number = Math.random): number[] {
+  let o = orders.get(key);
+  if (!o || o.length !== n) { o = shuffled(n, rnd); orders.set(key, o); }
+  return o;
+}
 
 /** 소리 크기를 서서히 (HTMLAudioElement.volume, 50 ms마다) */
 function ramp(el: HTMLAudioElement, to: number, sec: number, then?: () => void): void {
@@ -96,21 +112,24 @@ function tryPlay(el: HTMLAudioElement): void {
 
 function stop(): void {
   if (!cur) return;
-  const { el, key, idx } = cur;
-  pos.set(key, { idx, t: el.currentTime || 0 });
+  const { el, key, step } = cur;
+  pos.set(key, { step, t: el.currentTime || 0 });
   cur = null;
   ramp(el, 0, FADE_OUT, () => { el.pause(); el.removeAttribute('src'); el.load(); });
 }
 
-function begin(key: BgmKey, idx: number, at: number, delay: number, my: number): void {
+function begin(key: BgmKey, step: number, at: number, delay: number, my: number): void {
   const list = lists[key];
+  const order = playOrder(key, list.length);
+  step %= list.length;
+  const idx = order[step];
   const el = new Audio();
   el.preload = 'auto';
   el.volume = 0;
-  el.src = list[idx % list.length];
+  el.src = list[idx];
   const vol = volOf(key);
   el.addEventListener('loadedmetadata', () => { if (at > 0 && at < el.duration - 5) el.currentTime = at; }, { once: true });
-  // 곡이 끝나면 그 구간의 다음 곡 (짧게 쉬었다가). 한 번만 트는 구간은 이어 마을 곡
+  // 곡이 끝나면 그 구간 차례의 다음 곡 (짧게 쉬었다가, 다 돌면 같은 차례 처음부터). 한 번만 트는 구간은 이어 마을 곡
   el.addEventListener('ended', () => {
     if (cur?.el !== el) return;
     cur = null;
@@ -119,12 +138,12 @@ function begin(key: BgmKey, idx: number, at: number, delay: number, my: number):
     if (ONE_SHOT.has(key)) {
       const fb = FALLBACK[key];
       pos.delete(key); // 다음 결과 화면은 처음부터
-      if (fb && bgmCount(fb)) { const p = pos.get(fb); begin(fb, p ? p.idx : Math.floor(Math.random() * bgmCount(fb)), p ? p.t : 0, 0.8, my); }
+      if (fb && bgmCount(fb)) { const p = pos.get(fb); begin(fb, p ? p.step : 0, p ? p.t : 0, 0.8, my); }
       return;
     }
-    begin(key, (idx + 1) % list.length, 0, 1.2, my);
+    begin(key, step + 1, 0, 1.2, my);
   });
-  cur = { key, el, idx: idx % list.length };
+  cur = { key, el, idx, step };
   window.setTimeout(() => {
     if (my !== token || cur?.el !== el || document.hidden) return;
     tryPlay(el);
@@ -139,10 +158,10 @@ function apply(delay = 0): void {
   if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
   stop();
   if (!key) return;
-  // 처음 트는 구간은 곡 하나를 골라서 (여럿이면 매번 같은 곡으로 시작하지 않게), 들었던 구간은 멈췄던 곳부터 (한 번만 트는 곡은 늘 처음부터)
+  // 처음 트는 구간은 섞은 차례의 첫 곡부터, 들었던 구간은 멈췄던 곳부터 (한 번만 트는 곡은 늘 처음부터)
   if (ONE_SHOT.has(key)) pos.delete(key);
   const p = pos.get(key);
-  begin(key, p ? p.idx : Math.floor(Math.random() * bgmCount(key)), p ? p.t : 0, delay, my);
+  begin(key, p ? p.step : 0, p ? p.t : 0, delay, my);
 }
 
 /** 화면이 바뀜 (kit go · 전투 show가 부름) */
@@ -176,5 +195,5 @@ if (typeof document !== 'undefined') {
 
 /** 화면 테스트용: 지금 구간 · 곡 */
 if (typeof window !== 'undefined') {
-  (window as unknown as { __bgm: () => object }).__bgm = () => ({ want, on, playing: cur?.key ?? null, idx: cur?.idx ?? null, paused: cur?.el.paused ?? null, volume: cur?.el.volume ?? null, lists: Object.fromEntries(Object.entries(lists).map(([k, v]) => [k, v.length])) });
+  (window as unknown as { __bgm: () => object }).__bgm = () => ({ want, on, playing: cur?.key ?? null, idx: cur?.idx ?? null, step: cur?.step ?? null, order: cur ? orders.get(cur.key) ?? null : null, paused: cur?.el.paused ?? null, volume: cur?.el.volume ?? null, lists: Object.fromEntries(Object.entries(lists).map(([k, v]) => [k, v.length])) });
 }

@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bgmFor, setBattleRegion, setResultWin } from '../src/bgm';
+import { bgmFor, playOrder, setBattleRegion, setResultWin, shuffled } from '../src/bgm';
 import { ADVENTURE_REGIONS } from '../src/data/adventure-regions';
 import { CONTENT } from '../src/data/content';
 
@@ -37,6 +37,18 @@ describe('배경음', () => {
     expect(bgmFor('battle')).toBe('place-brasspress');
     setBattleRegion('rust', 'plateau');
     expect(bgmFor('battle')).toBe('rust');
+  });
+
+  it('곡 차례 (2026-10-28 Lim): 처음 한 바퀴는 섞은 차례로 모든 곡을 한 번씩, 그 뒤로는 같은 차례 그대로', () => {
+    for (const n of [1, 2, 4, 7]) expect(shuffled(n).slice().sort((a, b) => a - b)).toEqual([...Array(n).keys()]);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) seen.add(shuffled(4, rnd).join(''));
+    expect(seen.size).toBeGreaterThan(10); // 여러 차례가 나옴 (늘 1-2-3-4가 아님)
+    const first = playOrder('test-section', 4, rnd).slice();
+    expect(playOrder('test-section', 4, rnd)).toEqual(first); // 다시 불러도 같은 차례
+    expect(playOrder('test-section', 5, rnd)).toHaveLength(5); // 곡 수가 바뀌면 다시 섞음
   });
 
   it('곡 파일은 <구간>-<번호>.ogg, 구간은 타이틀 · 로비 · 결과 · 지역 · 장소 (place-<장소 key>), 번호는 1부터 빠짐없이, 한 곡 4 MB 밑 (폰 앱)', () => {
