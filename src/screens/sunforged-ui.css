@@ -118,3 +118,5 @@
 #tabs button.llock { color: var(--sf-mute); }
 /* 선 자물쇠만 어둡게. 그림 자물쇠 (tab-lock)는 다른 탭 그림처럼 (2026-10-28 Lim) */
 #tabs button.llock .tab-sock:not(:has(> .g-ic)), #tabs button.tlock .tab-sock:not(:has(> .g-ic)) { filter: brightness(0.6) saturate(0.4); }
+/* 그림 자물쇠는 다른 탭 그림의 70% (2026-10-28 Lim 「길드 아이콘 크기를 70%로 해줘. (너무 꽉차보인다)」). scale 속성이라 화면마다 다른 transform 배율 위에 곱해짐 */
+#tabs button.llock .tab-sock > .g-ic, #tabs button.tlock .tab-sock > .g-ic { scale: 0.7; }
