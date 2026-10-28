@@ -313,18 +313,19 @@ function loseHtml(r: BattleResult): string {
 }
 
 /**
- * 길드원 한 사람 레벨 업 묶음 (2026-10-28 Lim 「파티원별로 묶어 잘리지 않게」): 직업 칸 · 이름 · Lv 이전 → 새 레벨 · 두 배 / 오른 능력치 칩 (줄바꿈, 자르지 않음) · 한 일.
- * 예전 한 줄 셋 (경험치 + 레벨 · 레벨업 두 배 · 능력치 둘)은 길어서 잘렸다. 두 배로 오른 칸 (dblStats)은 초록 테
+ * 길드원 한 사람 레벨 업 묶음 (2026-10-28 Lim 「파티원별로 묶어 잘리지 않게」): 직업 칸 · 이름 · Lv 이전 → 새 레벨 / 오른 능력치 칩 (줄바꿈, 자르지 않음) · 한 일.
+ * 예전 한 줄 셋 (경험치 + 레벨 · 레벨업 두 배 · 능력치 둘)은 길어서 잘렸다.
+ * 레벨업 두 배 (LV_DOUBLE)는 화면 어디에도 드러내지 않는다 (같은 날 Lim 「레벨업 두배 텍스트는 빼자. 사용자는 해당 시스템을 모르게」): 「레벨업 두 배」 글 · 두 배로 오른 칸 초록 테는 다시 넣지 않는다
  */
 function guildUpHtml(m: NonNullable<Settlement['guild']>['members'][number]): string {
   const mem = G.save.guild.members.find(x => x.nick === m.nick);
   const from = m.ups[0] - 1, to = m.ups[m.ups.length - 1];
   const got = new Map<StatKey, { n: number; to: number }>();
   for (const s of m.stats) got.set(s.k, { n: (got.get(s.k)?.n ?? 0) + 1, to: s.shown ?? s.to });
-  const dbl = new Set(m.dblStats ?? []), why = m.stats.find(s => s.why)?.why;
-  const chips = [...got].map(([k, v]) => `<span class="r-gm-st${dbl.has(k) ? ' dbl' : ''}">${STAT_NAMES[k]} <b>${v.to}</b><small>+${v.n}</small></span>`).join('');
+  const why = m.stats.find(s => s.why)?.why;
+  const chips = [...got].map(([k, v]) => `<span class="r-gm-st">${STAT_NAMES[k]} <b>${v.to}</b><small>+${v.n}</small></span>`).join('');
   const ic = mem ? `<span class="r-gm-ic" style="background:${ROLE[CLASSES[mem.cls].role].color}">${classIcon(mem.cls)}</span>` : '';
-  return `<li>${ic}<div class="r-gm-b"><p class="r-gm-l1"><b class="r-gm-nick">${esc(m.nick)}</b><span class="r-gm-lv">Lv ${from} → <b>${to}</b></span>${m.dbl ? `<i class="r-dbl">레벨업 두 배${m.dbl > 1 ? ` ×${m.dbl}` : ''}</i>` : ''}</p>${chips || why ? `<p class="r-gm-sts">${chips}${why ? `<small class="r-gm-why">${esc(why)}</small>` : ''}</p>` : ''}</div></li>`;
+  return `<li>${ic}<div class="r-gm-b"><p class="r-gm-l1"><b class="r-gm-nick">${esc(m.nick)}</b><span class="r-gm-lv">Lv ${from} → <b>${to}</b></span></p>${chips || why ? `<p class="r-gm-sts">${chips}${why ? `<small class="r-gm-why">${esc(why)}</small>` : ''}</p>` : ''}</div></li>`;
 }
 
 /**

@@ -17,12 +17,10 @@
   background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
 }
 #s-settle .r-note.hi { border-color: var(--gk-edge); }
-/* 길드원 레벨업 두 배 (103 「레벨업시 20% 확률로 2업」): 금빛 작은 글 */
-#s-settle .r-note .r-dbl { font-style: normal; font-weight: 700; color: #8ed99a; white-space: nowrap; }
 #s-settle .r-note b, #s-settle .r-rec > summary { color: var(--gk-head); }
 /*
  * 길드원 레벨 업 판 (2026-10-28 Lim 「레벨업 · 능력치 상승은 파티원별로 묶어 잘리지 않게」): 레벨이 오른 길드원 한 사람 = 한 줄 묶음.
- * 직업 칸 · 이름 · Lv 이전 → 새 레벨 · 두 배 / 오른 능력치 칩 (줄바꿈) · 한 일. 경험치 숫자는 없다
+ * 직업 칸 · 이름 · Lv 이전 → 새 레벨 / 오른 능력치 칩 (줄바꿈) · 한 일. 경험치 숫자 · 레벨업 두 배는 없다
  */
 #s-settle .r-note.r-gm { display: block; padding: 8px 10px 10px; }
 #s-settle .r-gm-h { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; font: 800 13px/1.2 var(--font-body); }
@@ -49,7 +47,6 @@
   background: var(--gk-chip); box-shadow: inset 0 0 0 1px var(--gk-card-bd); color: var(--gk-chip-ink); font: 12px/1.35 var(--font-body); white-space: nowrap;
 }
 #s-settle .r-gm-st small { color: #8ed99a; font: 700 11px/1 var(--font-body); }
-#s-settle .r-gm-st.dbl { box-shadow: inset 0 0 0 1px #8ed99a; }
 #s-settle .r-gm-why { color: var(--gk-mute); font: 12px/1.35 var(--font-body); }
 #s-settle .r-rec > summary::before { color: var(--gk-edge); }
 /* a2-theme.css의 .ns:not(#s-lobby) :is(… .meter …) 나무결보다 세게 (#s-settle.ns) */
