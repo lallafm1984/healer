@@ -112,14 +112,12 @@ export default async function talents(url, shots) {
         return r.left >= 0 && r.right <= innerWidth && r.bottom <= tab.top && controls.every(({ el, r: b }) => b.width >= 44 && b.height >= 44 && b.top >= r.top && b.bottom <= r.bottom && el.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)));
       });
       ok(safe, `${width} ${label}: 설명 닫기·CTA 44px 이상, 시트 안에 표시되고 탭바와 겹치지 않음`);
-      if (label === 'last') {
-        // 2026-10-16 Lim: 시트가 목록에 여백을 붙이지 않음 (스크롤 범위 그대로), 누른 단을 가리면 시트가 위로
-        const lastSeen = await p.evaluate(() => {
-          const c = document.querySelector('#s-char [data-tier="9"] .c7-tnodes').getBoundingClientRect(), sh = document.querySelector('#s-char .c7-tsheet').getBoundingClientRect();
-          return c.bottom <= sh.top || c.top >= sh.bottom;
-        });
-        ok(lastSeen, `${width}: 시트가 누른 최하단 단을 가리지 않음`);
-      }
+      // 2026-10-28 Lim: 특성 창은 화면 가운데 · 뒤를 어둡게 (누른 단 자리와 상관없이)
+      const centered = await p.evaluate(() => {
+        const r = document.querySelector('#s-char .c7-tsheet').getBoundingClientRect(), dim = document.querySelector('#s-char .sheet-dim');
+        return !!dim && Math.abs((r.left + r.right) / 2 - innerWidth / 2) < 2 && Math.abs((r.top + r.bottom) / 2 - innerHeight / 2) < 60;
+      });
+      ok(centered, `${width} ${label}: 특성 창이 화면 가운데 · 뒤 어둡게`);
       await p.getByRole('button', { name: '특성 설명 닫기', exact: true }).click();
       ok(!(await p.isVisible('#s-char .c7-tsheet')), `${width} ${label}: 명시적 닫기 버튼`);
     }
