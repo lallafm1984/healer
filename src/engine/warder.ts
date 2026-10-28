@@ -31,8 +31,10 @@ export interface WarderState {
   /** 거울 막 (결계 02): 빛의 막을 씌운 양 (배율 전 단위, 깨질 때 되돌림) */
   barrier: Map<number, number>;
   telSeen: number;
+  /** 결계력 (0~5, WARDER.ward): 인장이 없던 아군에게 인장을 붙이면 1칸, 심판이 씀 */
+  ward: number;
 }
-export const newWarder = (): WarderState => ({ veil: null, stepCd: 0, preCd: 0, lastCd: 0, selfAt: 0, judgeCut: 0, barrier: new Map(), telSeen: 0 });
+export const newWarder = (): WarderState => ({ veil: null, stepCd: 0, preCd: 0, lastCd: 0, selfAt: 0, judgeCut: 0, barrier: new Map(), telSeen: 0, ward: 0 });
 const st = (f: Fight): WarderState => (f.warder ??= newWarder());
 const adjLowest = (f: Fight, u: Unit, n: number, pick: (v: Unit) => boolean = () => true): Unit[] => {
   const c = cellOf(f, u);
@@ -48,6 +50,7 @@ export function putSeal(f: Fight, u: Unit): void {
   if (!u.alive) return;
   const fresh = !sealed(f, u);
   u.seal = f.t + sealSec(f);
+  if (fresh) { const s = st(f); s.ward = Math.min(WARDER.ward.max, s.ward + 1); } // 결계력 (2026-10-28 2안): 새 인장마다 1칸
   if (fresh && f.tx.on.freshSeal) heal(f, u, TX.freshSeal.amt, true);
 }
 /** 심판 · 빛의 창이 고르는 아군: 인장이 있고 살아 있고 체력이 다 차지 않은 아군 중 체력 비율이 낮은 순 */
@@ -55,6 +58,7 @@ export const sealTargets = (f: Fight, n: number): Unit[] => living(f).filter(u =
 /** 심판이 회복하는 최대 인원: 6명 (20인 · 10인 · 5인 보정), 넓은 심판 */
 export function judgeCount(f: Fight): number {
   if (f.tx.on.sharedLoad && f.warder?.veil && f.warder.veil.until > f.t && !f.warder.veil.judged) return f.party.length; // 함께 드는 짐 (82): 장막 뒤 첫 심판은 인원 제한 없이
+  if ((f.warder?.ward ?? 0) >= WARDER.ward.max) return f.party.length; // 결계력 5칸 (2026-10-28 2안): 인원 제한 없이
   const base = f.enc.big ? WARDER.big.judge : f.party.length >= 10 ? WARDER.raid.judge : f.party.length >= 5 ? WARDER.five.judge : WARDER.judge.n;
   return f.tx.on.wideJudge ? Math.max(TX.wideJudge, base) : base;
 }
@@ -98,7 +102,9 @@ function sealBurst(f: Fight, key: SkillKey, n: number, amt: number): Unit[] {
 function judgment(f: Fight): void {
   const s = st(f);
   s.judgeCut = 0;
-  const vs = sealBurst(f, 'judgment', judgeCount(f), SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)));
+  const n = s.ward, count = judgeCount(f); // 결계력을 모두 씀 (2026-10-28 2안): 칸마다 회복 +, 5칸이면 judgeCount가 인원 제한 없이
+  s.ward = 0;
+  const vs = sealBurst(f, 'judgment', count, SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)) * (1 + WARDER.ward.heal * n));
   if (s.veil && s.veil.until > f.t && f.tx.on.sharedLoad) s.veil.judged = true;
   if (vs.length >= WARDER.price.n && heroPassive(f, '인장의 대가')) f.mana = Math.min(100, f.mana + WARDER.price.mana);
   if (f.sp && sv(f, 'judgeMana')) f.mana = Math.min(100, f.mana + vs.length * sv(f, 'judgeMana')); // 심판의 마나 (결계 17)
