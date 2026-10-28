@@ -247,7 +247,7 @@ export default async function guild(url, shots) {
   ok(await page.isVisible('#s-settle'), '던전 클리어');
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   const rw = await text('#s-settle .r-notes');
-  ok(/길드원 경험치 \+\d/.test(rw) && /길드 첫 처치/.test(rw) && /명성 \+8/.test(await text('#s-settle .r-gxpw')), '결과: 길드원 경험치 · 길드 첫 처치 · 길드 막대 명성 +8 (던전 2 + 첫 처치 6, 103)');
+  ok(!/길드원 경험치/.test(rw) && /길드 첫 처치/.test(rw) && /명성 \+8/.test(await text('#s-settle .r-gxpw')), '결과: 길드원 경험치 숫자 줄 없음 (2026-10-28 Lim) · 길드 첫 처치 · 길드 막대 명성 +8 (던전 2 + 첫 처치 6, 103)');
   ok(!/인연|새 친구/.test(rw) && !(await save()).users, '결과와 저장에 인연 보상 없음');
   ok(/부탁 완료 · 든든방패 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
   sv = await save();

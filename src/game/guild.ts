@@ -10,7 +10,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, hireGold, lowStageXp, POST, REQ, REST_SHARE,
+  SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, highStageCap, hireGold, lowStageXp, POST, REQ, REST_SHARE,
   memberSkillLevel, LV_DOUBLE, spendPoints, statPerLevel, VOTE_KEEP, XP_BAND, type Deed, type GuildMember,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -294,11 +294,15 @@ export function addMemberXp(m: GuildMember, amt: number, cap: number): number[] 
   if (p.level > cap) { m.lv = cap; m.xp = bank(cap, xpToNext(cap) - 1); } else { m.lv = p.level; m.xp = bank(m.lv, p.xp); }
   return ups.filter(l => l <= cap);
 }
-/** 그 칸 경험치 (자기 레벨 기준): ±5 칸 가득, 더 높은 칸도 자기 몫까지, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지) */
+/**
+ * 그 칸 경험치 (자기 레벨 기준): ±5 칸 가득, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지),
+ * 더 높은 칸은 자기 몫이되 한 판에 다음 레벨 필요량 × highStageCap까지 (6레벨 높은 칸 90% → 30%, 2026-10-28 Lim)
+ */
 export function memberXp(m: Pick<GuildMember, 'lv'>, o: { stage: number; diff: DiffName; grade: Grade | null; raid: 0 | 10 | 20; win: boolean }): number {
   const base = clearXp(m.lv, o.diff, o.grade, { raid: o.raid, win: o.win });
-  const gap = m.lv - XP_BAND - o.stage;
-  return Math.round(base * (gap > 0 ? lowStageXp(gap) : 1));
+  const low = m.lv - XP_BAND - o.stage, high = o.stage - XP_BAND - m.lv;
+  if (low > 0) return Math.round(base * lowStageXp(low));
+  return high > 0 ? Math.min(base, Math.round(xpToNext(m.lv) * highStageCap(high))) : base;
 }
 
 /** 타고난 능력치 = Lv 1 바탕 (1000명 줄의 그 사람) */
