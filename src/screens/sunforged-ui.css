@@ -116,4 +116,5 @@
 #tabs button > small { top: 3px; right: 6px; font: 500 10px/1 var(--font-body); color: var(--sf-mute); }
 #tabs button .rdot { top: 3px; right: calc(50% - 22px); width: 10px; height: 10px; box-sizing: border-box; border: 1.5px solid #ffe7a8; }
 #tabs button.llock { color: var(--sf-mute); }
-#tabs button.llock .tab-sock, #tabs button.tlock .tab-sock { filter: brightness(0.6) saturate(0.4); }
+/* 선 자물쇠만 어둡게. 그림 자물쇠 (tab-lock)는 다른 탭 그림처럼 (2026-10-28 Lim) */
+#tabs button.llock .tab-sock:not(:has(> .g-ic)), #tabs button.tlock .tab-sock:not(:has(> .g-ic)) { filter: brightness(0.6) saturate(0.4); }
