@@ -9,7 +9,8 @@ Claude가 등록판 db의 tracks (use가 꺼지지 않은 곡)를 읽고 조각�
 3. 맨 앞 20 ms · 맨 끝 0.5초만 짧게 페이드 (딸깍 소리 막기). 결과 곡 (victory · defeat)은 30초로 (Lim 「30초 분량」, Mureka는 3분쯤 만듦):
    조용한 도입을 건너뛰고 (1초 세기가 곡의 큰 소리 −8 dB에 처음 닿는 곳) 30초, 끝 2.5초 페이드
 4. Ogg Opus 스테레오 → <구간>-<번호>.ogg. 앱 용량을 최대한 줄이게 (2026-10-21 Lim 「용량을 최대한 줄여서」, 곡 56개 · 약 170분)
-   타이틀 · 로비 약 38 kbps (3분 곡 약 0.85 MB), 지역 전투 · 결과 곡은 효과음에 묻혀 약 32 kbps (약 0.7 MB).
+   타이틀 · 로비 약 38 kbps (3분 곡 약 0.85 MB), 결과 곡 약 32 kbps, 지역 전투 곡은 효과음에 묻혀 약 24 kbps (약 0.55 MB,
+   2026-10-28 Lim 「음질은 24k로 줄여보자. 전투곡을 자르지는 말아줘」, 이미 넣은 곡은 recompress.py로).
    구간의 옛 파일은 지우고 새로 씀
 
 실행:
@@ -29,9 +30,9 @@ import soundfile as sf
 OUT_SR = 48000
 RMS_TARGET_DB = -18.0
 PEAK_MAX_DB = -1.0
-# libsndfile Opus 압축 정도 → 스테레오 비트율 (0.9 = 64 kbps, 0.95 = 38, 0.96 = 33, 0.97 = 28)
-OPUS_LEVEL = {"title": 0.95, "lobby": 0.95}
-OPUS_LEVEL_BATTLE = 0.962
+# libsndfile Opus 압축 정도 → 스테레오 비트율 (0.9 = 64 kbps, 0.95 = 38, 0.962 = 32, 0.97 = 28, 0.978 = 24)
+OPUS_LEVEL = {"title": 0.95, "lobby": 0.95, "victory": 0.962, "defeat": 0.962}
+OPUS_LEVEL_BATTLE = 0.978
 # 결과 곡 길이 (초)
 CUE = {"victory", "defeat"}
 CUE_LEN, CUE_FADE = 30.0, 2.5
