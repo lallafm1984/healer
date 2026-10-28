@@ -45,7 +45,7 @@ export default async function guild(url, shots) {
   const story0 = await text('#s-guild .g-story');
   ok(/원정대 깃발/.test(story0) && /공고를 내면 동료가 찾아온다/.test(story0) && !/말없는탱|이 힐러 놓치면/.test(story0) && (await text('#storyOk')).trim() === '모집 공고 보기', '결성 카드: 공고 영입 안내 · 「모집 공고 보기」');
   ok(/길드원 영입 뒤 부탁 도착/.test(await text('#s-guild .g-home')) && (await text('#guildRecruit')).trim() === '모집 공고로 영입' && (await page.locator('#guildGo').count()) === 0, '길드원 0명: 부탁 자리 안내 · 아래 버튼 「모집 공고로 영입」');
-  ok((await page.locator('#s-guild .g-exped').count()) === 0 || /길드원 2명부터 도전/.test(await text('#s-guild .g-exped')), '길드원 0명: 주간 원정 「길드원 2명부터 도전」');
+  ok((await page.locator('#s-guild .g-exped').count()) === 0 || /길드원 영입 뒤 도전/.test(await text('#s-guild .g-exped')), '길드원 0명: 주간 원정 「길드원 영입 뒤 도전」');
   await page.screenshot({ path: `${shots}/guild_founded.png` });
   await page.click('#storyOk'); await page.clock.runFor(50);
   ok((await page.getAttribute('#s-guild .subtabs [data-sub="recruit"]', 'aria-selected')) === 'true' && (await save()).guild.storySeen, '「모집 공고 보기」 = 결성 카드 닫힘 · 영입 탭');

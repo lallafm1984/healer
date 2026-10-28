@@ -82,7 +82,7 @@ const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = re
 const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
 
 /**
- * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 레이드 길드파티 인원 (10인 5 · 20인 10명, guildPartyNeed), 길드를 빼 두면 그 줄 없음.
+ * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 레이드를 길드원만으로 다 채우는 인원 (10인 9 · 20인 19명, guildPartyNeed, 2026-10-28 길드파티는 길드원만), 길드를 빼 두면 그 줄 없음.
  * (권장 파티 전투력 줄은 없음: 전투력 숫자는 길드 v2에서 없앰)
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
@@ -94,7 +94,7 @@ function gateTracker(): string {
   const lv = G.save.player.level;
   const g = GATES.find(x => lv >= x.from && lv < x.lv);
   if (!g || G.save.tut < TUT.done) return '';
-  // 레이드 길드파티 인원 (10인 5 · 20인 10명), 길드원은 역할 자리로 셈 (105 QA 2: 탱커 3 + 딜러 7도 「10명 ✓」였음)
+  // 레이드 길드파티 인원 (10인 9 · 20인 19명), 길드원은 역할 자리로 셈 (105 QA 2: 탱커 3 + 딜러 7도 「10명 ✓」였음)
   const enc = ENCOUNTERS[contentOf(g.lv >= 70 ? 'cathedral1' : 'abyss1').fights('보통')[0]], need = guildPartyNeed(g.lv >= 70 ? 20 : 10), have = guildSeatCount(G.save, enc);
   const gi = ITEM_GRADES.indexOf(g.grade);
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;

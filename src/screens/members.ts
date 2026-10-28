@@ -89,13 +89,13 @@ export function classIcon(cls: ClassKey): string {
  * 성격은 분류색 테두리와 전체 이름을 표시한다. 효과는 상세 시트에 둔다.
  * 레벨 (`.f-lv`)은 테 두른 칩으로 크게, 스킬 LV (`.skill-level`)는 테 없이 작은 글자 (2026-10-28 Lim 「스킬레벨이 더 강조되어 일반 레벨로 보인다 … 바꾸자」).
  */
-export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
+export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
     ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
-    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span>
+    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span>
     <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 

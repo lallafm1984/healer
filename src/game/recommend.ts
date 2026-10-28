@@ -11,7 +11,7 @@ import { habitOf, memberSkillLevel, type GuildMember } from '../data/guild';
 import { PERS } from '../data/personalities';
 import { create } from '../engine';
 import { topLevel, type SaveData } from '../platform/storage';
-import { slotsOf } from './guild';
+import { shapePick } from './guild';
 
 export type Feature = 'buster' | 'adds' | 'cut' | 'zone' | 'aoe' | 'poison';
 /** 칩 글 (「독 · 질병 → 독소 정화」) */
@@ -81,13 +81,12 @@ export function recScore(save: SaveData, m: GuildMember, encs: readonly Encounte
   return { id: m.id, score, fits };
 }
 
-/** 추천 편성: 탱커 자리 · 딜러 자리를 점수 순으로 채움. why = 고른 이유 칩 (보스 특징 → 직업 스킬) 3개까지 */
+/** 추천 편성: 탱커 자리 · 딜러 자리를 점수 순으로 채우고, 남은 자리는 남은 길드원 점수 순 (빈 칸보다 나음). why = 고른 이유 칩 (보스 특징 → 직업 스킬) 3개까지 */
 export function recommendPick(save: SaveData, enc: Encounter, encs: readonly EncounterKey[], stage: number): { pick: number[]; why: string[] } {
-  const sl = slotsOf(enc), ms = save.guild.members;
+  const ms = save.guild.members;
   const scored = ms.map(m => ({ m, s: recScore(save, m, encs, stage) })).sort((a, b) => b.s.score - a.s.score || b.m.lv - a.m.lv);
-  const tanks = scored.filter(x => CLASSES[x.m.cls].role === 'tank').slice(0, sl.tank);
-  const dps = scored.filter(x => CLASSES[x.m.cls].role !== 'tank').slice(0, sl.dps);
-  const picked = [...tanks, ...dps];
+  const shaped = shapePick(scored, x => CLASSES[x.m.cls].role === 'tank', enc);
+  const picked = [...shaped.filter(x => CLASSES[x.m.cls].role === 'tank'), ...shaped.filter(x => CLASSES[x.m.cls].role !== 'tank')];
   const why: string[] = [];
   const seen = new Set<Feature>();
   for (const x of picked) for (const f of x.s.fits) {

@@ -82,7 +82,7 @@ describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에�
     expect(d.guild.nextId).toBe(5);
     expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
-  it('길드원 0 · 1명: 부탁은 그날을 쓰지 않고 첫 영입 뒤 바로, 주간 원정은 던전 칸 (2명부터 길드파티), 판 뒤 정산도 그대로', () => {
+  it('길드원 0 · 1명: 부탁은 그날을 쓰지 않고 첫 영입 뒤 바로, 주간 원정은 던전 칸 (레이드는 길드원으로 자리를 다 채울 때만), 판 뒤 정산도 그대로', () => {
     const T = new Date(2026, 9, 7, 12).getTime(), stages = [{ content: 'rustfort', diff: '보통' as const }];
     const s = save(30);
     refreshReqs(s, stages, rng, T);
@@ -124,9 +124,10 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
   it('원정: 주마다 3곳 (5인 · 10인 · 20인, 안 열렸거나 길드파티 인원이 모자라면 던전), 길드파티로 보통 이상 = 칸마다 명성 +10, 셋 다 = 상자 (골드 5판 + 장비 1)', () => {
     const few = save(80); [add(few, 'warrior', 0), add(few, 'mage', 0), add(few, 'mage', 1)];
     refreshExped(few, () => true, T);
-    expect(few.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'))).toEqual([5, 5, 5]); // 길드원 3명: 10인 (5명) · 20인 (10명) 길드파티 안 됨 (103)
+    expect(few.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'))).toEqual([5, 5, 5]); // 길드원 3명: 10인 (9자리) · 20인 (19자리)을 길드원만으로 못 채움 (103, 2026-10-28 길드파티는 길드원만)
     const s = save(80), ms = [add(s, 'warrior', 0), add(s, 'mage', 0), add(s, 'mage', 1)];
-    for (let i = 2; i < 9; i++) add(s, 'archer', i); // 10명 = 20인 길드파티
+    add(s, 'warrior', 1);
+    for (let i = 2; i < 17; i++) add(s, 'archer', i); // 19명 (탱커 2 · 딜러 17) = 20인 자리를 다 채움
     s.guild.fame = 2000;
     refreshExped(s, () => true, T);
     expect(s.guild.exped.list.length).toBe(EXPED.n);
@@ -155,12 +156,12 @@ describe('주간 원정 주 중 다시 뽑기 (105 QA)', () => {
   it('주 중에 길드원이 줄어 길드파티를 못 꾸리는 안 깬 레이드 칸만 던전으로', () => {
     const T = new Date(2026, 9, 7, 12).getTime(), s = save(80);
     add(s, 'warrior', 0); add(s, 'warrior', 1);
-    for (let i = 0; i < 8; i++) add(s, i % 2 ? 'archer' : 'mage', i);
+    for (let i = 0; i < 17; i++) add(s, i % 2 ? 'archer' : 'mage', i);
     refreshExped(s, () => true, T);
     const size = () => s.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'));
     expect(size()).toEqual([5, 10, 20]);
     s.guild.exped.list[1].done = true; // 10인은 이미 깸
-    s.guild.members.splice(2, 3); // 7명: 10인 (5) 은 되고 20인 (10) 은 안 됨
+    s.guild.members.splice(2, 3); // 16명: 10인 (9자리) 은 되고 20인 (19자리) 은 안 됨
     refreshExped(s, () => true, T + 3600e3);
     expect(size()).toEqual([5, 10, 5]);
     expect(s.guild.exped.list[1].done).toBe(true);

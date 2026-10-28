@@ -187,8 +187,9 @@ function fightOnce(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number
   if (c.key === 'tutorial') roster = DUO_PARTY;
   else {
     const pub = recruitParty(segs[0], o.seed, { abilities: !tut, myLv: lv, stageLv: o.chal ? m.stage : recLevel(c, d), exclude: recruitExclude(save) }); // 길드원 · 공고 지원자는 빠짐 · 권장 레벨 ±1 (게임과 같음)
-    // 길드파티는 「추천 편성」 (game/recommend: 보스 특징에 맞는 능력 · 레벨)으로 (autoPick = 레벨 순은 끊기 · 쫄 처리가 빠져 Lv 86 뒤 특정 칸을 0%로 졌음, 2026-10-22)
-    roster = o.guild && save.guild.founded && save.guild.members.length && guildPartyFits(save, enc) ? guildRoster(save, recommendPick(save, enc, segs, m.stage).pick, pub, enc, o.seed) : pub;
+    // 길드파티는 「추천 편성」 (game/recommend: 보스 특징에 맞는 능력 · 레벨)으로 (autoPick = 레벨 순은 끊기 · 쫄 처리가 빠져 Lv 86 뒤 특정 칸을 0%로 졌음, 2026-10-22).
+    // 길드파티는 길드원만이라 (2026-10-28 Lim) 역할 자리를 다 채울 수 있을 때만 (빈 칸 판은 안 감)
+    roster = o.guild && save.guild.founded && guildPartyFits(save, enc) ? guildRoster(save, recommendPick(save, enc, segs, m.stage).pick, o.seed) : pub;
   }
   const talents = tut ? undefined : heroSaveOf(save, hero).talents;
   const gearStats = gearStatsOf(save.gear.equipped, lv), specs = specsOf(save.gear.equipped, hero);

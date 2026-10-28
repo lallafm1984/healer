@@ -205,46 +205,46 @@ export const sizeKey = (enc: Encounter): '3' | '5' | '10' | '20' => { const n = 
 /** 편성 순서 (지난 편성 밖): 레벨 → 합류 순 */
 const order = (save: SaveData) => save.guild.members.slice().sort((a, b) => b.lv - a.lv || a.id - b.id);
 
-/** 처음 편성: 그 규모의 지난 편성 중 남아 있는 사람 + 빈자리는 레벨 높은 순 */
-export function autoPick(save: SaveData, enc: Encounter, fresh = false): number[] {
-  const sl = slotsOf(enc), ms = save.guild.members;
-  const pick: number[] = [];
-  const fits = (m: GuildMember) => {
-    const tank = CLASSES[m.cls].role === 'tank';
-    const n = pick.filter(id => CLASSES[ms.find(x => x.id === id)!.cls].role === 'tank').length;
-    return tank ? n < sl.tank : pick.length - n < sl.dps;
-  };
-  if (!fresh) for (const id of save.guild.picks[sizeKey(enc)] ?? []) { const m = ms.find(x => x.id === id); if (m && fits(m)) pick.push(id); }
-  for (const m of order(save)) if (!pick.includes(m.id) && fits(m)) pick.push(m.id);
+/** 길드파티 자리 수 (나 빼고): 탐험 2 · 5인 4 · 10인 9 · 20인 19 */
+export const seatsOf = (enc: Encounter) => { const sl = slotsOf(enc); return sl.tank + sl.dps; };
+/**
+ * 역할 자리 모양 (탱커 자리 · 딜러 자리)대로 고른 뒤 남은 자리는 남은 길드원 (역할 상관없이) 차례로.
+ * 길드파티는 역할 자리 제한 없이 마음대로 꾸림 (2026-10-28 Lim): 처음 편성 · 추천 편성만 이 모양으로 채움
+ */
+export function shapePick<T>(list: readonly T[], isTank: (x: T) => boolean, enc: Encounter, start: readonly T[] = []): T[] {
+  const sl = slotsOf(enc), seats = seatsOf(enc), pick = start.slice(0, seats);
+  for (const x of list) {
+    if (pick.length >= seats || pick.includes(x)) continue;
+    const n = pick.filter(isTank).length;
+    if (isTank(x) ? n < sl.tank : pick.length - n < sl.dps) pick.push(x);
+  }
+  for (const x of list) if (pick.length < seats && !pick.includes(x)) pick.push(x);
   return pick;
 }
 
-/** 편성에 넣고 빼기. 자리가 다 찼으면 이유 */
+/** 처음 편성: 그 규모의 지난 편성 중 남아 있는 사람 + 빈자리는 레벨 높은 순 (역할 자리 모양 먼저) */
+export function autoPick(save: SaveData, enc: Encounter, fresh = false): number[] {
+  const ms = save.guild.members, tank = (id: number) => CLASSES[ms.find(x => x.id === id)!.cls].role === 'tank';
+  const last = fresh ? [] : (save.guild.picks[sizeKey(enc)] ?? []).filter(id => ms.some(x => x.id === id));
+  return shapePick(order(save).map(m => m.id), tank, enc, last);
+}
+
+/** 편성에 넣고 빼기 (역할 자리 제한 없음, 2026-10-28 Lim). 자리가 다 찼으면 이유 */
 export function togglePick(save: SaveData, enc: Encounter, pick: number[], id: number): { pick: number[]; msg: string } {
   if (pick.includes(id)) return { pick: pick.filter(x => x !== id), msg: '' };
-  const m = save.guild.members.find(x => x.id === id);
-  if (!m) return { pick, msg: '' };
-  const sl = slotsOf(enc), ms = save.guild.members;
-  const tanks = pick.filter(x => CLASSES[ms.find(y => y.id === x)!.cls].role === 'tank').length;
-  if (CLASSES[m.cls].role === 'tank' ? tanks >= sl.tank : pick.length - tanks >= sl.dps) return { pick, msg: `${CLASSES[m.cls].role === 'tank' ? '탱커' : '딜러'} 자리가 다 참` };
+  if (!save.guild.members.some(x => x.id === id)) return { pick, msg: '' };
+  if (pick.length >= seatsOf(enc)) return { pick, msg: '자리가 다 참' };
   return { pick: [...pick, id], msg: '' };
 }
 export const savePick = (save: SaveData, enc: Encounter, pick: number[]) => { save.guild.picks[sizeKey(enc)] = pick.slice(); };
 
 /**
- * 길드파티: 고른 길드원 + 빈자리는 공개모집 파티 (같은 시드)에서 채움 (02 9-2: 길드원이 모자라도 입장 가능).
- * 공개모집 쪽은 역할이 맞는 사람부터 순서대로
+ * 길드파티: 고른 길드원만 (2026-10-28 Lim 「공개모집의 멤버랑 같이 하지 않고 길드멤버끼리만」). 길드원이 자리보다 적으면 빈 칸으로 출발.
+ * 탱커가 앞 (전투 배치 차례와 같게)
  */
-export function guildRoster(save: SaveData, pick: number[], publicParty: RosterEntry[], enc: Encounter, seed = 1): RosterEntry[] {
+export function guildRoster(save: SaveData, pick: readonly number[], seed = 1): RosterEntry[] {
   const ms = pick.map(id => save.guild.members.find(m => m.id === id)).filter((m): m is GuildMember => !!m).map(m => memberEntry(save, m, seed));
-  const sl = slotsOf(enc);
-  const needTank = sl.tank - ms.filter(m => m.role === 'tank').length;
-  const needDps = sl.dps - ms.filter(m => m.role !== 'tank').length;
-  const names = new Set(ms.map(m => m.nick));
-  const fill = (list: RosterEntry[], n: number) => list.filter(p => !names.has(p.nick)).slice(0, Math.max(0, n));
-  const tanks = fill(publicParty.filter(p => p.role === 'tank'), needTank);
-  const dps = fill(publicParty.filter(p => p.role !== 'tank'), needDps);
-  return [...ms.filter(m => m.role === 'tank'), ...tanks, ...ms.filter(m => m.role !== 'tank'), ...dps];
+  return [...ms.filter(m => m.role === 'tank'), ...ms.filter(m => m.role !== 'tank')];
 }
 /** 공개모집에서 빼는 사람: 길드원 (내 길드원이 파티 찾기로 들어오면 어색함, 93 7-2) */
 export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.members.map(m => m.nick));
@@ -252,13 +252,13 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 export const recruitExclude = (save: SaveData): Set<string> => new Set([...guildNicks(save), ...(save.guild.post?.cands ?? []).map(c => c.nick)]);
 
 // ---------- 판 뒤 ----------
-/** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준) */
+/** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준). 편성 길드파티 탭은 길드원만이라 늘 길드파티, 공개모집은 길드원이 안 나와 아님 */
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
-/** 길드파티가 되는 길드원 수 (자리 = 인원 − 나): 탐험 1 · 5인 2 · 10인 5 · 20인 10 (isGuildParty와 같은 셈) */
-export const guildPartyNeed = (size: number) => Math.max(1, Math.ceil((size - 1) / 2));
-/** 지금 길드원으로 이 판 길드파티를 꾸릴 수 있나: 역할 자리로 셈 (min(탱커, 탱커 자리) + min(딜러, 딜러 자리) ≥ 길드파티 인원, 105 QA: 탱커 3 + 딜러 7이면 20인은 9명뿐) */
+/** 길드원으로 다 채운 길드파티 인원 (나 빼고): 탐험 2 · 5인 4 · 10인 9 · 20인 19 (2026-10-28 길드원만 출전, 예전 자리 절반) */
+export const guildPartyNeed = (size: number) => Math.max(1, size - 1);
+/** 지금 길드원으로 이 판 길드파티를 빈 칸 없이 꾸릴 수 있나: 역할 자리로 셈 (105 QA: 탱커 3 + 딜러 7이면 20인은 탱커 자리 2 · 딜러 7뿐) */
 export function guildPartyFits(save: SaveData, enc: Encounter): boolean {
-  return guildSeatCount(save, enc) >= guildPartyNeed(slotsOf(enc).tank + slotsOf(enc).dps + 1);
+  return guildSeatCount(save, enc) >= seatsOf(enc);
 }
 /** 길드원으로 채울 수 있는 자리 수 (역할 자리로 셈) */
 export function guildSeatCount(save: SaveData, enc: Encounter): number {

@@ -220,7 +220,6 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .pickhead { display: flex; align-items: baseline; gap: 8px; }
 .pickhead small { color: var(--mute); font-size: 12px; }
 .pcard.picked { border-color: var(--gold); background: #22201A; }
-.pcard.fill { opacity: 0.75; border-style: dashed; }
 .pcard .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; align-self: center; }
 .pcard .pick.on { background: var(--gold); border-color: var(--gold); }
 
