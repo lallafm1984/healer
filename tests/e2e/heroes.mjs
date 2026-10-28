@@ -48,11 +48,13 @@ export default async function heroes(url, shots) {
   ok((await page.locator('#s-char .c7-jobs-upcoming').count()) === 0, '79 직업 4종을 모두 켜서 「곧 열림」 목록 없음');
   for (const [h, n] of [['shaman', '주술사'], ['monk', '수도사'], ['astrologer', '점성술사'], ['warder', '결계사']]) {
     const row = `#s-char .c7-hc.locked.buy[data-hcard="${h}"]`;
-    ok(await page.isVisible(row) && /2,200원/.test(await text(row)) && !/Lv \d/.test(await text(row)) && /상점 2,200원/.test(await page.getAttribute(row, 'aria-label')), `${n}: 상점 구매 2,200원 (레벨 해금 없음, 81)`);
+    ok(await page.isVisible(row) && /2,200원/.test(await text(row)) && !/Lv \d/.test(await text(row)) && /상점 2,200원/.test(await page.getAttribute(row, 'aria-label')) && await page.getAttribute(row, 'aria-haspopup') === 'dialog', `${n}: 상점 구매 2,200원 (레벨 해금 없음, 81)`);
   }
   await page.screenshot({ path: `${shots}/heroes_list.png` });
   await page.click('#s-char [data-hcard="warder"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-shop') && (await page.locator('#s-char .c7-job-sheet').count()) === 0 && (await save()).hero === 'priest', '판매 직업 행 → 상점 (상세 · 전환 없음)');
+  ok(await page.isVisible('#s-char .c7-job-sheet[data-hdet="warder"]') && /상점으로 이동/.test(await text('#s-char .c7-hcta')) && !(await page.isDisabled('#s-char .c7-hcta')) && (await page.locator('#s-char [data-hero="warder"]').count()) === 0, '판매 직업 행 → 소개 시트, 아래 버튼 = 상점으로 이동 (전환 없음)');
+  await page.click('#s-char .c7-hcta'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop [data-prod="job_warder"].hi') && (await save()).hero === 'priest', '상점으로 이동 → 상점 그 직업 상품 강조');
   await page.click('#s-shop .tb-back'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-char'), '상점 뒤로 = 들어온 캐릭터 화면으로 복귀');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
