@@ -42,7 +42,6 @@
 
 /* ---------- 틀 ---------- */
 #s-char .c7-body { padding: 12px 12px calc(var(--tabs-h) + 16px); gap: 10px; }
-#s-char .c7-msg { margin: 0; }
 #s-char .note { margin: 0; }
 #s-char .c7-sec { display: flex; flex-direction: column; gap: 6px; }
 /* 제목 + 금빛 줄 (시안 .sh · .tapr h4) */

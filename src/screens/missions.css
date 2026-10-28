@@ -8,7 +8,6 @@
 #s-missions.ns .missions::-webkit-scrollbar { display: none; }
 #s-missions.ns .m-panel { display: flex; flex-direction: column; gap: 10px; }
 #s-missions.ns .m-panel[hidden] { display: none; }
-#s-missions.ns .missions .warnbox { margin: 10px 0 0; }
 #s-missions.ns .missions .g-card { flex: none; }
 
 /* ---------- 그림 머리: 상점 · 행상인 머리와 같은 결 (임무 게시판 그림, 「새 임무」 알약은 2026-10-24 Lim이 뺌) ---------- */

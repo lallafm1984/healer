@@ -91,3 +91,23 @@ export function askModal(title: string, bodyHtml: string, no: string, ok: string
     (document.getElementById('app') || document.body).appendChild(box);
   });
 }
+
+/**
+ * 알림 창 (고르기 창과 같은 모양 · 버튼 하나): 구매 · 받기 · 영입이 안 된 까닭 (2026-10-28 Lim 「저렇게 가운데 생기는 ui는 최대한 자제」,
+ * 예전 목록 위 알림 줄). 확인 · 뒤로가기로 닫힘
+ */
+export function noticeModal(title: string, bodyHtml: string, ok = '확인'): Promise<void> {
+  return new Promise(resolve => {
+    const box = document.createElement('div');
+    box.className = 'admodal ask notice';
+    box.innerHTML = `<div class="panel" role="alertdialog" aria-modal="true" aria-label="${title}"><h3>${title}</h3><p>${bodyHtml}</p>
+      <div class="row1"><button class="btn primary" type="button" data-ask="close">${ok}</button></div></div>`;
+    box.addEventListener('click', e => {
+      if (!(e.target as HTMLElement).closest('[data-ask]')) return;
+      box.remove();
+      resolve();
+    });
+    (document.getElementById('app') || document.body).appendChild(box);
+    box.querySelector<HTMLElement>('[data-ask]')?.focus({ preventScroll: true });
+  });
+}

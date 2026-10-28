@@ -27,6 +27,7 @@ import { classEmblem, currencyAmount, gameIcon, gearArt, gearIcon, LOCK, uiIcon 
 import { battle, current, freshEntry, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
+import { noticeModal } from '../platform/ads';
 import { TAP_SLOP } from './tap-slop';
 import { sfx } from '../sfx';
 
@@ -40,7 +41,6 @@ let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
 let sel: string | null = null;
 let swapping = false;
-let msg = '';
 let sheet: Sheet = null;
 /** 판매 확인 (91, 예전 분해): 확인 전에는 재화와 장비를 변경하지 않는다. sellMany = 고른 장비 여러 개 */
 let pending: { kind: 'sell'; id: number } | { kind: 'sellMany' } | null = null;
@@ -61,7 +61,7 @@ const s = screen('s-char', '캐릭터', {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
     else if (fresh) sub = SUBS[0].key;
     if (fresh) bagFilter = 'all';
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; picks = null; skOpen = null;
+    sel = null; swapping = false; sheet = null; pending = null; picks = null; skOpen = null;
     render(false);
   },
 });
@@ -72,7 +72,7 @@ export function openItemDetail(id: number, onClose: () => void): boolean {
   if (itemOverlay && s.el.hidden) { sub = itemOverlay.previousSub; itemOverlay = null; }
   if (!findItem(id) || current === s.el.id || itemOverlay) return false;
   itemOverlay = { origin: current, previousSub: sub, onClose };
-  sub = 'gear'; sheet = { k: 'item', id }; pending = null; msg = ''; sheetKey = '';
+  sub = 'gear'; sheet = { k: 'item', id }; pending = null; sheetKey = '';
   s.el.classList.add('c7-item-overlay'); s.el.hidden = false;
   render(false);
   return true;
@@ -310,7 +310,6 @@ function inventoryHtml(): string {
   return `<section class="c7-inventory${picks ? ' c7-picking' : ''}" aria-label="인벤토리">
       <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3>${picks ? pickBarHtml() : ''}</header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
-      ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
 }
 
@@ -377,8 +376,7 @@ function itemSheet(id: number): string {
         <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span></span></div>
       <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${own}${lostHtml}</div>
       ${spec}
-      ${readOnly ? '' : `${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
-      <div class="c7-sbtns">
+      ${readOnly ? '' : `<div class="c7-sbtns">
         <button type="button" class="c7-sb c7-lockb" data-lock="${it.id}" aria-pressed="${!!it.lock}">${uiIcon('lock')}<small>${it.lock ? '잠김' : '잠금'}</small></button>
         <button type="button" class="c7-sb c7-salvb" data-sell1="${it.id}"${worn || it.lock ? ' disabled' : ''}>판매<small>${worn ? '착용 중' : it.lock ? '잠김' : currencyAmount('gold', sellGold(it))}</small></button>
         <button type="button" class="c7-cta" data-equip="${it.id}"${worn ? ' disabled' : ''}>${worn ? '착용 중' : '장착'}</button>
@@ -423,7 +421,7 @@ function confirmAction(): void {
   if (action.kind === 'sellMany') {
     const r = sell(pickedItems().map(it => it.id));
     sfx(r.n ? 'gear-sell' : 'deny');
-    pending = null; picks = null; msg = '';
+    pending = null; picks = null;
     render();
     s.el.querySelector<HTMLElement>('#gearInventoryTitle')?.focus({ preventScroll: true });
     return;
@@ -435,7 +433,7 @@ function confirmAction(): void {
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
   const r = sell([action.id]);
   sfx(r.n ? 'gear-sell' : 'deny');
-  msg = ''; // 판매 골드 띠 (「판매: 골드 +N」)는 없앰 (2026-10-24 Lim): 위 정보창 골드가 바로 오름
+  // 판매 골드 띠 (「판매: 골드 +N」)는 없앰 (2026-10-24 Lim): 위 정보창 골드가 바로 오름
   if (r.n) sheet = null;
   render();
   if (r.n) {
@@ -847,7 +845,7 @@ function heroSheet(k: HeroKey): string {
   const act = available ? ` data-hero="${k}"` : shop ? ` data-shopjob="${k}"` : ' disabled';
   return `<div class="sheet-dim" data-sheetx></div><section class="sheet c7-job-sheet" data-hdet="${k}" aria-labelledby="jobDetailTitle" aria-describedby="jobDetailIntro">
     <button type="button" class="c7-dialog-close" data-sheetx aria-label="직업 상세 닫기">닫기</button>
-    ${heroDetail(k)}<footer class="c7-job-footer">${msg ? `<p class="c7-msg" role="status">${esc(msg)}</p>` : ''}
+    ${heroDetail(k)}<footer class="c7-job-footer">
       <button type="button" class="c7-hcta"${act}>${esc(label)}</button>
     </footer></section>`;
 }
@@ -860,7 +858,7 @@ function closeSheet(): void {
   const closingItem = sheet?.k === 'item' ? sheet : null;
   const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
   sheet = null;
-  msg = ''; render();
+  render();
   if (talentReturn) focusTalentControl(`[data-tcell="${talentReturn}"]`);
   if (inventoryReturn !== undefined) {
     const cells = s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]');
@@ -919,18 +917,17 @@ function onClick(t: HTMLElement): boolean {
   if (gi) {
     const inventoryIndex = Array.from(s.el.querySelectorAll('.c7-inventory [data-gitem]')).indexOf(gi);
     sheet = { k: 'item', id: Number(gi.dataset.gitem), ...(inventoryIndex >= 0 ? { inventoryIndex } : {}) };
-    msg = '';
     render(); return true;
   }
   const gs = t.closest<HTMLButtonElement>('[data-gslot]');
   if (gs) {
     const best = G.save.gear.bag.filter(x => x.slot === gs.dataset.gslot).sort(SORTS.score.cmp)[0];
-    if (best) { sheet = { k: 'item', id: best.id }; msg = ''; render(); }
+    if (best) { sheet = { k: 'item', id: best.id }; render(); }
     return true;
   }
-  if (t.closest('[data-sheet="stats"]')) { sheet = { k: 'stats' }; msg = ''; render(); return true; }
+  if (t.closest('[data-sheet="stats"]')) { sheet = { k: 'stats' }; render(); return true; }
   const lk = t.closest<HTMLElement>('[data-lock]');
-  if (lk) { sfx(toggleLock(Number(lk.dataset.lock)) ? 'gear-lock' : 'deny'); msg = ''; render(); return true; }
+  if (lk) { sfx(toggleLock(Number(lk.dataset.lock)) ? 'gear-lock' : 'deny'); render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
   if (eq) {
     // 장착하면 상세 시트를 닫고 인벤토리로 돌아감 (2026-10-25 Lim). 못 하면 시트 그대로
@@ -939,7 +936,7 @@ function onClick(t: HTMLElement): boolean {
     const done = G.save.gear.bag.some(x => x.id === wornNow);
     if (done) equip(wornNow);
     sfx(done ? 'gear-equip' : 'deny');
-    if (done) closeSheet(); else { msg = ''; render(); }
+    if (done) closeSheet(); else render();
     return true;
   }
   const s1 = t.closest<HTMLButtonElement>('[data-sell1]');
@@ -980,17 +977,17 @@ function onClick(t: HTMLElement): boolean {
   if (hb) {
     if (hb.disabled) return true;
     const k = hb.dataset.hero as HeroKey;
-    msg = switchHero(k) ? '' : '바꿀 수 없음';
-    sfx(msg ? 'deny' : 'hero-switch');
-    if (!msg) { pushSettings(); go('s-char', 'hero'); return true; }
-    render(); return true;
+    const ok = switchHero(k);
+    sfx(ok ? 'hero-switch' : 'deny');
+    if (ok) { pushSettings(); go('s-char', 'hero'); } else void noticeModal('직업 전환', '지금은 직업을 바꿀 수 없습니다.');
+    return true;
   }
   const sj = t.closest<HTMLElement>('[data-shopjob]');
   if (sj) { go('s-shop', `cash:${jobProductId(sj.dataset.shopjob as HeroKey)}`); return true; }
   const hc = t.closest<HTMLElement>('[data-hcard]');
   if (hc) {
     const k = hc.dataset.hcard as HeroKey;
-    if (HERO_KEYS.includes(k)) { sheet = { k: 'hero', hero: k }; msg = ''; render(); }
+    if (HERO_KEYS.includes(k)) { sheet = { k: 'hero', hero: k }; render(); }
     return true;
   }
 
@@ -998,7 +995,7 @@ function onClick(t: HTMLElement): boolean {
   const sm = t.closest<HTMLElement>('[data-smode]');
   if (sm) { swapping = sm.dataset.smode === 'swap'; sel = null; render(); return true; }
   const tap = t.closest<HTMLButtonElement>('[data-tap]');
-  if (tap) { if (!tap.disabled) { G.save.settings.tapKey = tap.dataset.tap as TapKey; commit(); pushSettings(); msg = ''; render(); } return true; }
+  if (tap) { if (!tap.disabled) { G.save.settings.tapKey = tap.dataset.tap as TapKey; commit(); pushSettings(); render(); } return true; }
   const sk = t.closest<HTMLElement>('[data-skill], [data-skrow]');
   if (sk) { const key = sk.dataset.skill || sk.dataset.skrow!; skOpen = skOpen === key ? null : key; render(); return true; }
   const l = t.closest<HTMLElement>('[data-ldir]');

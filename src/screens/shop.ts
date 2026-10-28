@@ -7,30 +7,32 @@
  * 탭 막대 없이 「← 상점」, 뒤로 = 들어온 화면 (없으면 로비).
  * 2026-10-27 (마무리 목록 8번): 본문 = 길드 판 셋 (휴식 · 광고 제거 패키지 · 직업, guild-hall.css .g-card · .g-row), 판 밖 소제목 없음. 머리 그림은 그대로
  * 2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」: 직업 줄은 현금 버튼 아래 골드 버튼 (JOB_GOLD, 확인 창 뒤 buyJobWithGold)
+ * 같은 날 Lim 「저렇게 가운데 생기는 ui는 최대한 자제」: 상품 위 알림 줄은 없앰. 못 산 까닭 = 알림 창 (골드 부족 · 구매 안 됨), 산 것 = 짧은 알림 (toast.ts)
  */
 import { JOB_GOLD, NOADS, PAID_HEROES, REST_BONUS, STAMINA, jobProductId } from '../data/economy';
 import { HEROES } from '../data/heroes';
 import { buyJobWithGold, grantProduct, products } from '../game/economy';
 import { resourceBalance } from '../game/resources';
-import { askModal } from '../platform/ads';
+import { askModal, noticeModal } from '../platform/ads';
 import { commit, G, refreshDay, syncAds } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { esc, fmt, previous, screen, topBar } from './kit';
 import { classEmblem, currencyAmount, currencyIcon, gameIcon, uiIcon } from './art';
 import { refreshCells } from './stamina';
+import { notify } from './toast';
 import { staminaView } from '../game/stamina';
 import { sfx } from '../sfx';
 import './shop.css';
 
 /** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」, 앞 「cash」는 예전 하위 탭 이름), from = 뒤로 갈 화면 */
-const st: { msg: string; focus: string; from: string } = { msg: '', focus: '', from: 's-lobby' };
+const st: { focus: string; from: string } = { focus: '', from: 's-lobby' };
 
 const s = screen('s-shop', '상점', {
   enter(arg) {
     // 설정에서 돌아올 때는 처음 들어온 화면을 그대로 둠
     if (previous !== 's-settings' && previous !== 's-shop') st.from = previous || 's-lobby';
     st.focus = typeof arg === 'string' ? arg.split(':')[1] || '' : '';
-    refreshDay(); st.msg = ''; render();
+    refreshDay(); render();
     if (st.focus) s.el.querySelector<HTMLElement>(`[data-prod="${CSS.escape(st.focus)}"]`)?.scrollIntoView({ block: 'center' });
   },
 });
@@ -39,10 +41,8 @@ function render(): void {
   s.el.innerHTML = `${topBar({ back: st.from, title: '상점' })}
     <div class="ns-body shop">
       <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>상품</h2></div></header>
-      ${st.msg ? `<p class="warnbox" role="status">${esc(st.msg)}</p>` : ''}
       ${cashHtml()}
     </div>`;
-  st.msg = '';
 }
 
 /** 직업 상품 한 줄 설명 (캐릭터 → 직업 목록과 같은 말) */
@@ -77,12 +77,12 @@ s.el.addEventListener('click', async e => {
   const gb = t.closest<HTMLButtonElement>('[data-gold-job]');
   if (gb && !gb.disabled) {
     const hero = PAID_HEROES.find(h => jobProductId(h) === gb.dataset.goldJob)!, name = HEROES[hero].name, have = resourceBalance(save, 'gold');
-    if (have < JOB_GOLD) { sfx('deny'); st.msg = `골드가 모자랍니다 (필요 ${fmt(JOB_GOLD)} · 보유 ${fmt(have)})`; render(); return; }
+    if (have < JOB_GOLD) { sfx('deny'); void noticeModal('골드 부족', `골드가 모자랍니다.<br>필요 ${fmt(JOB_GOLD)} · 보유 ${fmt(have)}`); return; }
     if (!(await askModal(`${name} 해금`, `골드 ${fmt(JOB_GOLD)}으로 ${esc(name)} 직업을 엽니다.`, '취소', '골드로 사기'))) return;
     const err = buyJobWithGold(save, hero);
     sfx(err ? 'deny' : 'purchase');
-    st.msg = err || `${name} 해금 · 캐릭터 → 직업에서 전환`;
     commit(); render(); refreshCells();
+    if (err) void noticeModal('구매 안 됨', esc(err)); else notify(`${name} 해금 · 캐릭터 → 직업에서 전환`);
     return;
   }
   const iap = t.closest<HTMLButtonElement>('[data-iap]');
@@ -90,11 +90,12 @@ s.el.addEventListener('click', async e => {
     const id = iap.dataset.iap!;
     iap.disabled = true;
     const r = await purchase(id, save.settings.devUnlock);
-    if (!r.ok) { sfx('deny'); st.msg = r.why || '구매 안 됨'; render(); return; }
+    if (!r.ok) { sfx('deny'); render(); void noticeModal('구매 안 됨', esc(r.why || '결제가 끝나지 않았습니다.')); return; }
     const err = grantProduct(save, id);
     sfx(err ? 'deny' : 'purchase');
     const hero = PAID_HEROES.find(h => jobProductId(h) === id);
-    st.msg = err || (hero ? `${HEROES[hero].name} 해금 · 캐릭터 → 직업에서 전환` : `${NOADS.name} · 휴식 최대 +${STAMINA.bonus}`) + (r.test ? ' (시험 구매)' : '');
     commit(); syncAds(); render(); refreshCells();
+    if (err) void noticeModal('구매 안 됨', esc(err));
+    else notify((hero ? `${HEROES[hero].name} 해금 · 캐릭터 → 직업에서 전환` : `${NOADS.name} · 휴식 최대 +${STAMINA.bonus}`) + (r.test ? ' (시험 구매)' : ''));
   }
 });

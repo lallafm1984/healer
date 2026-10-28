@@ -76,7 +76,7 @@ export default async function shop(url, shots) {
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')) && (await page.locator('#s-shop [data-prod="job_monk"] .cash-gold').count()) === 0, '직업 구매: 수도사 보유 (골드 버튼도 사라짐)');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
-  // ---- 직업 골드 구매 (2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」): 모자라면 안내만, 있으면 확인 창 → 보유 · 골드 −50,000 ----
+  // ---- 직업 골드 구매 (2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」): 모자라면 알림 창, 있으면 확인 창 → 보유 · 골드 −50,000 ----
   const goldTo = async n => {
     await page.evaluate(n => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.gold = n; localStorage.setItem('healer.save', JSON.stringify(s)); }, n);
     await page.reload(); await page.clock.runFor(300); await pastTitle(page);
@@ -84,7 +84,9 @@ export default async function shop(url, shots) {
   };
   await goldTo(30000);
   await page.click('#s-shop [data-gold-job="job_shaman"]'); await page.clock.runFor(50);
-  ok(/골드가 모자랍니다/.test(await text('#s-shop .warnbox')) && !(await page.isVisible('.admodal.ask')) && !(await save()).bought.includes('job_shaman'), '골드 모자람: 확인 창 없이 안내 · 안 삼');
+  ok(await page.isVisible('.admodal.notice') && /골드가 모자랍니다/.test(await text('.admodal.notice')) && !(await page.locator('.admodal [data-ask="ok"], #s-shop .warnbox').count()) && !(await save()).bought.includes('job_shaman'), '골드 모자람: 알림 창 (확인 하나, 상품 위 줄 없음) · 안 삼');
+  await page.click('.admodal.notice [data-ask="close"]'); await page.clock.runFor(50);
+  ok(!(await page.locator('.admodal').count()), '알림 창 확인 = 닫힘');
   await goldTo(80000);
   await page.click('#s-shop [data-gold-job="job_shaman"]'); await page.clock.runFor(50);
   ok(await page.isVisible('.admodal.ask') && /주술사 해금/.test(await text('.admodal.ask')) && /50,000/.test(await text('.admodal.ask')), '골드 버튼 = 확인 창 (주술사 해금 · 골드 50,000)');

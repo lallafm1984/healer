@@ -29,7 +29,8 @@ import { afxRows, afxTags, BOOK, flowHead, guides, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 import { FAME_LOW_GAP } from '../data/guild';
-import { askModal } from '../platform/ads';
+import { askModal, noticeModal } from '../platform/ads';
+import { notify } from './toast';
 import { sfx } from '../sfx';
 
 const s = screen('s-party', '파티 편성', {
@@ -48,7 +49,6 @@ const s = screen('s-party', '파티 편성', {
   },
 });
 const modal = sheetDialog(s.el, shut);
-let msg = '', gmsg = '';
 // 추천 편성 이유 칩 (「쫄 → 도발」)은 없앰 (2026-10-28 Lim, 다시 넣지 않는다)
 /** 열린 시트: 공략 · 파티원 상세 · 길드원 상세 (길드파티 줄의 이름 · 아이콘) */
 let sheet: 'guide' | 'mem' | 'gmem' | null = null;
@@ -128,7 +128,6 @@ function guildPickHtml(): string {
   const tanks = picked.filter(m => CLASSES[m!.cls].role === 'tank').length;
   const list = ms.slice().sort((a, b) => b.lv - a.lv || a.id - b.id);
   return `<p class="pickhead"><b>길드원 ${picked.length} / ${seatsOf(firstEnc())}</b><small>탱커 ${tanks} · 딜러 ${picked.length - tanks}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
-    ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
@@ -209,7 +208,6 @@ function render(keepScroll = true): void {
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml() : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
-      ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
       <div class="f-btns">
@@ -217,7 +215,6 @@ function render(keepScroll = true): void {
       </div>
     </footer>
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : sheet === 'gmem' ? guildMemSheetHtml() : ''}`;
-  msg = '';
   const body = s.el.querySelector<HTMLElement>('.ns-body');
   if (body) body.scrollTop = scroll;
   if (sheet === 'gmem' && !memberById(openGid)) sheet = null;
@@ -250,7 +247,7 @@ s.el.addEventListener('click', e => {
   const gp = t.closest<HTMLElement>('[data-gpick]');
   // 길드파티 줄: 이름 · 직업 아이콘 = 길드원 상세, 그 밖 = 넣고 빼기 (줄은 제자리)
   if (gp && t.closest('.f-ri, .pnick')) { openGid = Number(gp.dataset.gpick); help = false; openSheet('gmem', `[data-gpick="${openGid}"]`); return; }
-  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; compose(); render(); gmsg = ''; return; }
+  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; compose(); render(); if (r.msg) { sfx('deny'); notify(r.msg); } return; }
   if (t.closest('#autoPick')) { Flow.gpick = recommendPick(G.save, firstEnc(), contentOf(Flow.content).fights(Flow.diff), modeNow().stage).pick; compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
@@ -261,7 +258,7 @@ s.el.addEventListener('click', e => {
 /** 편성 「출발」: 길드파티는 길드원 1명 이상, 탱커가 없으면 확인 창 (2026-10-28 Lim 「탱커가 없을경우 경고 확인창」) */
 async function departAsk(): Promise<void> {
   if (Flow.mode === 'guild' && guildReady()) {
-    if (!Flow.party!.length) { msg = '길드원 1명 이상 필요'; render(); return; }
+    if (!Flow.party!.length) { sfx('deny'); void noticeModal('길드원 없음', '길드원을 1명 이상 고르면 출발할 수 있습니다.'); return; }
     if (!Flow.party!.some(e => e.role === 'tank') && !(await askModal('탱커 없음', '탱커 없이 출발하면 보스가 다른 파티원을 공격합니다.<br>그래도 출발하시겠습니까?', '취소', '출발'))) return;
   }
   depart();

@@ -13,7 +13,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionGold, missionReady, runGold, type Gain } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
-import { showRewarded } from '../platform/ads';
+import { noticeModal, showRewarded } from '../platform/ads';
 import { esc, screen, topBar } from './kit';
 import { showReward } from './reward-pop';
 import { currencyAmount, gameIcon } from './art';
@@ -21,8 +21,8 @@ import { art } from '../art';
 import './missions.css';
 import { sfx } from '../sfx';
 
-const st = { msg: '', tab: 'daily' as 'daily' | 'weekly' };
-const s = screen('s-missions', '임무', { enter() { refreshDay(); st.msg = ''; st.tab = 'daily'; render(); } });
+const st = { tab: 'daily' as 'daily' | 'weekly' };
+const s = screen('s-missions', '임무', { enter() { refreshDay(); st.tab = 'daily'; render(); } });
 
 /** 임무 그림 (2026-10-22 Lim 임무 시안): 있는 그림을 빌려 씀. 이름 · 보상 · 진행은 그림이 아니라 실제 임무 값 */
 const MISSION_ART: Record<string, string> = {
@@ -89,8 +89,7 @@ function render(): void {
   const panel = (tab: 'daily' | 'weekly', html: string) => `<div id="mission-${tab}" class="m-panel" role="tabpanel" aria-labelledby="mission-tab-${tab}"${st.tab === tab ? '' : ' hidden'}>${html}</div>`;
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '임무' })}
     <nav class="subtabs" role="tablist" aria-label="임무 기간">${(['daily', 'weekly'] as const).map(tab => `<button type="button" role="tab" id="mission-tab-${tab}" data-mission-tab="${tab}" aria-selected="${st.tab === tab}" aria-controls="mission-${tab}" tabindex="${st.tab === tab ? 0 : -1}">${tab === 'daily' ? '일일' : '주간'}</button>`).join('')}</nav>
-    <div class="ns-body missions">${st.msg ? `<p class="warnbox" role="status">${esc(st.msg)}</p>` : ''}${panel('daily', daily)}${panel('weekly', weekly)}</div>`;
-  st.msg = '';
+    <div class="ns-body missions">${panel('daily', daily)}${panel('weekly', weekly)}</div>`;
 }
 
 s.el.addEventListener('keydown', e => {
@@ -103,11 +102,14 @@ s.el.addEventListener('keydown', e => {
 
 /** 받기 소리 (107): 받았으면 그 소리, 못 받았으면 (글자 = 까닭) deny */
 const got = (r: unknown, name: string) => sfx(typeof r === 'string' ? 'deny' : name);
-/** 받기 결과: 못 받았으면 까닭 띠, 받았으면 보상 창 (reward-pop, 2026-10-24 Lim 시안 A). 화면을 다시 그린 뒤 띄움 */
+/**
+ * 받기 결과: 받았으면 보상 창 (reward-pop, 2026-10-24 Lim 시안 A), 못 받았으면 까닭 알림 창 (2026-10-28 Lim 「가운데 생기는 ui는 최대한 자제」, 예전 목록 위 띠).
+ * 화면을 다시 그린 뒤 띄움
+ */
 function award(r: Gain | string, title: string): void {
-  st.msg = typeof r === 'string' ? r : '';
   commit(); render();
-  if (typeof r !== 'string') showReward({ title, gold: r.gold, items: r.items });
+  if (typeof r === 'string') void noticeModal(title, esc(r));
+  else showReward({ title, gold: r.gold, items: r.items });
 }
 
 s.el.addEventListener('click', async e => {
@@ -127,8 +129,8 @@ s.el.addEventListener('click', async e => {
     award(r, '완료 상자 · 한 번 더'); return;
   }
   if (t.closest('#guildGoal')) {
-    const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); st.msg = err; commit(); render();
-    if (!err) showReward({ title: '길드 주간 목표', fame: GUILD_GOAL.fame });
+    const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); commit(); render();
+    if (err) void noticeModal('길드 주간 목표', esc(err)); else showReward({ title: '길드 주간 목표', fame: GUILD_GOAL.fame });
     return;
   }
   if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); award(r, '주간 도전 상자'); }

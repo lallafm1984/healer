@@ -29,6 +29,7 @@ import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
 import { showReward } from './reward-pop';
+import { noticeModal } from '../platform/ads';
 import { sfx } from '../sfx';
 import { mountVillage } from './village';
 import { ENCOUNTERS } from '../data/encounters';
@@ -36,7 +37,6 @@ import { ENCOUNTERS } from '../data/encounters';
 /** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
 const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 
-const st = { msg: '' };
 
 /**
  * 목표 한 줄. title = 큰 제목 (장소 이름 · Lv n), tag = 난이도 표, sub = 설명, prog = 진행 n/m,
@@ -248,14 +248,12 @@ function render(): void {
           ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
           ${journey()}
         </div>
-        ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;
   // 설정 「시각 효과 줄이기」: 메뉴의 빛 쓸기 · 숨쉬기 · 배지 통통도 멈춤 (lobby-life.css)
   s.el.classList.toggle('calm', !!G.save.settings.reducedEffects);
   // 살아 있는 마을: 같은 캔버스를 새 무대로 옮겨 붙여 움직임이 이어짐 (보상 받기로 다시 그려도)
   mountVillage(s.el.querySelector('.lb-stage'));
-  st.msg = '';
 }
 
 s.el.addEventListener('click', e => {
@@ -269,10 +267,11 @@ s.el.addEventListener('click', e => {
     go('s-entry'); return;
   }
   if (t.closest('#lbChal')) {
-    // 임무 화면 「열기」와 같게: 상자 걸쇠 소리 + 보상 창 (reward-pop, 2026-10-24 Lim 시안 A)
+    // 임무 화면 「열기」와 같게: 상자 걸쇠 소리 + 보상 창 (reward-pop, 2026-10-24 Lim 시안 A), 못 받으면 까닭 알림 창
     const r = claimChalChest(save, Math.random);
     sfx(typeof r === 'string' ? 'deny' : 'chest-open');
-    st.msg = typeof r === 'string' ? r : ''; commit(); render();
-    if (typeof r !== 'string') showReward({ title: '주간 도전 상자', gold: r.gold, items: r.items });
+    commit(); render();
+    if (typeof r === 'string') void noticeModal('주간 도전 상자', esc(r));
+    else showReward({ title: '주간 도전 상자', gold: r.gold, items: r.items });
   }
 });

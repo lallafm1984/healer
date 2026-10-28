@@ -22,7 +22,8 @@ import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjob
 import { abilityStars } from '../data/fm';
 import { adRefreshPost, capOf, foundGuild, postAdWait, postNew, refreshPost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, release } from '../game/guild';
 import { adsFree } from '../game/stamina';
-import { showRewarded } from '../platform/ads';
+import { noticeModal, showRewarded } from '../platform/ads';
+import { notify } from './toast';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { gBar, memberCard, memberInfoHtml, memberSheetHead, memDetailHtml, memRowHtml, statHelpPopupHtml } from './members';
@@ -38,7 +39,7 @@ const SUBS: [Sub, string][] = [['home', '현황'], ['members', '길드원'], ['r
 type Sheet = { k: 'mem'; id: number } | { k: 'cand'; i: number } | null;
 type MemberAction = { kind: 'sponsor' | 'release'; id: number };
 /** help = 길드원 상세 ⓘ → 능력치 설명 팝업 */
-const st: { sub: Sub; sheet: Sheet; msg: string; ask: MemberAction | null; help: boolean } = { sub: 'home', sheet: null, msg: '', ask: null, help: false };
+const st: { sub: Sub; sheet: Sheet; ask: MemberAction | null; help: boolean } = { sub: 'home', sheet: null, ask: null, help: false };
 type MemberRole = 'tank' | 'melee' | 'ranged' | 'any';
 type MemberSort = 'level' | 'ability' | 'name';
 const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
@@ -47,7 +48,7 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.msg = ''; st.ask = null; st.help = false; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.ask = null; st.help = false; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
 // 「새로 뽑기」 쿨타임 글: 영입 탭이 보이는 동안 분 단위로 고치고, 다 되면 다시 그림
 setInterval(() => {
@@ -129,7 +130,6 @@ function render(): void {
     <div class="ns-body guild g-${st.sub}${hasCta ? ' g-with-cta' : ''}">
       ${hero('')}
       ${open.dev ? `<p class="note g-dev">개발 빌드: 레벨 잠금 무시로 열림 (원래 Lv ${GUILD_LEVEL})</p>` : ''}
-      ${st.msg && !sheet ? `<p class="warnbox" role="status">${esc(st.msg)}</p>` : ''}
       ${view}
     </div>
     ${hasCta ? `<footer class="ns-foot g-foot">${ctaHtml()}</footer>` : ''}
@@ -139,7 +139,6 @@ function render(): void {
   modal.sync(postReplace ? s.el.querySelector<HTMLElement>('.g-post-confirm') : st.sheet ? s.el.querySelector<HTMLElement>(st.ask || st.help ? '.g-action-confirm' : '.g-msheet') : null,
     postReplace ? ['confirm:post'] : st.sheet ? [sheetKey(st.sheet), ...(st.ask ? [`confirm:${st.ask.kind}`] : st.help ? ['help:stats'] : [])] : []);
   if (!st.sheet && !postReplace && focusSelector && active?.closest('.ns-body, .subtabs')) s.el.querySelector<HTMLElement>(focusSelector)?.focus({ preventScroll: true });
-  st.msg = '';
 }
 const sheetKey = (x: NonNullable<Sheet>) => `${x.k}:${'id' in x ? x.id : 'nick' in x ? x.nick : x.i}`;
 
@@ -275,7 +274,7 @@ function recruitHtml(): string {
 // ---------- 아래 시트 (편성 화면 파티원 시트와 같은 모양) ----------
 function sheetBox(label: string, inner: string, footer = '<button class="btn2 f-shut" type="button" data-shut>닫기</button>'): string {
   return `<div class="sheet-dim" data-shut></div><section class="sheet g-msheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>
-    ${inner}${st.msg ? `<p class="warnbox g-smsg" role="status">${esc(st.msg)}</p>` : ''}${footer}</section>`;
+    ${inner}${footer}</section>`;
 }
 const sheetHead = memberSheetHead;
 
@@ -346,35 +345,37 @@ function postConfirmHtml(): string {
 /** 보상형 광고 (광고 제거면 바로) → 지원자 5명. 광고를 끝까지 안 보면 그대로 */
 async function adRefresh(): Promise<void> {
   const ok = await showRewarded(`새 지원자 ${POST.adCands}명`, adsFree(G.save));
+  const err = ok ? adRefreshPost(G.save, Math.random) : '';
   if (ok) {
-    const err = adRefreshPost(G.save, Math.random);
     sfx(err ? 'deny' : 'guild-recruit');
-    st.msg = err; // 새 지원자는 목록에 바로 보임 (「새 지원자 N명 도착」 줄은 2026-10-28 Lim 「제거」)
-    commit();
+    commit(); // 새 지원자는 목록에 바로 보임 (「새 지원자 N명 도착」 줄은 2026-10-28 Lim 「제거」)
   }
   render();
+  if (err) void noticeModal('새로 뽑기', esc(err));
 }
 
 function confirmMemberAction(): void {
   const action = st.ask;
+  let err = '', done = '';
   st.ask = null;
   if (!action || st.sheet?.k !== 'mem' || st.sheet.id !== action.id) return;
   const m = memberById(action.id);
   if (m) {
-    if (action.kind === 'sponsor') { const err = sponsor(G.save, m.id); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `골드 지원 · ${m.boost}판 남음`; }
+    if (action.kind === 'sponsor') { err = sponsor(G.save, m.id); sfx(err ? 'deny' : 'gold-spend'); done = err ? '' : `골드 지원 · ${m.boost}판 남음`; }
     else if (release(G.save, m.id)) {
       sfx('guild-release');
       st.sheet = null;
-      st.msg = `${m.nick}(${CLASSES[m.cls].name}) 길드에서 내보냈습니다.`;
+      done = `${m.nick}(${CLASSES[m.cls].name}) 길드에서 내보냈습니다.`;
     }
     commit();
   }
   render();
+  if (err) void noticeModal('골드 지원', esc(err)); else notify(done);
 }
 
 function openSheet(x: NonNullable<Sheet>, from: string): void {
   s.el.querySelector<HTMLElement>(from)?.focus({ preventScroll: true });
-  st.sheet = x; st.ask = null; st.help = false; st.msg = ''; render();
+  st.sheet = x; st.ask = null; st.help = false; render();
 }
 function closeSheet(): void {
   if (postReplace) postReplace = false;
@@ -415,15 +416,15 @@ s.el.addEventListener('click', e => {
   }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
   if (t.closest('#found')) { const ok = foundGuild(save, Math.random); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, rankStages(guideCtx()), Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
-  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `쉬는 길드원 ${n}명 후원 · 한 사람 ${SPONSOR.runs}판`; commit(); render(); return; }
+  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); commit(); render(); if (err) void noticeModal('후원', esc(err)); else notify(`쉬는 길드원 ${n}명 후원 · 한 사람 ${SPONSOR.runs}판`); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); st.sub = 'recruit'; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   if (t.closest('#guildRecruit')) { st.sub = 'recruit'; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
   if (t.closest('#expedChest')) { // 받은 뒤 지난 주 목록이면 바로 새 주 원정 (105 QA 3), 받은 것은 보상 창 (reward-pop, 2026-10-24 Lim 시안 A)
     const r = claimExped(save, Math.random); sfx(typeof r === 'string' ? 'deny' : 'chest-open'); if (typeof r !== 'string') refreshExped(save, realOpen);
-    st.msg = typeof r === 'string' ? r : ''; commit(); render();
-    if (typeof r !== 'string') showReward({ title: '원정 상자', gold: r.gold, items: r.items });
+    commit(); render();
+    if (typeof r === 'string') void noticeModal('원정 상자', esc(r)); else showReward({ title: '원정 상자', gold: r.gold, items: r.items });
     return;
   }
   const post = t.closest<HTMLButtonElement>('[data-post]');
@@ -435,7 +436,7 @@ s.el.addEventListener('click', e => {
     return;
   }
   const h = t.closest<HTMLButtonElement>('[data-hire]');
-  if (h) { if (!h.disabled) { const err = hire(save, Number(h.dataset.hire)); sfx(err ? 'deny' : 'guild-recruit'); st.sheet = null; st.msg = err || '영입 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
+  if (h) { if (!h.disabled) { const err = hire(save, Number(h.dataset.hire)); sfx(err ? 'deny' : 'guild-recruit'); st.sheet = null; commit(); render(); if (err) void noticeModal('영입', esc(err)); else notify('영입 완료 · 「길드원」에서 확인'); } return; }
   const x = st.sheet;
   if (x?.k === 'mem' && t.closest('.g-msheet')) {
     if (t.closest('[data-stathelp]')) { st.help = true; render(); return; } // 길드원 상세 ⓘ = 능력치 설명 팝업
