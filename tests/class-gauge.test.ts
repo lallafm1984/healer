@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { create, use, setBeacon } from '../src/engine';
 import { classGaugeState, beaconLabel } from '../src/battle/class-gauge-state';
-import { putSeal, warderApply, warderShieldBroken } from '../src/engine/warder';
+import { judgeCount, putSeal, warderApply } from '../src/engine/warder';
 import { heroApply } from '../src/engine/heroes';
 import { castOf } from '../src/engine/talents';
-import { absorbLeft } from '../src/engine/abilities';
 import { LEAF, WARDER } from '../src/data/heroConst';
 
 describe('직업 게이지의 실제 전투 상태',()=>{
@@ -65,19 +64,21 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     a.hots=[];heroApply(f,'wildflower',a);
     expect(full/wild(a).rest).toBeCloseTo(1+LEAF.heal*LEAF.max,5);
   });
-  it('결계사 결계력: 내 보호막이 다 깨질 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +20%, 5칸이면 보호막 + 인장 처음으로 (2026-10-28 Lim 1안)',()=>{
+  it('결계사 결계력: 인장이 없던 아군에게 붙일 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +15%, 5칸이면 인원 제한 없이 (2026-10-28 Lim 2안)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
-    const vs=f.party.slice(0,2);
-    for(let i=0;i<7;i++)warderShieldBroken(f,vs[0]);
-    expect(f.warder!.ward).toBe(WARDER.ward.max);expect(classGaugeState(f)).toMatchObject({count:5,lit:5,percent:100});
-    const judge=()=>{for(const v of vs){v.hp=v.max*0.3;putSeal(f,v);v.seal=f.t+1;}const before=vs.map(v=>v.hp);warderApply(f,'judgment',vs[0]);return vs.map((v,i)=>v.hp-before[i]);};
+    const [a,b]=f.party;
+    putSeal(f,a);putSeal(f,a);expect(f.warder!.ward).toBe(1); // 다시 붙이면 시간만 새로
+    putSeal(f,b);expect(classGaugeState(f)).toMatchObject({count:2,lit:2,max:WARDER.ward.max});
+    const judge=()=>{const live=f.party.filter(u=>u.alive);for(const v of live){v.hp=v.max*0.3;v.seal=f.t+1;}const before=live.map(v=>v.hp);warderApply(f,'judgment',a);return live.map((v,i)=>v.hp-before[i]);};
+    f.warder!.ward=WARDER.ward.max;
+    expect(judgeCount(f)).toBe(f.party.length);expect(classGaugeState(f)).toMatchObject({percent:100,targetMax:f.party.length});
     const big=judge();
-    expect(f.warder!.ward).toBe(0);
-    for(const v of vs){expect(absorbLeft(f,v)).toBeGreaterThan(0);expect(v.seal!).toBeCloseTo(f.t+15,5);}
-    for(const v of vs)v.mods=v.mods.filter(m=>m.k!=='absorb');
+    expect(f.warder!.ward).toBe(0);expect(judgeCount(f)).toBeLessThan(f.party.length);
+    expect(big.filter(x=>x>0).length).toBe(f.party.filter(u=>u.alive).length); // 5칸: 인원 제한 없이 모두
     const small=judge();
-    expect(big[1]/small[1]).toBeCloseTo(1+WARDER.ward.heal*WARDER.ward.max,5);
-    for(const v of vs)expect(absorbLeft(f,v)).toBe(0);
+    expect(small.filter(x=>x>0).length).toBe(judgeCount(f));
+    const i=small.findIndex(x=>x>0);
+    expect(big[i]/small[i]).toBeCloseTo(1+WARDER.ward.heal*WARDER.ward.max,5);
     f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
   it('신성한 힘 칸 수는 실제 최대치: 넘치는 신성한 힘이면 4칸 (2026-10-28 Lim)',()=>{

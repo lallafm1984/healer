@@ -128,7 +128,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   },
   warder: {
     key: 'warder', name: '결계사', line: '막을 미리 씌우고, 인장으로 치유를 터뜨리는 힐러입니다.', star: 3,
-    system: { name: '심판', lv: 6, desc: `결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 심판을 외치면 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 한꺼번에 회복합니다. 내 보호막이 피해를 끝까지 막아 내고 깨지면 결계력이 1칸 차고 (최대 ${WARDER.ward.max}칸), 심판이 결계력을 모두 써서 더 크게 회복합니다.` },
+    system: { name: '심판', lv: 6, desc: `결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 심판을 외치면 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 한꺼번에 회복합니다. 인장이 없던 아군에게 인장을 붙이면 결계력이 1칸 차고 (최대 ${WARDER.ward.max}칸), 심판이 결계력을 모두 써서 더 크게 회복합니다.` },
     dispel: ['마법', '저주'],
     slots: slots({ basic: 'sealHeal', fast: 'judgment', hot: 'lightBarrier', aoe: 'wardCircle', dispel: 'wardCleanse', ext: 'guardWard', raid: 'lightVeil', unique: 'wardHold' }),
     tap: ['sealHeal', 'lightBarrier'],

@@ -210,7 +210,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 50%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
-  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다. 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다. 결계력이 ${WARDER.ward.max}칸이면 회복한 아군에게 회복량만큼 보호막을 씌우고 인장을 처음 시간으로 돌립니다.` },
+  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다. 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다. 결계력이 ${WARDER.ward.max}칸이면 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.` },
 };
 
 /** 패시브 설명 (06 5장, 평온 게이지는 4장 · 82) */
