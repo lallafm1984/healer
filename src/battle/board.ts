@@ -1970,7 +1970,7 @@ export function render(now: number): void {
   }
   let meShown = false;
   const hotR = Math.max(7, s * 0.19);
-  // 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」
+  // 배지 글자: 「×저주 12」 폭과 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 (띄어쓰기 없이 「저주12」 · 「흡수12」, debuffDisplay short)
   const shortBadge = measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; shield?: boolean; x: number; y: number; w: number; h: number; sx: number }[] = [];
   const objTimers = talentObjectTimers(F.tx.shelter, F.tx.act.shelter?.left ?? 0, F.totems, F.t); // 특성 판 위 물건 남은 시간 (2026-10-19 Lim)

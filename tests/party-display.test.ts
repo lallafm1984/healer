@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffBrief, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers } from '../src/battle/party-display';
+import { cellTypography, debuffBrief, debuffDisplay, debuffTag, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod, Unit } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -125,16 +125,39 @@ describe('전투 칸 글자 크기', () => {
 
 describe('디버프 요약', () => {
   it('종류와 올림한 잔여 초를 함께 표시한다', () => {
-    expect(debuffDisplay(debuff(), 'priest', true).text).toBe('질5');
+    expect(debuffDisplay(debuff(), 'priest').text).toBe('질병 5');
+    expect(debuffDisplay(debuff(), 'priest', true).text).toBe('질병5'); // 좁은 칸도 줄임말 (질 · 마 · 저) 없이 띄어쓰기만 뺌
     expect(debuffDisplay(debuff({ left: -0.1 }), 'priest').seconds).toBe(0);
   });
   it('해제 불가·함정도 배지에 기호 없이 표시하고 상세 글은 직업별 해제 대신 효과 (2026-10-27 Lim)', () => {
     const poison = debuff({ type: '독' });
     expect(debuffDisplay(poison, 'priest', true)).toMatchObject({ text: '독5', state: 'unavailable' });
     expect(debuffDisplay(poison, 'druid', true)).toMatchObject({ text: '독5', state: 'available' });
-    expect(debuffDisplay(debuff({ trap: true }), 'priest', true)).toMatchObject({ text: '질5', state: 'dangerous' });
+    expect(debuffDisplay(debuff({ trap: true }), 'priest', true)).toMatchObject({ text: '질병5', state: 'dangerous' });
     expect(debuffDisplay(debuff({ trap: true, end: { p: 'spread' } }), 'priest').detail).toBe('부패 · 질병 · 5초 · 끝나거나 지우면 옆 칸에 번짐');
     for (const hero of ['priest', 'druid'] as const) expect(debuffDisplay(poison, hero).detail).not.toMatch(/해제/);
+  });
+  it('아무도 못 지우는 디버프 (물리 · 해제 안 됨)는 종류 이름 대신 하는 일 (2026-10-28 Lim 「물리가 무슨 뜻인지 사용자가 모른다」)', () => {
+    const film = debuff({ name: '증류 막', type: '물리', left: 12, lock: true, absorb: 900 });
+    expect(debuffDisplay(film, 'priest').text).toBe('치유 흡수 12');
+    expect(debuffDisplay(film, 'priest', true).text).toBe('흡수12');
+    expect(debuffDisplay(film, 'priest').detail).toBe('증류 막 · 12초 · 받는 치유가 막을 먼저 깎음');
+    const tag = (x: Partial<Debuff>) => debuffTag(debuff({ type: '물리', lock: true, ...x })).long;
+    expect(tag({ vuln: 0.12, stackMax: 3, swap: 3 })).toBe('피해↑');
+    expect(tag({ healCut: 0.3 })).toBe('치유↓');
+    expect(tag({ noDps: true, cureAt: 0.75 })).toBe('채우기');
+    expect(tag({ dot: 30, noDps: true, noMove: true, untilBossLoss: 0.04 })).toBe('갇힘');
+    expect(tag({ noDps: true, noMove: true })).toBe('기절');
+    expect(tag({ dot: 20, feed: 0.5 })).toBe('흡혈');
+    expect(tag({ drain: 0.4 })).toBe('마나↓');
+    expect(tag({ dot: 5 })).toBe('출혈');
+    expect(tag({ name: '거품', left: 1 })).toBe('거품'); // 걸릴 때 한 방뿐인 표식은 이름 그대로
+    // 해제 안 됨이면 마법 · 독 · 질병 · 저주도 종류 대신 하는 일 (지울 수 있는 것처럼 보이지 않게)
+    expect(debuffDisplay(debuff({ name: '김 서림', type: '마법', left: 8, lock: true, healCut: 0.3 }), 'priest').text).toBe('치유↓ 8');
+    expect(debuffDisplay(debuff({ name: '늪의 숨결', type: '독', left: 600, lock: true, dot: 3 }), 'druid', true).text).toBe('중독600');
+    expect(debuffDisplay(debuff({ name: '넘침', type: '마법', left: 8, lock: true, absorbLeft: 400 }), 'priest').text).toBe('치유 흡수 8');
+    // 끝없는 깊은 상처 (어픽스)는 초 없이
+    expect(debuffDisplay(debuff({ name: '깊은 상처', type: '저주', left: Infinity, lock: true, cureAt: 0.5, grow: { every: 3, dot: 5, max: 5 } }), 'priest').text).toBe('채우기');
   });
   it('중첩과 원래 이름은 상세 요약에 보존한다', () => {
     expect(debuffDisplay(debuff({ name: '썩은 숨결', stack: 3, maxCut: 0.15 }), 'priest').detail).toBe('썩은 숨결 · 질병 · 5초, 3중첩 · 최대 체력 −15%, 끝나면 돌아옴');
