@@ -25,6 +25,8 @@ export default async function guildExt(url, shots) {
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.player.level = 50; s.player.gold = 500000;
+    // 원정 = 보통이 열린 5인 던전 (61 1-1 난이도 사슬, 2026-10-27 #475): Lv 50까지 쉬움을 깬 던전 셋 (결성 때 그 주 원정을 뽑으므로 결성 전에)
+    for (const k of ['frost', 'temple', 'watchtower']) s.clears[k] = { 쉬움: { stars: 1, grade: 'B', best: 999, n: 1 } };
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
