@@ -4,7 +4,7 @@
  */
 import { MERCHANT } from '../data/economy';
 import { MAX_LEVEL } from '../data/progression';
-import { descending, dropTable, heroRamp, ITEM_GRADES, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
+import { HERO_FROM, ITEM_GRADES, makeItem, rollGrade, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
 import type { SaveData } from '../platform/storage';
 import { runGold } from './economy';
 import { resourceBalance, spendResource } from './resources';
@@ -13,11 +13,11 @@ import { TUT } from './tutorial';
 /** 미확인 장비 한 개 값: 그 레벨 가장 큰 콘텐츠 한 판 골드 (runGold)에 비례, Lv 100에 MERCHANT.top, 10골드 단위 (2026-10-21 Lim 「레이드 획득 골드의 20배 정도」) */
 export const merchantGold = (lv: number): number => Math.round((MERCHANT.top * runGold(lv)) / runGold(MAX_LEVEL) / 10) * 10;
 
-/** 등급 확률 (ITEM_GRADES 순): 그 레벨 MERCHANT.diff 바탕 표에서 영웅 몫만큼 덜고 영웅 (Lv 45부터), 전설 0 */
+/** 등급 확률 (ITEM_GRADES 순): MERCHANT.odds 그대로 (레벨 상관없음), 영웅은 Lv 45 (HERO_FROM)부터 · 그 전엔 영웅 몫이 희귀로, 전설 0 */
 export function merchantOdds(lv: number): number[] {
-  const hero = MERCHANT.hero * heroRamp(lv), out = dropTable(MERCHANT.diff, 0, lv).map(p => p * (1 - hero));
-  out[ITEM_GRADES.indexOf('영웅')] += hero;
-  return descending(out);
+  const out = MERCHANT.odds.slice(), hero = ITEM_GRADES.indexOf('영웅');
+  if (lv < HERO_FROM) { out[hero - 1] += out[hero]; out[hero] = 0; }
+  return out;
 }
 
 export interface MerchantOffer {
