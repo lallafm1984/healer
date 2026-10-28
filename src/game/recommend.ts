@@ -14,8 +14,6 @@ import { topLevel, type SaveData } from '../platform/storage';
 import { shapePick } from './guild';
 
 export type Feature = 'buster' | 'adds' | 'cut' | 'zone' | 'aoe' | 'poison';
-/** 칩 글 (「독 · 질병 → 독소 정화」) */
-export const FEATURE_NAME: Record<Feature, string> = { buster: '강타', adds: '쫄', cut: '끊을 기술', zone: '장판', aoe: '광역', poison: '독 · 질병' };
 
 const cache = new Map<string, Set<Feature>>();
 /** 보스 전투에 쫄 (P-ADD: 쫄 · 감옥)이 나오는 전투. 쫄 피해 능력 (소용돌이 · 칼날폭풍 …)은 일반 · 정예 구간 적 · 몸통을 안 쳐서 이 전투에만 맞음 */
@@ -81,18 +79,11 @@ export function recScore(save: SaveData, m: GuildMember, encs: readonly Encounte
   return { id: m.id, score, fits };
 }
 
-/** 추천 편성: 탱커 자리 · 딜러 자리를 점수 순으로 채우고, 남은 자리는 남은 길드원 점수 순 (빈 칸보다 나음). why = 고른 이유 칩 (보스 특징 → 직업 스킬) 3개까지 */
-export function recommendPick(save: SaveData, enc: Encounter, encs: readonly EncounterKey[], stage: number): { pick: number[]; why: string[] } {
+/** 추천 편성: 탱커 자리 · 딜러 자리를 점수 순으로 채우고, 남은 자리는 남은 길드원 점수 순 (빈 칸보다 나음). 고른 이유 칩 (「쫄 → 도발」)은 2026-10-28 Lim이 뺌 */
+export function recommendPick(save: SaveData, enc: Encounter, encs: readonly EncounterKey[], stage: number): { pick: number[] } {
   const ms = save.guild.members;
   const scored = ms.map(m => ({ m, s: recScore(save, m, encs, stage) })).sort((a, b) => b.s.score - a.s.score || b.m.lv - a.m.lv);
   const shaped = shapePick(scored, x => CLASSES[x.m.cls].role === 'tank', enc);
   const picked = [...shaped.filter(x => CLASSES[x.m.cls].role === 'tank'), ...shaped.filter(x => CLASSES[x.m.cls].role !== 'tank')];
-  const why: string[] = [];
-  const seen = new Set<Feature>();
-  for (const x of picked) for (const f of x.s.fits) {
-    if (seen.has(f) || why.length >= 3) continue;
-    seen.add(f);
-    why.push(`${FEATURE_NAME[f]} → ${ABILITIES[x.m.ab].name}`);
-  }
-  return { pick: picked.map(x => x.m.id), why };
+  return { pick: picked.map(x => x.m.id) };
 }

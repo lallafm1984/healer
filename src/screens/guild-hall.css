@@ -67,7 +67,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
  * 줄 = 그림 · 이름 (+ 한 줄) · 오른쪽 숫자 · 알약. 보상 · 상태 = .g-pill (그림 + 짧은 글). 규칙 · 긴 설명 = ⓘ → .g-tip.
  * 버튼: 할 일 · 주 동작 = 붉은 .btn.primary (줄 안은 mini), 그 밖 = 돌 .btn. 같은 일을 다른 모양으로 만들지 않는다. */
 #s-guild .panel { margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-hd {
   display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 4px 4px 4px 10px; box-sizing: border-box;
   background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line);
@@ -80,17 +80,17 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-meta small { font-weight: 600; font-size: 12px; color: var(--gk-mute); }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-meta .currency-amount { font-size: 13px; }
 /* ⓘ: 보이는 원은 작게, 누르는 자리는 44 */
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info { flex: none; width: 44px; height: 44px; margin: -4px 0; padding: 0; display: grid; place-items: center; border: 0; background: none; color: var(--gk-mute); cursor: pointer; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info .ui-icon { width: 22px; height: 22px; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info[aria-expanded="true"] { color: var(--gk-head); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-info:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -4px; border-radius: 50%; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-info { flex: none; width: 44px; height: 44px; margin: -4px 0; padding: 0; display: grid; place-items: center; border: 0; background: none; color: var(--gk-mute); cursor: pointer; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-info .ui-icon { width: 22px; height: 22px; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-info[aria-expanded="true"] { color: var(--gk-head); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-info:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -4px; border-radius: 50%; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip { margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #15120e; border-bottom: 1px solid var(--gk-line); font-size: 12.5px; line-height: 1.55; color: var(--gk-ink2); }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip p { margin: 0; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-tip b { margin-right: 4px; color: var(--gk-head); font-weight: 700; }
 /* 줄 */
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; box-sizing: border-box; border-top: 1px solid var(--gk-line); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row:first-child { border-top: 0; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; box-sizing: border-box; border-top: 1px solid var(--gk-line); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-row:first-child { border-top: 0; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.done { opacity: 0.6; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.tap { cursor: pointer; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-row.tap:active { background: #ffffff08; }
@@ -109,8 +109,8 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-rs > .btn { flex: none; width: auto; min-height: 40px; margin: 0; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-num { font: 800 16px/1 var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-num small { font-size: 12px; font-weight: 600; color: var(--gk-mute); }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-bar { display: block; height: 8px; border: 1px solid var(--gk-card-bd); border-radius: 4px; background: #0d0b08; overflow: hidden; }
-:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-bar { display: block; height: 8px; border: 1px solid var(--gk-card-bd); border-radius: 4px; background: #0d0b08; overflow: hidden; }
+:is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant, #s-party) .g-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
 /* 알약 */
 :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-pill {
   display: inline-flex; align-items: center; gap: 3px; height: 24px; padding: 0 8px 0 4px; box-sizing: border-box; border-radius: 12px;
@@ -171,14 +171,14 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 #s-guild .sheet .fm-grid h5 { color: var(--gk-mute); }
 /* 시트: 머리 ⓘ (능력치 설명 팝업, 길드에 남은 ⓘ 하나), 레벨 경험치 막대, 동작 둘 (같은 크기 돌 버튼) */
-#s-guild .sheet .h-rule .g-info { margin: -10px -8px -10px 0; }
-#s-guild .g-meters { display: flex; flex-direction: column; gap: 6px; }
-#s-guild .g-meter { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; }
-#s-guild .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
-#s-guild .g-meter .k .g-ic { width: 16px; height: 16px; object-fit: contain; }
-#s-guild .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
+:is(#s-guild, #s-party) .sheet .h-rule .g-info { margin: -10px -8px -10px 0; }
+:is(#s-guild, #s-party) .g-meters { display: flex; flex-direction: column; gap: 6px; }
+:is(#s-guild, #s-party) .g-meter { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; }
+:is(#s-guild, #s-party) .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
+:is(#s-guild, #s-party) .g-meter .k .g-ic { width: 16px; height: 16px; object-fit: contain; }
+:is(#s-guild, #s-party) .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
 /* 직전 레벨업 두 배 (103 「레벨업시 20% 확률로 2업」) */
-#s-guild .g-dbl { margin: 0; font: 700 12px var(--font-body); color: #8ed99a; }
+:is(#s-guild, #s-party) .g-dbl { margin: 0; font: 700 12px var(--font-body); color: #8ed99a; }
 #s-guild .g-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #s-guild .g-acts > .btn { position: relative; min-height: 78px; margin: 0; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 #s-guild .g-acts .g-ai > .g-ic { width: 30px; height: 30px; object-fit: contain; }
@@ -202,37 +202,37 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet > .f-shut:active { background: var(--gk-btn-on); }
 
 /* 길드원 작업 · 새 공고 확인: 중앙 팝업에서 취소/확인한다. */
-#app #s-guild .sheet-dim.g-action-dim { z-index: 74; background: #0009; border: 0; padding: 0; }
-#app #s-guild .sheet.g-action-confirm {
+#app :is(#s-guild, #s-party) .sheet-dim.g-action-dim { z-index: 74; background: #0009; border: 0; padding: 0; }
+#app :is(#s-guild, #s-party) .sheet.g-action-confirm {
   z-index: 75; top: 50%; bottom: auto; left: 50%; transform: translate(-50%, -50%);
   width: calc(100% - 32px); max-width: 380px; max-height: calc(100dvh - 96px);
   padding: 20px; gap: 16px; border: 1px solid var(--gk-edge); border-radius: 12px;
   background: var(--gk-bg); color: var(--gk-ink); box-shadow: 0 12px 50px #000a;
   animation: none; overscroll-behavior: contain; word-break: keep-all; overflow-wrap: anywhere;
 }
-#s-guild .g-action-confirm > * { flex-shrink: 0; }
-#s-guild .g-action-confirm h3 { margin: 0; font: 800 22px/1.4 var(--font-display); color: var(--gk-head); }
+:is(#s-guild, #s-party) .g-action-confirm > * { flex-shrink: 0; }
+:is(#s-guild, #s-party) .g-action-confirm h3 { margin: 0; font: 800 22px/1.4 var(--font-display); color: var(--gk-head); }
 #s-guild .g-action-member { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--gk-line); }
 #s-guild .g-action-member b { font-size: 16px; }
 #s-guild .g-action-member span { flex: none; font-size: 12px; color: var(--gk-mute); }
 #s-guild .g-action-confirm p { margin: 0; font-size: 15px; line-height: 1.7; }
 #s-guild .g-action-cost { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--gk-card-bd); border-radius: 8px; background: var(--gk-card); }
 #s-guild .g-action-cost > span:first-child { font-size: 13px; color: var(--gk-ink2); }
-#s-guild .g-action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-#app #s-guild .g-action-buttons button { min-height: 48px; padding: 8px; border: 1px solid var(--gk-edge); border-radius: 7px; background: var(--gk-card); color: var(--gk-ink); font: 700 16px var(--font-body); }
-#app #s-guild .g-action-buttons button.primary { background: #71522b; border-color: #d4b06c; color: #fff0cb; }
+:is(#s-guild, #s-party) .g-action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#app :is(#s-guild, #s-party) .g-action-buttons button { min-height: 48px; padding: 8px; border: 1px solid var(--gk-edge); border-radius: 7px; background: var(--gk-card); color: var(--gk-ink); font: 700 16px var(--font-body); }
+#app :is(#s-guild, #s-party) .g-action-buttons button.primary { background: #71522b; border-color: #d4b06c; color: #fff0cb; }
 #app #s-guild .g-action-buttons button.danger { background: #5a3028; border-color: #bd7864; color: #ffe5db; }
-#s-guild .g-action-buttons button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+:is(#s-guild, #s-party) .g-action-buttons button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 #s-guild .g-action-buttons button:disabled { opacity: .5; }
 
 /* 능력치 설명 (길드원 상세 ⓘ, 2026-10-28 Lim): 확인 팝업 바탕 + 길드 판 셋 (신체 · 기술 · 정신) × 줄 넷 (이름 · 한 줄), 닫기 하나 */
-#app #s-guild .sheet.g-action-confirm.g-stat-help { padding: 16px 14px 14px; gap: 10px; max-width: 400px; }
-#s-guild .g-stat-card { border-radius: 10px; box-shadow: none; }
-#s-guild .g-stat-card h4 { margin: 0; padding: 5px 10px; background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line); font: 800 13px/1.3 var(--font-display); color: var(--gk-head); }
-#s-guild .g-stat-card .g-row.g-stat-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: baseline; gap: 8px; min-height: 0; padding: 6px 10px; }
-#s-guild .g-stat-row b { font: 700 13px/1.4 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
-#s-guild .g-stat-row span { font-size: 12.5px; line-height: 1.4; color: var(--gk-ink2); }
-#s-guild .g-action-buttons.g-one { grid-template-columns: 1fr; }
+#app :is(#s-guild, #s-party) .sheet.g-action-confirm.g-stat-help { padding: 16px 14px 14px; gap: 10px; max-width: 400px; }
+:is(#s-guild, #s-party) .g-stat-card { border-radius: 10px; box-shadow: none; }
+:is(#s-guild, #s-party) .g-stat-card h4 { margin: 0; padding: 5px 10px; background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line); font: 800 13px/1.3 var(--font-display); color: var(--gk-head); }
+:is(#s-guild, #s-party) .g-stat-card .g-row.g-stat-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: baseline; gap: 8px; min-height: 0; padding: 6px 10px; }
+:is(#s-guild, #s-party) .g-stat-row b { font: 700 13px/1.4 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
+:is(#s-guild, #s-party) .g-stat-row span { font-size: 12.5px; line-height: 1.4; color: var(--gk-ink2); }
+:is(#s-guild, #s-party) .g-action-buttons.g-one { grid-template-columns: 1fr; }
 
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }

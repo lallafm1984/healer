@@ -207,11 +207,24 @@ export default async function guild(url, shots) {
   const picked = await page.locator('#s-party [data-gpick].picked').count();
   ok(await page.getAttribute('#s-party [data-mode="guild"]', 'aria-selected') === 'true' && picked === 4, `편성이 길드파티로 시작 (5인 = 길드원 4) ${picked}`);
   ok((await page.locator('#s-party .bond').count()) === 0, '편성 길드원 줄에도 인연 표시 없음');
-  // 추천 편성 (93 7-1): 보스 특징에 맞는 스킬로 고르고 이유 칩 (공략 숙지는 없앰, 99)
+  // 추천 편성 (93 7-1): 보스 특징에 맞는 스킬로 고름. 이유 칩 (「쫄 → 도발」)은 없앰 (2026-10-28 Lim)
   ok(/추천 편성/.test(await text('#autoPick')), '버튼 「추천 편성」');
+  const order = async () => page.locator('#s-party [data-gpick]').evaluateAll(els => els.map(el => el.dataset.gpick).join());
+  const before = await order();
   await page.click('#autoPick'); await page.clock.runFor(50);
-  const why = await page.locator('#s-party .f-why .chip').allTextContents();
-  ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && why.length >= 1 && why.every(w => /→/.test(w)), `추천 편성 = 4명 + 이유 칩 ${JSON.stringify(why)}`);
+  ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && (await page.locator('#s-party .f-why').count()) === 0 && await order() === before, '추천 편성 = 4명, 이유 칩 없음, 줄은 제자리');
+  // 이름 · 직업 아이콘 = 길드원 상세 (길드 탭과 같은 시트 · ⓘ 능력치 설명), 고른 것은 그대로
+  const firstPick = await page.getAttribute('#s-party [data-gpick]', 'aria-pressed');
+  await page.click('#s-party [data-gpick] .pnick'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-party .g-msheet .fm-grid') && await page.isVisible('#s-party .g-msheet .g-meter') && await page.getAttribute('#s-party [data-gpick]', 'aria-pressed') === firstPick, '이름 → 길드원 상세 (능력치 · 레벨 막대), 고르기는 그대로');
+  await page.click('#s-party .g-msheet [data-stathelp]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-party .g-stat-help'), 'ⓘ → 능력치 설명 팝업');
+  await page.keyboard.press('Escape'); await page.clock.runFor(50);
+  ok(!(await page.isVisible('#s-party .g-stat-help')) && await page.isVisible('#s-party .g-msheet'), 'Esc = 설명만 닫힘');
+  await page.click('#s-party .g-msheet [data-shut].f-shut'); await page.clock.runFor(50);
+  await page.click('#s-party [data-gpick] .f-ri'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-party .g-msheet'), '직업 아이콘 → 길드원 상세');
+  await page.click('#s-party .g-msheet [data-shut].f-shut'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/guild_party.png` });
   // 추천은 별도로 검증한 뒤 부탁한 탱커를 직접 편성한다 (무작위 영입 탱커가 추천될 수도 있음).
   if (await page.getAttribute(`#s-party [data-gpick="${tank.id}"]`, 'aria-pressed') !== 'true') {
