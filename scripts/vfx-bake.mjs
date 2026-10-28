@@ -68,7 +68,7 @@ for (const name of names) {
       if (fx.gray && fx.sample) { gk.globalCompositeOperation = 'multiply'; gk.fillStyle = fx.sample; gk.fillRect(0, 0, S, S); gk.globalCompositeOperation = 'destination-in'; gk.drawImage(one, 0, 0); }
       frames.push(keep);
     }
-    const webp = sheet.toDataURL('image/webp', 0.9).split(',')[1];
+    const webp = sheet.toDataURL('image/webp', 0.72).split(',')[1]; // 2026-10-28 0.9 → 0.72 (APK 줄이기, art-optimize RULES fx-skill과 같게)
     let rev = null;
     if (bg) {
       const load = src => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.src = src; });
