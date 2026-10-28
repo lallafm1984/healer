@@ -118,13 +118,16 @@ export const memberCard = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' |
 export const gBar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${label}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
 /** 시트 머리: 닉네임 · 직업 · Lv. help = 길드원 상세만 ⓘ (능력치 설명 팝업) */
 export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="능력치 설명">${uiIcon('info')}</button>` : ''}</h2>`;
-/** 길드원 상세 몸: 머리 ⓘ → 레벨 경험치 막대 (직전 레벨업 두 배) → 능력치 · 직업 스킬 · 성격. 길드 탭은 이 아래에 골드 지원 · 내보내기 */
+/**
+ * 길드원 상세 몸: 머리 ⓘ → 레벨 경험치 막대 → 능력치 · 직업 스킬 · 성격. 길드 탭은 이 아래에 골드 지원 · 내보내기.
+ * 막대 아래 초록 줄 「직전 레벨업 두 배 · 회피 +1 …」은 없다 (2026-10-28 Lim 「녹색의 직전 레벨업 두배 텍스트 제거」, 오른 칸은 능력치 표 화살표). 다시 넣지 않는다
+ */
 export function memberInfoHtml(m: GuildMember): string {
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
   const d = memberCard(m, true);
   return `${memberSheetHead(d, true)}
     <div class="g-meters">
-      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${gBar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>${m.lastDouble ? `<p class="g-dbl">직전 레벨업 두 배${m.lastDoubleStats?.length ? ` · ${m.lastDoubleStats.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : ''}</p>` : ''}</div>
+      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${gBar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p></div>
     ${memDetailHtml(d)}`;
 }
 /** 길드원 상세 ⓘ → 능력치 12칸 한 줄 설명 (fm.ts STAT_HELP). 세 묶음 = 상세 능력치 칸과 같은 신체 · 기술 · 정신. 닫기 = [data-shut] */
