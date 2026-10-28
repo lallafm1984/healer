@@ -182,10 +182,10 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'wildflower') {
     const r = areaRadius(f, 'wildflower'); // 20인은 2칸 (26 9-1)
     if (f.sp) aoeCount(f, around(f, u, r).length);
-    const n = f.leaves, full = n >= LEAF.max; // 잎을 모두 씀 (2026-10-28)
+    const n = f.leaves, full = n >= LEAF.max, big = f.enc.big; // 잎을 모두 씀 (2026-10-28)
     f.leaves = 0;
-    const vs = wildAt(f, u.cell, 1 + LEAF.heal * n, r);
-    if (full) for (const v of vs) if (!hasSprout(v)) putSprout(f, v); // 잎 5장: 닿은 아군 중 새싹이 없는 사람에게 새싹
+    const vs = wildAt(f, u.cell, 1 + (big ? LEAF.big.heal : LEAF.heal) * n, r);
+    if (full && !big) for (const v of vs) if (!hasSprout(v)) putSprout(f, v); // 잎 5장: 닿은 아군 중 새싹이 없는 사람에게 새싹 (20인 레이드는 안 심음, 통합 점검)
     if (on.rebloomField) f.tx.later.push({ at: f.t + 7, cell: u.cell, amt: TX.rebloomField, r, kind: 'wild' }); // 다시 피는 들꽃 (77)
     if (on.flowerTrail || on.wakeForest) for (const v of vs) for (const h of v.hots) if (h.key === 'sprout') {
       if (on.flowerTrail) { h.rest += (h.per / h.every) * TX.flowerTrail; h.left += TX.flowerTrail; } // 이어 피는 꽃 (77): 시간 + 그만큼 회복량
