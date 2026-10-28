@@ -654,23 +654,23 @@ describe('추천 편성 (93 7-1)', () => {
 });
 
 describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
-  it('그 길드원 Lv × 20 골드 = 3판 (2026-10-28 Lim, 예전 5판), 지원 중에는 중첩 불가, 모두 쓰면 다시 지원 가능', () => {
-    expect(SPONSOR).toMatchObject({ per: 20, runs: 3 });
-    const s = save(30, 2000), m = add(s, 'mage', 0, { lv: 20 }), top = add(s, 'mage', 1, { lv: 30 });
-    expect(sponsorGold(20)).toBe(400);
+  it('그 길드원 Lv × 50 골드 = 3판 (2026-10-28 Lim, 예전 Lv × 20 · 5판), 지원 중에는 중첩 불가, 모두 쓰면 다시 지원 가능', () => {
+    expect(SPONSOR).toMatchObject({ per: 50, runs: 3 });
+    const s = save(30, 2500), m = add(s, 'mage', 0, { lv: 20 }), top = add(s, 'mage', 1, { lv: 30 });
+    expect(sponsorGold(20)).toBe(1000);
     expect(Gd.sponsor(s, m.id)).toBe('');
-    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1600]);
+    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1500]);
     expect(Gd.sponsorWhy(s, top)).toBe('내 레벨과 같음');
     expect(Gd.sponsor(s, top.id)).toBe('내 레벨과 같음');
     for (const left of [1, 5, 20]) {
       m.boost = left;
       expect(Gd.sponsorWhy(s, m)).toBe('지원 중');
       expect(Gd.sponsor(s, m.id)).toBe('지원 중');
-      expect([m.boost, s.player.gold]).toEqual([left, 1600]);
+      expect([m.boost, s.player.gold]).toEqual([left, 1500]);
     }
     m.boost = 0;
     expect(Gd.sponsor(s, m.id)).toBe('');
-    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1200]);
+    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 500]);
     s.player.gold = 0;
     const n = add(s, 'archer', 0, { lv: 10 });
     expect(Gd.sponsor(s, n.id)).toMatch(/골드 부족/);

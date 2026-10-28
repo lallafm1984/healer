@@ -147,7 +147,7 @@ export function hire(save: SaveData, i: number): string {
 // ---------- 관리 ----------
 const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.id === id) || null;
 
-/** 골드 지원: 그 길드원 Lv × 20 골드 = SPONSOR.runs판 (3). 남은 지원이 있거나 내 레벨과 같으면 안 됨. */
+/** 골드 지원: 그 길드원 Lv × SPONSOR.per (50) 골드 = SPONSOR.runs판 (3). 남은 지원이 있거나 내 레벨과 같으면 안 됨. */
 export function sponsorWhy(save: SaveData, m: GuildMember): string {
   if (m.boost > 0) return '지원 중';
   if (m.lv >= topLevel(save)) return '내 레벨과 같음';
