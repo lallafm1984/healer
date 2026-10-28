@@ -44,6 +44,10 @@ export interface NoviceOpts {
   queue: boolean;
   /** 기믹 공략 (힐하면 손해인 사람 · 차례 · 체력 선 · 사슬 · 띄우기 …)을 앎. 모르면 가장 낮은 사람 채우기 · 보이는 디버프 지우기만 (뒤집힌 축복은 화면이 막아 줌) */
   tactics: boolean;
+  /** 연타 예약 (2026-10-28 수도사 점검): 같은 사람에게 같은 스킬을 이어 누를 때는 GCD 중에 미리 눌러 둠 (게임이 GCD 중 누름을 예약해 GCD가 끝나자마자 씀, healer.ts f.queued) → 반응 시간 없음 */
+  queueSame?: boolean;
+  /** GCD 중 미리 고르기 (수도사 점검): GCD가 고르는 데 걸릴 시간만큼 남으면 그때 판을 보고 다음 것을 골라 예약 → GCD가 끝나자마자 나감 (고르는 시간이 GCD 안에 숨음) */
+  preQueue?: boolean;
 }
 
 /** 처음 하는 사람 (튜토리얼 ~ 초반 순차 레벨링 구간) */
@@ -164,6 +168,7 @@ export const uidAt = (f: Fight, cell?: number) => (cell == null ? null : f.cells
 export function thinkTime(f: Fight, n: Novice, a: NoviceAct): number {
   const same = !!n.last && n.last.k === a.k && n.last.uid === uidAt(f, a.cell);
   if (!same) n.stats.switches++;
+  if (same && n.o.queueSame) return 0;
   return logn(n, n.o.react + (same ? 0 : n.o.pick * Math.log2(living(f).length + 1) + n.o.tap), n.o.spread);
 }
 
