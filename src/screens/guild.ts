@@ -12,20 +12,20 @@
 import { resourceBalance } from '../game/resources';
 import { CLASSES } from '../data/classes';
 import { CONTENT } from '../data/content';
-import { EXPED, hireGold, REQ, POST, SPONSOR, sponsorGold, memberSkillLevel, type GuildMember } from '../data/guild';
+import { EXPED, hireGold, REQ, POST, SPONSOR, sponsorGold, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
-import { GUILD_LEVEL, xpToNext } from '../data/progression';
+import { GUILD_LEVEL } from '../data/progression';
 import { Flow } from '../game/flow';
 import { claimExped } from '../game/economy';
 import { guideCtx, rankStages, realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
-import { abilityStars, STAT_GROUPS, STAT_HELP, STAT_NAMES } from '../data/fm';
+import { abilityStars } from '../data/fm';
 import { adRefreshPost, capOf, foundGuild, postAdWait, postNew, refreshPost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, release } from '../game/guild';
 import { adsFree } from '../game/stamina';
 import { showRewarded } from '../platform/ads';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
-import { memDetailHtml, memRowHtml, type CardData } from './members';
+import { gBar, memberCard, memberInfoHtml, memberSheetHead, memDetailHtml, memRowHtml, statHelpPopupHtml } from './members';
 import { esc, fmt, go, goingBack, screen, topBar } from './kit';
 import { currencyAmount, departureArrow, gameIcon, LOCK, uiIcon } from './art';
 import { sheetDialog } from './dialog';
@@ -78,8 +78,8 @@ const IC = {
 const ROLE_PICK: [MemberRole, string][] = [['tank', '탱커'], ['melee', '근접'], ['ranged', '원거리'], ['any', '아무나']];
 
 const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);
-/** 줄 · 시트에 넘길 사람 */
-const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats' | 'lastStatGains' | 'skillFloor'>, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star: memberSkillLevel(m), fm: { stats: m.stats }, grown: true, lastStatGains: member ? m.lastStatGains : undefined, member });
+/** 줄 · 시트에 넘길 사람 (members.ts, 편성 길드파티와 같음) */
+const card = memberCard;
 
 /** 위: 하위 탭 (상점과 같은 .subtabs). 영입 = 지원자 빨간 점 */
 function tabs(): string {
@@ -183,7 +183,7 @@ function secHtml(x: Sec): string {
 const pill = (ic: string, t: string, cls = '', sr = '') => `<span class="g-pill${cls ? ` ${cls}` : ''}">${ic}${sr ? `<span class="sr">${sr} </span>` : ''}${t}</span>`;
 const famePill = (n: number) => pill(IC.fame(), `+${n}`, 'fame', '명성');
 const okPill = (t: string) => pill('', `✓ ${t}`, 'ok');
-const bar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${label}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
+const bar = gBar;
 const placeName = (k: string) => esc(CONTENT.find(c => c.key === k)?.name ?? k);
 
 // ---------- 현황 ----------
@@ -277,8 +277,7 @@ function sheetBox(label: string, inner: string, footer = '<button class="btn2 f-
   return `<div class="sheet-dim" data-shut></div><section class="sheet g-msheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>
     ${inner}${st.msg ? `<p class="warnbox g-smsg" role="status">${esc(st.msg)}</p>` : ''}${footer}</section>`;
 }
-/** help = 길드원 상세만 ⓘ (능력치 설명 팝업) */
-const sheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="능력치 설명">${uiIcon('info')}</button>` : ''}</h2>`;
+const sheetHead = memberSheetHead;
 
 function sheetHtml(): string {
   const x = st.sheet;
@@ -297,18 +296,12 @@ function sheetHtml(): string {
   return sheetBox(`${m.nick} 상세`, detailHtml(m));
 }
 
-/** 길드원 상세 (시트 안): 레벨 경험치 막대 → 능력치 · 직업 스킬 · 성격 → 골드 지원 · 내보내기. 머리 ⓘ = 능력치 설명 팝업 */
+/** 길드원 상세 (시트 안): 머리 ⓘ · 레벨 경험치 막대 · 능력치 · 직업 스킬 · 성격 (members.ts, 편성 길드파티와 같음) → 골드 지원 · 내보내기 */
 function detailHtml(m: GuildMember): string {
-  const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
   const gold = resourceBalance(G.save, 'gold');
   const sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
-  const d = card(m, true);
-  const meters = `<div class="g-meters">
-      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>${m.lastDouble ? `<p class="g-dbl">직전 레벨업 두 배${m.lastDoubleStats?.length ? ` · ${m.lastDoubleStats.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : ''}</p>` : ''}</div>`;
   const act = (attr: string, ic: string, label: string, sub: string, dis: boolean) => `<button class="btn" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small></button>`;
-  return `${sheetHead(d, true)}
-    ${meters}
-    ${memDetailHtml(d)}
+  return `${memberInfoHtml(m)}
     <div class="g-acts">
       ${act('data-sponsor aria-haspopup="dialog"', IC.sponsor(), m.boost > 0 ? '지원 중' : '골드 지원', m.boost > 0 ? `${m.boost}판 남음` : sw || goldCost(sg), !!sw || gold < sg)}
       ${act('data-release aria-haspopup="dialog"', IC.release(), '내보내기', '길드에서 제외', false)}
@@ -331,16 +324,10 @@ function memberConfirmHtml(): string {
     </section>`;
 }
 
-/** 길드원 상세 ⓘ → 능력치 12칸 한 줄 설명 (fm.ts STAT_HELP). 세 묶음 = 상세 능력치 칸과 같은 신체 · 기술 · 정신 */
+/** 길드원 상세 ⓘ → 능력치 12칸 한 줄 설명 (members.ts, 편성 길드파티와 같음) */
 function statHelpHtml(): string {
   if (!st.help || st.sheet?.k !== 'mem' || st.ask) { st.help = false; return ''; }
-  const groups = STAT_GROUPS.map(g => `<section class="g-card g-stat-card" aria-label="${g.name}"><h4>${g.name}</h4><ul class="g-rows">${g.keys.map(k => `<li class="g-row g-stat-row"><b>${STAT_NAMES[k]}</b><span>${STAT_HELP[k]}</span></li>`).join('')}</ul></section>`).join('');
-  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="능력치 설명 닫기" tabindex="-1"></button>
-    <section class="sheet g-action-confirm g-stat-help" role="dialog" aria-modal="true" aria-labelledby="guildStatTitle">
-      <h3 id="guildStatTitle">능력치</h3>
-      ${groups}
-      <div class="g-action-buttons g-one"><button type="button" data-shut>닫기</button></div>
-    </section>`;
+  return statHelpPopupHtml();
 }
 
 /** 새로 뽑기도 공통 확인 팝업 (지원자가 남아 있을 때만): 확인 전에는 기존 지원자를 유지한다. 확인 → 보상형 광고 → 5명 */

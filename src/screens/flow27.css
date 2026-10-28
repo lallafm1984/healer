@@ -172,9 +172,6 @@
 #s-party .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 #s-party .pickhead { margin: 0; flex-wrap: wrap; align-items: center; }
 #s-party .pickhead #autoPick { margin-left: auto; min-height: 44px; }
-/* 추천 편성 이유 (93 7-1): 「장판 → 연막」 */
-#s-party .f-why { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; }
-#s-party .f-why .chip { min-height: 24px; padding: 2px 8px; border-radius: 12px; font: 700 11px/1.4 var(--font-body); white-space: nowrap; }
 /* 그림 + 숫자 한 덩이 (2026-10-19 길드 화면 정리): 그림이 위, 글이 아래로 갈라지던 것 (inline 그림 + 줄바꿈) */
 .pcard.f-mem .f-l2 > .f-tag { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; font-weight: 700; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pcard.f-mem .f-l2 > .f-tag > .g-ic { width: 15px; height: 15px; object-fit: contain; }

@@ -2,9 +2,12 @@
 import { ABILITIES } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
+import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_HELP, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
+import { memberSkillLevel, type GuildMember } from '../data/guild';
+import { xpToNext } from '../data/progression';
 import { classGlyphSvg } from './class-icons';
 import { ratingStarsHtml } from './member-icons';
+import { uiIcon } from './art';
 import { esc, ROLE } from './kit';
 
 /**
@@ -107,3 +110,30 @@ export function memDetailHtml(m: CardData): string {
     ${personalityHtml(m.pers)}</div>`;
 }
 
+
+// ---------- 길드원 상세 (길드 탭 · 편성 길드파티가 같은 시트, 2026-10-28 Lim 「이름이나 아이콘을 누르면 능력치 팝업」) ----------
+/** 길드원 · 지원자 줄 · 시트에 넘길 사람 (저장 능력치 그대로) */
+export const memberCard = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats' | 'lastStatGains' | 'skillFloor'>, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star: memberSkillLevel(m), fm: { stats: m.stats }, grown: true, lastStatGains: member ? m.lastStatGains : undefined, member });
+/** 길드 막대 (경험치 · 할 일, guild-hall.css .g-bar) */
+export const gBar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${label}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
+/** 시트 머리: 닉네임 · 직업 · Lv. help = 길드원 상세만 ⓘ (능력치 설명 팝업) */
+export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="능력치 설명">${uiIcon('info')}</button>` : ''}</h2>`;
+/** 길드원 상세 몸: 머리 ⓘ → 레벨 경험치 막대 (직전 레벨업 두 배) → 능력치 · 직업 스킬 · 성격. 길드 탭은 이 아래에 골드 지원 · 내보내기 */
+export function memberInfoHtml(m: GuildMember): string {
+  const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
+  const d = memberCard(m, true);
+  return `${memberSheetHead(d, true)}
+    <div class="g-meters">
+      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${gBar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p>${m.lastDouble ? `<p class="g-dbl">직전 레벨업 두 배${m.lastDoubleStats?.length ? ` · ${m.lastDoubleStats.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : ''}</p>` : ''}</div>
+    ${memDetailHtml(d)}`;
+}
+/** 길드원 상세 ⓘ → 능력치 12칸 한 줄 설명 (fm.ts STAT_HELP). 세 묶음 = 상세 능력치 칸과 같은 신체 · 기술 · 정신. 닫기 = [data-shut] */
+export function statHelpPopupHtml(): string {
+  const groups = STAT_GROUPS.map(g => `<section class="g-card g-stat-card" aria-label="${g.name}"><h4>${g.name}</h4><ul class="g-rows">${g.keys.map(k => `<li class="g-row g-stat-row"><b>${STAT_NAMES[k]}</b><span>${STAT_HELP[k]}</span></li>`).join('')}</ul></section>`).join('');
+  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="능력치 설명 닫기" tabindex="-1"></button>
+    <section class="sheet g-action-confirm g-stat-help" role="dialog" aria-modal="true" aria-labelledby="guildStatTitle">
+      <h3 id="guildStatTitle">능력치</h3>
+      ${groups}
+      <div class="g-action-buttons g-one"><button type="button" data-shut>닫기</button></div>
+    </section>`;
+}

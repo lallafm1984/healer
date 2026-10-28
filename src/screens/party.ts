@@ -21,7 +21,7 @@ import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
 import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
+import { classIcon, memberInfoHtml, memDetailHtml, memRowHtml, ROLE_ICON, statHelpPopupHtml } from './members';
 import { battle, esc, go, ROLE, screen } from './kit';
 import { classEmblem, departureArrow, floorArtOf, gameIcon, LOCK, uiIcon } from './art';
 // 권장 레벨 미달 경고 줄은 없앰 (2026-10-28 Lim 「경고제거」, 권장 레벨은 출전 화면에만). 다시 넣지 않는다
@@ -43,18 +43,19 @@ const s = screen('s-party', '파티 편성', {
       Flow.gpick = guildReady() ? autoPick(G.save, firstEnc()) : [];
       compose();
     }
-    sheet = null; openRow = -1; recWhy = [];
+    sheet = null; openRow = -1; openGid = -1; help = false;
     render(false);
   },
 });
 const modal = sheetDialog(s.el, shut);
 let msg = '', gmsg = '';
-/** 추천 편성 이유 칩 (누른 뒤, 손으로 바꾸면 지움) */
-let recWhy: string[] = [];
-/** 열린 시트: 공략 · 파티원 상세 */
-let sheet: 'guide' | 'mem' | null = null;
+// 추천 편성 이유 칩 (「쫄 → 도발」)은 없앰 (2026-10-28 Lim, 다시 넣지 않는다)
+/** 열린 시트: 공략 · 파티원 상세 · 길드원 상세 (길드파티 줄의 이름 · 아이콘) */
+let sheet: 'guide' | 'mem' | 'gmem' | null = null;
 /** 상세 시트로 연 파티원 줄 */
 let openRow = -1;
+/** 상세 시트로 연 길드원 (길드파티 탭), help = 그 시트 머리 ⓘ → 능력치 설명 팝업 */
+let openGid = -1, help = false;
 /** 공략 시트에서 고른 구간 (-1 = 처음 열 때 마지막 구간) */
 let gseg = -1;
 
@@ -93,7 +94,7 @@ function boardHtml(): string {
   const W = Math.max(...xs) + HW - x0, H = Math.max(...ys) + R - y0;
   const pc = (v: number, t: number) => `${((v / t) * 100).toFixed(2)}%`;
   const size = f.cells.length > 19 ? ' big' : f.cells.length > 10 ? ' mid' : '';
-  const hero = heroNow(), sel = sheet === 'mem' ? Flow.party![openRow]?.nick : undefined;
+  const hero = heroNow(), sel = sheet === 'mem' ? Flow.party![openRow]?.nick : sheet === 'gmem' ? memberById(openGid)?.nick : undefined;
   const who: string[] = [];
   const cells = f.cells.map(c => {
     const u = homeOf.get(c.i);
@@ -114,17 +115,19 @@ function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): s
   return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${ROLE[m.role].name}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span></div></li>`;
 }
 
+const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);
+
 /**
  * 길드파티 편성 (02 9-2): 길드원만 보이고 눌러서 넣고 빼기. 2026-10-28 Lim: 공개모집 보충 줄 없음 (빈자리는 빈 칸으로 출발),
- * 탱커 · 딜러 자리 제한 없이 자리 수까지 마음대로, 「길드원 N명부터 길드파티」 · 「권장 레벨보다 낮은 길드원」 줄은 없앰 (다시 넣지 않는다)
+ * 탱커 · 딜러 자리 제한 없이 자리 수까지 마음대로, 「길드원 N명부터 길드파티」 · 「권장 레벨보다 낮은 길드원」 줄은 없앰 (다시 넣지 않는다).
+ * 같은 날 Lim: 고른 줄도 제자리 (레벨 순 그대로, 예전 고른 사람 맨 위), 이름 · 직업 아이콘을 누르면 길드원 상세 (길드 탭과 같은 시트), 나머지 자리는 넣고 빼기
  */
 function guildPickHtml(): string {
   const ms = G.save.guild.members;
   const picked = Flow.gpick.map(id => ms.find(m => m.id === id)).filter(Boolean);
   const tanks = picked.filter(m => CLASSES[m!.cls].role === 'tank').length;
-  const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
+  const list = ms.slice().sort((a, b) => b.lv - a.lv || a.id - b.id);
   return `<p class="pickhead"><b>길드원 ${picked.length} / ${seatsOf(firstEnc())}</b><small>탱커 ${tanks} · 딜러 ${picked.length - tanks}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
-    ${recWhy.length ? `<p class="f-why" aria-label="추천 이유">${recWhy.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</p>` : ''}
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
@@ -172,6 +175,12 @@ function pickSeg(i: number, focus = false): void {
   if (body && route && body.scrollTop > route.offsetTop) body.scrollTop = route.offsetTop;
 }
 
+/** 길드원 상세 시트 (길드파티 줄의 이름 · 아이콘): 길드 탭과 같은 몸 (ⓘ · 레벨 경험치 막대 · 능력치 · 스킬 · 성격), 골드 지원 · 내보내기는 길드 탭에만 */
+function guildMemSheetHtml(): string {
+  const m = memberById(openGid);
+  return m ? sheetBox('f-msheet g-msheet', `${m.nick} 상세`, memberInfoHtml(m)) + (help ? statHelpPopupHtml() : '') : '';
+}
+
 /** 파티원 상세 시트 (줄을 누르면): 능력 · 자질 · 직업 패시브 · 특성 · 성격 */
 function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
@@ -207,11 +216,13 @@ function render(keepScroll = true): void {
         <button class="g-cta" type="button" id="depart"><span class="g-mk" aria-hidden="true">${classEmblem(heroNow(), 'sm')}</span><span class="g-ct"><b>출발</b></span>${departureArrow()}</button>
       </div>
     </footer>
-    ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
+    ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : sheet === 'gmem' ? guildMemSheetHtml() : ''}`;
   msg = '';
   const body = s.el.querySelector<HTMLElement>('.ns-body');
   if (body) body.scrollTop = scroll;
-  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : ''}`] : []);
+  if (sheet === 'gmem' && !memberById(openGid)) sheet = null;
+  const key = sheet === 'mem' ? openRow : sheet === 'gmem' ? openGid : '';
+  modal.sync(sheet ? s.el.querySelector<HTMLElement>(help ? '.g-stat-help' : '.sheet:not([hidden])') : null, sheet ? [`${sheet}:${key}`, ...(help ? ['help:stats'] : [])] : []);
 }
 
 /** 시트 열기·닫기. 닫으면 연 버튼으로 초점을 돌려줌 */
@@ -221,20 +232,26 @@ function openSheet(k: typeof sheet, from: string): void {
   sheet = k; render();
 }
 function shut(): void {
-  sheet = null; render();
+  if (help) help = false; // 능력치 설명 팝업만 닫고 길드원 상세는 그대로
+  else sheet = null;
+  render();
 }
 
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   if (t.closest('[data-shut]')) { shut(); return; }
+  if (help) return;
+  if (sheet === 'gmem' && t.closest('[data-stathelp]')) { help = true; render(); return; } // 길드원 상세 ⓘ = 능력치 설명 팝업
   if (t.closest('#guideOpen')) { gseg = -1; openSheet('guide', '#guideOpen'); return; }
   const gt = t.closest<HTMLElement>('[data-gseg]');
   if (gt) { pickSeg(Number(gt.dataset.gseg)); return; }
   const md = t.closest<HTMLElement>('[data-mode]');
   if (md && !md.hasAttribute('disabled')) { Flow.mode = md.dataset.mode as 'public' | 'guild'; compose(); render(); return; }
   const gp = t.closest<HTMLElement>('[data-gpick]');
-  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; if (!r.msg) recWhy = []; compose(); render(); gmsg = ''; return; }
-  if (t.closest('#autoPick')) { const r = recommendPick(G.save, firstEnc(), contentOf(Flow.content).fights(Flow.diff), modeNow().stage); Flow.gpick = r.pick; recWhy = r.why; compose(); render(); return; }
+  // 길드파티 줄: 이름 · 직업 아이콘 = 길드원 상세, 그 밖 = 넣고 빼기 (줄은 제자리)
+  if (gp && t.closest('.f-ri, .pnick')) { openGid = Number(gp.dataset.gpick); help = false; openSheet('gmem', `[data-gpick="${openGid}"]`); return; }
+  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; compose(); render(); gmsg = ''; return; }
+  if (t.closest('#autoPick')) { Flow.gpick = recommendPick(G.save, firstEnc(), contentOf(Flow.content).fights(Flow.diff), modeNow().stage).pick; compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
   // 출발 = 바로 전투 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 없앰, 전투 전에는 휴식 표시 없음)

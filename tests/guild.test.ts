@@ -643,15 +643,14 @@ describe('추천 편성 (93 7-1)', () => {
     expect(abilityFeatures(ABILITIES['paladin.avenger'])).toEqual(['cut']);
     expect(abilityFeatures(ABILITIES['warrior.shieldBlock'])).toEqual(['buster']);
   });
-  it('특징에 맞는 스킬이 점수를 올리고 이유 칩, 다루기 어려운 성격은 버릇을 고친 만큼 덜 깎음, 레벨이 모자라면 깎음 (공략 숙지는 없앰, 99)', () => {
+  it('특징에 맞는 스킬이 점수를 올림 (이유 칩은 없앰, 10-28), 다루기 어려운 성격은 버릇을 고친 만큼 덜 깎음, 레벨이 모자라면 깎음 (공략 숙지는 없앰, 99)', () => {
     const s = save(30);
     const flat = (v: number) => Object.fromEntries(Object.keys(add(save(), 'mage').stats).map(k => [k, v])) as GuildMember['stats'];
     const a = add(s, 'paladin', 0, { ab: 'paladin.devotion', pers: '신중파', stats: flat(10), lv: 30 });
     const b = add(s, 'paladin', 1, { ab: 'paladin.cleanse', pers: '신중파', stats: flat(10), lv: 30 });
     const r = recommendPick(s, ENCOUNTERS.warden, ['plague'], 30);
     expect(r.pick[0]).toBe(b.id);
-    expect(r.why).toContain('독 · 질병 → 독소 정화');
-    expect(r.why.some(w => /숙지/.test(w))).toBe(false);
+    expect(recScore(s, b, ['plague'], 30).fits).toEqual(['poison']); // 독 · 질병 → 독소 정화
     expect(a.id).not.toBe(r.pick[0]);
     const hard = (Object.keys(PERS) as (keyof typeof PERS)[]).find(k => PERS[k].star === 3 && !('tankOnly' in PERS[k]))!;
     const c = add(s, 'mage', 1, { pers: hard, stats: flat(10) }), calm = add(s, 'mage', 2, { pers: hard, ab: c.ab, stats: { ...flat(10), composure: 20, judgment: 20 } });
