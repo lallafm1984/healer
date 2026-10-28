@@ -17,7 +17,7 @@ import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL } from '../data/progression';
 import { Flow } from '../game/flow';
 import { claimExped } from '../game/economy';
-import { guideCtx, rankStages, realOpen } from '../game/guide';
+import { realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
 import { abilityStars } from '../data/fm';
 import { adRefreshPost, capOf, foundGuild, postAdWait, postNew, refreshPost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, release } from '../game/guild';
@@ -48,7 +48,7 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.ask = null; st.help = false; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, realOpen, Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.ask = null; st.help = false; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
 // 「새로 뽑기」 쿨타임 글: 영입 탭이 보이는 동안 분 단위로 고치고, 다 되면 다시 그림
 setInterval(() => {
@@ -415,7 +415,7 @@ s.el.addEventListener('click', e => {
     render(); return;
   }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
-  if (t.closest('#found')) { const ok = foundGuild(save, Math.random); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, rankStages(guideCtx()), Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
+  if (t.closest('#found')) { const ok = foundGuild(save, Math.random); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, realOpen, Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
   if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); commit(); render(); if (err) void noticeModal('후원', esc(err)); else notify(`쉬는 길드원 ${n}명 후원 · 한 사람 ${SPONSOR.runs}판`); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); st.sub = 'recruit'; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   if (t.closest('#guildRecruit')) { st.sub = 'recruit'; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }

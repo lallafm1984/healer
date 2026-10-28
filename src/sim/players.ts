@@ -380,7 +380,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
         }
         // 길드 원정 (주마다, 보통)
         if (t.guild && save.guild.founded) {
-          refreshExped(save, realOpen, now); refreshReqs(save, rankStages(guideCtx()), rng, now);
+          refreshExped(save, realOpen, now); refreshReqs(save, realOpen, rng, now);
           for (const x of save.guild.exped.list) if (!x.done && now < end && save.guild.members.length >= 2) play(contentOf(x.content as ContentKey), '보통', 'exped');
         }
         // 레이드 주 첫 판

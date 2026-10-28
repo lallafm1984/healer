@@ -2,10 +2,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
+import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import { EXPED, GUILD_STEPS, REQ, type GuildMember } from '../src/data/guild';
 import { PARTY_POOL } from '../src/data/nicknames';
+import { recLevel } from '../src/data/progression';
 import { claimExped } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
 import { expedReady, jobsAfter, jobsDot, refreshExped, refreshReqs } from '../src/game/guildjobs';
@@ -83,9 +85,9 @@ describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에�
     expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
   it('길드원 0 · 1명: 부탁은 그날을 쓰지 않고 첫 영입 뒤 바로, 주간 원정은 던전 칸 (레이드는 길드원으로 자리를 다 채울 때만), 판 뒤 정산도 그대로', () => {
-    const T = new Date(2026, 9, 7, 12).getTime(), stages = [{ content: 'rustfort', diff: '보통' as const }];
+    const T = new Date(2026, 9, 7, 12).getTime();
     const s = save(30);
-    refreshReqs(s, stages, rng, T);
+    refreshReqs(s, () => true, rng, T);
     expect(s.guild.reqs).toEqual({ day: '', list: [] });
     expect(jobsDot(s)).toBe(false);
     refreshExped(s, () => true, T);
@@ -93,18 +95,17 @@ describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에�
     expect(s.guild.exped.list.every(x => CONTENT.find(c => c.key === x.content)?.kind === 'dungeon')).toBe(true);
     expect(jobsAfter(s, { win: true, quit: false, content: s.guild.exped.list[0].content, diff: '보통', roster: [] }, T)).toEqual({ reqs: [], exped: [], expedAll: false, fame: 0 });
     add(s, 'mage', 0);
-    refreshReqs(s, stages, rng, T + 3600e3);
+    refreshReqs(s, () => true, rng, T + 3600e3);
     expect(s.guild.reqs.list.map(q => q.nick)).toEqual([s.guild.members[0].nick]);
   });
 });
 
 describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
   const T = new Date(2026, 9, 7, 12).getTime();
-  const stages = [{ content: 'rustfort', diff: '어려움' as const }, { content: 'plateau', diff: '보통' as const }];
   it('부탁: 매일 길드원 2명, 그 사람을 넣고 그 장소를 그 난이도 이상으로 깨면 경험치 2배 대상에 한 번 포함, 날이 바뀌면 새로', () => {
     seed = 5;
     const s = save(30); add(s, 'mage', 0); add(s, 'mage', 1);
-    refreshReqs(s, stages, rng, T);
+    refreshReqs(s, () => true, rng, T);
     expect(s.guild.reqs.list.length).toBe(REQ.perDay);
     expect(jobsDot(s)).toBe(true);
     const q = s.guild.reqs.list[0], m = s.guild.members.find(x => x.nick === q.nick)!;
@@ -116,10 +117,30 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     expect(s.guild.fame).toBe(0);
     expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster }, T).reqs).toEqual([]);
     expect(s).not.toHaveProperty('users');
-    refreshReqs(s, stages, rng, T + 3600e3);
+    refreshReqs(s, () => true, rng, T + 3600e3);
     expect(s.guild.reqs.list[0].done).toBe(true); // 같은 날은 그대로
-    refreshReqs(s, stages, rng, T + 864e5);
+    refreshReqs(s, () => true, rng, T + 864e5);
     expect(s.guild.reqs.list.every(x => !x.done)).toBe(true);
+  });
+  it('부탁 장소 = 그 길드원 레벨에 맞는 칸: 열린 탐험 · 던전 (악몽 빼고) 가운데 권장 레벨이 길드원 레벨 ±1, 없으면 가장 가까운 칸 (2026-10-29 Lim)', () => {
+    const cell = (q: { content: string; diff: DiffName }) => CONTENT.find(c => c.key === q.content)!;
+    for (const lv of [1, 5, 12, 20, 33, 47, 60]) for (let k = 0; k < 6; k++) {
+      seed = 11 + k;
+      const s = save(60); add(s, 'mage', 0, { lv }); add(s, 'archer', 0, { lv });
+      refreshReqs(s, () => true, rng, T);
+      for (const q of s.guild.reqs.list) {
+        const c = cell(q);
+        expect(c.kind).not.toBe('raid');
+        expect(q.diff).not.toBe('악몽');
+        expect(Math.abs(recLevel(c, q.diff) - lv), `Lv ${lv} → ${q.content} ${q.diff}`).toBeLessThanOrEqual(1);
+      }
+    }
+    // 열린 칸에 ±1이 없으면 가장 가까운 칸: 장소 Lv 1 쉬움만 열림 → Lv 30 길드원도 그 칸
+    seed = 3;
+    const s = save(60); add(s, 'mage', 0, { lv: 30 });
+    const low = CONTENT.find(c => c.kind !== 'raid' && c.ready && !c.hidden && recLevel(c, '쉬움') === 1)!;
+    refreshReqs(s, (c, d) => c === low && d === '쉬움', rng, T);
+    expect(s.guild.reqs.list).toEqual([{ nick: s.guild.members[0].nick, content: low.key, diff: '쉬움', done: false }]);
   });
   it('원정: 주마다 3곳 (5인 · 10인 · 20인, 안 열렸거나 길드파티 인원이 모자라면 던전), 길드파티로 보통 이상 = 칸마다 명성 +10, 셋 다 = 상자 (골드 5판 + 장비 1)', () => {
     const few = save(80); [add(few, 'warrior', 0), add(few, 'mage', 0), add(few, 'mage', 1)];
