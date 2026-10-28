@@ -95,6 +95,14 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     expect(big[i]/small[i]).toBeCloseTo(1+WARDER.ward.heal*WARDER.ward.max,5);
     f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
+  it('심판 대상 사람 그림: 최대치는 살아 있는 인원까지 (3인이면 3, 심판 6명이어도), 결계력 5칸이면 파티 인원 (2026-10-28 Lim 4개 안)',()=>{
+    const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
+    expect(classGaugeState(f).targetMax).toBe(4);
+    f.party.slice(1,3).forEach(u=>{u.alive=false;});
+    expect(classGaugeState(f).targetMax).toBe(3);
+    f.party.forEach(u=>{u.alive=true;});putSeal(f,f.party[0]);f.warder!.ward=WARDER.ward.max;
+    expect(classGaugeState(f).targetMax).toBe(f.party.length);
+  });
   it('신성한 힘 칸 수는 실제 최대치: 넘치는 신성한 힘이면 4칸 (2026-10-28 Lim)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'paladin'});
     f.power3=3;expect(classGaugeState(f)).toMatchObject({count:3,max:3,percent:100});

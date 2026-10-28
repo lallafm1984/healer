@@ -9,6 +9,11 @@
 .job-gauge[data-job=shaman].is-ready .gauge-ready{animation-name:shaman-maximum-pulse}
 @keyframes shaman-maximum-pulse{0%,100%{opacity:.15}50%{opacity:.4}}
 .job-gauge .target-active{z-index:2;filter:brightness(2.5) sepia(.4);pointer-events:none}
+/* 결계사 심판 대상 사람 4칸 (2026-10-28): 원화 조각을 옮겨 늘어놓음, 닿지 못하는 칸은 흐리게, 4명 넘으면 넷째 칸에 +N */
+.judge-row,.judge-person{position:absolute;inset:0;pointer-events:none}
+.judge-row{z-index:2}
+.judge-person.is-out{opacity:.4}
+.judge-more{position:absolute;z-index:3;transform:translate(-50%,-50%);font-family:var(--font-display);font-weight:700;font-size:11cqh;line-height:1;color:#fff2ce;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000,0 0 3px #000,0 0 5px #000;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.job-gauge[data-job=shaman].is-ready .gauge-ready{animation:none;opacity:.4}}
 /* Layout revision 2: horizontal shaman status line, raised warder seals. */
 .job-gauge[data-job=shaman] .gauge-number{font-size:12cqh}
