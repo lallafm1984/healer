@@ -1,5 +1,6 @@
 /**
  * 하단 탭 4개: 로비 · 전투 · 캐릭터 · 길드 (Lv 30). 앱을 켜면 로비.
+ * 레벨로 잠긴 탭은 자물쇠 · 이름만, 오른쪽 위 「Lv 30」 글은 없다 (2026-10-28 Lim 「메뉴에 길드 잠금이 보기 안좋다. lv30텍스트 제거」, 읽어 주는 글에만)
  * 2026-10-18 Lim 「메뉴의 상점을 빼고 길드를 넣자. 상점의 진입 루트는 로비이다」: 상점은 탭이 아니라 로비 「상점」 팻말 (예전 「잡화점」, 그리고 휴식 창 · 직업 구매)에서 들어가고,
  * (상점의 패스 빨간 점은 시즌 패스와 함께 2026-10-20 없앰.) (예전: 27 1장 탭 5개 → 2026-10-09 길드를 빼 두어 로비 · 전투 · 캐릭터 · 상점)
  * 탭 막대는 탭 루트(로비 S02 · 모험 선택 S03 · 캐릭터 · 길드)에서만 보인다. 고른 탭을 다시 누르면 그 루트 맨 위로.
@@ -75,7 +76,7 @@ export function mountTabs(nav: HTMLElement): void {
       // A2 교차검을 모든 탭에서 동일하게 사용한다. 잠금 상태의 자물쇠는 보존한다.
       const icon = locked || tl ? uiIcon('lock') : t.key === 'battle' ? gameIcon('a2-swords', baseIcon) : baseIcon;
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl ? '<small>잠금</small>' : locked ? `<span class="sr"> Lv ${t.lv}에 열림</span>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
     }).join('');
     nav.append(...glints);
   };
