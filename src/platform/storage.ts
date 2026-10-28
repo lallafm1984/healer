@@ -25,7 +25,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 32; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림). v29: 명성 지원자 없앰 (Lim 10-20, guild.apps · appsDay 버림). v30: 스토리 동료 없앰 (Lim 10-21, story 표시 길드원 · storyWait · storyCard 버림, 편성 · 부탁에 남은 그 사람도). v31: 도감 없앰 (Lim 10-22, gear.codex · dex · dexPaid · decos 버림). v32: 매일 공고 · 광고 새로 뽑기 (Lim 10-22, guild.post.day · seen · postAdAt, 옛 지원자는 그날 공고로 남김)
+export const SAVE_VERSION = 33; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함, 그 레벨에 오른 칸과 다른 칸 (103, doubleV27). v28: 시즌 패스 · 공훈 없앰 (Lim 10-20, pass · wallet · weekly.merit · heroes[].merit 버림). v29: 명성 지원자 없앰 (Lim 10-20, guild.apps · appsDay 버림). v30: 스토리 동료 없앰 (Lim 10-21, story 표시 길드원 · storyWait · storyCard 버림, 편성 · 부탁에 남은 그 사람도). v31: 도감 없앰 (Lim 10-22, gear.codex · dex · dexPaid · decos 버림). v32: 매일 공고 · 광고 새로 뽑기 (Lim 10-22, guild.post.day · seen · postAdAt, 옛 지원자는 그날 공고로 남김). v33: 장착 장비 직업 공통 (Lim 10-28, 직업별 착용 조합 heroes[].loadout 버림. 지금 장착 그대로, 다른 직업 조합의 장비는 원래 가방에 있음)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -34,10 +34,8 @@ export const MAT_GOLD = { stone: 100, refined: 500 };
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
 
-/** 직업마다 따로 두는 것 (25 4-1, 34 3-1): 휠 배치·칸 탭·특성·착용 조합·클리어 수. 성장·인벤토리는 캐릭터 공통 (v12) */
+/** 직업마다 따로 두는 것 (25 4-1, 34 3-1): 휠 배치·칸 탭·특성·클리어 수. 성장·인벤토리는 캐릭터 공통 (v12), 장착 장비도 공통 (v33, 예전 직업별 착용 조합 loadout은 버림) */
 export interface HeroSave {
-  /** v12: 공용 인벤토리의 실제 아이템 ID만 기억. 최초 전환은 현재 장비를 그대로 사용 */
-  loadout?: Partial<Record<keyof Equipped, number>>;
   layout: Record<string, string | null> | null;
   tapKey: TapKey;
   /** 직업 퀘스트를 끝냄 (사제는 처음부터) */
@@ -58,7 +56,7 @@ export interface HeroSave {
   presets?: (number | null)[][];
   /** 지금 프리셋 (0~2, 없으면 0) */
   preset?: number;
-  /** v10 저장 이전 전용. v12 인벤토리는 save.gear 하나이며 loadout은 ID만 보관 */
+  /** v10 저장 이전 전용. v12 인벤토리는 save.gear 하나 */
   gear?: HeroGear;
 }
 
@@ -210,7 +208,7 @@ export interface SaveData {
   /** v12: 현재 캐릭터의 공통 레벨·경험치·골드. 직업 전환으로 변경하지 않음. v16: 골드 없앰, v17 (91): 골드 다시 */
   player: { level: number; xp: number; gold: number };
   /**
-   * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
+   * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. v33: 장착 (equipped)도 직업 공통 한 벌.
    * seen = 새것 점 기준 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
    * opened = seen보다 큰 id 가운데 상세를 열어 봤거나 장착한 장비 (2026-10-17 Lim, 새것 점은 장비마다 상세를 본 뒤 꺼짐). 새것이 다 꺼지면 seen을 올리고 지움.
    * 도감 (특수능력 도감 codex · 장비 도감 dex · dexPaid)은 v31에서 없앰 (2026-10-22 Lim 「도감 시스템 제거」).
@@ -321,7 +319,8 @@ export function migrate(raw: unknown): SaveData {
   // v31 (Lim 10-22 「도감 시스템 제거」): 도감 칭호 (decos)도 버림 (gear.codex · dex · dexPaid는 gearOf가 버림)
   for (const k of ['member', 'firstBuy', 'items', 'bag', 'users', 'pass', 'wallet', 'decos'] as const) delete (out as unknown as Record<string, unknown>)[k];
   delete (out.weekly as unknown as Record<string, unknown>).merit;
-  for (const h of HERO_KEYS) if (out.heroes[h]) delete (out.heroes[h] as unknown as Record<string, unknown>).merit;
+  // v33 (Lim 10-28): 직업별 착용 조합 (loadout = 장비 ID)도 버림. 실물은 늘 지금 장착 · 가방에 있어 잃는 장비 없음
+  for (const h of HERO_KEYS) if (out.heroes[h]) for (const k of ['merit', 'loadout']) delete (out.heroes[h] as unknown as Record<string, unknown>)[k];
   // v17 (91): 골드 다시. 골드는 0부터 (v16이 버린 옛 골드는 되살리지 않음), 남은 강화석 · 정제 강화석을 골드로. 강화석 무제한 → 골드 무제한
   const legacy = o as unknown as { mats?: { stone?: unknown; refined?: unknown }; settings?: { devStones?: unknown } };
   if ((o.v ?? 0) < 17) {

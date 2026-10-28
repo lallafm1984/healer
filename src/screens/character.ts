@@ -19,7 +19,7 @@ import { FACTIONS } from '../data/places';
 import { specRows, statParts, talentsLeft } from '../game/charinfo';
 import { SPEC_GROUPS, SPECS, type SpecGroup } from '../data/specials';
 import {
-  commit, equip, findItem, G, gearAfterSwitch, healerLevel, heroNow, heroSave, heroStatus, isNewGear, loadoutHeroes, markGearOpened, newGearCount, pickTalent, sell,
+  commit, equip, findItem, G, healerLevel, heroNow, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickTalent, sell,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock,
 } from '../game/state';
 import { art } from '../art';
@@ -276,14 +276,10 @@ function gearHtml(): string {
 }
 
 /** 가방 칸: 장비 그림 + 등급 색 + 새 점. 지금 장비와의 ▲▼ 비교 배지는 없음 (2026-10-17 Lim 「인벤토리에서 아이템 강함 아이콘을 모두 제거」, 비교는 상세 시트 옵션 줄에서) */
-/** 다른 직업 착용 조합에 든 장비 (72 「남은 일」, 2026-10-27): 「드루이드 착용」 글 (상세 · 판매 확인 · 접근성 이름) */
-const loadoutText = (id: number): string => { const hs = loadoutHeroes(id); return hs.length ? `${hs.map(h => HEROES[h].name).join(' · ')} 착용` : ''; };
-
 function bagCell(it: GearItem): string {
-  const nw = isNewGear(it), lo = loadoutHeroes(it.id);
-  const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}${lo.length ? ` · ${loadoutText(it.id)}` : ''}`;
-  // 다른 직업이 착용 조합에 넣어 둔 장비: 칸 오른쪽 위에 그 직업 문장 (여럿이면 첫 직업)
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${lo.length ? `<span class="lo" aria-hidden="true">${classEmblem(lo[0], 'sm')}</span>` : ''}</button>`;
+  const nw = isNewGear(it);
+  const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -357,7 +353,7 @@ function itemSheet(id: number): string {
   return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" style="${gvars(it)}">
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
       <div class="c7-ghead"><span class="c7-gic">${itemIc(it)}</span>
-        <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span>${loadoutText(it.id) ? `<span class="cap c7-lo">${esc(loadoutText(it.id))} 조합에 있음</span>` : ''}</span></div>
+        <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span></span></div>
       <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${own}${lostHtml}</div>
       ${spec}
       ${readOnly ? '' : `${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
@@ -380,7 +376,7 @@ export function sellConfirmHtml(it: GearItem): string {
     <section class="sheet c7-confirm still" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc">
       <h3 id="gearConfirmTitle">장비 판매</h3>
       <div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(it.name)}</b></div>
-      <div class="c7-confirm-cost"><span>받는 골드</span><div>${currencyAmount('gold', sellGold(it))}</div></div><p id="gearConfirmDesc">${loadoutText(it.id) ? `${esc(loadoutText(it.id))} 조합에서도 빠집니다. ` : ''}판매한 장비는 되돌릴 수 없습니다.</p>
+      <div class="c7-confirm-cost"><span>받는 골드</span><div>${currencyAmount('gold', sellGold(it))}</div></div><p id="gearConfirmDesc">판매한 장비는 되돌릴 수 없습니다.</p>
       <div class="c7-confirm-actions"><button type="button" data-confirmcancel>취소</button><button type="button" class="hot" data-confirmgo>판매하기</button></div>
     </section>`;
 }
@@ -793,14 +789,14 @@ function heroDetail(k: HeroKey): string {
 }
 
 /**
- * 직업 바꾸기 전 미리 보기 (72 「남은 일」, 2026-10-27): 지금 직업 전용 효과는 꺼지고,
- * 그 직업 착용 조합 (없으면 지금 장비)에 든 그 직업 전용 효과가 켜짐. 지금 직업이거나 둘 다 없으면 안 보임
+ * 직업 바꾸기 전 미리 보기 (72 「남은 일」, 2026-10-27): 같은 장착 장비 (v33 직업 공통)에서 지금 직업 전용 효과는 꺼지고
+ * 그 직업 전용 효과가 켜짐. 지금 직업이거나 둘 다 없으면 안 보임
  */
 function switchSpecs(k: HeroKey): string {
   const cur = heroNow();
   if (k === cur) return '';
   const names = (items: GearItem[], h: HeroKey) => [...new Set(items.flatMap(specKeysOf).filter(x => SPECS[x]?.hero === h).map(x => SPECS[x].name))];
-  const off = names(Object.values(G.save.gear.equipped).filter((it): it is GearItem => !!it), cur), on = names(gearAfterSwitch(k), k);
+  const worn = Object.values(G.save.gear.equipped).filter((it): it is GearItem => !!it), off = names(worn, cur), on = names(worn, k);
   if (!off.length && !on.length) return '';
   const line = (cls: string, label: string, list: string[]) => (list.length ? `<p class="c7-job-sw ${cls}"><b>${label}</b><span>${list.map(esc).join(' · ')}</span></p>` : '');
   return `<section class="c7-job-gear" aria-labelledby="jobGearTitle"><h3 id="jobGearTitle">장비 전용 효과</h3>
