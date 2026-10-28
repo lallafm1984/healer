@@ -138,17 +138,19 @@
   fill: none; stroke: #2a1d08; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; box-shadow: 0 1px 3px #0009;
 }
 #s-char[data-sub="gear"] .c7-bag.nopick { opacity: .38; filter: grayscale(.7); }
-/* 고르는 동안 인벤토리 아래 줄: 개수 · 골드 합계 | 취소 · 판매. 목록 기본 높이는 2줄 (알림 줄과 같게, S25 무대 최소에서도 본문이 안 넘침) */
-#s-char .c7-inventory:has(> .c7-pickbar) .c7-bags { height: calc(var(--inventory-cell) * 2 + 18px); }
-#s-char .c7-pickbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; padding-top: 2px; }
-#s-char .c7-pick-sum { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; color: #fff1d0; }
-#s-char .c7-pick-sum > b { font: 800 17px/1 var(--font-display); font-variant-numeric: tabular-nums; }
-#s-char .c7-pick-sum .currency-amount { gap: 3px; font-size: 14px; }
-#s-char .c7-pick-sum .currency-icon { width: 20px; height: 20px; }
-#s-char .c7-pickbar > button { min-width: 72px; min-height: 44px; height: 44px; padding: 0 12px; font-size: 14px; }
+/* 고르는 동안 「인벤토리」 제목 오른쪽 (2026-10-28 Lim): 개수 · 골드 합계 | 취소 · 판매. 제목 줄 높이 (44)는 그대로, 목록은 3줄 그대로 */
+#s-char .c7-pickbar { display: flex; align-items: center; gap: 5px; min-width: 0; margin-left: auto; }
+#s-char .c7-pick-sum { display: flex; align-items: center; gap: 6px; min-width: 0; margin-right: 2px; white-space: nowrap; color: #fff1d0; }
+#s-char .c7-pick-sum > b { font: 800 15px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+#s-char .c7-pick-sum .currency-amount { gap: 2px; font-size: 13px; }
+#s-char .c7-pick-sum .currency-icon { width: 17px; height: 17px; }
+/* 터치 44px은 그대로, 음수 여백으로 제목 줄 (44, 안쪽 37)을 늘리지 않음 (도감 버튼 자리와 같은 방법) */
+#s-char .c7-pickbar > button { flex: none; min-width: 52px; min-height: 44px; height: 44px; margin: -5px 0 -3px; padding: 0 10px; font-size: 14px; }
 #s-char .c7-pickbar > button:disabled { opacity: .5; }
-@media (max-width: 359px) {
-  #s-char .c7-pickbar > button { min-width: 62px; padding: 0 8px; }
+/* 좁은 화면: 개수 위 · 골드 아래 두 줄 */
+@container (max-width: 300px) {
+  #s-char .c7-pick-sum { flex-direction: column; align-items: flex-end; gap: 1px; }
+  #s-char .c7-pickbar > button { min-width: 46px; padding: 0 8px; }
 }
 /* Detail sheet uses the same plain surface as the preparation item dialog. */
 #s-char[data-sub="gear"] .sheet.c7-ssheet {
