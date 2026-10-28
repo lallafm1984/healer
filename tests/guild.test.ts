@@ -12,7 +12,7 @@ import { FEATURES } from '../src/data/features';
 import {
   deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, hireGold, POST, REST_SHARE, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, type GuildMember,
 } from '../src/data/guild';
-import { birthV25, growWeights, lvAdds, STAT_KEYS, type Stats } from '../src/data/fm';
+import { abilityStars, birthV25, growWeights, lvAdds, ROLE_CORE, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
@@ -214,12 +214,28 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     Gd.hire(s, 0);
     expect(Gd.recruitExclude(s).has(cands[0])).toBe(true);
   });
-  it('영입 골드 = 지원자 Lv × 100, 모자라면 못 함. 영입한 사람만 빠지고 나머지는 저장을 다시 읽어도 남음', () => {
+  it('영입 골드 = 능력치 (레벨을 곱하지 않음): 능력 점수 6을 넘는 1점마다 1,000골드 · 10골드 단위 · 적어도 100 (2026-10-28 Lim)', () => {
+    const flat = (v: number) => Object.fromEntries(STAT_KEYS.map(k => [k, v])) as Stats;
+    expect(POST).toMatchObject({ hireFrom: 6, hirePer: 1000, hireMin: 100 });
+    expect([1, 6, 9.2, 11.16, 15.68, 20].map(v => hireGold({ cls: 'warrior', stats: flat(v) }))).toEqual([100, 100, 3200, 5160, 9680, 14000]);
+    // 역할 핵심 넷 60% · 나머지 여덟 40% (능력 ★과 같은 점수): 같은 합이라도 핵심 칸이 높은 사람이 비쌈
+    const core = (role: 'tank' | 'melee', hi: number, lo: number) => Object.fromEntries(STAT_KEYS.map(k => [k, ROLE_CORE[role].includes(k) ? hi : lo])) as Stats;
+    expect(hireGold({ cls: 'warrior', stats: core('tank', 14, 8) })).toBe(Math.round((14 * 0.6 + 8 * 0.4 - 6) * 100) * 10);
+    expect(hireGold({ cls: 'warrior', stats: core('tank', 14, 8) })).toBeGreaterThan(hireGold({ cls: 'rogue', stats: core('tank', 14, 8) }));
+    // 같은 레벨의 지원자는 능력 ★이 높을수록 비쌈, 레벨은 값에 직접 안 들어감
+    const s = founded(60, 0);
+    const cands = Gd.makeCandidates(s, rng, 40);
+    for (const a of cands) for (const b of cands) {
+      const role = (m: GuildMember) => CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
+      if (a.lv === b.lv && abilityStars(a.stats, role(a), a.lv) > abilityStars(b.stats, role(b), b.lv)) expect(hireGold(a), `${a.nick} > ${b.nick}`).toBeGreaterThanOrEqual(hireGold(b));
+    }
+    const low: GuildMember = { ...cands[0], lv: 1 }, high: GuildMember = { ...cands[0], lv: 100 };
+    expect(hireGold(low)).toBe(hireGold(high));
+  });
+  it('영입 골드가 모자라면 못 함. 영입한 사람만 빠지고 나머지는 저장을 다시 읽어도 남음', () => {
     const s = founded(30, 0); s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7 (103)
     Gd.refreshPost(s, rng, T);
-    const cands = [...s.guild.post!.cands], cost = hireGold(cands[1].lv);
-    expect(hireGold(30)).toBe(3000); // Lim 10-22 산정 (지원자 Lv × 100)
-    expect(cost).toBe(cands[1].lv * POST.hirePer);
+    const cands = [...s.guild.post!.cands], cost = hireGold(cands[1]);
     expect(Gd.hire(s, 1)).toBe(`골드 부족 (${cost.toLocaleString()} 필요)`);
     s.player.gold = cost + 5;
     expect(Gd.hire(s, 1)).toBe('');
@@ -230,7 +246,7 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     expect(Gd.hire(restored, 1)).toBe('');
     expect(Gd.hire(restored, 0)).toBe('');
     expect(restored.guild.members.map(m => m.nick)).toEqual([cands[1].nick, cands[2].nick, cands[0].nick]);
-    expect(restored.player.gold).toBe(1e6 - hireGold(cands[2].lv) - hireGold(cands[0].lv));
+    expect(restored.player.gold).toBe(1e6 - hireGold(cands[2]) - hireGold(cands[0]));
     expect(restored.guild.post).toMatchObject({ cands: [] });
     expect(Gd.hire(restored, 0)).toBe('지원자 없음');
   });
@@ -310,7 +326,7 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     expect(migrate(JSON.parse(JSON.stringify(d))).guild).toEqual(d.guild);
     const g0 = d.player.gold;
     expect(Gd.hire(d, 0)).toBe('');
-    expect(d.player.gold).toBe(g0 - hireGold(cands[0].lv));
+    expect(d.player.gold).toBe(g0 - hireGold(cands[0]));
   });
 });
 

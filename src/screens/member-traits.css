@@ -15,4 +15,6 @@
 .ns .member-trait .trait-condition > span:first-child { flex: none; color: #a9997b; font-size: 10px; }
 /* 목록에서도 성격 분류색은 얇은 테와 글자로만 사용한다. */
 :is(#s-guild,#s-party).ns .pcard.f-mem .f-ps { padding: 3px 6px; background: #211d17; background-image: none; border: 1px solid #84755880; border-left: 2px solid var(--pers-color); border-radius: 4px; color: var(--pers-color); font-weight: 700; text-shadow: none; }
-:is(#s-guild,#s-party).ns .pcard.f-mem .f-ab > .skill-level { padding: 0 4px; border: 1px solid #89724966; border-radius: 3px; color: #dac79e; background: #292217; }
+/* 줄의 레벨은 테 두른 칩으로 크게, 스킬 LV는 테 없이 작은 글자 (2026-10-28 Lim 「스킬레벨과 레벨표시를 바꾸자」) */
+:is(#s-guild,#s-party).ns .pcard.f-mem .f-lv { display: inline-block; margin-left: 3px; padding: 0 5px; border: 1px solid #8f794e; border-radius: 4px; color: #f0d99d; background: #2b241a; font: 800 12px/1.35 var(--font-body); font-variant-numeric: tabular-nums; vertical-align: 1px; white-space: nowrap; }
+:is(#s-guild,#s-party).ns .pcard.f-mem .f-ab > .skill-level { margin-left: 5px; padding: 0; border: 0; background: none; color: #a3967c; font: 600 10px/1.4 var(--font-body); }

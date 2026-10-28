@@ -125,11 +125,15 @@ export const recruitLevel = (stage: number, r: () => number): number => Math.max
  * 화면 숫자 (레벨업 점수까지 든 값)와 그 사람 레벨로 부름. 1000명 평균 ★★ 근처 (Lv 1 · 40 · 100 모두)
  */
 export const STAR = { base: 2.4, lv: 0.094 };
-export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>, lv?: number): number {
+/** 능력 점수 (1 ~ 20): 역할 핵심 넷 평균 60% + 나머지 여덟 평균 40%. 레벨 빼기 없는 능력 ★ 바탕 (영입 골드 hireGold도 이 점수) */
+export function abilityScore(stats: Stats, role: Exclude<Role, 'healer'>): number {
   const core = ROLE_CORE[role];
   const c = core.reduce((a, k) => a + stats[k], 0) / core.length;
   const o = STAT_KEYS.filter(k => !core.includes(k)).reduce((a, k) => a + stats[k], 0) / (STAT_KEYS.length - core.length);
-  const score = c * 0.6 + o * 0.4 - (lv ? STAR.lv * LV_PTS * (Math.max(1, Math.min(100, lv)) - 1) : 0);
+  return c * 0.6 + o * 0.4;
+}
+export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>, lv?: number): number {
+  const score = abilityScore(stats, role) - (lv ? STAR.lv * LV_PTS * (Math.max(1, Math.min(100, lv)) - 1) : 0);
   return Math.max(0.5, Math.min(5, Math.round(score - STAR.base) / 2));
 }
 /** ★ 글자 (★★★½) */

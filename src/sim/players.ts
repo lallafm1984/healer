@@ -242,6 +242,8 @@ function equipBest(save: SaveData): void {
   }
 }
 /** 잠기지 않은 가방 장비를 모두 팜 */
+/** 행상인에 쓰기 전 남겨 둘 영입 골드: 오늘 공고에서 가장 싼 지원자 (예전엔 내 레벨 지원자 값) */
+const cheapestHire = (save: SaveData) => (save.guild.post?.cands.length ? Math.min(...save.guild.post.cands.map(c => hireGold(c))) : 0);
 const sellAll = (save: SaveData) => sell(save.gear.bag.filter(x => !x.lock).map(x => x.id)).gold;
 const emptySlots = (save: SaveData) => SLOTS.filter(s => !save.gear.equipped[s.key]).length;
 
@@ -307,7 +309,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
             if (t.merchant !== 'none') gold(() => {
               for (let n = 0; n < 20; n++) {
                 const price = merchantGold(save.player.level), keep = t.merchant === 'spare' ? price * 3 : price;
-                if (save.player.gold < keep + (t.guild && save.guild.founded && !full(save) ? hireGold(save.player.level) : 0)) break;
+                if (save.player.gold < keep + (t.guild && save.guild.founded && !full(save) ? cheapestHire(save) : 0)) break;
                 const slot = [...SLOTS].sort((a, b) => itemScore(save.gear.equipped[a.key], lv) - itemScore(save.gear.equipped[b.key], lv))[0].key;
                 if (typeof buyUnknown(save, slot, rng) === 'string') break;
                 bought++;
@@ -316,7 +318,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
             });
           }
           if (t.guild && save.guild.founded) gold(() => {
-            // 매일 공고 (2026-10-22): 그날 지원자 3명 가운데 레벨 높은 사람부터, 영입 골드 (지원자 Lv × 30)가 있으면
+            // 매일 공고 (2026-10-22): 그날 지원자 3명 가운데 레벨 높은 사람부터, 영입 골드 (능력치로 정함, hireGold)가 있으면
             refreshPost(save, rng, now);
             const nicks = [...(save.guild.post?.cands ?? [])].sort((a, b) => b.lv - a.lv).map(c => c.nick);
             for (const nick of nicks) {

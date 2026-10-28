@@ -161,6 +161,7 @@
 .f-ab { display: inline-flex; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .skill-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .f-ab > .skill-level { flex: none; }
+.f-lv { font-weight: 700; color: var(--gold-hi); white-space: nowrap; }
 #s-party .f-ab b { font-weight: 700; }
 /* 파티원 상세 시트 */
 #s-party .f-det { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; border-radius: 4px; background: var(--bg); border: 1px solid var(--edge-dim); font-size: 13px; line-height: 1.5; }
