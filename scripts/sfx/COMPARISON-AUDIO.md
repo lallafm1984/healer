@@ -4,8 +4,8 @@
 Medium으로 각각 생성했다. 유료 API 호출은 없다. 청음 페이지에는 기존 게임
 음원 3개와 검수를 통과한 새 후보 6개가 있다.
 
-- 실행: `http://127.0.0.1:5173/audio-comparison/20261021/index.html`
-- 보관: `public/audio-comparison/20261021/`
+- 실행: `http://127.0.0.1:5173/scripts/sfx/audio-comparison/20261021/index.html`
+- 보관: `scripts/sfx/audio-comparison/20261021/` (2026-10-28 APK에서 빼려고 public에서 옮김)
 - 상세 프롬프트·시드·신호·CLAP 점수·해시: 위 폴더의 `review.json`
 - 원본·탈락 후보·중간 계산: `.sfx-raw/comparison-20261021/` (Git 제외)
 
@@ -53,7 +53,7 @@ Medium은 경로와 `--profile`을 `medium`으로 바꾼다. 재생성은
 새 출력 폴더로 청음 페이지를 발행한다. 기존 출력 폴더는 덮어쓰지 않는다.
 
 ```powershell
-& E:/claude/agent-audio/.venv/Scripts/python.exe scripts/sfx/publish-comparison.py .sfx-raw/comparison-20261021 public/audio-comparison/another-review
+& E:/claude/agent-audio/.venv/Scripts/python.exe scripts/sfx/publish-comparison.py .sfx-raw/comparison-20261021 scripts/sfx/audio-comparison/another-review
 ```
 
 ## 확인한 내용
