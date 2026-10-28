@@ -16,6 +16,8 @@ let cache = '';
  * 주술사 자원 그림 배치 (원화 542 × 464 좌표, 2026-10-18): 토템 둘을 가운데로 40씩 모으고 (사이 6), 아래 줄 (원화 y 331~409)을 토템 바로 밑으로 93 올림.
  * 아래 줄 = 토템마다 [모래시계 36][4][남은 시간] (샘 · 대지, 둘 다 「19.8」이어도 칸 안). 재사용 대기 (되돌림 그림)는 스킬 버튼에 보여 뺌 (2026-10-18 Lim). crop = 그린 부분 (칸 폭에 맞춰 약 0.39배)
  */
+/** 결계사 심판 대상 사람 줄 (원화 1355 × 1161 좌표): 원화 사람 가운데 x (넷째 칸은 원화 가운데 칸을 한 번 더), 이음 별 사이 폭 253, 줄 위 · 아래 · 가운데 */
+const JUDGE_ROW={src:[425,678,678,930],step:253,top:905,bottom:1092,y:1003,mid:695,scale:.9}; // mid = 육각 줄 가운데 (원화 사람 3개 줄은 677.5로 조금 왼쪽)
 const SHAMAN_PACK={totem:40,lowY:-93,icon:.7,hourglass:37,earthGlass:178,numLeft:(181-37)/542*100,extraLeft:(322-178)/542*100,crop:[144.1,50,408.9,313] as [number,number,number,number]};
 /** 성기사 방패 칸 (방패 원화 % 좌표): 위 왼쪽 · 위 오른쪽 · 아래. 4칸이면 아래 판을 가운데 (원화 x 50%)에서 왼쪽 · 오른쪽으로 */
 const SHIELD_PIECES:Record<3|4,string[]>={
@@ -183,11 +185,22 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     hourglass.append(glass(),num);earthGlass.append(glass(),extra);
     low.remove();el.append(spring,earth,hourglass,earthGlass);
   }
-  if(job==='warder') [425,678,930].forEach(x=>{
-    const target=img(job,'base','target-active');
-    target.style.clipPath=polygon([[x,932],[x+25,938],[x+40,951],[x+45,970],[x+40,989],[x+25,1004],[x+52,1017],[x+76,1031],[x+87,1048],[x+78,1061],[x+50,1070],[x,1074],[x-50,1070],[x-78,1061],[x-87,1048],[x-76,1031],[x-52,1017],[x-25,1004],[x-40,989],[x-45,970],[x-40,951],[x-25,938]]);
-    el.append(target);
-  });
+  if(job==='warder'){
+    // 심판 대상 사람 그림 4개 (2026-10-28 Lim 「심판은 4명까지인데 사람 그림은 3개」 → 4개 안): 원화 아래 줄 (사람 3 · 이음 별 2)을 지우고,
+    // 같은 원화를 이음 별 가운데에서 자른 사람 한 칸씩 (폭 JUDGE_ROW.step)으로 4칸 다시 늘어놓음 (가운데 둘은 원화 가운데 칸), 줄 전체는 칸 폭에 맞게 JUDGE_ROW.scale배
+    el.querySelector<HTMLElement>('.gauge-base')!.style.clipPath=`inset(0 0 ${(1-JUDGE_ROW.top/1161)*100}% 0)`;
+    const row=div('judge-row');row.style.transformOrigin=`${JUDGE_ROW.mid/1355*100}% ${JUDGE_ROW.y/1161*100}%`;row.style.transform=`scale(${JUDGE_ROW.scale})`;
+    JUDGE_ROW.src.forEach((x,i)=>{
+      const piece=div('judge-person'),half=JUDGE_ROW.step/2,l=i===0?x-half-10:x-half,r=i===3?x+half+10:x+half;
+      piece.style.transform=`translateX(${(JUDGE_ROW.mid+(i-1.5)*JUDGE_ROW.step-x)/1355*100}%)`;
+      const art=img(job,'base','judge-slot');art.style.clipPath=`inset(${JUDGE_ROW.top/1161*100}% ${(1-r/1355)*100}% ${(1-JUDGE_ROW.bottom/1161)*100}% ${l/1355*100}%)`;
+      const target=img(job,'base','target-active');
+      target.style.clipPath=polygon([[x,932],[x+25,938],[x+40,951],[x+45,970],[x+40,989],[x+25,1004],[x+52,1017],[x+76,1031],[x+87,1048],[x+78,1061],[x+50,1070],[x,1074],[x-50,1070],[x-78,1061],[x-87,1048],[x-76,1031],[x-52,1017],[x-25,1004],[x-40,989],[x-45,970],[x-40,951],[x-25,938]]);
+      piece.append(art,target);row.append(piece);
+    });
+    const more=span('judge-more');more.style.left=(JUDGE_ROW.mid+1.5*JUDGE_ROW.step*JUDGE_ROW.scale)/1355*100+'%';more.style.top=(JUDGE_ROW.y-(JUDGE_ROW.y-JUDGE_ROW.top+34)*JUDGE_ROW.scale)/1161*100+'%'; // 넷째 사람 머리 위
+    el.append(row,more);
+  }
   // 기존 원화의 투명 여백만 제외한다. 프레임·슬롯 좌표는 직업별로 바꾸지 않는다.
   const crop:Partial<Record<HeroKey,[number,number,number,number]>>={paladin:[84,14,443,442],shaman:SHAMAN_PACK.crop,monk:[100,20,450,440],warder:[90,65,465,435]};
   const bounds=crop[job];
@@ -238,7 +251,11 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
     el.querySelector<HTMLElement>('[data-totem=spring]')!.hidden=s.remaining<=0;
     el.querySelector<HTMLElement>('[data-totem=earth]')!.hidden=!s.earth;
   }
-  if(job==='warder')el.querySelectorAll<HTMLElement>('.target-active').forEach((e,i)=>e.hidden=i>=Math.ceil(s.targets/Math.max(1,s.targetMax)*3));
+  if(job==='warder'){
+    // 사람 그림 하나 = 심판이 회복할 한 명. 4명을 넘으면 넷째 그림에 남은 사람 수 「+N」, 이 판에서 닿지 못하는 칸 (살아 있는 인원 · 심판 인원 밖)은 흐리게
+    el.querySelectorAll<HTMLElement>('.judge-person').forEach((p,i)=>{p.querySelector<HTMLElement>('.target-active')!.hidden=i>=s.targets;p.classList.toggle('is-out',i>=s.targetMax);});
+    el.querySelector<HTMLElement>('.judge-more')!.textContent=s.targets>4?'+'+(s.targets-3):'';
+  }
   el.querySelectorAll<HTMLElement>('.fill-mask').forEach((m,i)=>{
     const c=job==='priest'?null:gaugeConfig[job];
     // 주술사: 샘 물방울 · 대지 호박 보석 (묶음마다 첫 조각)이 남은 시간만큼 위에서부터 비고, 나머지 조각은 서 있는 동안 켜짐

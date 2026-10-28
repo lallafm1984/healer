@@ -67,7 +67,7 @@ export function classGaugeState(f: Fight): ClassGaugeState {
     case 'warder':
       // 결계력 (2026-10-28 2안): 인장을 새로 붙이면 1칸, 심판이 씀 (5칸이면 인원 제한 없이). 아래 사람 그림 = 심판 회복 대상
       s.count = f.warder?.ward ?? 0; s.max = WARDER.ward.max; s.lit = s.count;
-      s.targetMax = judgeCount(f); s.targets = sealTargets(f, s.targetMax).length;
+      s.targetMax = Math.min(judgeCount(f), f.party.filter(u => u.alive).length); s.targets = sealTargets(f, s.targetMax).length; // 3인 탐험은 심판 6명이어도 살아 있는 인원까지 (2026-10-28)
       s.description = `결계력 ${s.count}/${s.max}, 심판 회복 +${Math.round(WARDER.ward.heal * s.count * 100)}%${s.count >= s.max ? ', 인원 제한 없음' : ''}, 심판 회복 대상 ${s.targets}/${s.targetMax}명`; break;
   }
   s.percent = Math.max(0, Math.min(100, s.count / s.max * 100));
