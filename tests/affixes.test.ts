@@ -501,9 +501,10 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
     expect(chalHalf('manor', 100)).toBeCloseTo(p[2][1]);
     expect(chalHalf('manor', 80)).toBeCloseTo(Math.sqrt(p[1][1] * p[2][1]));
     expect(CHAL_DUN.heartcrack.p.length).toBe(1);
-    // 제한시간: 1단계 = 가운데 시간 × 1.2, 단계마다 늘어남, 5초 단위
+    // 제한시간: 1단계 = 가운데 시간 × 1.6, 단계마다 × 0.04씩 더 (2026-10-28 Lim 「너무 짧다」, 예전 1.2 · 0.03), 5초 단위
     const t1 = CHAL_DUN.manor.t;
-    expect(chalLimit(1, 'manor')).toBe(Math.round((t1 * 1.2) / 5) * 5);
+    expect(chalLimit(1, 'manor')).toBe(Math.round((t1 * 1.6) / 5) * 5);
+    expect(chalLimit(20, 'manor')).toBe(Math.round((t1 * (1.6 + 0.04 * 19)) / 5) * 5);
     expect(chalLimit(20, 'manor')).toBeGreaterThan(chalLimit(1, 'manor'));
     expect(chalLimit(7, 'manor') % 5).toBe(0);
     const s45 = save(45), key = chalContent(s45, T0);
