@@ -5,6 +5,7 @@
 import { RAID10_LV } from './content';
 import { FEATURES } from './features';
 import { HEROES, type HeroKey } from './heroes';
+import { GUILD_LEVEL } from './progression';
 import { SKILL_LEVEL } from './skills';
 
 /** 판 하나가 끝났을 때 임무가 보는 값 */
@@ -68,7 +69,7 @@ export const DAILY: MissionDef[] = [
   { key: 'clumsy', text: '「덜렁이」·「허세꾼」이 있는 파티로 클리어', need: 1, lv: 15, run: e => (cleared(e) && e.pers.some(p => p === '덜렁이' || p === '허세꾼') ? 1 : 0) },
   // 91: 강화를 없애 「장비 강화」 → 「장비 판매」 (옛 저장의 enhance2는 migrate가 sell2로)
   { key: 'sell2', text: '장비 판매', need: 2, lv: 1, act: 'sell' },
-  { key: 'guild2', text: '길드파티로 클리어', need: 2, lv: 15, guild: true, run: e => (cleared(e) && !e.pub ? 1 : 0) }, // 탐험 길드파티도 (105 QA: 명성은 받는데 임무는 안 셌음)
+  { key: 'guild2', text: '길드파티로 클리어', need: 2, lv: GUILD_LEVEL, guild: true, run: e => (cleared(e) && !e.pub ? 1 : 0) }, // 탐험 길드파티도 (105 QA: 명성은 받는데 임무는 안 셌음)
 ];
 /** 한 판 수만 세는 기본 임무는 2개까지 (13 2-1) */
 export const DAILY_BASIC = ['clear3', 'pub2'];

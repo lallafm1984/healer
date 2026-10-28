@@ -198,8 +198,8 @@ export function starsOf(r: { win: boolean; deaths: number; overheal: number }): 
 }
 
 
-/** 길드 탭 해금 (09 1-1, 18) */
-export const GUILD_LEVEL = 15;
+/** 길드 탭 해금 (09 1-1, 18). 2026-10-28 Lim 「길드 오픈 시점은 레벨 30으로 하자」 (예전 Lv 15): 탭 · 결성 · 길드 임무 · 레벨업 안내가 이 값을 따름 */
+export const GUILD_LEVEL = 30;
 /** 특성 탭 해금 (특성 1단, 34 2-1) */
 export const TALENT_LEVEL = 5;
 /** 정점 수련 (34 2-2): 특성이 끝난 Lv 51부터 레벨마다 지능·체력 +0.3% (Lv 100 = +15%). 고르는 것 없음 */

@@ -16,7 +16,7 @@ import { abilityStars, birthV25, growWeights, lvAdds, ROLE_CORE, STAT_KEYS, type
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
-import { clearXp, xpToNext } from '../src/data/progression';
+import { clearXp, GUILD_LEVEL, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 
 import { claimGuildGoal, rollover } from '../src/game/economy';
@@ -109,12 +109,14 @@ describe('길드원이 없으면 (2026-10-22 가상 사용자 QA: 결성 뒤 영
 });
 
 describe('열림 · 길드 Lv · 정원 (93 6-2)', () => {
-  it('Lv 15에 열림, 튜토리얼 전엔 닫힘, 개발 빌드 잠금 무시면 미리 열림', () => {
-    expect(Gd.guildOpen(save(14)).ok).toBe(false);
-    expect(Gd.guildOpen(save(15)).ok).toBe(true);
+  it('Lv 30에 열림 (2026-10-28 Lim, 예전 Lv 15), 튜토리얼 전엔 닫힘, 개발 빌드 잠금 무시면 미리 열림', () => {
+    expect(GUILD_LEVEL).toBe(30);
+    expect(Gd.guildOpen(save(15)).ok).toBe(false);
+    expect(Gd.guildOpen(save(29)).ok).toBe(false);
+    expect(Gd.guildOpen(save(30)).ok).toBe(true);
     const s = save(3); s.settings.devUnlock = true;
     expect(Gd.guildOpen(s)).toMatchObject({ ok: true, dev: true });
-    const t = save(20); t.tut = 1;
+    const t = save(40); t.tut = 1;
     expect(Gd.guildOpen(t).ok).toBe(false);
   });
   it('명성 = 길드 경험치 (103): 길드 Lv 1~30, 레벨마다 필요량 (줄지 않음), 정원 = Lv + 1 (2 → 31), 지원자 Lv 2~9 1명 · 10~19 2명 · 20~30 3명', () => {
@@ -149,12 +151,12 @@ describe('레벨에 따른 스킬 성장', () => {
 });
 
 describe('결성 (93 4-1)', () => {
-  it('Lv 15: 길드원 없이 결성, 영입은 모집 공고로만 (2026-10-21 Lim 「자동 영입 제거」, 예전엔 말없는탱 + 근접 1명)', () => {
-    const s = save(15);
+  it('Lv 30: 길드원 없이 결성, 영입은 모집 공고로만 (2026-10-21 Lim 「자동 영입 제거」, 예전엔 말없는탱 + 근접 1명)', () => {
+    const s = save(GUILD_LEVEL);
     expect(Gd.foundGuild(s)).toBe(true);
     expect([s.guild.founded, s.guild.members, Gd.capOf(s).cap]).toEqual([true, [], 2]);
     expect(Gd.foundGuild(s)).toBe(false);
-    expect(Gd.foundGuild(save(14))).toBe(false);
+    expect(Gd.foundGuild(save(GUILD_LEVEL - 1))).toBe(false);
     expect(s.guild.post!.cands.length).toBe(POST.cands); // 결성 직후 그날 공고 3명 (2026-10-22)
     expect(Gd.hire(s, 0)).toBe('');
     expect(s.guild.members.length).toBe(1);
@@ -576,8 +578,8 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
     expect([s.guild.fame, memberSkillLevel(a)]).toEqual([GUILD_GOAL.fame, 2]);
     expect(claimGuildGoal(s)).toBe('아직 못 채움');
   });
-  it('settle: Lv 15 이상 판 뒤 결성 (길드원 없이), 길드파티면 정산 · 주간 목표 1, 포기는 정산 없음', () => {
-    const s = save(20);
+  it('settle: Lv 30 이상 판 뒤 결성 (길드원 없이), 길드파티면 정산 · 주간 목표 1, 포기는 정산 없음', () => {
+    const s = save(GUILD_LEVEL);
     const x = settle(s, result(), rng, []);
     expect(x.founded).toBe(true);
     expect([x.guild, s.guild.members.length]).toEqual([null, 0]);
@@ -623,7 +625,8 @@ describe('저장 v19 (길드 v2)', () => {
     expect(migrate(JSON.parse(JSON.stringify(d))).guild).toEqual(d.guild);
   });
   it('깨진 값은 기본값, 모자란 능력치 칸은 그 사람 능력치로', () => {
-    expect(migrate({ v: 19, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null, founded: false, name: '해바라기 원정대' });
+    expect(migrate({ v: 19, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null, founded: false });
+    expect(migrate({ v: 32, guild: { name: '해바라기 원정대', founded: true } }).guild).not.toHaveProperty('name'); // 2026-10-28 Lim 길드 이름 없앰: 옛 저장 이름은 버림
     const nick = nickOf('rogue', 2);
     const g = migrate({ v: 19, guild: { founded: true, members: [{ id: 2, nick, cls: 'rogue', pers: PARTY_POOL.rogue[2].pers, ab: 'rogue.kick', lv: 9, stats: { atk: 30 } }], nextId: 3 } }).guild;
     expect(g.members[0].stats.atk).toBe(PARTY_POOL.rogue[2].fm.stats.atk + lvAdds(nick, PARTY_POOL.rogue[2].pers, 'melee', 9, PARTY_POOL.rogue[2].fm.stats).atk); // v26: 새 바탕 + Lv 9까지 점수

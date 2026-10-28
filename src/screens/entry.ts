@@ -40,7 +40,7 @@ const MILES = [5, 10, 15, 20];
 
 /**
  * 주간 도전 화면 (2026-10-22 Lim 「주간 디자인을 길드화면을 참조해서 일관성을 유지하여 개선하자」, 시안 A 「판 넷」, Lim 「a」): 길드 화면의 위 줄 · 그림 머리 · 판 · 줄 · 알약 · ⓘ · 붉은 출전을 그대로.
- * 나무 「← 모래시계 시련」 → 이번 주 던전 그림 머리 (길드 이름판처럼 두 줄) → 길드 판 넷: 도전 단계 (± · 수치 네 칸 · 단계 길) ·
+ * 나무 「← 모래시계 시련」 → 이번 주 던전 그림 머리 (길드 머리판처럼 두 줄) → 길드 판 넷: 도전 단계 (± · 수치 네 칸 · 단계 길) ·
  * 이번 주 어픽스 (줄 + 다음 주 알약) · 구간 · 보상 (세 칸 + 월요일 상자 = 길드 주간 목표 줄). 규칙 · 어픽스 공략은 ⓘ 안에만
  */
 function render(): void {
@@ -59,7 +59,7 @@ function render(): void {
   const chalOdds = gearGradeOdds(chalDropDiff(st), 0, lv), chalTop = [...ITEM_GRADES].reverse().find(g => chalOdds[g] > 0) ?? ITEM_GRADES[0]; // 상자 등급은 내 레벨로 (Lv 45 전 영웅 없음, 103)
   const next = nextWeekAffixes();
 
-  // 그림 머리: 길드 이름판과 같은 두 줄 (던전 이름 · 인원 구간 / 「이번 주 던전」 칸 + 바뀌기까지 남은 시간 막대 = 길드 Lv + 명성 막대 자리)
+  // 그림 머리: 길드 머리판과 같은 두 줄 (던전 이름 · 인원 구간 / 「이번 주 던전」 칸 + 바뀌기까지 남은 시간 막대 = 길드 Lv + 명성 막대 자리)
   const art = placeArt(c.key).url, left = Math.max(0, Math.min(1, untilWeekReset() / (7 * 86400e3)));
   const hero = `<header class="art-hero wc-hero"${art ? ` style="--hero-art:url('${art}')"` : ''}><div class="ah-copy"><h2>${esc(c.name)}</h2></div>
       <span class="wc-hcap"><span>${c.size(d)}인</span><b>${segs.length}구간</b></span>

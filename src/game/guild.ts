@@ -22,7 +22,7 @@ import { topLevel, type SaveData } from '../platform/storage';
 import { dayKey } from './clock';
 import { TUT } from './tutorial';
 
-/** 길드가 열렸는지 (Lv 15, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
+/** 길드가 열렸는지 (GUILD_LEVEL = Lv 30, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
   if (!FEATURES.guild) return { ok: false, dev: false, why: '' };
   if (save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };

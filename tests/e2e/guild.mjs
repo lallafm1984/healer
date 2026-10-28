@@ -23,10 +23,10 @@ export default async function guild(url, shots) {
   await page.clock.runFor(300);
   await pastTitle(page);
 
-  // ---- 잠금: Lv 15 (개발 빌드 「레벨 잠금 무시」를 끄면) ----
+  // ---- 잠금: Lv 30 (개발 빌드 「레벨 잠금 무시」를 끄면, 2026-10-28 Lim 예전 Lv 15) ----
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-guild') && /Lv 15에 열림/.test(await text('#s-guild .lockline')) && (await page.locator('#s-guild .g-feat').count()) === 2, 'Lv 1 = 길드 잠금 (Lv 15) · 영입과 길드파티 안내');
+  ok(await page.isVisible('#s-guild') && /Lv 30에 열림/.test(await text('#s-guild .lockline')) && (await page.locator('#s-guild .g-feat').count()) === 2, 'Lv 1 = 길드 잠금 (Lv 30) · 영입과 길드파티 안내');
 
   // ---- 결성 (93 4-1): 판 뒤 저절로, 화면에서도 「원정대 만들기」 ----
   await patch(() => {
@@ -64,7 +64,7 @@ export default async function guild(url, shots) {
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
   sv = await save();
   const hero = await text('#s-guild .guild-hero');
-  ok(/해바라기 원정대/.test(hero) && /길드 Lv 5/.test(hero) && /정원 4\/6/.test(hero) && /명성 0 \/ 60/.test(hero), '머리: 이름 · 길드 Lv 5 · 정원 4/6 · 명성 막대 0 / 60 (103)');
+  ok(!/해바라기|원정대/.test(hero) && /길드 Lv 5/.test(hero) && /정원 4\/6/.test(hero) && /명성 0 \/ 60/.test(hero) && (await page.locator('#s-guild .guild-hero h2 .g-ic').count()) === 1, '머리: 이름 없이 깃발 · 길드 Lv 5 · 정원 4/6 · 명성 막대 0 / 60 (2026-10-28 Lim 이름 없앰)');
   const tabs = await page.locator('#s-guild .subtabs [role="tab"]').evaluateAll(els => els.map(e => [e.dataset.sub, e.getAttribute('aria-selected')]));
   ok(JSON.stringify(tabs) === JSON.stringify([['home', 'true'], ['members', 'false'], ['recruit', 'false']]), `하위 탭 셋 (현황 고름) ${JSON.stringify(tabs)}`);
   // 현황은 메뉴 칸 없이 오늘의 부탁과 주간 할 일을 바로 표시.

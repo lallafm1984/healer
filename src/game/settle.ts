@@ -192,7 +192,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   }
 
   if (r.win) heroWin(save, hero);
-  // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
+  // 길드 v2 (93 · 97): 결성 (Lv 30 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save, rng, now) : false; // 결성 직후 그날 공고 3명 (2026-10-22)
   // 업데이트 묶음 (93 6-3 · 8장): 부탁 쪽지 · 주간 원정
   const fame0 = save.guild.fame;

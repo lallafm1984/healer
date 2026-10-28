@@ -64,7 +64,7 @@ export interface PlayerType {
   chal: boolean;
   /** 행상인: 안 씀 · 골드가 값의 3배 넘으면 · 값만큼 있으면 다 */
   merchant: 'none' | 'spare' | 'all';
-  /** 길드 (Lv 15 결성, 모집 공고로 채움, 길드파티 · 원정) */
+  /** 길드 (Lv 30 결성, 모집 공고로 채움, 길드파티 · 원정) */
   guild: boolean;
   /** 레이드 주 첫 판 (열린 레이드 칸 가운데 적합도가 도전 · 위험이 아닌 것) */
   raids: boolean;

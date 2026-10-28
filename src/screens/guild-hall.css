@@ -240,8 +240,7 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
   :is(#s-guild, #s-entry, #s-missions, #s-settings, #s-shop, #s-merchant) .g-ct b { font-size: 19px; }
 }
 
-/* 그림 (93 11장): 길드 Lv 깃발 · 결성 이야기 배경 · 숙지 두루마리 */
-#s-guild .gh-stats .gh-lv .g-ic { width: 16px; height: 16px; }
+/* 그림 (93 11장): 결성 이야기 배경 · 숙지 두루마리 (길드 Lv 깃발은 머리 제목 줄) */
 #s-guild.ns .panel.g-story { background: linear-gradient(180deg, #15120eb8, #15120ef2 75%), var(--art-scene-guild-found, linear-gradient(180deg, #2a2116, #1c1712)) center 35% / cover no-repeat; }
 
 #s-guild .guild-hero > .ah-copy, #s-guild .guild-hero > .gh-stats { position: relative; z-index: 1; }
@@ -359,22 +358,22 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
   #s-guild .g-flat .g-job-group:not(:first-child) { min-height: 32px; margin-top: 2px; }
 }
 
-/* 길드 이름판: 현황 · 길드원 · 영입에서 같은 높이와 배열을 사용한다. */
+/* 길드 머리판: 현황 · 길드원 · 영입에서 같은 높이와 배열을 사용한다. 위 줄 = 깃발 · 길드 Lv (예전 길드 이름 자리, 2026-10-28 Lim 이름 없앰) · 정원, 아래 줄 = 명성 막대 */
 #s-guild .guild-hero.guild-identity { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 30px 26px; align-items: center; gap: 4px 12px; height: 88px; min-height: 88px; padding: 9px 16px 15px; }
 #s-guild .guild-identity .ah-copy { grid-area: 1 / 1; }
-#s-guild .guild-identity h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 1.3; }
+#s-guild .guild-identity h2 { display: flex; align-items: center; gap: 7px; white-space: nowrap; font-size: 18px; line-height: 1.3; }
+#s-guild .guild-identity h2 .g-ic { flex: none; width: 24px; height: 24px; }
+#s-guild .guild-identity h2 b { font-size: 22px; font-variant-numeric: tabular-nums; }
 #s-guild .guild-identity .gh-stats { display: contents; }
 #s-guild .guild-identity .gh-stats > span { height: auto; padding: 0; border: 0; border-radius: 0; background: none; position: relative; z-index: 1; }
 #s-guild .guild-identity .gh-cap { grid-area: 1 / 2; justify-self: end; display: inline-flex; gap: 7px; color: var(--gk-ink2); font-size: 12px; }
 #s-guild .guild-identity .gh-cap b { color: var(--gk-ink); font-size: 14px; font-variant-numeric: tabular-nums; }
-/* 길드 Lv + 명성 막대 (103): 위 정보창 경험치 막대 (a2-topbar .tb-xp)와 같은 굵은 막대, 길드 홀 황동 테 · 금빛 */
+/* 명성 막대 (103): 위 정보창 경험치 막대 (a2-topbar .tb-xp)와 같은 굵은 막대, 길드 홀 황동 테 · 금빛 */
 #s-guild .guild-identity .gh-xprow { grid-area: 2 / 1 / 3 / 3; display: flex; align-items: center; gap: 8px; min-width: 0; }
-#s-guild .guild-identity .gh-stats .gh-lv { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border: 1px solid #b28d4e99; border-radius: 5px; background: #1d1812d9; color: #edcf93; font-size: 11px; }
-#s-guild .guild-identity .gh-lv b { font-size: 14px; }
 #s-guild .guild-identity .gh-xp { position: relative; flex: 1; min-width: 0; height: 16px; overflow: hidden; border: 1px solid #a9783f; border-radius: 8px; background: #1b0f07; box-shadow: inset 0 2px 3px #000d, 0 1px 0 #ffd9a02e; }
 #s-guild .guild-identity .gh-xp > i { display: block; height: 100%; border-radius: 7px 0 0 7px; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
 #s-guild .guild-identity .gh-xp > small { position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px/1 var(--font-body); color: #fff6dc; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 3px #000; }
 @media (max-width: 374px) {
   #s-guild .guild-hero.guild-identity { padding-inline: 12px; column-gap: 6px; }
-  #s-guild .guild-identity h2 { font-size: 18px; }
+  #s-guild .guild-identity h2 { font-size: 17px; }
 }

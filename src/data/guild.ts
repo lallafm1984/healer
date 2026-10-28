@@ -184,5 +184,3 @@ export const EXPED = { n: 3, fame: 10, chestGold: 5 };
 /** 버릇 = 침착 · 판단 (97 · 93 13-1): 두 칸 평균 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3 (길드원만, 공개모집은 그대로) */
 export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.2, 1, 1 / 3);
 
-/** 길드 이름 (93 결성 이야기) */
-export const GUILD_NAME = '해바라기 원정대';

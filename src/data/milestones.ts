@@ -1,7 +1,7 @@
 import { CONTENT, contentOf } from './content';
 import { FEATURES } from './features';
 import { HEROES, type HeroKey } from './heroes';
-import { MAX_LEVEL } from './progression';
+import { GUILD_LEVEL, MAX_LEVEL } from './progression';
 import { SKILLS } from './skills';
 
 /**
@@ -12,7 +12,7 @@ export interface Milestone { text: string; live: boolean; hero?: HeroKey }
 const BASE: Record<number, Milestone[]> = {
   5: [{ text: '특성 1단', live: true }],
   10: [{ text: '특성 2단', live: true }, { text: '주간 임무', live: true }],
-  15: [{ text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (원정대 결성 · 영입)', live: true }] : [])],
+  15: [{ text: '특성 3단', live: true }],
   20: [{ text: '직업 전환 · 드루이드 해금', live: true, hero: 'druid' }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }],
   25: [{ text: '특성 5단', live: true }],
   30: [{ text: '직업 전환 · 성기사 해금', live: true, hero: 'paladin' }, { text: '특성 6단', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],
@@ -28,6 +28,8 @@ const BASE: Record<number, Milestone[]> = {
  */
 export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
 const addFirst = (lv: number, m: Milestone) => { MILESTONES[lv] = [m, ...(MILESTONES[lv] ?? [])]; };
+// 길드는 GUILD_LEVEL (2026-10-28 Lim 「길드 오픈 시점은 레벨 30으로」, 예전 Lv 15)
+if (FEATURES.guild) MILESTONES[GUILD_LEVEL] = [...(MILESTONES[GUILD_LEVEL] ?? []), { text: '길드 (원정대 결성 · 영입)', live: true }];
 // 장비 재설정 (예전 Lv 20 · 후보 고르기 Lv 60)은 2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」로 없앰
 const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
 addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: true });
