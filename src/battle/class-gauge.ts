@@ -17,8 +17,22 @@ let cache = '';
  * 아래 줄 = 토템마다 [모래시계 36][4][남은 시간] (샘 · 대지, 둘 다 「19.8」이어도 칸 안). 재사용 대기 (되돌림 그림)는 스킬 버튼에 보여 뺌 (2026-10-18 Lim). crop = 그린 부분 (칸 폭에 맞춰 약 0.39배)
  */
 const SHAMAN_PACK={totem:40,lowY:-93,icon:.7,hourglass:37,earthGlass:178,numLeft:(181-37)/542*100,extraLeft:(322-178)/542*100,crop:[144.1,50,408.9,313] as [number,number,number,number]};
+/** 성기사 방패 칸 (방패 원화 % 좌표): 위 왼쪽 · 위 오른쪽 · 아래. 4칸이면 아래 판을 가운데 (원화 x 50%)에서 왼쪽 · 오른쪽으로 */
+const SHIELD_PIECES:Record<3|4,string[]>={
+  3:['polygon(19% 24%,47% 14%,47% 40%,25% 53%)','polygon(51% 14%,79% 24%,73% 53%,51% 40%)','polygon(49% 43%,71% 56%,62% 72%,49% 82%,35% 68%,27% 56%)'],
+  4:['polygon(19% 24%,47% 14%,47% 40%,25% 53%)','polygon(51% 14%,79% 24%,73% 53%,51% 40%)','polygon(49% 43%,50% 43%,50% 83%,35% 68%,27% 56%)','polygon(50% 43%,71% 56%,62% 72%,50% 83%)'],
+};
 /** Extra resource slots reuse the approved sprite as independently placed UI pieces. */
 function resourceVariant(el: HTMLElement, job: HeroKey, max: number): void {
+  if(job==='paladin'){
+    // 방패 칸 = 신성한 힘 최대치. 넘치는 신성한 힘 (성기 05, 최대 4)이면 아래 판을 가운데 홈으로 나눠 4칸 (2026-10-28 Lim 「4칸째가 안 보임」)
+    const key=String(max);if(el.dataset.variant===key)return;el.dataset.variant=key;
+    const shield=el.querySelector<HTMLElement>('.paladin-shield')!,ready=shield.querySelector('.shield-ready')!,base=shield.querySelector<HTMLImageElement>('.shield-base')!;
+    shield.querySelectorAll('.shield-segment,.shield-split').forEach(e=>e.remove());
+    for(const points of SHIELD_PIECES[max>3?4:3]){const piece=div('shield-segment'),image=base.cloneNode() as HTMLImageElement;image.className='shield-fill';piece.style.clipPath=points;piece.append(image);ready.before(piece);}
+    if(max>3)ready.before(div('shield-split'));
+    return;
+  }
   if(job==='astrologer'){
     const key=String(max);if(el.dataset.variant===key)return;
     el.dataset.variant=key;el.classList.add('has-variant');el.querySelector('.variant-art')?.remove();
@@ -118,8 +132,6 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     el.querySelector<HTMLElement>('.gauge-base')!.style.clipPath='polygon(0 61%,55% 61%,55% 58%,100% 58%,100% 100%,0 100%)';
     el.querySelectorAll('.fill-mask').forEach(e=>e.remove());
     const shield=div('paladin-shield'),base=new Image();base.src=art('ui-class-paladin-shield-b3');base.alt='';base.className='shield-base';shield.append(base);
-    const masks=['polygon(19% 24%,47% 14%,47% 40%,25% 53%)','polygon(51% 14%,79% 24%,73% 53%,51% 40%)','polygon(49% 43%,71% 56%,62% 72%,49% 82%,35% 68%,27% 56%)'];
-    masks.forEach(points=>{const piece=div('shield-segment'),image=base.cloneNode() as HTMLImageElement;image.className='shield-fill';piece.style.clipPath=points;piece.append(image);shield.append(piece);});
     const ready=base.cloneNode() as HTMLImageElement;ready.className='gauge-ready shield-ready';el.querySelector('.gauge-ready')!.remove();shield.append(ready);el.append(shield);
   }
   if(job==='shaman'){
@@ -205,12 +217,12 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
   if(job==='paladin'){
     el.dataset.waveReady=String(s.paladinWaveReady);
     el.querySelector<HTMLElement>('.paladin-wave-aura')!.hidden=!s.paladinWaveReady;
-    el.querySelectorAll<HTMLElement>('.shield-segment').forEach((piece,i)=>piece.hidden=i>=s.count);
     const name=host.querySelector<HTMLElement>('.paladin-beacon-name')!;
     name.textContent=beaconLabel(s.beaconName);name.title=s.beaconName || '봉화 대상 없음';
     name.classList.toggle('is-unassigned',!s.beaconName);
   }
   resourceVariant(el,job,s.max);
+  if(job==='paladin')el.querySelectorAll<HTMLElement>('.shield-segment').forEach((piece,i)=>piece.hidden=i>=s.count);
   el.classList.toggle('is-ready',full);el.dataset.ready=String(full);el.dataset.value=String(s.percent);
   el.setAttribute('aria-valuenow',String(Math.min(s.count,s.max)));el.setAttribute('aria-valuemax',String(s.max));
   el.setAttribute('aria-label',s.description);el.setAttribute('aria-valuetext',s.description);host.title=s.description;host.setAttribute('aria-label',s.description);

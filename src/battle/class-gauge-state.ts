@@ -7,6 +7,7 @@ import { guardSec } from '../engine/specials';
 import { SHAMAN } from '../data/heroConst';
 import { wordCap } from '../engine/talents';
 import { costOf } from '../engine/talents';
+import { powerMax } from '../engine/heroes';
 import { canTarget, knows } from '../engine/healer';
 import { SKILLS } from '../data/skills';
 import { judgeCount, sealed, sealTargets } from '../engine/warder';
@@ -57,10 +58,10 @@ export function classGaugeState(f: Fight): ClassGaugeState {
       s.count = live.filter(u => u.hots.some(h => h.key === 'sprout' && h.left > 0)).length;
       s.max = Math.max(1, live.length); s.lit = wholeCells(s.count, live.length); s.description = `새싹 적용 ${s.count}/${live.length}명`; break;
     case 'paladin':
-      s.count = f.power3; s.max = 3;
+      s.count = f.power3; s.max = powerMax(f); // 넘치는 신성한 힘 (성기 05)이면 4칸
       s.paladinWaveReady=paladinWaveReady(f);
       s.beaconName=f.party.find(u => u.id === f.beacon)?.nick ?? null;
-      s.description = `신성한 힘 ${s.count}/3, 빛의 파도 ${s.paladinWaveReady?'사용 가능':'대기'}, 봉화 ${s.beaconName || '미지정'}, 변경 대기 ${Math.ceil(f.beaconCd)}초`; break;
+      s.description = `신성한 힘 ${s.count}/${s.max}, 빛의 파도 ${s.paladinWaveReady?'사용 가능':'대기'}, 봉화 ${s.beaconName || '미지정'}, 변경 대기 ${Math.ceil(f.beaconCd)}초`; break;
     case 'shaman':
       s.remaining = Math.max(0, ...f.totems.filter(t => t.kind === 'spring').map(t => t.until - f.t));
       s.count = s.remaining; s.max = springSec(f);
