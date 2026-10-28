@@ -125,7 +125,7 @@ export default async function guild(url, shots) {
   const hiredLv = hired.lv >= 20 ? 2 : 1; // 지원자는 Lv 1 ~ 내 레벨 (2026-10-22), 직업 스킬 LV 2 = 길드원 Lv 20부터
   ok((await text('#s-guild .g-msheet .pab .skill-level')) === `LV ${hiredLv}` && !/★/.test(await text('#s-guild .g-msheet .pab')), `직업 스킬: 별 대신 LV ${hiredLv} 표시 (Lv ${hired.lv})`);
   await page.locator('#s-guild .g-msheet').screenshot({ path: `${shots}/guild_member.png` });
-  // 후원 (98): 그 길드원 Lv × 20 골드 = 5판, 내 레벨과 같으면 버튼 대신 「내 레벨과 같음」
+  // 후원 (98): 그 길드원 Lv × 20 골드 = 3판 (2026-10-28 Lim, 예전 5판), 내 레벨과 같으면 버튼 대신 「내 레벨과 같음」
   await shut();
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
@@ -154,10 +154,10 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [data-sponsor]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-gconfirm]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.player.gold === g1 - low.lv * 20 && sv.guild.members.find(m => m.id === low.id).boost === 5 && /5판 남음/.test(await text('#s-guild [data-sponsor]')) && !(await page.locator('#s-guild .g-action-confirm').count()), `지원 확인: 골드 ${low.lv * 20} 한 번만 소비 → 5판`);
+  ok(sv.player.gold === g1 - low.lv * 20 && sv.guild.members.find(m => m.id === low.id).boost === 3 && /3판 남음/.test(await text('#s-guild [data-sponsor]')) && !(await page.locator('#s-guild .g-action-confirm').count()), `지원 확인: 골드 ${low.lv * 20} 한 번만 소비 → 3판`);
   ok(await page.isDisabled('#s-guild [data-sponsor]') && (await text('#s-guild [data-sponsor] b')) === '지원 중', '횟수가 남아 있으면 지원 중으로 버튼 잠금 · 중첩 불가');
   await shut();
-  ok(/5판 후원/.test(await text(`#s-guild [data-mem="${low.id}"] .f-tag.gold`)), '길드원 줄에 금빛 후원 주머니 + 5');
+  ok(/3판 후원/.test(await text(`#s-guild [data-mem="${low.id}"] .f-tag.gold`)), '길드원 줄에 금빛 후원 주머니 + 3');
   await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(50);
   ok(await page.isDisabled('#s-guild [data-sponsor]') && /내 레벨과 같음/.test(await text('#s-guild [data-sponsor]')), '내 레벨과 같은 길드원 = 「내 레벨과 같음」');
   await shut();
@@ -229,7 +229,7 @@ export default async function guild(url, shots) {
   sv = await save();
   // 쉬는 길드원은 내 레벨보다 낮을 때만 후원을 씀 (내 Lv 15 · 불꽃남자 Lv 25면 그대로, 93 4장). 지원자 레벨이 Lv 1 ~ 내 레벨이라 편성에 따라 쉼
   const flame = sv.guild.members.find(m => m.nick === '불꽃남자'), flameIn = inFight.some(m => m.nick === '불꽃남자');
-  ok(flame.boost === (flameIn || flame.lv >= 15 ? 5 : 4), `출전 여부 · 내 레벨에 따른 후원 횟수 (출전 ${flameIn}, Lv ${flame.lv}, 남은 ${flame.boost})`);
+  ok(flame.boost === (flameIn || flame.lv >= 15 ? 3 : 2), `출전 여부 · 내 레벨에 따른 후원 횟수 (출전 ${flameIn}, Lv ${flame.lv}, 남은 ${flame.boost})`);
   ok(sv.guild.fame === 225 + 8 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 225 + 8 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
 
