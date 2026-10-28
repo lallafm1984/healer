@@ -6,7 +6,7 @@ import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, enrageOf, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
 import { mobLookOf } from '../data/mob-looks';
-import { canDispel, HEROES } from '../data/heroes';
+import { canDispel, dispellable, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
@@ -292,7 +292,7 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', e?.p === 'restoreMax' ? '끝나거나 지우면 최대 체력이 돌아옴' : '',
     d.healCut ? `받는 치유 −${pctT(d.healCut)}${d.stackMax ? ' 중첩' : ''}` : '',
     d.noDps ? '딜 0' : '', d.noMove ? '못 움직여 장판을 못 피함' : '', d.hide ? '판 기술에 안 맞음' : '', d.dpsCut ? `딜 −${pctT(d.dpsCut)}` : '',
-    d.invert ? '받는 치유가 그만큼 피해로' : '', d.lock ? '해제 안 됨' : '',
+    d.invert ? '받는 치유가 그만큼 피해로' : '', dispellable(d) ? '' : '해제 안 됨',
     d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.untilBossLoss != null ? `보스 체력을 ${pctT(d.untilBossLoss)} 깎으면 풀림` : '',
     e?.p === 'hit' ? (d.absorb ? `막이 남은 채로 시간이 다 되면 <b>${n(e.dmg)}</b>` : `두면 시간 끝에 <b>${n(e.dmg)}</b>`) : '', e?.p === 'colDmg' ? `두면 시간 끝에 그 사람이 선 열 전체 <b>${n(e.dmg)}</b> (지우면 그냥 사라짐)` : '',
     d.trap && (!e || e.p === 'spread') ? `끝나면 터져 이웃 칸 아군 <b>${n(SPREAD.dmg)}</b> + 「${SPREAD.debuff.name}」 (${SPREAD.debuff.type}, ${secT(SPREAD.debuff.left)} · 초당 ${n(SPREAD.debuff.dot)}), 지우면 그 자리에서 바로 터짐`
@@ -316,7 +316,8 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.cap != null ? `치유로는 체력이 ${pctT(d.cap)}까지만 참` : '', e?.p === 'flip' ? `두면 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%), 지우면 그냥 사라짐` : '',
     d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.dropPct ? `걸릴 때 최대 체력 ${pctT(d.dropPct)} 깎임` : '', d.staunch ? `봉합량 = 최대 체력 ${pctT(d.staunch.healPct)}, 실제로 회복할수록 출혈 (처음 초당 최대 체력 ${pctT(d.staunch.dotPct)})이 줄고 다 채우면 멎음` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
     (e?.p === 'blast' || e?.p === 'trapHit') && e.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', e?.p === 'pass' ? `지우면 남은 막이 가장 건강한 아군에게 ${secT(e.sec)} 넘어감, 두면 끝날 때 남은 막만큼 피해` : ''].filter(Boolean);
-  return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
+  // 종류 이름 (질병 · 독 · 마법 · 저주)은 지울 수 있을 때만. 물리 · 해제 안 됨은 「해제 안 됨」만 (2026-10-28 Lim 「물리가 무슨 뜻인지 모른다」)
+  return `「${d.name}」 (${dispellable(d) ? `${d.type}, ` : ''}${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
 const debuffHow = (d: DebuffDef) => (d.debt ? '가득 차 보여도 그 사람에게 힐해서 빚 갚기 (일찍 갚을수록 쌈). 빚보다 체력이 높으면 안 쓰러지니 바쁠 땐 버티기' : d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d) : d.end?.p === 'pass' ? passHow(d)

@@ -11,7 +11,7 @@ import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { judgeReady } from '../engine/warder';
-import { HEROES } from '../data/heroes';
+import { dispellable, HEROES } from '../data/heroes';
 import { contentOf, type ContentKey } from '../data/content';
 import { mobGrade } from '../data/encounters';
 import { INT_BASE } from '../data/rules';
@@ -318,7 +318,7 @@ export function updateCastbar(): void {
       const hp = `${Math.ceil(selected.hp)}/${Math.ceil(selected.max)} (${Math.ceil(selected.hp / selected.max * 100)}%)`;
       const types = [...new Set(selected.debuffs.map(d => d.type))];
       label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : '쓰러짐'}${types.length ? ` · ${types.join('/')}` : ''}`;
-      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : '디버프 없음'}`;
+      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name}${dispellable(d) ? ` (${d.type})` : ''}, ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : '디버프 없음'}`;
     } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
   }
   const casting = !!F.cast || F.channel > 0;
@@ -669,7 +669,12 @@ function drawPreview(u: Unit): void {
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${u.pers}</b><small class="pv-label">성격</small></div><div class="d">${u.p.desc}</div></div>`);
   const items: string[] = [];
   // 디버프마다 하는 일을 짧게 (debuffBrief). 직업별 해제 가능 · 불가 글은 쓰지 않는다 (2026-10-27 Lim 「"드루이드 해제 불가" 텍스트를 제거하고 간략하게 … 효과를 설명」)
-  for (const d of u.debuffs) { const b = debuffBrief(d); items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${b ? ` · ${b}` : ''}`); }
+  for (const d of u.debuffs) {
+    // 종류 이름은 지울 수 있을 때만 (물리 · 해제 안 됨은 종류가 아무 뜻이 없음, 2026-10-28 Lim 「물리가 무슨 뜻인지 모른다」)
+    const b = debuffBrief(d), kind = [dispellable(d) ? d.type : '', d.stack ? `${d.stack}중첩` : ''].filter(Boolean).join(' ');
+    const paren = [kind, Number.isFinite(d.left) ? `${Math.ceil(d.left)}초` : ''].filter(Boolean).join(', '); // 끝없는 깊은 상처 (어픽스)는 초 없이
+    items.push(`${d.name}${paren ? ` (${paren})` : ''}${b ? ` · ${b}` : ''}`);
+  }
   if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
   for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
   { const sh = shieldTimerOf(u, F.t); if (sh) items.push(`보호막 ${Math.ceil(sh.left)}초 (남은 흡수 ${Math.round(sh.amt).toLocaleString('ko-KR')})`); }

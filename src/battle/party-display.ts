@@ -1,5 +1,5 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
-import { canDispel, type HeroKey } from '../data/heroes';
+import { canDispel, DISPEL_TYPES, dispellable, type HeroKey } from '../data/heroes';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import type { Debuff, Mod, Totem, Unit } from '../engine/types';
 
@@ -124,7 +124,37 @@ export function fitPartyName(name: string, maxWidth: number, measure: (text: str
 }
 
 export type DispelState = 'available' | 'unavailable' | 'dangerous';
-const TYPE_SHORT: Record<string, string> = { 질병: '질', 독: '독', 마법: '마', 저주: '저' };
+
+/**
+ * 아무도 못 지우는 디버프 (해제 안 됨 · 물리)의 칸 배지 말 (2026-10-28 Lim 「물리가 무슨 뜻인지 사용자가 모른다」): 「물리 10」 · 「?10」 · 「마10」 대신 하는 일을 한 낱말로.
+ * long = 칸이 넉넉할 때, short = 지속 힐 · 보호막 원 사이처럼 좁을 때 (같은 뜻, 띄어 쓰지 않고 초를 붙임). 무엇을 해야 하는지가 보이는 것을 먼저 (갇힘 → 채우기 → 치유 흡수 → … → 지속 피해).
+ * 아무 하는 일이 없는 표식 (걸릴 때 한 방 · 지진 예고)은 디버프 이름 그대로
+ * 숫자까지 다 적은 글은 보스 공략 (guide.ts debuffText), 짧은 설명은 길게 누르기 (debuffBrief)
+ */
+export function debuffTag(d: Debuff): { long: string; short: string } {
+  const one = (w: string) => ({ long: w, short: w });
+  const e = d.end;
+  if (d.untilBossLoss != null) return one('갇힘');
+  if (d.charm) return one('매혹');
+  if (d.cureAt != null) return { long: '채우기', short: '채움' };
+  if (d.absorb || d.absorbLeft || d.shell) return { long: '치유 흡수', short: '흡수' }; // 넘침 (주간 도전 어픽스)은 남은 막만
+  if (d.invert) return { long: '치유 반전', short: '반전' };
+  if (d.cap != null) return { long: '치유 상한', short: '상한' };
+  if (d.over) return one('넘침');
+  if (d.noDps) return one(d.noMove ? '기절' : '침묵');
+  if (d.noMove) return one('묶임');
+  if (d.vuln) return one('피해↑');
+  if (d.healCut) return one('치유↓');
+  if (d.maxCut || e?.p === 'restoreMax') return one('체력↓');
+  if (d.dpsCut) return one('딜↓');
+  if (d.drain) return one('마나↓');
+  if (d.feed) return one('흡혈');
+  if (d.dot) return d.type === '물리' ? one('출혈') : d.type === '독' ? one('중독') : { long: '지속 피해', short: '피해' };
+  if (e?.p === 'spread') return one('번짐');
+  if (e?.p === 'jump') return { long: '옮겨붙음', short: '옮김' };
+  if (d.trap || e) return one('폭발');
+  return one(d.name);
+}
 
 export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   text: string; detail: string; state: DispelState; seconds: number;
@@ -133,17 +163,21 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   // 함정은 실제로 해제되며 폭발한다. 해제불가와 혼동하지 않는다.
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 글에도 직업별 해제 가능 · 불가는 쓰지 않습니다 (2026-10-27 Lim)
-  const kind = short ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
+  // 지울 수 있으면 종류 이름 (질병 · 독 · 마법 · 저주, 좁으면 띄어쓰기만 뺌), 못 지우면 하는 일 (2026-10-28 Lim, 예전 「물리 10」 · 좁은 칸 「?10」 · 「질10」 · 「마10」)
+  const tag = dispellable(debuff) ? { long: debuff.type, short: debuff.type } : debuffTag(debuff);
+  const kind = short ? tag.short : tag.long;
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
   const brief = debuffBrief(debuff);
-  const detail = `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${brief ? ` · ${brief}` : ''}`;
+  // 끝없는 디버프 (깊은 상처 어픽스, left = Infinity)는 초 없이
+  const timed = Number.isFinite(seconds), sec = timed ? `${short ? '' : ' '}${seconds}` : '';
+  const detail = [debuff.name, dispellable(debuff) ? debuff.type : '', timed ? `${seconds}초${stack}` : stack.slice(2)].filter(Boolean).join(' · ') + (brief ? ` · ${brief}` : '');
   // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
   if (debuff.count) return { text: `${short ? '' : '역류 '}${debuff.stack ?? 0}중`, detail, state, seconds };
   if (debuff.link) return { text: `${short ? '사슬' : debuff.name} ${seconds}`, detail, state, seconds }; // 생명 사슬 (P-LINK)
   // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수
   if (debuff.swell) return { text: `${short ? '' : '거품 '}${debuff.stack ?? 1}중`, detail, state, seconds };
   // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
-  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail, state, seconds };
+  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집힘 '}${seconds}`, detail, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
   if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail, state, seconds }; }
   // 봉합 상처 (113 6.2): 배지에 남은 봉합 %
@@ -151,7 +185,7 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
   if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail, state, seconds };
   if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · ${brief}`, state, seconds: 0 };
-  return { text: `${kind}${short ? '' : ' '}${seconds}`, detail, state, seconds };
+  return { text: `${kind}${sec}`, detail, state, seconds };
 }
 
 const pctT = (x: number) => `${Math.round(x * 100)}%`;
@@ -171,7 +205,7 @@ export function debuffBrief(d: Debuff): string {
   if (d.swell) out.push('점점 부풀어 끝나면 나와 옆 칸이 터짐 (지우면 옆 칸만)');
   if (d.charge) out.push(`직접 힐 ${d.charge.max}번째에 방전, 나와 옆 칸 피해`);
   if (d.shell) out.push('큰 직접 힐만 껍질을 깎음, 끝나면 남은 껍질만큼 피해');
-  else if (d.absorb) out.push(e?.p === 'pass' ? '받는 치유가 막을 먼저 깎음, 지우면 다른 사람에게 넘어감' : '받는 치유가 막을 먼저 깎음');
+  else if (d.absorb || d.absorbLeft) out.push(e?.p === 'pass' ? '받는 치유가 막을 먼저 깎음, 지우면 다른 사람에게 넘어감' : '받는 치유가 막을 먼저 깎음');
   if (d.charm) out.push('딜을 멈추고 옆 사람을 때림, 힐하면 길어짐');
   if (d.untilBossLoss != null) out.push(`보스 체력을 ${pctT(d.untilBossLoss)} 깎으면 풀림`);
   if (d.cureAt != null) out.push(d.grow ? `체력 ${pctT(d.cureAt)} 아래면 점점 아파짐, 채우면 떨어짐` : `체력 ${pctT(d.cureAt)} 채우면 떨어짐`);
@@ -202,6 +236,6 @@ export function debuffBrief(d: Debuff): string {
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
 export function primaryDebuff(debuffs: readonly Debuff[]): Debuff | undefined {
-  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.debt || d.end?.p === 'flip' || d.end?.p === 'pass' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
+  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.debt || d.end?.p === 'flip' || d.end?.p === 'pass' ? 2 : DISPEL_TYPES.has(d.type) && d.type !== '독' ? 1 : 0;
   return debuffs.reduce<Debuff | undefined>((best, d) => !best || priority(d) > priority(best) ? d : best, undefined);
 }

@@ -153,6 +153,10 @@ export const DEB_COLOR: Record<string, string> = { '질병': '#D9A13B', '독': '
 
 /** 그 직업이 그 디버프를 지울 수 있는지 */
 export const canDispel = (hero: HeroKey, type: string) => HEROES[hero].dispel.includes(type);
+/** 어느 직업이든 지울 수 있는 종류 (질병 · 독 · 마법 · 저주). 「물리」는 어떤 직업도 못 지움 */
+export const DISPEL_TYPES: ReadonlySet<string> = new Set(Object.values(HEROES).flatMap(h => h.dispel));
+/** 누군가는 지울 수 있는 디버프: 배지 · 상세 글 · 공략에 종류 이름 (해제 종류)을 쓴다. 해제 안 됨 (lock) · 물리는 종류가 아무 뜻이 없어 쓰지 않음 (2026-10-28 Lim 「물리가 무슨 뜻인지 모른다」) */
+export const dispellable = (d: { type: string; lock?: boolean }): boolean => !d.lock && DISPEL_TYPES.has(d.type);
 
 /** 휠에 놓을 수 있는 칸 (고유 칸이 없는 직업은 7칸) */
 export const heroSlotNames = (hero: HeroKey): SlotName[] =>
