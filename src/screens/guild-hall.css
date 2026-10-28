@@ -332,16 +332,20 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild.ns .g-candidates .pcard.f-mem { min-height: 84px; padding: 10px 4px; gap: 8px; }
 #s-guild.ns .g-candidates .pcard.f-mem:first-child { border-top: 1px solid var(--gk-line); }
 #s-guild.ns .g-candidates .f-mem .f-ri { width: 30px; height: 36px; flex: none; }
-#s-guild.ns .g-candidates .f-mem .f-mt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 6px; flex: 1; min-width: 0; }
+#s-guild.ns .g-candidates .f-mem .f-mt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 6px; flex: 1; min-width: 0; }
 #s-guild.ns .g-candidates .pcard.f-mem .f-l1, #s-guild.ns .g-candidates .pcard.f-mem .f-l2 { display: contents; }
-#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .pnick { grid-area: 1 / 1; font-size: 15px; color: var(--gk-head); }
-#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .cap { grid-area: 2 / 1; font-size: 12px; }
-#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .f-ps { grid-area: 1 / 2 / 3 / 3; justify-self: end; max-width: 88px; font-size: 11px; white-space: normal; text-align: center; }
-#s-guild.ns .g-candidates .pcard.f-mem .f-l2 > .f-ab { grid-area: 3 / 1; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; overflow: visible; white-space: normal; font-size: 11px; }
-#s-guild.ns .g-candidates .f-ab .skill-name { min-width: 0; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .pnick { grid-area: 1 / 1 / 2 / 3; font-size: 15px; color: var(--gk-head); }
+/* 직업 · Lv 줄과 스킬 · 스킬 LV 줄은 한 표처럼 (2026-10-28 Lim 「따로 놀지 않게」): 두 줄이 첫 칸 (직업 · 스킬 이름, 둘 가운데 긴 쪽 너비)을 함께 써서 Lv 칩과 스킬 LV가 그 옆 같은 세로줄에서 시작 */
+#s-guild.ns .g-candidates .pcard.f-mem :is(.f-l1 > .cap, .f-l2 > .f-ab) { display: grid; grid-template-columns: auto auto; grid-template-columns: subgrid; justify-content: start; align-items: center; overflow: visible; white-space: normal; font-size: 12px; line-height: 20px; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .cap { grid-area: 2 / 1 / 3 / 3; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .cap .f-lv { justify-self: start; margin-left: 0; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .f-ps { grid-area: 1 / 3 / 3 / 4; justify-self: end; max-width: 88px; font-size: 11px; white-space: normal; text-align: center; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l2 > .f-ab { grid-area: 3 / 1 / 4 / 3; }
+#s-guild.ns .g-candidates .f-ab .skill-name { min-width: 0; line-height: 1.25; }
 #s-guild.ns .g-candidates .f-ab .skill-name b { white-space: normal; overflow-wrap: anywhere; }
-#s-guild.ns .g-candidates .f-ab .skill-level { flex: none; }
-#s-guild.ns .g-candidates .f-l2 > .f-fm { grid-area: 3 / 2; align-self: center; margin: 0; font-size: 11px; white-space: nowrap; }
+/* 스킬 LV 글자가 Lv 칩 안 글자와 같은 곳에서 시작 (칩 테 1 + 안쪽 5) */
+#s-guild.ns .g-candidates .f-ab .skill-level { justify-self: start; margin-left: 0; padding-left: 6px; font-size: 11px; }
+#s-guild.ns .g-candidates .f-l2 > .f-fm { grid-area: 3 / 3; align-self: center; margin: 0; font-size: 11px; white-space: nowrap; }
 #s-guild.ns .g-candidates .f-l2 > .f-tag { grid-area: 4 / 1 / 5 / 3; justify-self: start; }
 
 @media (max-width: 374px) {

@@ -5,7 +5,7 @@
  * - 길드원 레벨이 스킬 레벨을 올림, 명성이 길드 Lv · 정원을 올림
  */
 import { CLASSES, type ClassKey } from './classes';
-import { abilityScore, growWeights, lerp3, LV_PTS, STAT_KEYS, type StatKey, type Stats } from './fm';
+import { abilityRel, growWeights, lerp3, LV_PTS, STAT_KEYS, type StatKey, type Stats } from './fm';
 import type { PersName } from './personalities';
 import type { Role } from '../engine/types';
 
@@ -47,14 +47,19 @@ export const FAME_LOW_GAP = 10;
  * 모집 공고 (2026-10-22 Lim 「공고는 하루에 한번 기본으로 3명이 변경 … 보상 광고를 보면 5명으로 갱신 (쿨타임 1시간) … 1레벨부터 캐릭터 레벨까지 랜덤 …
  * 지원자 별로 레벨에 비례해서 영입시 골드」): 공고는 무료, 매일 오전 6시 (dayKey) 전 직업 무작위 cands명으로 바뀜. 보상형 광고 = adCands명으로 새로 (adCooldownMs마다 한 번, 실제 시간).
  * 지원자 레벨은 Lv 1 ~ 내 레벨 고르게. 희귀 성격 또는 희귀 스킬 보유자는 지원자당 rareChance (안쪽 굴림만, 화면에는 등급 표시 없음).
- * 영입 골드 = 능력치 (2026-10-28 Lim 「영입 비용이 레벨에 곱하지 말고 능력치가 좋을 수록 더 비싸지게」): 능력 점수 (`abilityScore`, 능력 ★과 같은 점수 · 레벨 빼기 없이) hireFrom를 넘는 1점마다 hirePer, 10골드 단위, 적어도 hireMin.
- * 점수 1점 = 같은 레벨에서 능력 ★ 반 개 = 1,000골드. 1000명 평균은 Lv 1 · 15 · 30 · 50 · 100에 약 580 · 1,800 · 3,200 · 5,200 · 9,700으로 예전 지원자 Lv × 100 (Lim 10-22 산정, 공유 guild-plan/영입_골드_산정.md)과 비슷하게 맞춤.
+ * 영입 골드 = 레벨 × 능력 배율 (2026-10-28 Lim 「레벨과 능력치 대비 가격이 맞는건지 … 레벨 차이가 많이 나는 저렙이 훨씬 비싼것 같아서」): 지원자 Lv × hirePerLv × 배율, 10골드 단위, 적어도 hireMin.
+ * 배율 = 1 + hireStep × (같은 레벨 대비 능력 점수 `abilityRel` − hirePivot), hireQ 안: 같은 레벨 평균 (★★) 1배, ★ 하나 (점수 2)마다 ±40%. 같은 레벨이면 능력이 좋을수록 비싸고,
+ * 능력이 좋아도 레벨이 많이 낮으면 쌈 (길드원은 자기 레벨 경험치만 받아 레벨 차이를 따라잡는 데 판이 많이 듦). 1000명 평균은 어느 레벨이든 약 Lv × 100.
+ * 같은 날 앞서 (#481) 능력 점수만으로 (레벨 빼기 없는 점수 − 6) × 1,000: 레벨 하나가 94골드뿐이라 Lv 13 ★★★ (3,150)가 Lv 23 ★★ (2,200)보다 비쌌음.
  * 예전 (#323까지): 공고 = 내 Lv × 30 골드 · 3명 · 내 Lv − 5 이상 · 영입 무료. 명성 지원자는 2026-10-20 없앰. 2026-10-22 ~ 10-28: 영입 골드 = 지원자 Lv × 100
  */
-export const POST = { name: '모집 공고', cands: 3, adCands: 5, adCooldownMs: 3600_000, hireFrom: 6, hirePer: 1000, hireMin: 100, rareChance: 0.03 };
-/** 영입 골드 = max(hireMin, (능력 점수 − hireFrom) × hirePer, 10골드 단위). 예: 점수 9.2 (Lv 30 평균) 3,200 · 11.2 (Lv 50 평균) 5,200 · 15.7 (Lv 100 평균) 9,700 */
-export const hireGold = (m: Pick<GuildMember, 'cls' | 'stats'>) =>
-  Math.max(POST.hireMin, Math.round((abilityScore(m.stats, CLASSES[m.cls].role as Exclude<Role, 'healer'>) - POST.hireFrom) * POST.hirePer / 10) * 10);
+export const POST = { name: '모집 공고', cands: 3, adCands: 5, adCooldownMs: 3600_000, hirePerLv: 100, hirePivot: 6.4, hireStep: 0.2, hireQ: [0.4, 2.6] as const, hireMin: 100, rareChance: 0.03 };
+/** 영입 골드의 능력 배율: 같은 레벨 평균 (★★) 1배, ★ 하나마다 ±40% (hireQ 안) */
+export const hireMult = (m: Pick<GuildMember, 'cls' | 'stats' | 'lv'>): number =>
+  Math.max(POST.hireQ[0], Math.min(POST.hireQ[1], 1 + POST.hireStep * (abilityRel(m.stats, CLASSES[m.cls].role as Exclude<Role, 'healer'>, m.lv) - POST.hirePivot)));
+/** 영입 골드 = max(hireMin, Lv × hirePerLv × 능력 배율, 10골드 단위). 예 (같은 레벨 ★1 · ★★ · ★★★): Lv 13 850 · 1,290 · 1,760, Lv 26 1,610 · 2,600 · 3,590, Lv 50 3,190 · 4,990 · 6,940 */
+export const hireGold = (m: Pick<GuildMember, 'cls' | 'stats' | 'lv'>) =>
+  Math.max(POST.hireMin, Math.round((m.lv * POST.hirePerLv * hireMult(m)) / 10) * 10);
 /**
  * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 50 골드 = 「후원 3판」 (2026-10-28 Lim, 예전 Lv × 20 · 5판). 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
  * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 남은 지원이 있으면 추가 지원 불가 (2026-10-19 Lim). 레벨이 오르면 능력치도 (레벨업 능력치)

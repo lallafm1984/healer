@@ -319,7 +319,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
             });
           }
           if (t.guild && save.guild.founded) gold(() => {
-            // 매일 공고 (2026-10-22): 그날 지원자 3명 가운데 레벨 높은 사람부터, 영입 골드 (능력치로 정함, hireGold)가 있으면
+            // 매일 공고 (2026-10-22): 그날 지원자 3명 가운데 레벨 높은 사람부터, 영입 골드 (레벨 × 능력 배율, hireGold)가 있으면
             refreshPost(save, rng, now);
             const nicks = [...(save.guild.post?.cands ?? [])].sort((a, b) => b.lv - a.lv).map(c => c.nick);
             for (const nick of nicks) {

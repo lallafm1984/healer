@@ -251,7 +251,7 @@ function membersHtml(): string {
 const adWaitText = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))}분 뒤`;
 /**
  * 모집 공고 (2026-10-22 Lim): 무료, 매일 오전 6시 새 지원자 3명 (Lv 1 ~ 내 레벨), 「새로 뽑기」 = 보상형 광고 한 번 (광고 제거면 바로) → 5명, 1시간에 한 번.
- * 지원자 줄 = 영입 골드 (hireGold = 능력치가 좋을수록 비쌈, 2026-10-28 Lim). 희귀 · 스킬 등급 표시는 없음
+ * 지원자 줄 = 영입 골드 (hireGold = 레벨 × 능력 배율, 2026-10-28 Lim). 희귀 · 스킬 등급 표시는 없음
  */
 function recruitHtml(): string {
   const g = G.save.guild, cap = capOf(G.save), isFull = full(G.save), my = topLevel(G.save);
