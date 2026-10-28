@@ -56,11 +56,11 @@ export const POST = { name: '모집 공고', cands: 3, adCands: 5, adCooldownMs:
 export const hireGold = (m: Pick<GuildMember, 'cls' | 'stats'>) =>
   Math.max(POST.hireMin, Math.round((abilityScore(m.stats, CLASSES[m.cls].role as Exclude<Role, 'healer'>) - POST.hireFrom) * POST.hirePer / 10) * 10);
 /**
- * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 20 골드 = 「후원 3판」 (2026-10-28 Lim, 예전 5판). 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
+ * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 50 골드 = 「후원 3판」 (2026-10-28 Lim, 예전 Lv × 20 · 5판). 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
  * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 남은 지원이 있으면 추가 지원 불가 (2026-10-19 Lim). 레벨이 오르면 능력치도 (레벨업 능력치)
  */
 // max는 예전에 중첩 결제한 저장의 남은 횟수를 보존하기 위한 읽기 상한이다. 3판으로 줄인 뒤에도 이미 산 남은 판 (5판 등)은 그대로 둔다 (골드를 내고 산 몫).
-export const SPONSOR = { per: 20, runs: 3, max: 20 };
+export const SPONSOR = { per: 50, runs: 3, max: 20 };
 export const sponsorGold = (lv: number) => SPONSOR.per * lv;
 
 // ---------- 길드원 (97 크는 길) ----------
