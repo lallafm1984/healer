@@ -321,7 +321,7 @@ function notesHtml(x: Settlement): string {
   // 업데이트 묶음 (93 8장): 부탁 쪽지 · 주간 원정
   if (x.jobs?.reqs.length) out.push(`<div class="r-note">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></div>`);
   if (x.jobs?.exped.length) out.push(`<div class="r-note${x.jobs.expedAll ? ' hi' : ''}">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></div>`);
-  if (x.founded) out.push(`<div class="r-note hi">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b></span></div>`);
+  if (x.founded) out.push(`<div class="r-note hi">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>길드 결성</b></span></div>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);

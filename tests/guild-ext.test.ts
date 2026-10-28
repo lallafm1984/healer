@@ -56,7 +56,7 @@ describe('시설 제거와 저장 보존 (v22)', () => {
 
 describe('스토리 동료 · 자동 영입 없음 (2026-10-21 Lim 「길드에서 스토리 동료 제거, 자동 영입 제거」, v30)', () => {
   it('결성 = 길드원 0명, 스토리 동료 합류 길 · 고유 스킬 없음', () => {
-    const s = save(20); s.guild.founded = false; s.guild.storySeen = false;
+    const s = save(30); s.guild.founded = false; s.guild.storySeen = false;
     expect(Gd.foundGuild(s)).toBe(true);
     expect(s.guild).toMatchObject({ founded: true, members: [] });
     expect(Gd.foundGuild(s)).toBe(false);

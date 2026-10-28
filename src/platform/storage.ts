@@ -9,7 +9,7 @@ import { uniqueOf } from '../data/uniques';
 import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { dayKey } from '../game/clock';
-import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, LV_DOUBLE, SPONSOR, spendPoints, statPerLevel, type GuildMember } from '../data/guild';
+import { GUILD_MAX, GUILD_STEPS, LV_DOUBLE, SPONSOR, spendPoints, statPerLevel, type GuildMember } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { birthV25, lvAdds, profileOf, seedOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -109,9 +109,9 @@ export interface ClearRecord {
   n: number;
 }
 
-/** 길드 v2 (93 · 97, v19): Lv 15에 결성 이야기로 열림 */
+/** 길드 v2 (93 · 97, v19): Lv 30 (GUILD_LEVEL, 2026-10-28 전에는 Lv 15)에 결성 이야기로 열림 */
 export interface GuildSave {
-  name: string;
+  // 길드 이름 (name, 「해바라기 원정대」)은 2026-10-28 Lim 「길드명은 딱히 필요하지 않는것 같다」로 없앰. 옛 저장의 name은 읽지 않음 (저장 형식 그대로)
   /** 결성 이야기를 지남 (길드원 없이, v30 전에는 말없는탱 · 도적 1명이 들어왔음) · 결성 카드를 봄 */
   founded: boolean;
   storySeen: boolean;
@@ -135,7 +135,7 @@ export interface GuildSave {
   exped: { week: string; list: { content: string; done: boolean }[]; got: boolean };
 }
 
-export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], post: null, postAdAt: 0, fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
+export const newGuild = (): GuildSave => ({ founded: false, storySeen: false, members: [], post: null, postAdAt: 0, fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
   reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
 
 /** 임무 하나: 진행 · 보상 받음 */
@@ -591,7 +591,6 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   }));
   if (ver < 27) for (const m of members) doubleV27(m);
   return {
-    name: typeof g.name === 'string' ? g.name : d.name,
     founded: !!g.founded, storySeen: !!g.storySeen,
     members,
     // v32 (Lim 10-22 매일 공고): 옛 공고 지원자는 그대로 그날 공고로 (다음 날 오전 6시에 새로), 영입 골드는 그 지원자 레벨로
@@ -624,7 +623,7 @@ export function statsV26(m: GuildMember): Stats {
 /**
  * v27 (103 Lim 「레벨업시 20프로 확률로 2업」 · 「각각 다른 능력치 랜덤 업」): 이미 있는 길드원은 지난 레벨마다 20% (LV_DOUBLE)를 다시 굴려 두 배 몫 (학습력만큼)을 더함, 깎지 않음.
  * 그 레벨의 평소 점수는 저장 값 (v26 = 공개모집 레벨업 굴림)에 이미 들어 있어, 더하는 1점은 그 레벨에 공개모집 굴림이 올린 칸을 빼고 고름 (= 다른 두 칸).
- * 합류한 레벨은 저장에 없어 길드가 열리는 Lv 15 뒤 레벨만 (그 전은 공개모집 그대로). 씨앗 = 닉네임, 오를 칸은 레벨업과 같은 무게 · 20까지, 남는 점수는 3점까지 모아 둠
+ * 합류한 레벨은 저장에 없어 그때 길드가 열리던 Lv 15 뒤 레벨만 (2026-10-28 Lv 30으로 옮긴 뒤에도 옛 저장 옮기기라 15 그대로) (그 전은 공개모집 그대로). 씨앗 = 닉네임, 오를 칸은 레벨업과 같은 무게 · 20까지, 남는 점수는 3점까지 모아 둠
  */
 export function doubleV27(m: GuildMember): void {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', r = rngFrom(seedOf(`v27:${m.nick}`)), per = statPerLevel(m.learn);

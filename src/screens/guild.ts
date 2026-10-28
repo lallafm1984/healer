@@ -1,5 +1,5 @@
 /**
- * 길드 탭 (길드 v2 `93` · FM `97`, 사슬 4번). Lv 15에 결성 이야기로 열림.
+ * 길드 탭 (길드 v2 `93` · FM `97`, 사슬 4번). Lv 30 (GUILD_LEVEL)에 결성 이야기로 열림.
  * 2026-10-19 선택 시안 1: 현황은 구분선 목록, 영입은 모집 공고 지원자 비교 목록.
  * #233 공통 디자인 유지 (상점 · 편성과 같은 길드 홀 돌색, guild-hall.css): 위 = 하위 탭 (현황 · 길드원 · 영입) + 길드 홀 그림 머리 (이름 · Lv · 정원 · 명성).
  * 2026-10-19 Lim 「길드컨테츠 ui 디자인이 형편없다 … 필요한 정보만 텍스트」 → C안. 같은 날 추가 요청으로 기록과 스킬 뽑기 제거:
@@ -93,15 +93,16 @@ function tabs(): string {
 }
 
 /**
- * 길드 홀 그림 머리 (상점 선반 그림과 같은 .art-hero): 길드 이름 · 정원 / 길드 Lv + 명성 막대 (2026-10-19 Lim 「명성을 길드레벨의 경험치 개념으로 하여 ui도 경험치 바처럼」, 103):
- * 위 정보창 경험치 막대처럼 굵은 막대 하나, 안 글자 「명성 84 / 120」 (이 레벨에서 쌓인 것 / 필요량), Lv 30이면 가득 · MAX. 하위 탭 이름은 탭에만
+ * 길드 홀 그림 머리 (상점 선반 그림과 같은 .art-hero): 깃발 · 길드 Lv · 정원 / 명성 막대 (2026-10-19 Lim 「명성을 길드레벨의 경험치 개념으로 하여 ui도 경험치 바처럼」, 103):
+ * 위 정보창 경험치 막대처럼 굵은 막대 하나, 안 글자 「명성 84 / 120」 (이 레벨에서 쌓인 것 / 필요량), Lv 30이면 가득 · MAX. 하위 탭 이름은 탭에만.
+ * 길드 이름 (해바라기 원정대)은 없다 (2026-10-28 Lim 「길드명은 딱히 필요하지 않는것 같다」): 이름 자리에 길드 Lv, 아래 줄은 명성 막대만. 다시 넣지 않는다
  */
 function hero(title: string, stats = true): string {
   const g = G.save.guild, cap = capOf(G.save);
   const pct = cap.need ? Math.min(100, (cap.have / cap.need) * 100) : 100, txt = cap.need ? `명성 ${fmt(cap.have)} / ${fmt(cap.need)}` : 'MAX';
   const bar = `<span class="gh-xp" role="img" aria-label="길드 Lv ${cap.lv} · ${cap.need ? `명성 ${fmt(cap.have)} / ${fmt(cap.need)}` : '최고 레벨'}"><i style="width:${pct.toFixed(1)}%"></i><small aria-hidden="true">${txt}</small></span>`;
-  return `<header class="art-hero guild-hero${stats ? ' guild-identity' : ''}"><div class="ah-copy">${stats ? '' : '<p class="eyebrow">길드 홀</p>'}<h2>${stats ? esc(g.name) : title}</h2></div>
-    ${stats ? `<div class="gh-stats"><span class="gh-cap"><span>정원 </span><b>${g.members.length}/${cap.cap}</b></span><span class="gh-xprow"><span class="gh-lv">${gameIcon('guild-flag', '')}<span>길드 Lv <b>${cap.lv}</b></span></span>${bar}</span></div>` : ''}</header>`;
+  return `<header class="art-hero guild-hero${stats ? ' guild-identity' : ''}"><div class="ah-copy">${stats ? '' : '<p class="eyebrow">길드 홀</p>'}<h2>${stats ? `${gameIcon('guild-flag', '')}<span>길드 Lv <b>${cap.lv}</b></span>` : title}</h2></div>
+    ${stats ? `<div class="gh-stats"><span class="gh-cap"><span>정원 </span><b>${g.members.length}/${cap.cap}</b></span><span class="gh-xprow">${bar}</span></div>` : ''}</header>`;
 }
 
 function render(): void {
@@ -142,7 +143,7 @@ function render(): void {
 }
 const sheetKey = (x: NonNullable<Sheet>) => `${x.k}:${'id' in x ? x.id : 'nick' in x ? x.nick : x.i}`;
 
-/** 잠김 (Lv 15 전 · 튜토리얼 중): 열리면 할 수 있는 것 셋 */
+/** 잠김 (Lv 30 전 · 튜토리얼 중): 열리면 할 수 있는 것 셋 */
 function lockHtml(why: string): string {
   const feat = (icon: string, name: string, line: string) => `<li class="g-row g-feat"><span class="g-ri">${icon}</span><div class="g-rm"><b>${name}</b><span class="g-sub wrap">${line}</span></div></li>`;
   return `<section class="g-card g-lockp"><header class="g-hd lockline"><span class="g-hi">${LOCK}</span><h3>${esc(why)}</h3><span class="g-meta">지금 Lv ${topLevel(G.save)}</span></header>
@@ -152,10 +153,9 @@ function lockHtml(why: string): string {
     </ul></section>`;
 }
 
-/** 결성 이야기 (93 4-1): 열렸는데 아직 결성 전 (결성은 보통 Lv 15 판 결과에서 저절로). 길드원 없이 결성, 영입은 모집 공고로 (Lim 10-21) */
+/** 결성 이야기 (93 4-1): 열렸는데 아직 결성 전 (결성은 보통 Lv 30 판 결과에서 저절로). 길드원 없이 결성, 영입은 모집 공고로 (Lim 10-21) */
 function foundHtml(): string {
   return `<section class="panel g-story"><p class="g-story-line">나만의 원정대를 꾸릴 때다.</p><p class="g-story-line">공고를 내면 동료가 찾아온다.</p>
-    <p class="g-story-name"><b>${esc(G.save.guild.name)}</b> 결성</p>
     <button class="btn primary" type="button" id="found">원정대 만들기</button></section>`;
 }
 
@@ -191,7 +191,7 @@ function homeHtml(): string {
   const g = G.save.guild;
   // 결성 카드 (한 번): 길드원 없이 결성, 첫 동료는 모집 공고로 (Lim 10-21 「자동 영입 제거」)
   const story = g.storySeen ? '' : `<section class="panel g-story"><p class="g-story-line">원정대 깃발을 세웠다.</p><p class="g-story-line">공고를 내면 동료가 찾아온다.</p>
-      <p class="g-story-name"><b>${esc(g.name)}</b> 결성</p><button class="btn2" type="button" id="storyOk">모집 공고 보기</button></section>`;
+      <p class="g-story-name"><b>길드 결성</b></p><button class="btn2" type="button" id="storyOk">모집 공고 보기</button></section>`;
   return `${story}${secHtml(todoSec())}`;
 }
 

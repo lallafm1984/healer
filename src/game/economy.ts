@@ -23,7 +23,7 @@ import { pickChalContent } from './runmode';
 // ---------- 리셋 ----------
 /**
  * 지금 받을 수 있는 임무: 레벨 · 직업 (missionOpen) + 길드 임무는 길드원이 있을 때만
- * (2026-10-22 가상 사용자 QA: Lv 15에 길드가 생기고 영입을 안 한 사람은 「길드파티로 클리어」가 뽑혀도 한 번도 못 채움)
+ * (2026-10-22 가상 사용자 QA: 길드가 생기고 (그때 Lv 15) 영입을 안 한 사람은 「길드파티로 클리어」가 뽑혀도 한 번도 못 채움)
  */
 export const missionCan = (save: SaveData, m: MissionDef, lv = topLevel(save)) => missionOpen(m, lv, save.hero) && (!m.guild || (save.guild.founded && save.guild.members.length > 0));
 function pick(save: SaveData, pool: MissionDef[], n: number, lv: number, r: () => number, basicMax = n, skip: string[] = []): MissionSave[] {
