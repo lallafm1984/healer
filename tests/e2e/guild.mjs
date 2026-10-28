@@ -121,7 +121,7 @@ export default async function guild(url, shots) {
   await page.click('#s-guild .g-msheet [data-stathelp]'); await page.clock.runFor(50);
   const help = '#s-guild .g-stat-help';
   const helpRows = await page.locator(`${help} .g-stat-row`).evaluateAll(els => els.map(e => [e.querySelector('b').textContent, e.querySelector('span').textContent]));
-  ok(await page.isVisible(help) && helpRows.length === 12 && helpRows.every(([k, v]) => k && v.length > 4) && (await page.locator(`${help} .g-stat-card`).count()) === 3 && /공격/.test(helpRows[0][0]) && /집중/.test(helpRows[11][0]), `ⓘ: 능력치 12칸 설명 팝업 (${helpRows.map(r => r[0]).join(' · ')})`);
+  ok(await page.isVisible(help) && helpRows.length === 12 && helpRows.every(([k, v]) => k && v.length > 4) && (await page.locator(`${help} .g-stat-card`).count()) === 3 && /공격/.test(helpRows[0][0]) && /집중/.test(helpRows[11][0]) && !/레벨이 오를 때/.test(await text(help)), `ⓘ: 능력치 12칸 설명 팝업 (${helpRows.map(r => r[0]).join(' · ')})`);
   const helpBox = await page.locator(help).boundingBox();
   ok(helpBox && helpBox.y >= 0 && helpBox.y + helpBox.height <= 780 && await page.evaluate(sel => { const el = document.querySelector(sel); return el.scrollHeight <= el.clientHeight + 1; }, help), `S25: 설명 팝업이 화면 안 · 스크롤 없음 (높이 ${helpBox && Math.round(helpBox.height)})`);
   await page.screenshot({ path: `${shots}/guild_stat_help.png` });
