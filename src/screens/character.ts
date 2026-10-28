@@ -42,8 +42,10 @@ let sel: string | null = null;
 let swapping = false;
 let msg = '';
 let sheet: Sheet = null;
-/** 판매 확인 (91, 예전 분해): 확인 전에는 재화와 장비를 변경하지 않는다. */
-let pending: { kind: 'sell'; id: number } | null = null;
+/** 판매 확인 (91, 예전 분해): 확인 전에는 재화와 장비를 변경하지 않는다. sellMany = 고른 장비 여러 개 */
+let pending: { kind: 'sell'; id: number } | { kind: 'sellMany' } | null = null;
+/** 여러 개 판매 (2026-10-28 Lim): 가방 칸을 꾹 누르면 고르기. 고른 장비 id, null = 평소 (누르면 상세) */
+let picks: Set<number> | null = null;
 /** 지난번에 그린 시트 (같은 시트를 다시 그릴 땐 올라오는 움직임 없이) */
 let sheetKey = '';
 /** 다른 화면에서는 장비 정보를 읽기 전용으로 표시한다. 배경 화면은 유지한다. */
@@ -59,7 +61,7 @@ const s = screen('s-char', '캐릭터', {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
     else if (fresh) sub = SUBS[0].key;
     if (fresh) bagFilter = 'all';
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null;
+    sel = null; swapping = false; msg = ''; sheet = null; pending = null; picks = null; skOpen = null;
     render(false);
   },
 });
@@ -112,9 +114,12 @@ function render(keep = true, resetInventory = false): void {
   const dotNow = newGearCount() > 0 || talentsLeft() > 0;
   if (dotNow !== tabDot) { tabDot = dotNow; refreshTabs(); }
   twinkleN = 0;
+  if (picks && sub !== 'gear') picks = null;
+  if (picks) for (const id of picks) if (!G.save.gear.bag.some(x => x.id === id && !x.lock)) picks.delete(id);
   // 시트가 가리키던 것이 없어졌으면 (판매한 장비 등) 시트도 닫음
   const sh = sheetHtml();
-  if (!sh) { sheet = null; pending = null; }
+  if (!sh) { sheet = null; if (pending?.kind !== 'sellMany') pending = null; }
+  if (pending?.kind === 'sellMany' && !pickedItems().length) pending = null; // 여러 개 판매 확인은 시트 없이, 고른 것이 있을 때만
   const body = itemOverlay ? '' : sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : sub === 'hero' ? heroListHtml() : talentHtml();
   const key = sheet ? JSON.stringify(sheet) : '';
   const still = !!key && key === sheetKey;
@@ -279,8 +284,13 @@ function gearHtml(): string {
 function bagCell(it: GearItem): string {
   const nw = isNewGear(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  // 고르는 중: 고른 칸 = 체크, 잠긴 칸 = 흐리게 (판매 불가)
+  const picked = !!picks?.has(it.id);
+  const pickAttr = !picks ? '' : it.lock ? ' aria-disabled="true"' : ` aria-pressed="${picked}"`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}${picks && it.lock ? ' nopick' : ''}${picked ? ' pick' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${pickAttr}>${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${picked ? PICK_MARK : ''}</button>`;
 }
+/** 고른 칸 표시: 칸을 어둡게 덮고 황동 테 + 오른쪽 위 체크 */
+const PICK_MARK = '<span class="ck" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.6 8.4l3 3 5.8-6.8"/></svg></span>';
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
 const dim = '<div class="sheet-dim" data-sheetx></div>';
@@ -299,11 +309,24 @@ function inventoryHtml(): string {
   // 가방이나 선택한 분류가 비어 있으면 안내 문구 없이 빈 칸만 표시.
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
-  return `<section class="c7-inventory" aria-label="인벤토리">
+  return `<section class="c7-inventory${picks ? ' c7-picking' : ''}" aria-label="인벤토리">
       <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
-      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
+      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div>${picks ? pickBarHtml() : ''}</section>`;
+}
+
+/** 고른 장비 (가방에 있고 잠기지 않은 것만) */
+const pickedItems = () => G.save.gear.bag.filter(it => picks?.has(it.id) && !it.lock);
+const goldOf = (items: GearItem[]) => items.reduce((a, it) => a + sellGold(it), 0);
+
+/** 고르는 동안 인벤토리 아래 줄: 고른 개수 · 받을 골드 합계 · 취소 · 판매 (판매는 확인 창을 한 번 더) */
+function pickBarHtml(): string {
+  const items = pickedItems();
+  return `<div class="c7-pickbar" role="group" aria-label="판매할 장비 고르기">
+      <span class="c7-pick-sum" role="status"><b>${items.length}개</b>${currencyAmount('gold', goldOf(items))}</span>
+      <button type="button" class="btn2" data-pickx>취소</button>
+      <button type="button" class="btn2 hot" data-picksell${items.length ? '' : ' disabled'}>판매</button></div>`;
 }
 
 /** 목록 창이 3줄보다 길면 (키 큰 화면) 아이템이 적어도 창 아래가 비지 않게, 보이는 줄 끝까지 빈칸을 채움. 창 크기가 바뀔 때마다 (bagWatch) */
@@ -366,25 +389,43 @@ function itemSheet(id: number): string {
 
 /** 판매 확인창 (91, 예전 분해 확인). 판매한 장비는 되돌릴 수 없음 */
 function confirmHtml(): string {
+  if (pending?.kind === 'sellMany') return sellManyHtml();
   const it = pending && findItem(pending.id);
   return it ? sellConfirmHtml(it) : '';
 }
 
-/** 판매 확인창 한 벌 (장비 상세 · 행상인 감정 결과, 2026-10-27 Lim 「판매가 있는 곳 모두」): 취소 data-confirmcancel · 판매하기 data-confirmgo */
-export function sellConfirmHtml(it: GearItem): string {
+/** 판매 확인창 한 벌 (장비 상세 · 행상인 감정 결과 · 여러 개 판매, 2026-10-27 Lim 「판매가 있는 곳 모두」): 취소 data-confirmcancel · 판매하기 data-confirmgo */
+function confirmBox(title: string, items: string, gold: number): string {
   return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="확인 취소" tabindex="-1"></button>
     <section class="sheet c7-confirm still" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc">
-      <h3 id="gearConfirmTitle">장비 판매</h3>
-      <div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(it.name)}</b></div>
-      <div class="c7-confirm-cost"><span>받는 골드</span><div>${currencyAmount('gold', sellGold(it))}</div></div><p id="gearConfirmDesc">판매한 장비는 되돌릴 수 없습니다.</p>
+      <h3 id="gearConfirmTitle">${title}</h3>
+      ${items}
+      <div class="c7-confirm-cost"><span>받는 골드</span><div>${currencyAmount('gold', gold)}</div></div><p id="gearConfirmDesc">판매한 장비는 되돌릴 수 없습니다.</p>
       <div class="c7-confirm-actions"><button type="button" data-confirmcancel>취소</button><button type="button" class="hot" data-confirmgo>판매하기</button></div>
     </section>`;
+}
+export function sellConfirmHtml(it: GearItem): string {
+  return confirmBox('장비 판매', `<div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(it.name)}</b></div>`, sellGold(it));
+}
+/** 여러 개 판매 확인 (2026-10-28 Lim): 제목에 개수, 고른 장비 그림 (등급 높은 것부터), 받는 골드 합계 */
+function sellManyHtml(): string {
+  const items = pickedItems().sort((a, b) => gradeIdx(b) - gradeIdx(a) || SORTS[bagSort].cmp(a, b));
+  const icons = items.map(it => `<span class="c7-confirm-icon" style="${gvars(it)}" role="img" aria-label="${esc(`${it.grade} ${qualityTxt(it)}${it.name}`)}">${itemIc(it)}</span>`).join('');
+  return confirmBox(`장비 ${items.length}개 판매`, `<div class="c7-confirm-item c7-confirm-many">${icons}</div>`, goldOf(items));
 }
 
 /** 확인창에서만 실행한다. 실행 전에 대상을 다시 확인하고, 중복 클릭은 무시한다. */
 function confirmAction(): void {
   const action = pending;
   if (!action) return;
+  if (action.kind === 'sellMany') {
+    const r = sell(pickedItems().map(it => it.id));
+    sfx(r.n ? 'gear-sell' : 'deny');
+    pending = null; picks = null; msg = '';
+    render();
+    s.el.querySelector<HTMLElement>('#gearInventoryTitle')?.focus({ preventScroll: true });
+    return;
+  }
   const it = findItem(action.id);
   pending = null;
   if (!it || sheet?.k !== 'item' || sheet.id !== action.id) { render(); return; }
@@ -845,6 +886,23 @@ function focusTalentControl(selector: string): void {
   s.el.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }
 
+/** 고르기: 처음이면 고르기 모드로 (짧은 진동), 칸을 넣고 뺌. 잠긴 장비는 못 고름 */
+function pickItem(id: number): void {
+  const it = G.save.gear.bag.find(x => x.id === id);
+  if (!picks) {
+    picks = new Set();
+    if (G.save.settings.vibrate) try { navigator.vibrate?.(18); } catch { /* 지원 안 함 */ }
+  }
+  if (!it || it.lock) sfx('deny');
+  else if (!picks.delete(id)) picks.add(id);
+  render();
+  s.el.querySelector<HTMLElement>(`.c7-bags [data-gitem="${id}"]`)?.focus({ preventScroll: true });
+}
+function endPicks(): void {
+  picks = null; render();
+  s.el.querySelector<HTMLElement>('#gearInventoryTitle')?.focus({ preventScroll: true });
+}
+
 /** 처리했으면 true (그렸음) */
 function onClick(t: HTMLElement): boolean {
   if (itemOverlay) {
@@ -861,6 +919,14 @@ function onClick(t: HTMLElement): boolean {
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
 
   // ---- 장비 ----
+  if (picks) {
+    if (t.closest('[data-pickx]')) { endPicks(); return true; }
+    if (t.closest('[data-picksell]')) { if (pickedItems().length) pending = { kind: 'sellMany' }; render(); return true; }
+    const pc = t.closest<HTMLElement>('.c7-bags [data-gitem]');
+    if (pc) { pickItem(Number(pc.dataset.gitem)); return true; }
+    // 고르는 동안 장비 칸 · 능력치는 열지 않음 (분류 · 정렬 · 하위 탭은 그대로)
+    if (t.closest('[data-gitem], [data-gslot], [data-sheet="stats"]')) return true;
+  }
   const gi = t.closest<HTMLElement>('[data-gitem]');
   if (gi) {
     const inventoryIndex = Array.from(s.el.querySelectorAll('.c7-inventory [data-gitem]')).indexOf(gi);
@@ -1003,10 +1069,33 @@ function scrollInv(dy: number): boolean {
   return list.scrollTop !== a || (body?.scrollTop ?? 0) !== b;
 }
 function stopFling(): void { cancelAnimationFrame(invFling); invFling = 0; }
+/**
+ * 꾹 누르기 (2026-10-28 Lim 「아이템을 꾹 누르면 여러 개 고르기」): 가방 칸을 HOLD_MS 동안 끌지 않고 누르면 고르기 모드 + 그 칸을 고름
+ * (고르는 중이면 그 칸을 넣고 뺌). 손을 뗄 때 오는 누름은 버림. 마우스 오른쪽 · 키보드 메뉴 키 (contextmenu)도 같음
+ */
+const HOLD_MS = 450;
+let hold = 0, held = false;
+const stopHold = () => { clearTimeout(hold); hold = 0; };
+function holdPick(id: number): void {
+  stopHold();
+  if (held || sheet || pending) return;
+  held = !!inv; // 손가락 · 마우스로 누르는 중일 때만 (키보드 메뉴 키 뒤 Enter는 그대로)
+  pickItem(id);
+}
 s.el.addEventListener('pointerdown', e => {
-  stopFling(); invSwallow = false;
-  if (!(e.target as HTMLElement).closest('.c7-bags') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  stopFling(); invSwallow = false; held = false; stopHold();
+  const t = e.target as HTMLElement;
+  if (!t.closest('.c7-bags') || (e.pointerType === 'mouse' && e.button !== 0)) return;
   inv = { id: e.pointerId, y0: e.clientY, y: e.clientY, t: e.timeStamp, v: 0, moved: false, far: 0, touch: e.pointerType !== 'mouse' };
+  const gi = t.closest<HTMLElement>('[data-gitem]');
+  if (gi && !sheet && !pending) hold = window.setTimeout(() => holdPick(Number(gi.dataset.gitem)), HOLD_MS);
+});
+s.el.addEventListener('contextmenu', e => {
+  const t = e.target as HTMLElement;
+  if (!t.closest('.c7-bags')) return;
+  e.preventDefault();
+  const gi = t.closest<HTMLElement>('[data-gitem]');
+  if (gi && !inv?.moved) holdPick(Number(gi.dataset.gitem));
 });
 s.el.addEventListener('pointermove', e => {
   if (!inv || e.pointerId !== inv.id) return;
@@ -1014,7 +1103,7 @@ s.el.addEventListener('pointermove', e => {
   inv.far = Math.max(inv.far, Math.abs(inv.y0 - e.clientY));
   if (!inv.moved) {
     if (Math.abs(dy) < INV_SLOP) return;
-    inv.moved = true;
+    inv.moved = true; stopHold();
     (e.target as HTMLElement).closest<HTMLElement>('.c7-bags')?.setPointerCapture?.(e.pointerId);
   }
   const dt = Math.max(1, e.timeStamp - inv.t);
@@ -1024,6 +1113,7 @@ s.el.addEventListener('pointermove', e => {
 });
 const endInv = (e: PointerEvent) => {
   if (!inv || e.pointerId !== inv.id) return;
+  stopHold();
   const { moved, far, touch } = inv;
   let v = e.timeStamp - inv.t > 80 ? 0 : inv.v;
   inv = null;
@@ -1040,7 +1130,10 @@ const endInv = (e: PointerEvent) => {
 };
 s.el.addEventListener('pointerup', endInv);
 s.el.addEventListener('pointercancel', endInv);
-// 끈 뒤에 오는 누름은 상세를 열지 않음 (잡고 있던 칸 · 목록 어디서든)
-s.el.addEventListener('click', e => { if (invSwallow) { invSwallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+// 끈 뒤 · 꾹 누른 뒤에 오는 누름은 상세를 열지 않음 (잡고 있던 칸 · 목록 어디서든)
+s.el.addEventListener('click', e => { if (invSwallow || held) { invSwallow = held = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 s.el.addEventListener('wheel', stopFling, { passive: true });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet && !s.el.hidden) { e.preventDefault(); closeSheet(); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || s.el.hidden) return;
+  if (sheet) { e.preventDefault(); closeSheet(); } else if (picks) { e.preventDefault(); endPicks(); } // 뒤로가기도 고르기를 끝냄
+});

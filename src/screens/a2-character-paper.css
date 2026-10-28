@@ -127,6 +127,29 @@
   border-color: #a88b5752; border-radius: 7px;
   background: #1b160eb3; box-shadow: inset 0 2px 7px #070b1055;
 }
+/* 여러 개 판매 고르기 (2026-10-28 Lim, character.ts picks): 고른 칸 = 어둡게 덮고 황동 테 + 오른쪽 위 금빛 체크, 잠긴 칸 = 흐리게 */
+#s-char[data-sub="gear"] .c7-bag .ck {
+  position: absolute; inset: 0; z-index: 5; border-radius: inherit; pointer-events: none;
+  background: #0d0b0961; box-shadow: inset 0 0 0 2px #ffe08a, 0 0 9px #ffd36a8c;
+}
+#s-char[data-sub="gear"] .c7-bag .ck > svg {
+  position: absolute; right: -5px; top: -5px; width: 20px; height: 20px; box-sizing: border-box; padding: 2px;
+  border: 1.5px solid #2a1d08; border-radius: 50%; background: var(--menu-btn-gold);
+  fill: none; stroke: #2a1d08; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; box-shadow: 0 1px 3px #0009;
+}
+#s-char[data-sub="gear"] .c7-bag.nopick { opacity: .38; filter: grayscale(.7); }
+/* 고르는 동안 인벤토리 아래 줄: 개수 · 골드 합계 | 취소 · 판매. 목록 기본 높이는 2줄 (알림 줄과 같게, S25 무대 최소에서도 본문이 안 넘침) */
+#s-char .c7-inventory:has(> .c7-pickbar) .c7-bags { height: calc(var(--inventory-cell) * 2 + 18px); }
+#s-char .c7-pickbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; padding-top: 2px; }
+#s-char .c7-pick-sum { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; color: #fff1d0; }
+#s-char .c7-pick-sum > b { font: 800 17px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+#s-char .c7-pick-sum .currency-amount { gap: 3px; font-size: 14px; }
+#s-char .c7-pick-sum .currency-icon { width: 20px; height: 20px; }
+#s-char .c7-pickbar > button { min-width: 72px; min-height: 44px; height: 44px; padding: 0 12px; font-size: 14px; }
+#s-char .c7-pickbar > button:disabled { opacity: .5; }
+@media (max-width: 359px) {
+  #s-char .c7-pickbar > button { min-width: 62px; padding: 0 8px; }
+}
 /* Detail sheet uses the same plain surface as the preparation item dialog. */
 #s-char[data-sub="gear"] .sheet.c7-ssheet {
   background: #262119; border-color: #bb9b60;
