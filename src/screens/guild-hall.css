@@ -170,9 +170,8 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet .f-det p.pab b { font-family: var(--font-body); font-size: 12px; color: var(--gc); margin-right: 4px; }
 #s-guild .sheet .f-det p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
 #s-guild .sheet .fm-grid h5 { color: var(--gk-mute); }
-/* 시트: 레벨 경험치 막대, 숙지, 동작 둘 (같은 크기 돌 버튼) */
+/* 시트: 머리 ⓘ (능력치 설명 팝업, 길드에 남은 ⓘ 하나), 레벨 경험치 막대, 동작 둘 (같은 크기 돌 버튼) */
 #s-guild .sheet .h-rule .g-info { margin: -10px -8px -10px 0; }
-#s-guild .sheet .g-tip { border: 1px solid var(--gk-line); border-radius: 10px; }
 #s-guild .g-meters { display: flex; flex-direction: column; gap: 6px; }
 #s-guild .g-meter { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 0; }
 #s-guild .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
@@ -225,6 +224,16 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #app #s-guild .g-action-buttons button.danger { background: #5a3028; border-color: #bd7864; color: #ffe5db; }
 #s-guild .g-action-buttons button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 #s-guild .g-action-buttons button:disabled { opacity: .5; }
+
+/* 능력치 설명 (길드원 상세 ⓘ, 2026-10-28 Lim): 확인 팝업 바탕 + 길드 판 셋 (신체 · 기술 · 정신) × 줄 넷 (이름 · 한 줄), 닫기 하나 */
+#app #s-guild .sheet.g-action-confirm.g-stat-help { padding: 16px 14px 14px; gap: 10px; max-width: 400px; }
+#s-guild .g-stat-help .g-stat-note { margin: -4px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--gk-mute); }
+#s-guild .g-stat-card { border-radius: 10px; box-shadow: none; }
+#s-guild .g-stat-card h4 { margin: 0; padding: 5px 10px; background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line); font: 800 13px/1.3 var(--font-display); color: var(--gk-head); }
+#s-guild .g-stat-card .g-row.g-stat-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: baseline; gap: 8px; min-height: 0; padding: 6px 10px; }
+#s-guild .g-stat-row b { font: 700 13px/1.4 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
+#s-guild .g-stat-row span { font-size: 12.5px; line-height: 1.4; color: var(--gk-ink2); }
+#s-guild .g-action-buttons.g-one { grid-template-columns: 1fr; }
 
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }
@@ -279,7 +288,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-flat .g-job-group { min-height: 36px; padding: 0 4px; background: none; border: 0; font: 800 16px/1.3 var(--font-display); }
 #s-guild .g-flat .g-job-group:not(:first-child) { margin-top: 10px; }
 #s-guild .g-group-meta { display: flex; align-items: center; gap: 2px; }
-#s-guild .g-group-meta .g-info { margin: 0 -4px 0 0; }
 #s-guild .g-flat .g-rows { border-top: 1px solid var(--gk-line); }
 #s-guild .g-flat .g-row { padding: 10px 4px; gap: 8px; min-height: 70px; }
 #s-guild .g-flat .g-row.done { opacity: 1; }
@@ -314,8 +322,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-offer-title { display: flex; align-items: center; gap: 2px; min-height: 36px; }
 #s-guild .g-offer-title h3 { margin: 0; font: 700 14px/1.4 var(--font-body); color: var(--gk-ink); }
 #s-guild .g-offer-title h3 small { font-size: 12px; font-weight: 500; color: var(--gk-mute); white-space: nowrap; }
-#s-guild .g-offer-title .g-info { margin: -4px 0; }
-#s-guild .g-offer-title .g-info .ui-icon { width: 18px; height: 18px; }
 #s-guild .g-post-summary { display: block; margin: 0; font: 500 12px/1.5 var(--font-body); color: var(--gk-ink2); word-break: keep-all; }
 #s-guild .g-post-action { flex: 0 0 var(--g-recruit-action-width); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #s-guild .g-post-action > .btn { width: var(--g-recruit-action-width); min-width: var(--g-recruit-action-width); min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }

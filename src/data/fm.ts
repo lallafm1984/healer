@@ -13,6 +13,24 @@ export const STAT_NAMES: Record<StatKey, string> = {
   atk: '공격', tough: '맷집', armor: '방어', agility: '발놀림', evade: '회피', position: '위치 잡기',
   coop: '협동', skill: '기술 숙련', react: '반응', composure: '침착', judgment: '판단', focus: '집중',
 };
+/**
+ * 능력치 한 줄 설명 (길드원 상세 ⓘ 팝업, 2026-10-28 Lim 「능력치별 설명을 간략하게」). 높을수록 무엇이 좋아지는지만 (숫자 · 기준은 99 「능력치 12칸」).
+ * S25 (360px)에서 한 줄에 들게 짧게 (팝업이 스크롤 없이 한 화면). 칸이 하는 일을 바꾸면 이 글도 맞춘다.
+ */
+export const STAT_HELP: Record<StatKey, string> = {
+  atk: '딜과 위협이 커집니다.',
+  tough: '체력이 늘고 덜 휘청입니다.',
+  armor: '받는 피해가 줄고 잘 막습니다.',
+  agility: '이동이 빨라집니다.',
+  evade: '장판을 잘 피합니다.',
+  position: '좋은 칸에 빨리 자리 잡습니다.',
+  coop: '나눠 맞기에 서고 실수를 메웁니다.',
+  skill: '스킬 · 끊기가 정확하고 빨라집니다.',
+  react: '예고 · 어그로에 빨리 반응합니다.',
+  composure: '실수 · 당황에서 빨리 벗어납니다.',
+  judgment: '생존기 · 스킬 · 피할 쪽을 잘 고릅니다.',
+  focus: '긴 전투 · 위기에도 멍해지지 않습니다.',
+};
 /** 묶음 (상세 세 칸 × 네 줄) */
 export const STAT_GROUPS: { name: string; keys: StatKey[] }[] = [
   { name: '신체', keys: ['atk', 'tough', 'armor', 'agility'] },
