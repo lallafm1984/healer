@@ -345,36 +345,51 @@ describe('관리 (93 4-3 · 5-5)', () => {
 
 describe('길드파티 편성 (93 7-2)', () => {
   const plague = ENCOUNTERS.plague, warden = ENCOUNTERS.warden;
-  it('처음 편성 = 레벨 순 (탱커 · 딜러 자리를 넘지 않음), 규모마다 지난 편성을 따로 기억', () => {
+  it('처음 편성 = 레벨 순으로 탱커 · 딜러 자리 모양 먼저, 남은 자리는 남은 길드원. 넣고 빼기는 역할 제한 없이 자리 수까지 (2026-10-28 Lim), 규모마다 지난 편성을 따로 기억', () => {
     const s = save(40);
     const t = [add(s, 'warrior', 0, { lv: 30 }), add(s, 'warrior', 1, { lv: 40 }), add(s, 'warrior', 2, { lv: 35 })];
     const d = add(s, 'mage', 0, { lv: 38 });
     const pick = Gd.autoPick(s, plague);
-    expect(pick).toEqual([t[1].id, d.id, t[2].id]);
-    expect(Gd.togglePick(s, plague, pick, t[0].id).msg).toMatch(/탱커 자리/);
+    expect(pick).toEqual([t[1].id, d.id, t[2].id, t[0].id]); // 10인 탱커 자리 2 → 셋째 탱커는 남은 자리로 (빈 칸보다 나음)
+    expect(Gd.togglePick(s, warden, [t[1].id], t[2].id)).toEqual({ pick: [t[1].id, t[2].id], msg: '' }); // 5인에 탱커 둘도 됨
     Gd.savePick(s, warden, [t[0].id]);
-    expect(Gd.autoPick(s, warden)).toEqual([t[0].id, d.id]);
-    expect(Gd.autoPick(s, plague)).toEqual([t[1].id, d.id, t[2].id]);
-    expect(Gd.autoPick(s, warden, true)).toEqual([t[1].id, d.id]);
+    expect(Gd.autoPick(s, warden)).toEqual([t[0].id, d.id, t[1].id, t[2].id]);
+    expect(Gd.autoPick(s, plague)).toEqual([t[1].id, d.id, t[2].id, t[0].id]);
+    expect(Gd.autoPick(s, warden, true)).toEqual([t[1].id, d.id, t[2].id, t[0].id]);
+    const e = add(s, 'archer', 0, { lv: 5 });
+    expect(Gd.togglePick(s, warden, [t[0].id, t[1].id, t[2].id, d.id], e.id).msg).toBe('자리가 다 참'); // 5인 자리 4
     expect(['3', '5', '10', '20'].map(k => k)).toEqual([Gd.sizeKey(ENCOUNTERS.field), Gd.sizeKey(warden), Gd.sizeKey(plague), Gd.sizeKey(ENCOUNTERS.choir)]);
   });
-  it('빈자리는 공개모집에서 같은 역할로, 전투에 자기 레벨 · 능력치 · 인연 ★ · 버릇이 넘어감. 공개모집에는 길드원이 안 나옴', () => {
+  it('길드파티 = 고른 길드원만 (빈자리는 빈 칸, 2026-10-28 Lim), 전투에 자기 레벨 · 능력치 · 인연 ★ · 버릇이 넘어감. 공개모집에는 길드원이 안 나옴', () => {
     const s = save(40);
     const t = add(s, 'warrior', 0, { lv: 33 }), d = add(s, 'archer', 0, { lv: 31, ab: 'archer.snipe' });
     t.skillFloor = 3;
     const pub = E.recruitParty('plague', 5, { abilities: true, exclude: Gd.guildNicks(s) });
     expect(pub.some(p => p.nick === t.nick || p.nick === d.nick)).toBe(false);
-    const roster = Gd.guildRoster(s, [t.id, d.id], pub, plague);
-    expect(roster.length).toBe(9);
-    expect(roster.filter(r => r.role === 'tank').length).toBe(2);
+    const roster = Gd.guildRoster(s, [d.id, t.id]);
+    expect(roster.map(r => r.gid)).toEqual([t.id, d.id]); // 탱커 먼저
+    expect(Gd.isGuildParty(roster)).toBe(true);
     expect(roster[0]).toMatchObject({ gid: t.id, lv: 33, pub: true, star: 3, ab: t.ab, habit: habitOf(t.stats), fm: { stats: t.stats } });
     const f = E.create({ encounter: 'plague', diff: '보통', seed: 1, party: roster, stageLv: 35 });
     const u = f.party.find(x => x.gid === d.id)!;
     expect(u.ab!.key).toBe('archer.snipe');
     expect(u.did).toEqual({ dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 });
-    expect(f.party.find(x => x.gid == null && x.role !== 'healer')!.did).toBeUndefined();
+    expect(f.party.map(x => x.role)).toEqual(['tank', 'ranged', 'healer']); // 10인 판에 셋만 (빈 칸으로 출발)
     // 내 길드원 3명 이상이 다른 시드 공개모집에도 안 나옴
     for (let sd = 1; sd <= 30; sd++) for (const p of E.recruitParty('choir', sd, { exclude: Gd.guildNicks(s) })) expect([t.nick, d.nick]).not.toContain(p.nick);
+  });
+  it('탱커 없는 길드파티 · 빈 칸 길드파티도 전투가 끝까지 돌고, 추천 편성은 역할 자리 모양 뒤 남은 자리를 남은 길드원으로 (2026-10-28)', () => {
+    const s = save(40);
+    const ms = [add(s, 'mage', 0, { lv: 40 }), add(s, 'archer', 0, { lv: 40 }), add(s, 'rogue', 0, { lv: 40 })];
+    const f = E.simulate({ encounter: 'warden', diff: '쉬움', seed: 3, party: Gd.guildRoster(s, ms.map(m => m.id)), stageLv: 30 });
+    expect(f.party.some(u => u.role === 'tank')).toBe(false);
+    expect(f.over).toBeTruthy(); // 끝남 (이기든 지든)
+    const t = [add(s, 'warrior', 0, { lv: 40 }), add(s, 'warrior', 1, { lv: 40 })];
+    const pick = recommendPick(s, warden, ['warden'], 30).pick;
+    expect(pick.length).toBe(4); // 5인 자리 4 (탱커 1 · 딜러 3 자리가 찬 뒤 남은 자리 없음)
+    expect(pick.filter(id => t.some(m => m.id === id)).length).toBe(1);
+    s.guild.members = s.guild.members.filter(m => m.cls === 'warrior' || m === ms[0]);
+    expect(recommendPick(s, warden, ['warden'], 30).pick.length).toBe(3); // 탱커 둘 + 딜러 하나: 빈 칸보다 둘째 탱커
   });
   it('버릇 = 침착 · 판단 평균: 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3', () => {
     const st = (v: number) => ({ ...add(save(), 'mage').stats, composure: v, judgment: v });
@@ -494,8 +509,7 @@ describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
 
 describe('판 뒤 길드 정산 (93 6-1)', () => {
   const warden = (s: SaveData, ms: GuildMember[]) => {
-    const pub = E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) });
-    return Gd.guildRoster(s, ms.map(m => m.id), pub, ENCOUNTERS.warden);
+    return Gd.guildRoster(s, ms.map(m => m.id));
   };
   const after = (s: SaveData, roster: ReturnType<typeof warden>, o: Partial<Parameters<typeof Gd.guildAfter>[2]> = {}) =>
     Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 30, raid: 0, content: 'rustfort', kind: 'dungeon', party: [], roster, ...o });
@@ -523,10 +537,10 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
     expect(after(s, roster, { raid: 20 }).fame).toBe(FAME.raid20);
     expect([FAME.explore, FAME.dungeon, FAME.raid10, FAME.raid20, FAME.first]).toEqual([1, 2, 4, 6, 6]);
   });
-  it('길드원이 자리 절반 아래면 명성 · 첫 처치 없음 (경험은 받음), 진 판 · 포기는 아무것도 없음', () => {
+  it('길드원이 자리 절반 아래인 섞인 파티 (2026-10-28 전 편성)면 명성 · 첫 처치 없음 (경험은 받음), 진 판 · 포기는 아무것도 없음', () => {
     const s = save(30);
     const a = add(s, 'warrior', 0, { lv: 30 });
-    const roster = warden(s, [a]);
+    const roster = [entry(s, a), ...E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }).filter(p => p.role !== 'tank')];
     expect(Gd.isGuildParty(roster)).toBe(false);
     const r = after(s, roster);
     expect([r.fame, r.first, s.guild.fame, r.members.length]).toEqual([0, false, 0, 1]);
@@ -665,7 +679,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     seed = 21;
     const s = save(30), a = add(s, 'warrior', 0, { lv: 30 }), b = add(s, 'mage', 0, { lv: 30 }), r = add(s, 'archer', 0, { lv: 20, learn: 20 }), top = add(s, 'archer', 1, { lv: 30 });
     r.boost = 5; top.boost = 5;
-    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const roster = Gd.guildRoster(s, [a.id, b.id]);
     const o = { win: true, quit: false, grade: 'A' as const, diff: '보통' as const, stage: 30, raid: 0 as const, content: 'rustfort', kind: 'dungeon', party: [], roster };
     const full = Gd.memberXp(r, o);
     const x = Gd.guildAfter(s, rng, o);
@@ -673,7 +687,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(top.boost).toBe(5); // 내 레벨과 같음: 안 씀
     Gd.guildAfter(s, rng, { ...o, win: false });
     expect(r.boost).toBe(4);
-    const withR = Gd.guildRoster(s, [a.id, r.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const withR = Gd.guildRoster(s, [a.id, r.id]);
     Gd.guildAfter(s, rng, { ...o, roster: withR });
     expect(r.boost).toBe(4); // 출전한 판
     const lv0 = r.lv, st0 = Object.values(r.stats).reduce((t, v) => t + v, 0), sxp0 = r.sxp;
@@ -826,7 +840,7 @@ describe('결과창 길드 막대 (103 「명성 = 길드 경험치」)', () => 
     const s = save(15); // 녹슨 요새 보통 적 Lv 7 ≥ 내 Lv 15 − 10
     settle(s, result(), rng, []);
     add(s, 'warrior', 0); add(s, 'rogue', 0); // 결성은 길드원 없이 (2026-10-21)
-    const roster = Gd.guildRoster(s, s.guild.members.map(m => m.id), E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const roster = Gd.guildRoster(s, s.guild.members.map(m => m.id));
     s.guild.fame = GUILD_STEPS[1] - 3;
     const y = settle(s, result({ party: [] }), rng, roster);
     expect(y.guildFame).toEqual({ before: GUILD_STEPS[1] - 3, gain: FAME.dungeon + FAME.first });
@@ -846,8 +860,8 @@ describe('103 다른 문제점 3 · 5', () => {
     s.guild.fame = 5000;
     expect(migrate({ ...JSON.parse(JSON.stringify(s)), v: 23 }).guild.fame).toBe(10000);
   });
-  it('길드파티 인원: 탐험 1 · 5인 2 · 10인 5 · 20인 10명 (자리 절반 이상)', () => {
-    expect([3, 5, 10, 20].map(Gd.guildPartyNeed)).toEqual([1, 2, 5, 10]);
+  it('길드원만으로 다 채운 길드파티 인원: 탐험 2 · 5인 4 · 10인 9 · 20인 19명 (2026-10-28 길드원만 출전, 예전 자리 절반)', () => {
+    expect([3, 5, 10, 20].map(Gd.guildPartyNeed)).toEqual([2, 4, 9, 19]);
   });
 });
 
@@ -855,7 +869,7 @@ describe('낮은 장소 명성 (103 「넷 다」 1)', () => {
   it('그 판 적 레벨이 내 Lv − 10보다 낮으면 길드파티로 이겨도 명성 · 첫 처치 없음 (기록도 안 남김), 레이드는 늘 받음', () => {
     const s = save(30);
     const a = add(s, 'warrior', 0, { lv: 30 }), b = add(s, 'mage', 0, { lv: 30 });
-    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const roster = Gd.guildRoster(s, [a.id, b.id]);
     const go = (stage: number, raid: 0 | 10 | 20 = 0) => Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage, raid, content: 'rustfort', kind: raid ? 'raid' : 'dungeon', party: [], roster });
     const low = go(19);
     expect([low.low, low.fame, low.first, s.guild.fame, s.guild.firsts]).toEqual([true, 0, false, 0, []]);
@@ -870,18 +884,20 @@ describe('105 QA 1바퀴', () => {
   it('낮은 장소는 판 전 레벨로 (Lv 17이 녹슨 요새 보통을 깨며 Lv 18이 돼도 명성), 주간 도전 판은 첫 처치 아님', () => {
     const s = save(18);
     const a = add(s, 'warrior', 0, { lv: 18 }), b = add(s, 'mage', 0, { lv: 18 });
-    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const roster = Gd.guildRoster(s, [a.id, b.id]);
     const go = (o: Partial<Parameters<typeof Gd.guildAfter>[2]>) => Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 7, raid: 0, content: 'rustfort', kind: 'dungeon', party: [], roster, ...o });
     expect(go({ myLv: 17 }).low).toBe(false);
     expect(go({ myLv: 18 }).low).toBe(true);
     const c = go({ myLv: 17, chal: true, content: 'crypt' });
     expect([c.first, s.guild.firsts.includes('crypt|보통')]).toEqual([false, false]);
   });
-  it('길드파티를 꾸릴 수 있나는 역할 자리로 셈: 탱커 3 + 딜러 7 = 20인 9명뿐 (자리 탱커 2)', () => {
+  it('길드원만으로 빈 칸 없이 꾸릴 수 있나는 역할 자리로 셈: 탱커 3 + 딜러 16 = 20인 18자리뿐 (자리 탱커 2 · 딜러 17)', () => {
     const s = save(80);
     for (let i = 0; i < 3; i++) add(s, 'warrior', i);
-    for (let i = 0; i < 7; i++) add(s, 'mage', i);
+    for (let i = 0; i < 16; i++) add(s, 'mage', i);
     const enc20 = ENCOUNTERS[contentOf('cathedral1').fights('보통')[0]];
+    expect(Gd.slotsOf(enc20)).toEqual({ tank: 2, dps: 17 });
+    expect(Gd.guildSeatCount(s, enc20)).toBe(18);
     expect(Gd.guildPartyFits(s, enc20)).toBe(false);
     add(s, 'archer', 0);
     expect(Gd.guildPartyFits(s, enc20)).toBe(true);

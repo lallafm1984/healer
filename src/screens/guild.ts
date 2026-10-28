@@ -207,8 +207,8 @@ function todoSec(): Sec {
       : `<button type="button" class="btn mini primary g-place" data-goto="${esc(x.content)}" data-gdiff="보통" aria-label="${placeName(x.content)} 보통 입장">입장</button>`;
     return `<li class="g-exrow${x.done ? ' done' : ''}"><div class="g-place-copy"><b>${placeName(x.content)}</b><span>${c ? `${c.size('보통')}인 · ` : ''}보통 이상</span></div>${action}</li>`;
   }).join('');
-  const few = g.members.length < 2; // 원정 칸 (5인 이상)은 길드원 2명부터 길드파티
-  const exped = ex.length ? `<li class="g-row g-exped"><span class="g-ri">${IC.chest()}</span><div class="g-rm"><b>주간 원정</b><span class="g-sub">${few ? '길드원 2명부터 도전' : `${ex.length}곳 클리어`}</span>${bar((xd / ex.length) * 100, `주간 원정 ${xd} / ${ex.length}`)}</div>
+  const few = !g.members.length; // 원정 = 길드파티 (길드원만, 2026-10-28 Lim): 길드원 1명부터
+  const exped = ex.length ? `<li class="g-row g-exped"><span class="g-ri">${IC.chest()}</span><div class="g-rm"><b>주간 원정</b><span class="g-sub">${few ? '길드원 영입 뒤 도전' : `${ex.length}곳 클리어`}</span>${bar((xd / ex.length) * 100, `주간 원정 ${xd} / ${ex.length}`)}</div>
     <span class="g-rs"><b class="g-num">${xd}<small> / ${ex.length}</small></b>${expedReady(G.save) ? '<button class="btn mini primary" type="button" id="expedChest">상자 받기</button>' : g.exped.got ? okPill('받음') : famePill(EXPED.fame)}</span></li>
     <li class="g-exped-places" id="guild-exped-places"><ul class="g-places" aria-label="주간 원정 장소">${places}</ul></li>` : '';
   const reqs = g.reqs.list.map(q => `<li class="g-row g-job${q.done ? ' done' : ''}"><span class="g-ri">${IC.req()}</span><div class="g-rm"><div class="g-job-title"><b>${esc(q.nick)}</b>${q.done ? '' : `<span class="g-rewards">${pill('', `경험치 ×${REQ.xpMult}`, 'xp', esc(q.nick))}</span>`}</div><span class="g-sub wrap">${placeName(q.content)} · ${esc(q.diff)} 이상</span></div>

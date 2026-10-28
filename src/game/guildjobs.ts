@@ -35,7 +35,7 @@ export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) 
   const my = topLevel(save), ok = (c: ContentDef) => c.ready && !c.hidden && !c.anchor && open(c, '보통') && stageOf(c, '보통') <= my; // 보충 장소 (113 4-3)는 원정 후보 아님
   const best = (xs: ContentDef[]) => xs.filter(ok).sort((a, b) => stageOf(b, '보통') - stageOf(a, '보통'));
   const dungeons = best(CONTENT.filter(c => c.kind === 'dungeon' && c.size('보통') === 5));
-  // 원정은 길드파티로만 (103 다른 문제점 5 · 105 QA): 지금 길드원으로 그 레이드 길드파티를 못 꾸리면 (역할 자리로 셈) 그 칸은 던전으로
+  // 원정은 길드파티로만 (103 다른 문제점 5 · 105 QA): 지금 길드원으로 그 레이드 자리를 다 못 채우면 (역할 자리로 셈, 2026-10-28 길드파티는 길드원만) 그 칸은 던전으로
   const fits = (c: ContentDef) => c.kind !== 'raid' || guildPartyFits(save, ENCOUNTERS[c.fights('보통')[0]]);
   if (g.exped.week === week) {
     // 같은 주: 주 중에 길드원이 줄어 못 깨게 된 안 깬 레이드 칸만 던전으로 다시 뽑음

@@ -15,7 +15,7 @@ import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, guildOpen, guildPartyNeed, guildRoster, isGuildParty, memberEntry, recruitExclude, savePick, slotsOf, togglePick } from '../game/guild';
+import { autoPick, guildOpen, guildRoster, isGuildParty, memberEntry, recruitExclude, savePick, seatsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -29,6 +29,7 @@ import { afxRows, afxTags, BOOK, flowHead, guides, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 import { FAME_LOW_GAP } from '../data/guild';
+import { askModal } from '../platform/ads';
 import { sfx } from '../sfx';
 
 const s = screen('s-party', '파티 편성', {
@@ -71,9 +72,9 @@ function roll(): void {
   Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: Flow.chal ? modeNow().stage : recLevel(contentOf(Flow.content), Flow.diff), exclude: recruitExclude(G.save) }); // 길드원 · 공고 지원자는 공개모집에서 빠짐 (Lim 10-22 「맞추고 빼기」)
 }
 
-/** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */
+/** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원만 (빈자리는 빈 칸, 2026-10-28 Lim 「길드멤버끼리만」) */
 function compose(): void {
-  const list = Flow.mode === 'guild' && guildReady() ? guildRoster(G.save, Flow.gpick, Flow.pub!, firstEnc(), Flow.seed) : Flow.pub!.slice();
+  const list = Flow.mode === 'guild' && guildReady() ? guildRoster(G.save, Flow.gpick, Flow.seed) : Flow.pub!.slice();
   Flow.party = list;
 }
 
@@ -113,26 +114,23 @@ function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): s
   return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${ROLE[m.role].name}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span></div></li>`;
 }
 
-/** 길드파티 편성 (02 9-2): 길드원 눌러서 넣고 빼기, 빈자리는 공개모집으로 채움 */
-function guildPickHtml(stage: number): string {
-  const enc = firstEnc(), sl = slotsOf(enc), ms = G.save.guild.members;
+/**
+ * 길드파티 편성 (02 9-2): 길드원만 보이고 눌러서 넣고 빼기. 2026-10-28 Lim: 공개모집 보충 줄 없음 (빈자리는 빈 칸으로 출발),
+ * 탱커 · 딜러 자리 제한 없이 자리 수까지 마음대로, 「길드원 N명부터 길드파티」 · 「권장 레벨보다 낮은 길드원」 줄은 없앰 (다시 넣지 않는다)
+ */
+function guildPickHtml(): string {
+  const ms = G.save.guild.members;
   const picked = Flow.gpick.map(id => ms.find(m => m.id === id)).filter(Boolean);
   const tanks = picked.filter(m => CLASSES[m!.cls].role === 'tank').length;
-  const fill = Flow.party!.filter(e => e.gid == null);
   const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
-  const under = picked.filter(m => m!.lv < stage).length;
-  const need = guildPartyNeed(sl.tank + sl.dps + 1); // 길드파티 = 자리 절반 이상이 길드원 (명성 · 원정 · 첫 처치, 103 다른 문제점 5)
-  return `<p class="pickhead"><b>${picked.length >= need ? '길드파티 ✓' : `길드파티 ${picked.length}/${need}`}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
+  return `<p class="pickhead"><b>길드원 ${picked.length} / ${seatsOf(firstEnc())}</b><small>탱커 ${tanks} · 딜러 ${picked.length - tanks}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
     ${recWhy.length ? `<p class="f-why" aria-label="추천 이유">${recWhy.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</p>` : ''}
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
-    ${picked.length < need ? `<p class="warnbox">길드원 ${need}명부터 길드파티: 명성 · 원정 · 첫 처치</p>` : ''}
-    ${under ? `<p class="warnbox">권장 레벨(Lv ${stage})보다 낮은 길드원 ${under}명: 체력·딜이 낮음</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
       return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, grown: true, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
-    }).join('')}
-    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
+    }).join('')}</ul></section>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
@@ -201,7 +199,7 @@ function render(keepScroll = true): void {
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
       ${boardHtml()}
-      ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
+      ${isGuild ? guildPickHtml() : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
@@ -240,8 +238,17 @@ s.el.addEventListener('click', e => {
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
   // 출발 = 바로 전투 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 없앰, 전투 전에는 휴식 표시 없음)
-  if (t.closest('#depart')) depart();
+  if (t.closest('#depart')) void departAsk();
 });
+
+/** 편성 「출발」: 길드파티는 길드원 1명 이상, 탱커가 없으면 확인 창 (2026-10-28 Lim 「탱커가 없을경우 경고 확인창」) */
+async function departAsk(): Promise<void> {
+  if (Flow.mode === 'guild' && guildReady()) {
+    if (!Flow.party!.length) { msg = '길드원 1명 이상 필요'; render(); return; }
+    if (!Flow.party!.some(e => e.role === 'tank') && !(await askModal('탱커 없음', '탱커 없이 출발하면 보스가 다른 파티원을 공격합니다.<br>그래도 출발하시겠습니까?', '취소', '출발'))) return;
+  }
+  depart();
+}
 
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
 s.el.addEventListener('keydown', e => {
