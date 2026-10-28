@@ -1,10 +1,11 @@
 /**
  * 길드 할 일 (93 8장, 업데이트 묶음): 부탁 쪽지 (매일 2장) · 주간 원정 (매주 3곳). 놓쳐도 손해 없음: 날 · 주가 바뀌면 새로 오고 쌓이지 않음.
- * 장소는 길잡이 (game/guide) 추천 범위 안에서: 화면이 추천 칸 · 열림 판정을 넘겨 새로 고치고 (이 파일은 화면 상태를 안 읽음), 판 뒤 (settle)에서 채움.
+ * 부탁 장소는 그 길드원 레벨에 맞는 칸, 원정은 내 레벨에 맞는 곳: 화면이 열림 판정을 넘겨 새로 고치고 (이 파일은 화면 상태를 안 읽음), 판 뒤 (settle)에서 채움.
  */
-import { ALL_DIFFS, CONTENT, stageOf, type ContentDef } from '../data/content';
+import { ALL_DIFFS, CONTENT, isLeveling, stageOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { EXPED, REQ } from '../data/guild';
+import { recLevel } from '../data/progression';
 import { topLevel, type SaveData } from '../platform/storage';
 import { dayKey, weekKey } from './clock';
 import { guildPartyFits, isGuildParty } from './guild';
@@ -12,17 +13,23 @@ import { ENCOUNTERS } from '../data/encounters';
 import type { RosterEntry } from '../engine/types';
 
 
-/** 부탁 쪽지: 날이 바뀌면 길드원 2명이 새로 (길잡이 추천 8곳 가운데 앞 3곳에서 하나) */
-export function refreshReqs(save: SaveData, stagesAll: readonly { content: string; diff: DiffName }[], r: () => number, now = Date.now()): void {
+/**
+ * 부탁 쪽지: 날이 바뀌면 길드원 2명이 새로. 장소는 그 길드원 레벨에 맞는 칸 (2026-10-29 Lim): 열린 탐험 · 던전 칸 (악몽 빼고) 가운데
+ * 권장 레벨 (recLevel)이 길드원 레벨 ±1인 칸에서 하나, 없으면 가장 가까운 칸에서 하나 (예전 내 레벨 길잡이 추천 앞 3곳이라 낮은 길드원은 높은 칸을 받았음)
+ */
+export function refreshReqs(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, r: () => number, now = Date.now()): void {
   const g = save.guild, day = dayKey(now);
   if (!g.founded || g.reqs.day >= day) return; // 더 늦은 날만 (103)
   if (!g.members.length) { g.reqs = { day: '', list: [] }; return; } // 길드원이 없으면 그날을 쓰지 않음: 첫 영입 뒤 바로 부탁 (Lim 10-21 자동 영입 없앰)
   g.reqs = { day, list: [] };
-  const stages = stagesAll.slice(0, 8);
+  const cells = CONTENT.filter(c => isLeveling(c) && c.ready && !c.hidden)
+    .flatMap(c => ALL_DIFFS.filter(d => d !== '악몽' && open(c, d)).map(d => ({ content: c.key, diff: d, rec: recLevel(c, d) })));
   const pool = g.members.slice();
-  for (let i = 0; i < REQ.perDay && pool.length && stages.length; i++) {
+  for (let i = 0; i < REQ.perDay && pool.length && cells.length; i++) {
     const m = pool.splice(Math.floor(r() * pool.length), 1)[0];
-    const s = stages[Math.floor(r() * Math.min(3, stages.length))];
+    const gap = (x: { rec: number }) => Math.abs(x.rec - m.lv), near = Math.max(1, Math.min(...cells.map(gap)));
+    const fit = cells.filter(x => gap(x) <= near);
+    const s = fit[Math.floor(r() * fit.length)];
     g.reqs.list.push({ nick: m.nick, content: s.content, diff: s.diff, done: false });
   }
 }
