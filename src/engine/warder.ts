@@ -104,7 +104,7 @@ function judgment(f: Fight): void {
   s.judgeCut = 0;
   const n = s.ward, count = judgeCount(f); // 결계력을 모두 씀 (2026-10-28 2안): 칸마다 회복 +, 5칸이면 judgeCount가 인원 제한 없이
   s.ward = 0;
-  const vs = sealBurst(f, 'judgment', count, SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)) * (1 + WARDER.ward.heal * n));
+  const vs = sealBurst(f, 'judgment', count, SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)) * (1 + WARDER.ward.heal * n) * (!f.enc.big && f.party.length >= 10 ? WARDER.raid.heal : 1));
   if (s.veil && s.veil.until > f.t && f.tx.on.sharedLoad) s.veil.judged = true;
   if (vs.length >= WARDER.price.n && heroPassive(f, '인장의 대가')) f.mana = Math.min(100, f.mana + WARDER.price.mana);
   if (f.sp && sv(f, 'judgeMana')) f.mana = Math.min(100, f.mana + vs.length * sv(f, 'judgeMana')); // 심판의 마나 (결계 17)

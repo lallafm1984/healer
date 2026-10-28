@@ -84,7 +84,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ④ 주술사 (79 2장) ----------
   // 79 첫 안 300 · 3% / 250 · 6% / 210 · 재사용 6 / 320 / 80 / 30 → 간격 검사 (79 2-11, 세 직업 평균 ±5%p)로 고침: 사제 메아리 · 성언, 드루이드 싼 새싹, 성기사 봉화 같은 덤이 없어 기본 힐 효율을 올림
-  ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 280, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스)
+  ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 255, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스) · 2026-10-28 Lim 「너무 강한 직업들의 밸런스를 조금 손보자」: 280 → 255 (Codex QA 어려움 +5.2 · 악몽 +8.0%p)
   droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 4, amt: 330, target: 'ally' },
   washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 260, target: 'ally' }, // 2026-10-28 통합 점검: 300 → 260 (깊은 물 50 → 20%와 함께)
@@ -115,7 +115,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 400, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 350 → 440 · 시전 2.2 → 2.0초 · 2026-10-28 통합 점검: 440 → 400 (주술사와 함께 어려움 · 악몽 모든 묶음에서 기준 평균보다 높았음)
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 150, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300 // 2026-10-19 Lim 「막 이외의 다른건 그전으로 계수를 돌리고 막은 계수를 60프로로 하자」: 300 → 180 → 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 180 → 150
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 125, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300 // 2026-10-19 Lim 「막 이외의 다른건 그전으로 계수를 돌리고 막은 계수를 60프로로 하자」: 300 → 180 → 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 180 → 150 → 2026-10-28 Lim 「너무 강한 직업들의 밸런스를 조금 손보자」: 150 → 125 (Codex QA 탐험 · 던전 악몽 +6.6 · +6.0%p)
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 45, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 재사용 90 → 45초 (보호막 30 → 50%는 heroConst WARDER.guard)
@@ -161,7 +161,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   sprout: { kind: '심기', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다. 심을 때마다 잎을 1장 모읍니다 (최대 5장).' },
   growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {250} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
   bloom: { kind: '거두기', desc: '대상의 지속 힐 하나를 거둬 남은 회복량의 150%를 즉시 회복합니다.' },
-  wildflower: { kind: '광역 심기', desc: `대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다. 모은 잎을 모두 써서 잎 1장마다 ${Math.round(LEAF.heal * 100)}% (20인 레이드 ${Math.round(LEAF.big.heal * 100)}%) 더 회복합니다. 잎이 ${LEAF.max}장이면 바로 시전되고, 닿은 아군 중 새싹이 없는 사람에게 새싹을 심습니다 (20인 레이드 제외).` },
+  wildflower: { kind: '광역 심기', desc: `대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다. 모은 잎을 모두 써서 잎 1장마다 ${Math.round(LEAF.heal * 100)}%${LEAF.big.heal ? ` (20인 레이드 ${Math.round(LEAF.big.heal * 100)}%)` : ' (20인 레이드 제외)'} 더 회복합니다. 잎이 ${LEAF.max}장이면 바로 시전되고, 닿은 아군 중 새싹이 없는 사람에게 새싹을 심습니다 (20인 레이드는 바로 시전만).` },
   natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다.' },
   bark: { kind: '생존기', desc: '12초 동안 대상이 받는 피해가 20% 줄고, 대상에게 걸린 내 지속 힐이 20% 강해집니다.' },
   quietwood: { kind: '전원 심기', desc: '파티 전원에게 새싹을 심습니다. 이미 새싹이 있는 아군은 그대로 둡니다. 걸린 지속 힐은 모두 그 자리에서 한 번 더 회복하고 6초 늘어나며, 늘어난 만큼 더 회복합니다.' },
@@ -176,7 +176,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   sanctuary: { kind: '범위 쿨기', desc: '대상 중심 7칸에 10초 동안 성역을 세웁니다. 안에 있으면 받는 피해가 20% 줄고 초당 {40}씩 회복합니다.' },
   handGuard: { kind: '탱커 보호', desc: '6초 동안 대상이 물리 피해를 받지 않습니다. 그동안 대상은 딜을 하지 못합니다.' },
 
-  ripple: { kind: '튀는 힐', desc: '대상의 체력을 {280} 회복하고, 붙어 있는 다친 아군 중 체력 비율이 가장 낮은 1명에게 튀어 {84} 회복합니다. 물방울이 걸린 아군에게는 2칸 거리까지 튑니다.' },
+  ripple: { kind: '튀는 힐', desc: '대상의 체력을 {255} 회복하고, 붙어 있는 다친 아군 중 체력 비율이 가장 낮은 1명에게 튀어 {77} 회복합니다. 물방울이 걸린 아군에게는 2칸 거리까지 튑니다.' },
   droplet: { kind: '다리 · 지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {330}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
   washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   chainHeal: { kind: '튀는 광역', desc: '대상의 체력을 {260} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
@@ -204,13 +204,13 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {400} 회복하고 15초 동안 인장을 붙입니다.' },
-  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {125}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 50%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
-  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다. 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다. 결계력이 ${WARDER.ward.max}칸이면 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.` },
+  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다.${WARDER.raid.heal < 1 ? ` 10인 레이드에서는 ${Math.round(WARDER.raid.heal * 100)}%만 회복합니다.` : ''} 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다. 결계력이 ${WARDER.ward.max}칸이면 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.` },
 };
 
 /** 패시브 설명 (06 5장, 평온 게이지는 4장 · 82) */

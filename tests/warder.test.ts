@@ -82,7 +82,7 @@ describe('스킬', () => {
     step(f, WARDER.seal.sec + 0.1);
     expect(sealed(f, u)).toBe(false);
   });
-  it('빛의 막: 150 보호막 (10-19 300 → 150) + 인장, 같은 대상은 더해지되 최대 체력 60%까지', () => {
+  it('빛의 막: 125 보호막 (10-19 300 → 150 · 10-28 → 125) + 인장, 같은 대상은 더해지되 최대 체력 60%까지', () => {
     const f = fight(), u = dps(f)[0];
     now(f, 'lightBarrier', u.cell);
     expect(absorbLeft(f, u)).toBe(SKILLS.lightBarrier.amt);
@@ -91,10 +91,10 @@ describe('스킬', () => {
     damage(f, u, 100, false, 'fixed');
     expect(u.hp).toBe(h);
     expect(absorbLeft(f, u)).toBeCloseTo(SKILLS.lightBarrier.amt! - 100, 6);
-    u.max = 300;
+    u.max = 200;
     f.cd.lightBarrier = 0; f.gcd = 0;
     now(f, 'lightBarrier', u.cell);
-    expect(absorbLeft(f, u)).toBeCloseTo(300 * WARDER.shieldCap, 6);
+    expect(absorbLeft(f, u)).toBeCloseTo(200 * WARDER.shieldCap, 6);
   });
   it('결계 원: 붙어 있는 6칸 (10-19부터 20인도 1칸)에 100 보호막 + 인장', () => {
     const f = fight(), u = withAdj(f, 1);

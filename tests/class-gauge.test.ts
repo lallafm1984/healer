@@ -77,6 +77,8 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     a.hots=[];heroApply(f,'wildflower',a);
     expect(full/wild(a).rest).toBeCloseTo(1+LEAF.big.heal*LEAF.max,5);
     expect(LEAF.big.heal).toBeLessThan(LEAF.heal);
+    for(let i=0;i<LEAF.max;i++)heroApply(f,'sprout',a);
+    expect(classGaugeState(f).description).toBe(LEAF.big.heal?`잎 5/5, 들꽃 군락 회복 +${Math.round(LEAF.big.heal*500)}%, 바로 시전`:'잎 5/5, 바로 시전');
   });
   it('결계사 결계력: 인장이 없던 아군에게 붙일 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +15%, 5칸이면 인원 제한 없이 (2026-10-28 Lim 2안)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
