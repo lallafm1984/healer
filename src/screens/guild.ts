@@ -432,7 +432,7 @@ s.el.addEventListener('click', e => {
   if (tip) { const k = tip.dataset.tip!; st.tip = st.tip === k ? null : k; render(); return; }
   if (t.closest('#goalGo')) { go('s-missions'); return; }
   if (t.closest('#found')) { const ok = foundGuild(save, Math.random); sfx(ok ? 'guild-levelup' : 'deny'); if (ok) { refreshReqs(save, rankStages(guideCtx()), Math.random); refreshExped(save, realOpen); } commit(); render(); return; } // 할 일도 탭에 들어올 때처럼
-  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
+  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length, err = sponsorRest(save); sfx(err ? 'deny' : 'gold-spend'); st.msg = err || `쉬는 길드원 ${n}명 후원 · 한 사람 ${SPONSOR.runs}판`; commit(); render(); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); st.sub = 'recruit'; st.tip = null; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   if (t.closest('#guildRecruit')) { st.sub = 'recruit'; st.tip = null; render(); s.el.querySelector<HTMLElement>('.ns-body')?.scrollTo({ top: 0 }); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
