@@ -260,13 +260,13 @@ function membersHtml(): string {
 const adWaitText = (ms: number) => `${Math.max(1, Math.ceil(ms / 60000))}분 뒤`;
 /**
  * 모집 공고 (2026-10-22 Lim): 무료, 매일 오전 6시 새 지원자 3명 (Lv 1 ~ 내 레벨), 「새로 뽑기」 = 보상형 광고 한 번 (광고 제거면 바로) → 5명, 1시간에 한 번.
- * 지원자 줄 = 영입 골드 (hireGold = 지원자 Lv × POST.hirePer). 희귀 · 스킬 등급 표시는 없음
+ * 지원자 줄 = 영입 골드 (hireGold = 능력치가 좋을수록 비쌈, 2026-10-28 Lim). 희귀 · 스킬 등급 표시는 없음
  */
 function recruitHtml(): string {
   const g = G.save.guild, cap = capOf(G.save), isFull = full(G.save), my = topLevel(G.save);
   const candRow = (c: GuildMember, i: number) => memRowHtml(card(c), {
     attrs: `data-cand="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: st.sheet?.k === 'cand' && st.sheet.i === i,
-    gold: `${goldCost(hireGold(c.lv))}<span class="sr">영입 골드</span>`,
+    gold: `${goldCost(hireGold(c))}<span class="sr">영입 골드</span>`,
   });
   const post = g.post, cands = post?.cands ?? [], room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
   const list = cands.length ? `<ul class="pcards g-list g-candidates">${cands.map((c, i) => candRow(c, i)).join('')}</ul>` : `<p class="g-empty0">내일 새 지원자 ${POST.cands}명<small>오전 6시 · ${roomTxt}</small></p>`;
@@ -276,7 +276,7 @@ function recruitHtml(): string {
     body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>지원자 ${cands.length}명<small> · ${roomTxt}</small></h3>${infoBtn('post', POST.name)}</div><p class="g-post-summary">매일 새 ${POST.cands}명 · Lv 1~${my}</p></div>
       <div class="g-post-action"><button class="btn mini primary" type="button" data-post="ad" aria-describedby="guild-post-ad"${cands.length ? ' aria-haspopup="dialog"' : ''}${wait ? ' disabled' : ''}>${wait ? adWaitText(wait) : '새로 뽑기'}</button><small id="guild-post-ad">${wait ? '다시 뽑기까지' : `${noads ? '바로' : '광고 보고'} ${POST.adCands}명`}</small></div></div>
       ${list}`,
-    tip: `<p>매일 오전 6시에 모든 직업에서 지원자 ${POST.cands}명이 새로 옵니다. 지원자 레벨은 Lv 1부터 내 레벨까지 무작위입니다.</p><p>「새로 뽑기」는 ${noads ? '광고 없이' : '광고를 한 번 보면'} 지원자 ${POST.adCands}명으로 바꿉니다. 1시간에 한 번 쓸 수 있습니다.</p><p>지원자를 누르면 능력치와 스킬을 보고 영입할 수 있습니다. 영입 골드는 지원자 Lv × ${POST.hirePer}입니다. 영입하지 않은 지원자는 다음 갱신까지 남습니다.</p>`,
+    tip: `<p>매일 오전 6시에 모든 직업에서 지원자 ${POST.cands}명이 새로 옵니다. 지원자 레벨은 Lv 1부터 내 레벨까지 무작위입니다.</p><p>「새로 뽑기」는 ${noads ? '광고 없이' : '광고를 한 번 보면'} 지원자 ${POST.adCands}명으로 바꿉니다. 1시간에 한 번 쓸 수 있습니다.</p><p>지원자를 누르면 능력치와 스킬을 보고 영입할 수 있습니다. 영입 골드는 능력치가 좋을수록 비쌉니다 (같은 레벨에서 능력 ★ 반 개마다 ${fmt(POST.hirePer)}). 영입하지 않은 지원자는 다음 갱신까지 남습니다.</p>`,
   };
 
   return `${isFull ? `<p class="warnbox g-full">정원 ${g.members.length} / ${cap.cap} 가득<small>길드 레벨을 올리면 정원이 늘어납니다.</small></p>` : ''}${secHtml(postSec)}`;
@@ -296,7 +296,7 @@ function sheetHtml(): string {
   if (x.k === 'cand') {
     const c = g.post?.cands[x.i];
     if (!c) return '';
-    const d = card(c), cost = hireGold(c.lv), gold = resourceBalance(G.save, 'gold'), short = gold < cost;
+    const d = card(c), cost = hireGold(c), gold = resourceBalance(G.save, 'gold'), short = gold < cost;
     const limit = isFull ? '정원 가득' : short ? `골드 ${fmt(cost - gold)} 부족` : '';
     return sheetBox(`${c.nick} 상세`, `${sheetHead(d)}${memDetailHtml(d)}`,
       `<footer class="g-hire-footer">${limit ? `<p class="g-hire-limit">${limit}</p>` : ''}<div class="g-hire-actions"><button class="btn2" type="button" data-shut>닫기</button><button class="btn mini primary g-hire-btn" type="button" data-hire="${x.i}"${isFull || short ? ' disabled' : ''}>영입<small>${goldCost(cost)}</small></button></div></footer>`);
@@ -364,7 +364,7 @@ async function adRefresh(): Promise<void> {
   if (ok) {
     const err = adRefreshPost(G.save, Math.random);
     sfx(err ? 'deny' : 'guild-recruit');
-    st.msg = err || `새 지원자 ${POST.adCands}명 도착`;
+    st.msg = err; // 새 지원자는 목록에 바로 보임 (「새 지원자 N명 도착」 줄은 2026-10-28 Lim 「제거」)
     commit();
   }
   render();

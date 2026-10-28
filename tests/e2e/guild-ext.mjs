@@ -90,8 +90,8 @@ export default async function guildExt(url, shots) {
   await page.click('#s-guild [data-sub="recruit"]'); await page.clock.runFor(50);
   const offer = await text('#s-guild [data-sec="post"]');
   ok(/지원자 3명/.test(offer) && /매일 새 3명 · Lv 1~50/.test(offer) && (await text('#s-guild [data-post="ad"]')).trim() === '새로 뽑기' && /광고 보고 5명/.test(await text('#guild-post-ad')) && !/희귀|골드 부족/.test(offer), '공고 판: 지원자 3명 · 매일 · Lv 1~50 · 「새로 뽑기」 (광고 보고 5명), 희귀 표시 없음');
-  const costs = await page.locator('#s-guild .g-candidates .f-tag.gold').allTextContents(), lvs = (await save()).guild.post.cands.map(c => c.lv);
-  ok(costs.length === 3 && costs.every((t, i) => t.replace(/[^0-9]/g, '') === String(lvs[i] * 100)), `지원자 줄마다 영입 골드 = Lv × 100 ${JSON.stringify(costs)}`);
+  const costs = (await page.locator('#s-guild .g-candidates .f-tag.gold').allTextContents()).map(t => Number(t.replace(/[^0-9]/g, '')));
+  ok(costs.length === 3 && costs.every(g => g >= 100 && g % 10 === 0), `지원자 줄마다 영입 골드 (능력치로 정함, 2026-10-28) ${JSON.stringify(costs)}`);
   const beforePost = JSON.stringify((await save()).guild.post);
   await page.click('#s-guild [data-post="ad"]'); await page.clock.runFor(50);
   ok(JSON.stringify((await save()).guild.post) === beforePost && await page.isVisible('#s-guild .g-post-confirm[role="dialog"]'), '새로 뽑기 첫 누름: 지원자 유지 · 확인 팝업');
@@ -128,14 +128,14 @@ export default async function guildExt(url, shots) {
   for (let i = 0; i < 30 && !await adReady(); i++) await page.clock.runFor(1e3);
   ok(await adReady(), `1시간 뒤 다시 새로 뽑기 (${(await text('#s-guild [data-post="ad"]')).trim()} · ${await page.evaluate(() => JSON.stringify({ now: Date.now(), at: JSON.parse(localStorage.getItem('healer.save')).guild.postAdAt, shown: !!document.querySelector('#s-guild')?.getClientRects().length }))})`);
   const allCandidates = (await save()).guild.post.cands.map(c => ({ nick: c.nick, lv: c.lv }));
+  const paid = (await page.locator('#s-guild .g-candidates .f-tag.gold').allTextContents()).reduce((t, x) => t + Number(x.replace(/[^0-9]/g, '')), 0);
   for (let remaining = 5; remaining > 0; remaining--) {
     await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
     await page.click('#s-guild .g-hire-actions [data-hire="0"]'); await page.clock.runFor(50);
     ok(((await save()).guild.post?.cands.length ?? 0) === remaining - 1, `한 공고에서 연속 영입: 남은 지원자 ${remaining - 1}명`);
   }
   sv = await save();
-  const paid = allCandidates.reduce((t, c) => t + c.lv * 100, 0);
-  ok(allCandidates.every(c => sv.guild.members.some(m => m.nick === c.nick)) && sv.guild.post?.cands.length === 0 && sv.player.gold === 100000 - paid, `다섯 명 모두 영입 · 골드 ${paid} (Lv × 100 합) · 그날 공고는 빈 채로 남음`);
+  ok(allCandidates.every(c => sv.guild.members.some(m => m.nick === c.nick)) && sv.guild.post?.cands.length === 0 && sv.player.gold === 100000 - paid, `다섯 명 모두 영입 · 골드 ${paid} (줄에 보인 영입 골드 합) · 그날 공고는 빈 채로 남음`);
   ok(/내일 새 지원자 3명/.test(await text('#s-guild [data-sec="post"]')), '다 데려가면 「내일 새 지원자 3명」');
 
   // 길드원 역할 선택과 정렬은 편성을 건드리지 않고 포커스를 유지.

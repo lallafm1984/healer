@@ -81,31 +81,32 @@ export default async function guild(url, shots) {
   ok((await page.locator('#s-guild [data-csel="friend"], #s-guild [data-csel="roster"], #s-guild [data-friend]').count()) === 0 && !/친구|인연|명부/.test(await page.locator('#s-guild .g-recruit').evaluate(el => { const x = el.cloneNode(true); x.querySelectorAll('.g-candidates').forEach(n => n.remove()); return x.textContent; })), '친구 초대 · 명부 · 인연 안내 제거 (지원자 닉네임은 빼고 봄)');
   ok(await page.isVisible('#s-guild [data-sec="post"]') && (await page.locator('#s-guild [data-csel], #s-guild [data-sec="app"], #s-guild .g-hub').count()) === 0 && !/명성 지원자/.test(await text('#s-guild .g-recruit')), '모집 공고 판 하나만 (길드 Lv 5여도 명성 지원자 없음)');
   ok((await page.locator('#s-guild [data-pkind], #s-guild [data-role], #s-guild [data-pickcls]').count()) === 0 && !/명문 공고/.test(await text('#s-guild .g-recruit')), '명문 · 역할 · 직업 선택 제거');
-  // 2026-10-22 Lim: 공고는 무료 · 매일 3명 · Lv 1 ~ 내 레벨, 영입 골드 = 지원자 Lv × 100, 희귀 · 스킬 등급 표시 없음
+  // 2026-10-22 Lim: 공고는 무료 · 매일 3명 · Lv 1 ~ 내 레벨, 희귀 · 스킬 등급 표시 없음. 영입 골드 = 능력치 (2026-10-28 Lim, 값은 단위 테스트 guild.test)
   ok(/매일 새 3명 · Lv 1~30/.test(await text('#s-guild .g-post-summary')) && !/희귀/.test(await text('#s-guild [data-sec="post"]')), '공고: 매일 새 3명 · Lv 1~30, 희귀 표시 없음');
   sv = await save();
   const cands = sv.guild.post?.cands ?? [];
   ok(sv.player.gold === 20000 && cands.length === 3, `공고는 무료, 지원자 3명 ${cands.map(c => `${c.cls} ${c.lv}`)}`);
   ok((await page.locator('#s-guild .subtabs [data-sub="recruit"] .rdot').count()) === 0 && (await page.locator('#s-guild [data-cand]').count()) === 3 && (await page.locator('#s-guild [data-hire]').count()) === 0, '본 공고는 빨간 점 없음 · 지원자 목록은 상세 진입만, 줄마다 영입 버튼 없음');
+  const rowCosts = (await page.locator('#s-guild .g-candidates .f-tag.gold').allTextContents()).map(t => Number(t.replace(/[^0-9]/g, '')));
   const skillColors = await page.locator('#s-guild .g-candidates .skill-name b').evaluateAll(els => [...new Set(els.map(e => getComputedStyle(e).color))]);
   ok(skillColors.length === 1, `스킬 이름은 한 색 (일반 · 고급 · 희귀 색 없음) ${JSON.stringify(skillColors)}`);
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(await text('#s-guild .g-msheet')), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
   ok((await page.locator('#s-guild .g-msheet .trait-grade').count()) === 0 && !/(일반|고급|희귀)$/.test((await text('#s-guild .g-msheet .pab .trait-heading')).trim()), '지원자 상세: 스킬 등급 (일반 · 고급 · 희귀) 글 없음');
   const hireTxt = (await text('#s-guild .g-hire-actions [data-hire]')).replace(/\s+/g, '');
-  ok(/^영입/.test(hireTxt) && hireTxt.replace(/[^0-9]/g, '') === String(cands[0].lv * 100) && !/추가 비용/.test(await text('#s-guild .g-msheet')), `상세 하단: 영입 버튼에 영입 골드 (Lv ${cands[0].lv} × 100) ${hireTxt}`);
+  ok(/^영입/.test(hireTxt) && rowCosts.length === 3 && Number(hireTxt.replace(/[^0-9]/g, '')) === rowCosts[0] && !/추가 비용/.test(await text('#s-guild .g-msheet')), `상세 하단: 영입 버튼에 줄과 같은 영입 골드 (${rowCosts[0]}) ${hireTxt}`);
   await page.screenshot({ path: `${shots}/guild_candidate_detail.png` });
   await shut();
   await page.screenshot({ path: `${shots}/guild_recruit.png` });
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();
-  const hired = sv.guild.members.find(m => m.nick === cands[0].nick), gHire = 20000 - cands[0].lv * 100;
-  ok(sv.guild.members.length === 5 && sv.guild.post.cands.length === 2 && hired && !sv.users && sv.player.gold === gHire, `영입: ${cands[0].nick} · 골드 ${cands[0].lv * 100}, 남은 지원자 2명 유지, 5/6`);
+  const hired = sv.guild.members.find(m => m.nick === cands[0].nick), gHire = 20000 - rowCosts[0];
+  ok(sv.guild.members.length === 5 && sv.guild.post.cands.length === 2 && hired && !sv.users && sv.player.gold === gHire, `영입: ${cands[0].nick} · 골드 ${rowCosts[0]}, 남은 지원자 2명 유지, 5/6`);
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members.length === 6 && sv.guild.post.cands.length === 1 && sv.player.gold === gHire - cands[1].lv * 100, '정원 가득 · 마지막 지원자 유지');
+  ok(sv.guild.members.length === 6 && sv.guild.post.cands.length === 1 && sv.player.gold === gHire - rowCosts[1], '정원 가득 · 마지막 지원자 유지');
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   ok(await page.isDisabled('#s-guild .g-hire-actions [data-hire]') && /정원 가득/.test(await text('#s-guild .g-hire-footer')), '정원 가득이어도 지원자 상세 확인 가능 · 영입만 잠금');
   await shut();
