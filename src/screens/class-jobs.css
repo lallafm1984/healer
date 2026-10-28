@@ -64,7 +64,6 @@
 #app #s-char .c7-job-skill h4 { margin: 0 0 5px; color: #f9edcb; font: 800 16px/1.35 var(--font-display); word-break: keep-all; overflow-wrap: anywhere; }
 #app #s-char .c7-job-skill p { margin: 0; color: #e6ddc7; font: 400 14px/1.45 var(--font-body); word-break: keep-all; overflow-wrap: anywhere; }
 #app #s-char .c7-job-footer { flex: none; padding-top: 16px; }
-#app #s-char .c7-job-footer .c7-msg { margin: 0 0 8px; font: 400 14px/1.5 var(--font-body); color: #ffd6ac; }
 #app #s-char[data-sub="hero"] .c7-job-sheet .c7-hcta {
   width: 100%; min-height: 48px; height: auto; margin: 0; padding: 10px 12px; border: 2px solid #f6d784; border-radius: 8px;
   background: #f1cc68; color: #2e200e; box-shadow: inset 0 2px 0 #fff0bb, inset 0 -3px 0 #c09637, 0 3px 0 #735421;

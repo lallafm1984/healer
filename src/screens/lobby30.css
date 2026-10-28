@@ -96,10 +96,8 @@ button.lb-trk:active { filter: brightness(0.94); }
 #s-lobby .lb-cta > small { max-width: 100%; overflow: hidden; font: 500 10.5px/1.25 var(--font-body); color: var(--sf-ink-2); white-space: nowrap; text-overflow: ellipsis; }
 #s-lobby .lb-cta.hi-pulse { outline: 2px solid var(--sf-pick); outline-offset: -4px; }
 
-/* 튜토리얼 안내 · 받기 결과 */
+/* 튜토리얼 안내 */
 #s-lobby .lb-coach { flex: none; margin: 0; pointer-events: none; }
-#s-lobby .lb-msg { position: absolute; z-index: 7; left: 8px; right: 8px; top: 10px; margin: 0; pointer-events: none; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); animation: lb-msg 4.5s ease forwards; }
-@keyframes lb-msg { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
 /* 낮은 장면 (작은 폰·가로 좁은 창): 소켓을 줄이고 상태 글은 숨김 (이름·배지는 유지) */
 @container (max-height: 470px) {

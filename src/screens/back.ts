@@ -12,9 +12,9 @@ import { battle, current, go } from './kit';
 
 /** 맨 위 팝업을 닫았으면 true */
 function closePopup(): boolean {
-  // 광고 시험 창 · 고르기 창 (게임 종료 확인 포함)은 맨 위에 붙음: 취소 · 닫기 버튼
+  // 광고 시험 창 · 고르기 창 (게임 종료 확인 포함) · 알림 창은 맨 위에 붙음: 취소 · 닫기 · 확인 버튼
   const boxes = document.querySelectorAll<HTMLElement>('.admodal:not(.st-modal)');
-  const cancel = boxes[boxes.length - 1]?.querySelector<HTMLElement>('[data-ask="no"], [data-ad="no"], [data-ad="close"]');
+  const cancel = boxes[boxes.length - 1]?.querySelector<HTMLElement>('[data-ask="no"], [data-ask="close"], [data-ad="no"], [data-ad="close"]');
   if (cancel) { cancel.click(); return true; }
   // 그 밖의 팝업은 저마다 Esc를 받아 닫고 preventDefault로 알림. 화면 안 keydown도 받게 초점 자리 (없으면 지금 화면)에서 보냄
   const a = document.activeElement;

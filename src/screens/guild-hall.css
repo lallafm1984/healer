@@ -191,7 +191,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .sheet .g-hire-actions > .btn2 { flex: 0 1 88px; min-height: 48px; }
 #s-guild .sheet .g-hire-actions > .btn { flex: 0 1 144px; width: 144px; min-height: 48px; margin: 0; padding: 0 12px; font-size: 16px; }
 #s-guild .sheet .g-hire-limit { margin: 0 0 6px; color: var(--gk-mute); text-align: center; font-size: 12px; }
-#s-guild .sheet .g-smsg { margin: 0; }
 #s-guild .sheet > .f-shut {
   position: sticky; bottom: 0; z-index: 1; flex: none; align-self: stretch; min-height: 44px;
   background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 10px; box-shadow: 0 -12px 12px #15120e;
@@ -266,7 +265,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-acts > .btn { min-height: 82px; }
 #s-guild .g-acts b { font-size: 13px; }
 #s-guild .g-acts small { line-height: 1.4; }
-#s-guild .g-smsg { position: sticky; bottom: 48px; z-index: 2; }
 
 /* 길드 Lv 1: 공고 하나만 열려 있으면 빈 두 번째 칸 없이 짧은 한 줄. */
 

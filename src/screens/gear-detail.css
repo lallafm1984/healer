@@ -59,7 +59,6 @@
 #app #s-char .c7-gsheet .c7-sbtns .c7-cta { background: #efdaaa; color: #2d2115; border: 2px solid #c5a064; box-shadow: inset 0 0 0 1px #fff2d980; font-size: 21px; }
 #app #s-char .c7-gsheet .c7-lockb[aria-pressed="true"] { background: #685232; color: #fff0cc; }
 #app #s-char .c7-gsheet .c7-lockb[aria-pressed="true"] small { color: inherit; }
-#app #s-char .c7-gsheet .c7-msg { margin: 8px 0 0; font-size: 12px; }
 /* Stat roles replace source breakdowns; allow explanations to wrap on narrow screens. */
 #app #s-char .c7-ssheet .c7-src { grid-template-columns: 50px 76px minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 0; }
 #app #s-char .c7-ssheet .c7-src > .cap { font-size: 12px; line-height: 1.6; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }

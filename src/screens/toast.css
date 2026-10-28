@@ -1,0 +1,11 @@
+/* 짧은 알림 (toast.ts): 아래 메뉴 위 가운데 알약, 길드 홀 돌색 (guide-sheet.css --gk-*와 같은 값). 위치 · 투명도만 움직임 */
+.toast-note {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + var(--tabs-h, 64px) + 14px); z-index: 96;
+  width: max-content; max-width: min(440px, calc(100% - 32px)); margin: 0; padding: 9px 16px;
+  border-radius: 12px; border: 1.5px solid #9c7a3c; background: linear-gradient(#272019, #1e1914);
+  box-shadow: 0 4px 14px #000a; color: #f1e4c8; font: 700 14px/1.35 var(--font-body); text-align: center; word-break: keep-all;
+  pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, 10px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+}
+.toast-note.on { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity 0.18s ease, transform 0.18s ease; }
+.toast-note.calm { transition: none; transform: translate(-50%, 0); }

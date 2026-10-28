@@ -186,7 +186,7 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-gconfirm]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members.length === 5 && !sv.guild.members.some(m => m.nick === hired.nick) && !sv.guild.away && /길드에서 내보냈습니다/.test(await text('#s-guild .warnbox')), '내보내기 = 길드에서 제외, 완료 안내');
+  ok(sv.guild.members.length === 5 && !sv.guild.members.some(m => m.nick === hired.nick) && !sv.guild.away && /길드에서 내보냈습니다/.test(await text('.toast-note.on')) && !(await page.locator('#s-guild .ns-body > .warnbox').count()), '내보내기 = 길드에서 제외, 완료 안내 (짧은 알림, 목록 위 줄 없음)');
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-friend]').count()) === 0, '내보낸 사람의 친구 초대 목록 없음');
 

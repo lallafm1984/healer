@@ -8,7 +8,8 @@ import { commit, G } from '../game/state';
 import { adCharge, adsFree, staminaClock, staminaView } from '../game/stamina';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
-import { esc, fmt, go } from './kit';
+import { fmt, go } from './kit';
+import { notify } from './toast';
 import { sfx } from '../sfx';
 
 const view = () => staminaView(G.save, Date.now());
@@ -92,10 +93,9 @@ async function charge(): Promise<boolean> {
 // ---------- 휴식 창 (위 줄 칸 · 상점) ----------
 /** 2026-10-28 Lim: 「다음 +1 · 가득까지」 시간 줄은 없앰, 설명은 두 줄 (남은 시간은 위 칸 읽어 주는 글에만) */
 export function openStamina(): void {
-  const render = (msg = '') => {
+  const render = () => {
     const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}
       <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어할 때 써서 경험치 · 골드를 ${REST_BONUS}배로 받습니다.</p>
-      ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
     el.onclick = async e => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-st]');
@@ -103,7 +103,7 @@ export function openStamina(): void {
       const k = b.dataset.st;
       if (k === 'no') close();
       else if (k === 'shop') { close(); go('s-shop', 'cash'); }
-      else if (k === 'ad' && await charge()) render(`휴식 +${STAMINA.ad}`);
+      else if (k === 'ad' && await charge()) { render(); notify(`휴식 +${STAMINA.ad}`); } // 창 안에 줄을 끼우면 버튼이 밀림 (2026-10-28): 짧은 알림
     };
   };
   render();

@@ -17,6 +17,7 @@ import { specKeysOf } from '../data/equipment';
 import { currencyAmount, gameIcon, gearIcon, uiIcon } from './art';
 import { openItemDetail, sellConfirmHtml } from './character';
 import { sheetDialog } from './dialog';
+import { noticeModal } from '../platform/ads';
 import { esc, fmt, screen, topBar } from './kit';
 import { sfx } from '../sfx';
 import { lootSound } from './ui-sound';
@@ -24,13 +25,13 @@ import { lootSound } from './ui-sound';
 /** 등급 글자 색 (결과 · 장비 상세와 같은 값) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
 
-/** slot = 고른 부위, got = 방금 산 장비 (감정 결과 창), fresh = 그 창의 봉인 풀기 연출을 아직 안 보여 줌, ask = 판매 확인 창을 띄움, msg = 한 줄 알림 */
-const st: { slot: SlotKey; got: number | null; fresh: boolean; ask: boolean; msg: string } = { slot: 'weapon', got: null, fresh: false, ask: false, msg: '' };
+/** slot = 고른 부위, got = 방금 산 장비 (감정 결과 창), fresh = 그 창의 봉인 풀기 연출을 아직 안 보여 줌, ask = 판매 확인 창을 띄움 */
+const st: { slot: SlotKey; got: number | null; fresh: boolean; ask: boolean } = { slot: 'weapon', got: null, fresh: false, ask: false };
 /** 지난 그리기에 띄운 감정 결과 (같은 창을 다시 그릴 땐 올라오는 움직임 없이) */
 let shown: number | null = null;
 
 const s = screen('s-merchant', '행상인', {
-  enter() { refreshDay(); st.got = null; st.ask = false; st.msg = ''; render(); },
+  enter() { refreshDay(); st.got = null; st.ask = false; render(); },
 });
 /** 뒤로가기 · Esc: 판매 확인 창이 떠 있으면 그것만 닫음 */
 const modal = sheetDialog(s.el, () => { if (st.ask) st.ask = false; else st.got = null; render(); });
@@ -50,12 +51,11 @@ function render(): void {
       <section class="g-card mc-buy" data-sec="buy" aria-label="사기"><header class="g-hd"><span class="g-hi">${gearIcon({ slot })}</span><h3>미확인 ${nm}</h3><span class="g-meta">Lv ${o.lv}<small>종류 무작위</small></span></header>
         <div class="mc-buy-body">
         <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${nm} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
-        ${o.why || st.msg ? `<p class="mc-why" role="status">${esc(st.msg || (o.lock || `${o.why} · 보유 ${fmt(have)}`))}</p>` : ''}
+        ${o.why ? `<p class="mc-why">${esc(o.lock || `${o.why} · 보유 ${fmt(have)}`)}</p>` : ''}
         </div>
       </section>
     </div>
     ${st.got != null ? revealHtml(st.got) : ''}`;
-  st.msg = '';
   const sheet = s.el.querySelector<HTMLElement>('.mc-reveal'), ask = s.el.querySelector<HTMLElement>('.c7-confirm');
   if (!ask) st.ask = false;
   modal.sync(ask || sheet, sheet ? (ask ? ['reveal', 'confirm'] : ['reveal']) : []);
@@ -96,7 +96,7 @@ function revealHtml(id: number): string {
 /** 지금 고른 부위로 사기 (종류는 무작위) → 감정 결과 창 */
 function buy(): void {
   const r = buyUnknown(G.save, st.slot);
-  if (typeof r === 'string') { sfx('deny'); st.msg = r; render(); return; }
+  if (typeof r === 'string') { sfx('deny'); render(); void noticeModal('사기 안 됨', esc(r)); return; }
   commit();
   // 107: 금화를 내고 꾸러미가 흔들리다 풀림 → 장비가 튀어나오는 때 (merchant.css mcPop 0.66초) 등급 소리. 효과 줄이기면 바로
   const calm = G.save.settings.reducedEffects, it = findItem(r.id);
