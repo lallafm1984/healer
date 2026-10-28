@@ -115,13 +115,13 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 400, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 350 → 440 · 시전 2.2 → 2.0초 · 2026-10-28 통합 점검: 440 → 400 (주술사와 함께 어려움 · 악몽 모든 묶음에서 기준 평균보다 높았음)
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 125, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300 // 2026-10-19 Lim 「막 이외의 다른건 그전으로 계수를 돌리고 막은 계수를 60프로로 하자」: 300 → 180 → 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 180 → 150 → 2026-10-28 Lim 「너무 강한 직업들의 밸런스를 조금 손보자」: 150 → 125 (Codex QA 탐험 · 던전 악몽 +6.6 · +6.0%p)
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 150, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300 // 2026-10-19 Lim 「막 이외의 다른건 그전으로 계수를 돌리고 막은 계수를 60프로로 하자」: 300 → 180 → 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 180 → 150 → 2026-10-28 Lim 「너무 강한 직업들의 밸런스를 조금 손보자」: 150 → 125 (Codex QA 탐험 · 던전 악몽 +6.6 · +6.0%p) → 150 (같은 날 「결계사 … 다시 벨런스를 잡아보자」: 심판을 낮추며 Lim이 정한 150으로 되돌림)
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 45, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 재사용 90 → 45초 (보호막 30 → 50%는 heroConst WARDER.guard)
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 130, target: 'none' }, // 82: 범위 피해 −25% (성역과 비슷) → 전원 보호막 + 인장
   wardHold: { name: '결계 굳히기', short: '굳히기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 40, amt: 30, target: 'none' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」 → 「막 옮기기 말고 보호막 지속시간을 늘려주는 스킬」: 빛의 창 (보스 공격 + 인장 3명 160) 대신. amt = 늘린 보호막마다 더하는 두께 · 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 재사용 20 → 40초
-  judgment: { name: '심판', short: '심판', slot: 'fast', lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
+  judgment: { name: '심판', short: '심판', slot: 'fast', lv: 6, cast: 2.0, cost: 6, amt: 70, target: 'none' }, // 140 → 90 (79 5-11) → 70 (2026-10-28 Lim 「5칸 전원 회복 · 10인 70% 빼고 다시 벨런스」: 10인 +9 · +10%p)
 };
 
 /** 배우는 레벨 (06 7장) */
@@ -204,13 +204,13 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {400} 회복하고 15초 동안 인장을 붙입니다.' },
-  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {125}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 50%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
-  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다.${WARDER.raid.heal < 1 ? ` 10인 레이드에서는 ${Math.round(WARDER.raid.heal * 100)}%만 회복합니다.` : ''} 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다. 결계력이 ${WARDER.ward.max}칸이면 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.` },
+  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {70}씩 회복합니다. 결계력을 모두 써서 1칸마다 ${Math.round(WARDER.ward.heal * 100)}% 더 회복합니다.` },
 };
 
 /** 패시브 설명 (06 5장, 평온 게이지는 4장 · 82) */

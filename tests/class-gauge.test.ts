@@ -80,30 +80,31 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     for(let i=0;i<LEAF.max;i++)heroApply(f,'sprout',a);
     expect(classGaugeState(f).description).toBe(LEAF.big.heal?`잎 5/5, 들꽃 군락 회복 +${Math.round(LEAF.big.heal*500)}%, 바로 시전`:'잎 5/5, 바로 시전');
   });
-  it('결계사 결계력: 인장이 없던 아군에게 붙일 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +15%, 5칸이면 인원 제한 없이 (2026-10-28 Lim 2안)',()=>{
+  it('결계사 결계력: 인장이 없던 아군에게 붙일 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +15%, 5칸이어도 인원은 그대로 (2026-10-28 Lim 2안 · 「전원 회복은 빼자」)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
     const [a,b]=f.party;
     putSeal(f,a);putSeal(f,a);expect(f.warder!.ward).toBe(1); // 다시 붙이면 시간만 새로
     putSeal(f,b);expect(classGaugeState(f)).toMatchObject({count:2,lit:2,max:WARDER.ward.max});
     const judge=()=>{const live=f.party.filter(u=>u.alive);for(const v of live){v.hp=v.max*0.3;v.seal=f.t+1;}const before=live.map(v=>v.hp);warderApply(f,'judgment',a);return live.map((v,i)=>v.hp-before[i]);};
+    const n=judgeCount(f);
     f.warder!.ward=WARDER.ward.max;
-    expect(judgeCount(f)).toBe(f.party.length);expect(classGaugeState(f)).toMatchObject({percent:100,targetMax:f.party.length});
+    expect(judgeCount(f)).toBe(n);expect(n).toBeLessThan(f.party.length);expect(classGaugeState(f)).toMatchObject({percent:100,targetMax:n});
     const big=judge();
-    expect(f.warder!.ward).toBe(0);expect(judgeCount(f)).toBeLessThan(f.party.length);
-    expect(big.filter(x=>x>0).length).toBe(f.party.filter(u=>u.alive).length); // 5칸: 인원 제한 없이 모두
+    expect(f.warder!.ward).toBe(0);
+    expect(big.filter(x=>x>0).length).toBe(n); // 5칸이어도 심판 인원 그대로
     const small=judge();
     expect(small.filter(x=>x>0).length).toBe(judgeCount(f));
     const i=small.findIndex(x=>x>0);
     expect(big[i]/small[i]).toBeCloseTo(1+WARDER.ward.heal*WARDER.ward.max,5);
     f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
-  it('심판 대상 사람 그림: 최대치는 살아 있는 인원까지 (3인이면 3, 심판 6명이어도), 결계력 5칸이면 파티 인원 (2026-10-28 Lim 4개 안)',()=>{
+  it('심판 대상 사람 그림: 최대치는 살아 있는 인원까지 (3인이면 3, 심판 6명이어도), 결계력 5칸이어도 그대로 (2026-10-28 Lim 4개 안)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
     expect(classGaugeState(f).targetMax).toBe(4);
     f.party.slice(1,3).forEach(u=>{u.alive=false;});
     expect(classGaugeState(f).targetMax).toBe(3);
     f.party.forEach(u=>{u.alive=true;});putSeal(f,f.party[0]);f.warder!.ward=WARDER.ward.max;
-    expect(classGaugeState(f).targetMax).toBe(f.party.length);
+    expect(classGaugeState(f).targetMax).toBe(4);
   });
   it('신성한 힘 칸 수는 실제 최대치: 넘치는 신성한 힘이면 4칸 (2026-10-28 Lim)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'paladin'});
