@@ -336,9 +336,8 @@ function statHelpHtml(): string {
   if (!st.help || st.sheet?.k !== 'mem' || st.ask) { st.help = false; return ''; }
   const groups = STAT_GROUPS.map(g => `<section class="g-card g-stat-card" aria-label="${g.name}"><h4>${g.name}</h4><ul class="g-rows">${g.keys.map(k => `<li class="g-row g-stat-row"><b>${STAT_NAMES[k]}</b><span>${STAT_HELP[k]}</span></li>`).join('')}</ul></section>`).join('');
   return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="능력치 설명 닫기" tabindex="-1"></button>
-    <section class="sheet g-action-confirm g-stat-help" role="dialog" aria-modal="true" aria-labelledby="guildStatTitle" aria-describedby="guildStatDesc">
+    <section class="sheet g-action-confirm g-stat-help" role="dialog" aria-modal="true" aria-labelledby="guildStatTitle">
       <h3 id="guildStatTitle">능력치</h3>
-      <p id="guildStatDesc" class="g-stat-note">1 ~ 20 · 레벨이 오를 때 오릅니다.</p>
       ${groups}
       <div class="g-action-buttons g-one"><button type="button" data-shut>닫기</button></div>
     </section>`;
