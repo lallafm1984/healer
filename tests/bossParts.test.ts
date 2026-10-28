@@ -1148,6 +1148,31 @@ describe('부품 10 (35 3장·4-7): 헤매는 영혼 · 생명 사슬 · 넘치�
     expect(f.weak).toBeNull();
   });
 
+  it('영혼을 놓치면 벌 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」): 잠깐 보스 피해 + · 보스가 받는 피해 −, 시간이 다 되면 되돌아옴', () => {
+    const f = fight();
+    const m0 = f.dmgMult;
+    run(f, { p: 'soul', name: '안개등 정령', short: '등불', hp: 0.3, sec: 1, win: { text: '다시 켜짐' }, fail: { text: '꺼짐', dmg: 0, rage: { pct: 0.25, sec: 10 } } });
+    steps(f, 1.1);
+    expect(f.souls).toHaveLength(0);
+    expect(f.dmgMult / m0).toBeCloseTo(1.25);
+    expect(f.weak!.cut).toBeCloseTo(-0.25);
+    steps(f, 10.1);
+    expect(f.dmgMult / m0).toBeCloseTo(1);
+    expect(f.weak).toBeNull();
+    run(f, { p: 'soul', name: '반딧불', short: '반딧', hp: 0.3, sec: 1, win: { text: '빛남' }, fail: { text: '꺼짐', dmg: 0, guard: { pct: 0.25, sec: 12 } } });
+    steps(f, 1.1);
+    expect(f.expose!.vuln).toBeCloseTo(0.75);
+    steps(f, 12.1);
+    expect(f.expose).toBeNull();
+    // 채우면 아무 일 없음
+    const g = fight(), g0 = g.dmgMult;
+    run(g, { p: 'soul', name: '안개등 정령', short: '등불', hp: 0.3, sec: 5, win: { text: '다시 켜짐' }, fail: { text: '꺼짐', dmg: 0, rage: { pct: 0.25, sec: 10 } } });
+    heal(g, g.souls[0], 1e6, true, true);
+    E.step(g);
+    expect(g.dmgMult).toBeCloseTo(g0);
+    expect(g.weak).toBeNull();
+  });
+
   it('생명 사슬 균형형: 체력 비율 차이가 30%p를 넘으면 끊어지며 둘 다 피해 (걸린 뒤 2초는 안 끊어짐)', () => {
     const f = fight();
     f.party.forEach(v => { v.hp = v.max; });
@@ -1196,18 +1221,34 @@ describe('부품 10 (35 3장·4-7): 헤매는 영혼 · 생명 사슬 · 넘치�
     expect(b.hp - hb).toBeCloseTo(25);
   });
 
-  it('넘치는 빛: 그릇은 넘친 치유로 차서 전원 보호막, 과부하 표식은 넘친 만큼 이웃 피해', () => {
+  it('넘치는 빛: 그릇은 넘친 치유로 차면 피해 없이 사라짐 (보호막 없음), 못 채우면 깨지며 전원 피해 × 덜 찬 비율, 과부하 표식은 넘친 만큼 이웃 피해', () => {
     const f = fight();
-    run(f, { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, shield: 6 });
+    run(f, { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, dmg: 100 });
     const need = f.vessel!.need;
     const u = dealer(f);
     u.hp = u.max;
     heal(f, u, need / 2, true, true);
     expect(f.vessel!.fill).toBeCloseTo(need / 2);
     heal(f, u, need / 2, true, true);
+    const hp0 = f.party.map(v => v.hp);
     E.step(f);
     expect(f.vessel).toBeNull();
-    expect(f.party.every(v => v.shield > 5)).toBe(true);
+    expect(f.party.every(v => v.shield === 0)).toBe(true); // 2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」: 예전 전원 보호막
+    expect(f.party.map(v => v.hp)).toEqual(hp0);
+    // 시간이 다 되면 깨지며 전원 피해: 하나도 못 채우면 그대로, 반만 채우면 절반
+    const lost = (part: number) => {
+      const h = fight();
+      run(h, { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 1, dmg: 100 });
+      const w = dealer(h);
+      w.hp = w.max;
+      if (part) heal(h, w, h.vessel!.need * part, true, true);
+      h.party.forEach(v => { v.hp = v.max; });
+      while (h.vessel) E.step(h);
+      return h.party.map(v => v.max - v.hp);
+    };
+    const full = lost(0), half = lost(0.5);
+    expect(full.every(x => x > 1)).toBe(true);
+    half.forEach((x, i) => expect(x).toBeCloseTo(full[i] / 2, 0));
     // 과부하: 넘친 치유 × over
     const g = fight();
     const v = g.party.find(x => !x.me && g.party.some(w => w !== x && hexDist(g.cells[w.cell], g.cells[x.cell]) === 1))!;
@@ -1251,11 +1292,11 @@ describe('기믹 연출 신호 (37 4장 F-1): 화면이 그림을 붙일 순간'
     a.hp = a.max * 0.3;
     E.step(f);
     expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'link-snap', on: l.a, to: l.b });
-    run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 10, shield: 3 });
+    run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 10, dmg: 30 });
     f.vessel!.fill = f.vessel!.need;
     f.events.length = 0;
     E.step(f);
-    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'bubble', all: true });
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'overflow', all: true });
     f.events.length = 0;
     stunBoss(f, 3);
     expect(fxOf(f)).toEqual([{ type: 'fx', name: 'dizzy' }]);

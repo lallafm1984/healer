@@ -350,8 +350,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     case 'vessel':
       // 넘치는 빛 그릇형 (P-OVER): 끝 = 파티 최대 체력 합 × need
       if (f.vessel) return;
-      f.vessel = { name: e.name, fill: 0, need: f.party.reduce((a, u) => a + u.max, 0) * e.need, until: f.t + e.sec, shield: e.shield };
-      emit(f, { type: 'msg', text: `${e.name}: ${e.sec}초 안에 넘친 치유로 채우면 전원 보호막` });
+      f.vessel = { name: e.name, fill: 0, need: f.party.reduce((a, u) => a + u.max, 0) * e.need, until: f.t + e.sec, dmg: e.dmg };
+      emit(f, { type: 'msg', text: `${e.name}: ${e.sec}초 안에 넘친 치유로 못 채우면 깨지며 전원 피해` });
       return;
     case 'share':
       // 집결 분담 (P-SOAK): 대상과 이웃 칸 아군이 나눠 받음. 혼자면 그대로
@@ -758,34 +758,39 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
       f.weak = { cut: w.weak.pct, until: f.t + w.weak.sec };
     }
     if (w.vuln) f.expose = { vuln: 1 + w.vuln.pct, until: f.t + w.vuln.sec };
-    if (w.partyHeal) { // 꽃의 파티 회복 (113 6.1): 간접 치유 (회복 숫자 · 받는 치유 효과 · 상한은 공통 경로대로)
-      emit(f, { type: 'fx', name: 'bloom', cell: at.i });
-      for (const v of living(f)) heal(f, v, v.max * w.partyHeal.pct, false, true);
-    }
     if (w.fx) emit(f, { type: 'fx', name: w.fx, all: true });
     return;
   }
-  if (s.fail.dmg > 0 || s.fail.debuff) { emit(f, { type: 'sound', name: 'aoe' }); emit(f, { type: 'fx', name: 'splash', cell: at.i }); } // 놓쳐도 피해 없는 영혼 (113: 수리 정령 · 반딧불)은 조용히
+  if (s.fail.dmg > 0 || s.fail.debuff || s.fail.rage || s.fail.guard) { emit(f, { type: 'sound', name: 'aoe' }); emit(f, { type: 'fx', name: 'splash', cell: at.i }); }
   emit(f, { type: 'msg', text: `${s.name} 놓침: ${s.fail.text}` });
   const hit = s.fail.near ? living(f).filter(v => hexDist(cellOf(f, v), at) === 1) : living(f);
   if (s.fail.dmg > 0 || s.fail.debuff) for (const v of hit) { if (s.fail.dmg > 0) damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
   if (s.fail.fx) emit(f, { type: 'fx', name: s.fail.fx, all: true }); // 성소 문이 한 칸 열림 (52 E)
   if (s.fail.boost) empowerBoss(f, s.fail.boost, `${s.name} 놓침`); // 악몽 오르말: 조각을 잃을 때마다 +5% (51 4-3)
+  if (s.fail.rage) { // 수리 정령 · 안개등 정령 (2026-10-28 Lim: 예전 채우면 적 피해 −): sec초 동안 보스 · 적이 주는 피해 +pct
+    if (f.weak) f.dmgMult /= 1 - f.weak.cut;
+    f.dmgMult *= 1 + s.fail.rage.pct;
+    f.weak = { cut: -s.fail.rage.pct, until: f.t + s.fail.rage.sec };
+  }
+  if (s.fail.guard) f.expose = { vuln: 1 - s.fail.guard.pct, until: f.t + s.fail.guard.sec }; // 빛을 잃은 반딧불 (예전 채우면 보스가 받는 피해 +)
 }
 
-/** 매 틱 넘치는 빛 그릇: 가득 차면 전원 보호막, 시간이 다 되면 그냥 사라짐 */
+/** 매 틱 넘치는 빛 그릇: 가득 차면 피해 없이 사라짐, 시간이 다 되면 깨지며 전원 dmg × 덜 찬 비율 (2026-10-28 Lim: 예전 가득 차면 전원 보호막) */
 export function vesselTick(f: Fight): void {
   const v = f.vessel!;
   if (v.fill >= v.need - 1e-9) {
     f.vessel = null;
-    for (const u of living(f)) u.shield = Math.max(u.shield, v.shield);
     if (f.sp) specVessel(f);
     emit(f, { type: 'sound', name: 'gauge' });
-    emit(f, { type: 'fx', name: 'bubble', all: true });
-    emit(f, { type: 'msg', text: `${v.name} 가득: 전원 보호막 ${v.shield}초` });
+    emit(f, { type: 'fx', name: 'overflow', all: true });
+    emit(f, { type: 'msg', text: `${v.name} 가득: 그릇이 잠잠해짐` });
   } else if (f.t + 1e-9 >= v.until) {
     f.vessel = null;
-    emit(f, { type: 'msg', text: `${v.name} 사라짐` });
+    const left = Math.max(0, 1 - v.fill / v.need);
+    emit(f, { type: 'sound', name: 'aoe' });
+    emit(f, { type: 'fx', name: 'splash', all: true });
+    emit(f, { type: 'msg', text: `${v.name} 깨짐: 전원 피해` });
+    for (const u of living(f)) damage(f, u, v.dmg * left, true);
   }
 }
 

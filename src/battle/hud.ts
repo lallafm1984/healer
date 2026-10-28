@@ -163,7 +163,7 @@ function watchText(F: Fight): string {
   return F.t < w.until ? ` · 주시 중 ${Math.ceil(w.until - F.t)}` : ` · 주시 ${Math.min(99, Math.floor((w.fill / w.max) * 100))}%`;
 }
 
-/** 보스 체력바 아래 게이지: 무력화 = 파랑 · 빛 그릇 = 연두 (채울수록 좋음), 주시 = 호박색 (차면 나를 노림). 내 위협 (96)은 안 보임 */
+/** 보스 체력바 아래 게이지: 무력화 = 파랑 · 빛 그릇 = 연두 (못 채우면 깨지며 전원 피해), 주시 = 호박색 (차면 나를 노림). 내 위협 (96)은 안 보임 */
 function bossGauge(F: Fight): void {
   const bar = $('bossFill').parentElement!;
   let g = bar.querySelector<HTMLElement>('#bossGauge');
@@ -489,7 +489,7 @@ export function updateStage(now: number): void {
   setBar($('bossLag'), pct);
   bossAura(F);
   if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), '처치');
-  else setText($('bossHpText'), `${Math.ceil(hpNow).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
+  else setText($('bossHpText'), `${Math.ceil(hpNow).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · ${F.weak.cut < 0 ? '성남' : '약해짐'} ${Math.ceil(F.weak.until - F.t)}` : ''}${F.expose && F.expose.vuln < 1 ? ` · 단단해짐 ${Math.ceil(F.expose.until - F.t)}` : ''}${watchText(F)}`);
   bossGauge(F);
   // 위치 줄 (2026-10-16 Lim 「전체적으로 통일되게 장소명과 난이도만, 잘리지 않게」): 모든 전투 「장소 · 난이도」, 주간 도전은 「장소 · 도전 n단계」.
   // 구간 진행은 시간 줄 점, 페이즈는 큰 알림, 적 이름은 이름 줄이 보여 줌

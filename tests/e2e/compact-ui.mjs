@@ -515,7 +515,7 @@ async function bossStatusTextCases(page, ok) {
       if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
       await page.evaluate(() => {
         const f = window.__proto.F, saved = window.__bossStatusFixture;
-        f.vessel = { name: '백합 꽃병', fill: 50, need: 100, until: f.t + 15, shield: .5 };
+        f.vessel = { name: '백합 꽃병', fill: 50, need: 100, until: f.t + 15, dmg: 0 };
         f.weak = { cut: .25, until: f.t + 10 }; f.dmgMult = saved.dmgMult * .75;
       });
       await page.clock.runFor(80);

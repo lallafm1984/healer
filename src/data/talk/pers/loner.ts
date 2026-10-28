@@ -150,7 +150,7 @@ export const LINES: TalkLines = {
   linkShare: ['반반.', '…나눠 맞음', '둘이 반씩'],
   linkSnap: ['툭.', '…끊어짐', '윽 사슬'],
   vesselOn: ['그릇.', '…넘쳐도 됨', '마구 힐 ㄱ'],
-  vesselFull: ['…반짝', '보호막 ㄳ', '그릇 참.'],
+  vesselFull: ['…반짝', '안 깨짐 ㄳ', '그릇 참.'],
   overMark: ['…딱 맞게', '넘치면 안 됨', '나 조금만.', '…옆이 아픔'],
 
   // 파티

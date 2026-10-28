@@ -351,8 +351,8 @@ describe('전투 중 말풍선', () => {
       expect(seq(talkAfter('warden', { p: 'link', kind: 'share', name: '가문의 사슬', sec: 5 }, 7).out)).toEqual(['linkShare']);
       expect(seq(talkAfter('warden', { p: 'link', kind: 'balance', name: '저주 실', sec: 5, dmg: 10 }, 7).out)).toEqual(['linkOn']);
     });
-    it('넘치는 빛 그릇: 나오면 한마디, 차면 보호막 (보호막 받음 대사 아님), 못 채우면 말 없음', () => {
-      const VESSEL: SkillEffect = { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, shield: 6 };
+    it('넘치는 빛 그릇: 나오면 한마디, 차면 한마디, 못 채우면 말 없음', () => {
+      const VESSEL: SkillEffect = { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, dmg: 0 };
       const { out } = talkAfter('warden', VESSEL, 4, g => { const u = g.party.find(x => x.role === 'ranged')!; u.hp = u.max; heal(g, u, g.vessel!.need, true, true); }, 2);
       expect(seq(out)).toEqual(['vesselOn', 'vesselFull']);
       expect(seq(talkAfter('warden', { ...VESSEL, sec: 3 } as SkillEffect, 6).out)).toEqual(['vesselOn']);

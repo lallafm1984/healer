@@ -892,7 +892,6 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   shockwave: { size: 2.6, color: 0xd9a66b, ms: 600, wide: true },
   crumble: { size: 1.7, color: 0x9a8f80, ms: 500 },
   'soul-purify': { size: 2.1, color: 0x8fe3e0, ms: 600 },
-  bloom: { size: 2.6, color: 0xffc6d9, ms: 800, art: 'fx-bloom-heal' }, // 꽃의 파티 회복 (113 6.1): 꽃이 활짝 피며 퍼짐
   splash: { size: 1.9, color: 0x9a7fc4, tint: true },
   'link-snap': { size: 1.5, color: 0xc04ad8, ms: 500 },
   bubble: { size: 1.9, color: 0xffe08a, ms: 600, tint: true },

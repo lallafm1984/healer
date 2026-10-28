@@ -520,11 +520,11 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'repairbay', kind: 'dungeon', name: '버려진 정비동', place: '녹슨 고원 · 골렘', stageLv: 6, unlockLv: 6, ready: true, anchor: 'mine',
-    bosses: ['고장 난 절삭기', '고철 감독관 덜컥'], tip: '수리 정령을 채우면 적의 공격이 약해집니다.', fights: () => DUNGEONS.repairbay.segments, size: five,
+    bosses: ['고장 난 절삭기', '고철 감독관 덜컥'], tip: '수리 정령을 못 채우면 적의 공격이 세집니다.', fights: () => DUNGEONS.repairbay.segments, size: five,
   },
   {
     key: 'gravefirefly', kind: 'explore', name: '반딧불 묘지길', place: '왕도 변두리 · 역병 교단', stageLv: 7, unlockLv: 7, ready: true, anchor: 'cemetery',
-    bosses: ['등불 도둑 후욱'], tip: '반딧불을 살리면 적의 약점이 드러납니다.', fights: () => DUNGEONS.gravefirefly.segments, size: three,
+    bosses: ['등불 도둑 후욱'], tip: '반딧불을 못 살리면 적이 단단해집니다.', fights: () => DUNGEONS.gravefirefly.segments, size: three,
   },
   {
     key: 'wailhill', kind: 'explore', name: '묘지 곡소리 언덕', place: '왕도 변두리 · 역병 교단', stageLv: 7, unlockLv: 7, ready: true, anchor: 'cemetery',
@@ -549,7 +549,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'sproutworks', kind: 'dungeon', name: '새싹 급수장', place: '왕도 지하 온실 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true, anchor: 'greenhouse',
-    bosses: ['급수 경비덩굴', '마른 덩굴 말림'], tip: '꽃봉오리를 채우면 파티가 회복됩니다.', fights: () => DUNGEONS.sproutworks.segments, size: five,
+    bosses: ['급수 경비덩굴', '마른 덩굴 말림'], tip: '꽃봉오리를 못 채우면 가시가 터집니다.', fights: () => DUNGEONS.sproutworks.segments, size: five,
   },
   {
     key: 'pollenstore', kind: 'dungeon', name: '꽃가루 저장실', place: '왕도 지하 온실 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true, anchor: 'greenhouse',
@@ -569,7 +569,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'herbcart', kind: 'explore', name: '야간 약초수레길', place: '왕도 밖 숲 · 역병 교단', stageLv: 12, unlockLv: 12, ready: true, anchor: 'cultcamp',
-    bosses: ['약초 도둑 훔침'], tip: '약초 정령을 채우면 질병이 하나씩 사라집니다.', fights: () => DUNGEONS.herbcart.segments, size: three,
+    bosses: ['약초 도둑 훔침'], tip: '약초 정령을 못 채우면 모두 질병에 걸립니다.', fights: () => DUNGEONS.herbcart.segments, size: three,
   },
   // 113 3차 (Lv 13~16)
   {
@@ -590,11 +590,11 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'mistlamp', kind: 'explore', name: '안개등 징검길', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true, anchor: 'marsh',
-    bosses: ['안개 사냥꾼 흐릿'], tip: '안개등을 채우면 다음 공격을 약하게 받습니다.', fights: () => DUNGEONS.mistlamp.segments, size: three,
+    bosses: ['안개 사냥꾼 흐릿'], tip: '안개등을 못 채우면 적의 공격이 세집니다.', fights: () => DUNGEONS.mistlamp.segments, size: three,
   },
   {
     key: 'lightbasin', kind: 'explore', name: '빛고임 수초밭', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true, anchor: 'marsh',
-    bosses: ['물방울지기 또롱'], tip: '넘친 치유를 모으면 다음 공격이 약해집니다.', fights: () => DUNGEONS.lightbasin.segments, size: three,
+    bosses: ['물방울지기 또롱'], tip: '넘친 치유로 그릇을 못 채우면 그릇이 깨지며 모두 아픕니다.', fights: () => DUNGEONS.lightbasin.segments, size: three,
   },
   {
     key: 'reedwatch', kind: 'explore', name: '갈대 감시초소', place: '늪지 · 늪의 부족', stageLv: 16, unlockLv: 16, ready: true, anchor: 'frogpond',
@@ -627,7 +627,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'dewrest', kind: 'explore', name: '이슬꽃 쉼터', place: '독안개 늪 끝 · 늪의 부족', stageLv: 19, unlockLv: 19, ready: true, anchor: 'mushmarsh',
-    bosses: ['이슬 먹는 달팽이 꾸물'], tip: '여럿이 다쳤다면 이슬꽃을 회복합니다.', fights: () => DUNGEONS.dewrest.segments, size: three,
+    bosses: ['이슬 먹는 달팽이 꾸물'], tip: '이슬꽃을 못 채우면 시들며 모두 아픕니다.', fights: () => DUNGEONS.dewrest.segments, size: three,
   },
   {
     key: 'sporetrack', kind: 'explore', name: '포자 굴림길', place: '독안개 늪 끝 · 늪의 부족', stageLv: 19, unlockLv: 19, ready: true, anchor: 'mushmarsh',

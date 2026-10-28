@@ -3,7 +3,7 @@
  * 탐험 ㉒ 빗자루 정류장 · 던전 ⑱ 구름 마법학교 (퐁퐁이 · 뒤죽박죽), 20인 ⑦ 그림자 성벽 (쾅쾅이 · 슝슝이 · 어둑이)
  */
 import { describe, expect, it } from 'vitest';
-import { BOSSES } from '../src/data/bosses';
+import { BOSSES, U } from '../src/data/bosses';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { PLACE_KINDS } from '../src/data/equipment';
@@ -255,8 +255,8 @@ describe('F3 콘텐츠', () => {
 });
 
 describe('던전 ⑱ 구름 마법학교 · 탐험 ㉒', () => {
-  it('퐁퐁이 거품 플라스크: 넘친 치유가 차면 전원 보호막 (악몽 6초), 보호막이 있으면 실습 번개 피뢰침', () => {
-    for (const [mythic, sec] of [[false, 8], [true, 6]] as const) {
+  it('퐁퐁이 거품 플라스크 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」, 예전 차면 전원 보호막): 차면 피해 없이 사라짐, 못 채우면 깨지며 전원 피해 (악몽 더 아픔), 높은 체력 이웃은 실습 번개 피뢰침', () => {
+    for (const mythic of [false, true]) {
       const f = boss('pongpong', mythic);
       skillOn(f, mythic ? 'flaskm' : 'flask');
       steps(f, 0.05);
@@ -264,13 +264,15 @@ describe('던전 ⑱ 구름 마법학교 · 탐험 ㉒', () => {
       f.vessel!.fill = f.vessel!.need;
       steps(f, 0.05);
       expect(f.vessel).toBeNull();
-      expect(f.party.filter(u => u.alive).every(u => u.shield >= sec - 0.2)).toBe(true);
+      expect(f.party.every(u => u.shield === 0)).toBe(true);
       const u = f.party.find(x => x.role === 'ranged' && !x.me && near(f, x).length)!;
-      for (const v of near(f, u)) v.hp = v.max * 0.5; // 체력이 낮아도 보호막이면 피뢰침
+      for (const v of near(f, u)) v.hp = v.max * 0.95; // 넘치게 힐해 높아진 이웃이 피뢰침
       chainFrom(f, u, 50, 4, 0.25, '실습 번개');
       expect(f.events.filter(e => e.type === 'fx' && e.name === 'chain-bolt')).toHaveLength(1);
       expect(f.events.some(e => e.type === 'fx' && e.name === 'chain-rod')).toBe(true);
     }
+    expect(skill('pongpong', 'flaskm').effect).toMatchObject({ dmg: U.dps(0.15) });
+    expect(skill('pongpong', 'flask').effect).toMatchObject({ dmg: U.dps(0.12) });
     // 실습 번개는 플라스크가 모이는 12초가 끝난 뒤 떨어짐
     const fl = skill('pongpong', 'flask'), bolt = skill('pongpong', 'bolt');
     expect(bolt.first! + bolt.cast).toBeGreaterThan(fl.first! + 12);

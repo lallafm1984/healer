@@ -363,9 +363,10 @@ export type SkillEffect =
   | { p: 'link'; kind: 'balance' | 'share'; name: string; sec: number; pick?: 'tanks' | 'others'; gap?: number; dmg?: number; aim?: 'tank' | 'party'; pairs?: number; pairsMythic?: number }
   /**
    * 넘치는 빛 그릇형 (P-OVER, 35 4-7): sec초 동안 넘친 치유가 그릇에 모임 (끝 = 파티 최대 체력 합 × need).
-   * 가득 차면 전원 shield초 보호막 (받는 피해 −40%). 못 채우면 그냥 사라짐. 과부하형은 DebuffDef.over
+   * 가득 차면 피해 없이 사라짐. 못 채우면 그릇이 깨지며 살아 있는 모두에게 dmg × 덜 찬 비율 (마법). 과부하형은 DebuffDef.over.
+   * 보스 기술은 파티를 돕지 않음 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」: 예전 가득 차면 전원 보호막 · 못 채우면 그냥 사라짐)
    */
-  | { p: 'vessel'; name: string; need: number; sec: number; shield: number }
+  | { p: 'vessel'; name: string; need: number; sec: number; dmg: number }
   /**
    * 집결 분담 (P-SOAK, 05 4-A 피의 서약): 예고 때 고른 사람(target random)과 그 이웃 칸 아군이 dmg를 인원 수로 나눠 받음 (마법).
    * 예고 동안 가까운 파티원이 그 옆으로 모임 (외톨이 · 겁쟁이 · 탱커 · 나는 안 감). 혼자면 dmg 그대로
@@ -402,12 +403,11 @@ export type SkillEffect =
 
 /**
  * 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초).
- * partyHeal = 살아 있는 파티원 (나 포함, 영혼 · 적 빼고) 각자 최대 체력 × pct 즉시 회복 (꽃의 파티 회복, 113 6.1). 공통 치유 경로 · 간접 치유 (직접 힐 판정 없음)
+ * (꽃의 파티 회복 partyHeal은 2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」에서 없앰: 보스 기술은 파티를 돕지 않음)
  */
 export interface SoulWin {
   text: string;
   cure?: string;
-  partyHeal?: { pct: number };
   heal?: { pct: number; sec: number };
   weak?: { pct: number; sec: number };
   vuln?: { pct: number; sec: number };
@@ -415,13 +415,18 @@ export interface SoulWin {
   fx?: FxName;
 }
 
-/** 영혼을 못 채웠을 때: dmg (마법), near = 영혼 이웃 칸만 (아니면 전원). debuff = 맞은 사람에게. boost = 보스가 주는 피해 +비율 (악몽 오르말, 51 4-3), fx = 판 전체 이펙트 (문이 열림) */
+/**
+ * 영혼을 못 채웠을 때: dmg (마법), near = 영혼 이웃 칸만 (아니면 전원). debuff = 맞은 사람에게. boost = 보스가 주는 피해 +비율 (악몽 오르말, 51 4-3), fx = 판 전체 이펙트 (문이 열림).
+ * rage = sec초 동안 보스 · 적이 주는 피해 +pct, guard = sec초 동안 보스가 받는 피해 −pct (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」: 놓쳐도 피해 없던 영혼의 벌)
+ */
 export interface SoulFail {
   text: string;
   dmg: number;
   near?: boolean;
   debuff?: DebuffDef;
   boost?: number;
+  rage?: { pct: number; sec: number };
+  guard?: { pct: number; sec: number };
   fx?: FxName;
 }
 
@@ -778,7 +783,7 @@ const TOSS_HOW = '보스를 맞는 탱커를 4초 하늘로. 그동안 보스는
 /** 쌩쌩이 번개 창 찌르기 (탱커 교대): 받는 피해 +15% 중첩 (최대 4), 4중첩이면 다른 탱커가 가져감 */
 const LANCE_JAB: DebuffDef = { name: '번개 창 찌르기', type: '물리', left: 20, lock: true, stackMax: 4, vuln: 0.15, swap: 4 };
 /** 거품 플라스크 (56 3-2 퐁퐁이: 넘치는 빛 × 연쇄 번개) 공략 글 */
-const FLASK_HOW = '12초 동안 넘친 치유가 플라스크에 모임. 가득 차면 전원 보호막이고, 보호막이 있는 사람은 연쇄 번개의 피뢰침. 번개 전에 일부러 넘치게 힐';
+const FLASK_HOW = '12초 동안 넘친 치유가 플라스크에 모임. 못 채우면 플라스크가 깨지며 전원 피해 (덜 찬 만큼). 넘치게 힐해서 채우면 모두 높아져 연쇄 번개의 피뢰침도 됨';
 /** 뒤죽박죽 거꾸로 주문 (P-FLIP, 마법): 10초 뒤 체력 비율이 뒤집힘 (가장 낮아도 5%) */
 const UPSIDE: DebuffDef = { name: '거꾸로 주문', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } };
 /** 어둠물 밀물 (P-TIDE, 59 5장) 공략 글 */
@@ -1428,7 +1433,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     hard: { skill: 'ice', n: 1 }, // 111 어려움 변화: 마나 얼음 인원 +1
     enrage: { name: '강의 폭주', period: 2, dmg: 280 },
   },
-  // 백합 여사제 (46 3-3 ①, 던전 ⑩ 백합 납골당): 넘치는 빛 그릇형 (일부러 넘치게 → 전원 보호막) · 시든 백합 (받는 치유 −50%). 40% 아래 꽃잎 폭풍 38%.
+  // 백합 여사제 (46 3-3 ①, 던전 ⑩ 백합 납골당): 넘치는 빛 그릇형 (일부러 넘치게 채움, 못 채우면 깨지며 전원 피해) · 시든 백합 (받는 치유 −50%). 40% 아래 꽃잎 폭풍 38%.
   // 악몽은 꽃병 끝 30%. 목표 2:50 · 광폭화 4:00
   priestess: {
     phase: [1, ''],
@@ -1437,8 +1442,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('백합 지팡이', '지팡', 8, 16, U.tank(0.5)),
       ...([['vessel', 0.25, false], ['vessel2', 0.3, true]] as const).map(([key, need, mythic]): SkillDef => ({
         key, name: '백합 꽃병', icon: '꽃병', kind: 'instant', first: 14, period: 40, cast: 0, when: { mythic },
-        how: '12초 동안 넘친 치유가 꽃병에 모임. 가득 차면 전원 보호막이라 곧 올 꽃잎 폭풍이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게',
-        effect: { p: 'vessel', name: '백합 꽃병', need, sec: 12, shield: 10 },
+        how: '12초 동안 넘친 치유가 꽃병에 모임. 못 채우면 꽃병이 깨지며 전원 피해 (덜 찬 만큼). 곧 꽃잎 폭풍도 오니 광역 힐 · 큰 힐을 일부러 넘치게',
+        effect: { p: 'vessel', name: '백합 꽃병', need, sec: 12, dmg: U.dps(0.2) },
       })),
       { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 25, period: 40, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.3), phaseDmg: { 2: U.dps(0.38) } } },
       { key: 'wilt', name: '시든 백합', icon: '시든', kind: 'instant', first: 8, period: 18, cast: 0,
@@ -1489,8 +1494,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     skills: [
       AUTO(85),
       { key: 'vessel', name: '백합 꽃병', icon: '꽃병', kind: 'instant', first: 12, period: 36, cast: 0,
-        how: '12초 동안 넘친 치유가 꽃병에 모임. 가득 차면 전원 보호막. 일부러 넘치게 힐하기',
-        effect: { p: 'vessel', name: '백합 꽃병', need: 0.25, sec: 12, shield: 10 } },
+        how: '12초 동안 넘친 치유가 꽃병에 모임. 못 채우면 꽃병이 깨지며 전원 피해 (덜 찬 만큼). 일부러 넘치게 힐하기',
+        effect: { p: 'vessel', name: '백합 꽃병', need: 0.25, sec: 12, dmg: U.dps(0.15) } },
       { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 23, period: 36, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.21) } },
       { key: 'wilt', name: '시든 백합', icon: '시든', kind: 'instant', first: 8, period: 18, cast: 0, // 111 2-B (던전 백합 납골당에서 빌림)
         how: '받는 치유 −35% (저주). 지우면 꽃병을 채우기 쉬움, 못 지우면 걸린 사람은 더 오래 힐',
@@ -3017,7 +3022,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     hard: { skill: 'cough', n: 1 }, // 111 어려움 변화: 포자 기침 인원 +1
     enrage: { name: '이끼 뒤덮기', period: 3, dmg: 210 },
   },
-  // 심장의 숨 후우 (바닥, 20인 ⑤ 최종): 1페이즈 들숨 (깊은 들숨: 뒷줄 3명 끌어옴 · 그림자 손길) → 65% 날숨 (20인 넘치는 빛 그릇: 숨결 그릇이 차면 전원 보호막 → 큰 날숨)
+  // 심장의 숨 후우 (바닥, 20인 ⑤ 최종): 1페이즈 들숨 (깊은 들숨: 뒷줄 3명 끌어옴 · 그림자 손길) → 65% 날숨 (20인 넘치는 빛 그릇: 숨결 그릇을 못 채우면 깨지며 전원 피해 → 큰 날숨)
   // → 35% 심장의 고동 (모두 + 심장 박동, 칠 때마다 세짐). 악몽은 큰 날숨 딜체 40%. 목표 6:00 · 광폭화 8:00
   huu: {
     phase: [1, '1페이즈 · 들숨'],
@@ -3029,11 +3034,11 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
         how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
       { key: 'bowl', name: '숨결 그릇', icon: '그릇', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2, 3] },
-        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 큰 날숨이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게',
-        effect: { p: 'vessel', name: '숨결 그릇', need: 0.06, sec: 12, shield: 10 } },
+        how: '12초 동안 넘친 치유가 그릇에 모임. 못 채우면 그릇이 깨지며 전원 피해 (덜 찬 만큼). 곧 큰 날숨도 오니 광역 힐 · 큰 힐을 일부러 넘치게',
+        effect: { p: 'vessel', name: '숨결 그릇', need: 0.06, sec: 12, dmg: U.dps(0.2) } },
       ...([false, true] as const).map((mythic): SkillDef => ({
         key: mythic ? 'exhalem' : 'exhale', name: '큰 날숨', icon: '날숨', kind: 'aoe', first: null, period: 30, cast: 4, warn: 'aoe', when: { phase: [2, 3], mythic },
-        ...(mythic ? { hidden: true } : { how: '숨결 그릇이 차면 보호막으로 막음. 못 채웠으면 맞기 전에 광역 선힐' }),
+        ...(mythic ? { hidden: true } : { how: '숨결 그릇 바로 뒤에 옴. 그릇을 채우며 넘친 힐로 모두 높여 두고, 맞기 전에 광역 선힐' }),
         effect: { p: 'all', dmg: U.dps(mythic ? 0.4 : 0.3) },
       })),
       { key: 'beat', name: '심장 박동', icon: '박동', kind: 'aoe', first: null, period: 18, cast: 3, warn: 'aoe', when: { phase: [3] },
@@ -3328,7 +3333,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     skills: [
       AUTO(85),
       { key: 'flask', name: '거품 플라스크', icon: '거품', kind: 'instant', first: 4, period: 14, cast: 0, how: FLASK_HOW,
-        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, shield: 8 } },
+        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, dmg: 70 } },
       { key: 'bolt', name: '실습 번개', icon: '실습', kind: 'buster', first: 14, period: 14, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
         effect: { p: 'chain', dmg: 120, jumps: 2 } },
       { key: 'twist', name: '꼬인 주문', icon: '꼬임', kind: 'instant', first: 6, period: 12, cast: 0,
@@ -3341,8 +3346,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     enrage: { name: '거품 폭발', period: 2, dmg: 200 },
   },
   // ---------- 묶음 F3 던전 ⑱ 구름 마법학교 (56 3-2, Lv 90 · 폭주한 마도사 · 마법): 퐁퐁이 · 뒤죽박죽 ----------
-  // 실험 조교 퐁퐁이 (①): 보호막 피뢰침 (넘친 치유가 거품 플라스크에 모여 가득 차면 전원 보호막 → 보호막이 있는 사람은 연쇄 번개 피뢰침) · 실습 번개 (4번까지) · 꼬인 주문 (마법).
-  // 악몽은 플라스크 보호막 6초. 목표 3:00 · 광폭화 4:00
+  // 실험 조교 퐁퐁이 (①): 거품 플라스크 (넘친 치유를 모음, 못 채우면 깨지며 전원 피해 · 넘치게 힐해 높아진 사람은 연쇄 번개 피뢰침) · 실습 번개 (4번까지) · 꼬인 주문 (마법).
+  // 악몽은 플라스크가 깨질 때 더 아픔. 목표 3:00 · 광폭화 4:00
   pongpong: {
     phase: [1, ''],
     skills: [
@@ -3351,10 +3356,10 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ...([false, true] as const).map((mythic): SkillDef => ({
         key: mythic ? 'flaskm' : 'flask', name: '거품 플라스크', icon: '거품', kind: 'instant', first: 4, period: 14, cast: 0, when: { mythic },
         ...(mythic ? { hidden: true } : { how: FLASK_HOW }),
-        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, shield: mythic ? 6 : 8 },
+        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, dmg: U.dps(mythic ? 0.15 : 0.12) },
       })),
       { key: 'bolt', name: '실습 번개', icon: '실습', kind: 'buster', first: 14, period: 14, cast: 3, warn: 'buster', target: { p: 'random', n: 1 },
-        how: `${CHAIN_HOW}. 거품 플라스크 보호막이 있으면 바로 멈춤`, effect: { p: 'chain', dmg: U.dps(0.3), jumps: 4 } },
+        how: `${CHAIN_HOW}. 거품 플라스크를 채우며 모두 높여 두면 바로 멈춤`, effect: { p: 'chain', dmg: U.dps(0.3), jumps: 4 } },
       { key: 'twist', name: '꼬인 주문', icon: '꼬임', kind: 'instant', first: 6, period: 16, cast: 0,
         effect: { p: 'debuff', n: 2, debuff: { name: '꼬인 주문', type: '마법', left: 8, dot: U.dps(0.025) } } },
     ],
@@ -3705,7 +3710,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     hard: { skill: 'scale', n: 1 }, // 111 어려움 변화: 저주 비늘 인원 +1
     enrage: { name: '소용돌이 조임', period: 3, dmg: 210 },
   },
-  // 어둠물 여왕 검은물결 (소용돌이, 최종 3페이즈): 1 밀물 (소용돌이 밀물 · 달빛 그릇: 넘친 치유가 모이면 전원 보호막) → 2 대출 (생명 대출 4명: 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 · 검은 비)
+  // 어둠물 여왕 검은물결 (소용돌이, 최종 3페이즈): 1 밀물 (소용돌이 밀물 · 달빛 그릇: 넘친 치유로 못 채우면 깨지며 전원 피해) → 2 대출 (생명 대출 4명: 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 · 검은 비)
   // → 3 해일 (아래 두 줄 12초, 그동안 잠긴 사람의 빚은 두 배로 불어남). 악몽은 생명 대출 5명. 목표 6:00 · 광폭화 8:00
   geomeun: {
     phase: [1, '1페이즈 · 밀물'],
@@ -3714,8 +3719,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { ...SWAP_BUSTER('물의 채찍', '채찍', '채찍 자국', U.tank(0.65)), cast: 2.5, period: 16 },
       ...tides('tide', '소용돌이 밀물', '밀물', 10, 24, 1, 10, { when: { phase: [1, 2] } }),
       { key: 'bowl', name: '달빛 그릇', icon: '그릇', kind: 'instant', first: 16, period: 34, cast: 0,
-        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막. 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 들어가니 빚을 갚을지 그릇을 채울지 고르기',
-        effect: { p: 'vessel', name: '달빛 그릇', need: 0.06, sec: 12, shield: 10 } },
+        how: '12초 동안 넘친 치유가 그릇에 모임. 못 채우면 그릇이 깨지며 전원 피해 (덜 찬 만큼). 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 들어가니 빚을 갚을지 그릇을 채울지 고르기',
+        effect: { p: 'vessel', name: '달빛 그릇', need: 0.06, sec: 12, dmg: U.dps(0.2) } },
       { key: 'touch', name: '심연 해제', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
         how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
       { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: null, period: 22, cast: 0, when: { phase: [2, 3] }, how: `${DEBT_HOW}. 4명 (악몽 5명)`,
@@ -5090,7 +5095,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     hard: { skill: 'page', n: 1 }, // 111 어려움 변화: 침묵 페이지 인원 +1
     enrage: { name: '서가 폭풍', period: 2, dmg: 240 },
   },
-  // 사서 유령 쉿 (최종): 넘치는 빛 그릇 (12초 동안 넘친 치유를 모아 가득 차면 전원 보호막 → 곧 오는 장서 폭풍을 막음, 구름 마법학교 거품 플라스크)
+  // 사서 유령 쉿 (최종): 넘치는 빛 그릇 (12초 동안 넘친 치유를 모음, 못 채우면 깨지며 전원 피해 → 곧 장서 폭풍, 구름 마법학교 거품 플라스크)
   // · 뒤집힌 페이지 (뒤집힘: 12초 뒤 체력 비율이 뒤집힘, 40~60%로 맞추기) · 조용히 (2초 시전 불가: 그릇을 채울 때 긴 시전이 끊김). 악몽은 뒤집힌 페이지 2명. 목표 3:30 · 광폭화 5:00
   swit: {
     phase: [1, ''],
@@ -5098,10 +5103,10 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       AUTO(U.tank(0.07)),
       { ...BUSTER('두꺼운 장부', '장부', 8, 15, U.tank(0.55)), cast: 2.5 },
       { key: 'bowl', name: '넘치는 빛 그릇', icon: '그릇', kind: 'instant', first: 14, period: 30, cast: 0,
-        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 장서 폭풍이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게 (뒤집힌 페이지가 걸린 사람은 빼고)',
-        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, shield: 8 } },
+        how: '12초 동안 넘친 치유가 그릇에 모임. 못 채우면 그릇이 깨지며 전원 피해 (덜 찬 만큼). 곧 장서 폭풍도 오니 광역 힐 · 큰 힐을 일부러 넘치게 (뒤집힌 페이지가 걸린 사람은 빼고)',
+        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, dmg: U.dps(0.2) } },
       { key: 'storm', name: '장서 폭풍', icon: '폭풍', kind: 'aoe', first: 27, period: 30, cast: 3, warn: 'aoe',
-        how: '그릇이 차면 보호막으로 막음. 못 채웠으면 맞기 전에 광역 선힐', effect: { p: 'all', dmg: U.dps(0.3) } },
+        how: '그릇 바로 뒤에 옴. 그릇을 채우며 넘친 힐로 모두 높여 두고, 맞기 전에 광역 선힐', effect: { p: 'all', dmg: U.dps(0.3) } },
       { key: 'flip', name: '뒤집힌 페이지', icon: '뒤집', kind: 'instant', first: 8, period: 20, cast: 0,
         how: '탱커 아닌 사람이 12초 뒤 체력 비율이 뒤집힘 (가장 낮아도 25%). 마법이라 지워도 됨. 못 지우면 끝나기 전에 40~60%로 (높으면 과힐 금지)',
         effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '뒤집힌 페이지', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } } } },
@@ -5117,8 +5122,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     skills: [
       AUTO(85),
       { key: 'bowl', name: '넘치는 빛 그릇', icon: '그릇', kind: 'instant', first: 12, period: 26, cast: 0,
-        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 장서 폭풍이 가벼움',
-        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, shield: 8 } },
+        how: '12초 동안 넘친 치유가 그릇에 모임. 못 채우면 그릇이 깨지며 전원 피해 (덜 찬 만큼). 곧 장서 폭풍도 옴',
+        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, dmg: 110 } },
       { key: 'storm', name: '장서 폭풍', icon: '폭풍', kind: 'aoe', first: 25, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: 180 } },
       { key: 'flip', name: '뒤집힌 페이지', icon: '뒤집', kind: 'instant', first: 8, period: 18, cast: 0,
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '뒤집힌 페이지', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } } } },
@@ -5375,7 +5380,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['진동 → 광역 증기', '광역 증기 → 진동', '진동 → 증기 한 명 (다음부터 광역)'],
     enrage: { name: '밸브 폭주', period: 2, dmg: 200 },
   },
-  // 고장 난 절삭기 (S03 정예 = 보스 ①): 수리 정령 예습 (낮은 압력, 놓쳐도 피해 없음)
+  // 고장 난 절삭기 (S03 정예 = 보스 ①): 수리 정령 예습 (낮은 압력, 놓치면 10초 동안 적 피해 +20%)
   cutter: {
     phase: [1, ''],
     skills: [
@@ -5383,12 +5388,12 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('절삭 날', '절삭', 8, 18, U.tank(0.35)),
       { key: 'spirit', name: '수리 정령', icon: '정령', kind: 'instant', first: 10, period: 40, cast: 0,
         effect: { p: 'soul', name: '수리 정령', short: '정령', art: 'mob-soul-repair', hp: 0.4, size: 0.6, sec: 18,
-          win: { text: '10초 동안 적 피해 −20%', weak: { pct: 0.2, sec: 10 } }, fail: { text: '도움만 사라짐', dmg: 0 } } },
+          win: { text: '정령이 잠잠해짐' }, fail: { text: '정령이 고철을 고침', dmg: 0, rage: { pct: 0.2, sec: 10 } } } },
     ],
     enrage: { name: '절삭기 폭주', period: 2, dmg: 180 },
   },
-  // 고철 감독관 덜컥 (S03 버려진 정비동): 12초에 수리 정령 (평균 딜러 체력 60%, 40%에서 시작, 18초, 채우면 10초 적 피해 −20%), 45초마다.
-  // 놓쳐도 피해 없음 (도움만 사라짐). A 정령 → 한참 뒤 광역 파편, B 정령 → 곧 광역 파편, C 광역 파편 → 정령
+  // 고철 감독관 덜컥 (S03 버려진 정비동): 12초에 수리 정령 (평균 딜러 체력 60%, 40%에서 시작, 18초, 못 채우면 정령이 고철을 고쳐 10초 적 피해 +20%), 45초마다.
+  // 예전에는 채우면 적 피해 −20% · 놓쳐도 피해 없음 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」). A 정령 → 한참 뒤 광역 파편, B 정령 → 곧 광역 파편, C 광역 파편 → 정령
   deolkeok: {
     phase: [1, ''],
     skills: [
@@ -5396,9 +5401,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('크레인 갈고리', '갈고', 8, 15, U.tank(0.42)),
       ...([[0, 12], [1, 12], [2, 18]] as const).map(([v, at]): SkillDef => ({
         key: `spirit${v}`, name: '수리 정령', icon: '정령', kind: 'instant', first: at, period: 45, cast: 0, when: { variant: [v] },
-        how: '빈 칸의 정령에 단일 힐. 파티가 안정됐을 때. 놓쳐도 피해는 없음',
+        how: '빈 칸의 정령에 단일 힐. 놓치면 10초 동안 적이 세지니 광역 파편 전에 채우기',
         effect: { p: 'soul', name: '수리 정령', short: '정령', art: 'mob-soul-repair', hp: 0.4, size: 0.6, sec: 18,
-          win: { text: '10초 동안 적 피해 −20%', weak: { pct: 0.2, sec: 10 } }, fail: { text: '도움만 사라짐', dmg: 0 } },
+          win: { text: '정령이 잠잠해짐' }, fail: { text: '정령이 고철을 고침', dmg: 0, rage: { pct: 0.2, sec: 10 } } },
       })),
       ...([[0, 33], [1, 18], [2, 9]] as const).map(([v, at]): SkillDef => ({
         key: `scrap${v}`, name: '광역 파편', icon: '파편', kind: 'aoe', first: at, period: 45, cast: 3, warn: 'aoe', when: { variant: [v] }, effect: { p: 'all', dmg: U.dps(0.24) },
@@ -5407,7 +5412,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['수리 정령 → 한참 뒤 광역 파편', '수리 정령 → 곧 광역 파편', '광역 파편 → 수리 정령'],
     enrage: { name: '감독관 폭주', period: 2, dmg: 220 },
   },
-  // 등불 도둑 후욱 (S04 반딧불 묘지길): 등불 바람 뒤 빛을 잃은 반딧불 (16초, 채우면 12초 보스 받는 피해 +25%). 놓쳐도 피해 없음.
+  // 등불 도둑 후욱 (S04 반딧불 묘지길): 등불 바람 뒤 빛을 잃은 반딧불 (16초, 못 채우면 꺼져 12초 보스 받는 피해 −25%). 예전에는 채우면 +25% · 놓쳐도 피해 없음 (2026-10-28 Lim).
   // A 바람 → 반딧불, B 딜러 지목 → 반딧불, C 체력 절반 아래에서 반딧불 한 번
   huuk: {
     phase: [1, ''],
@@ -5419,12 +5424,12 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         how: '딜러 한 명이 맞음. 예고된 사람을 채우기', effect: { p: 'strike', dmg: 220 } },
       { key: 'windb', name: '등불 바람', icon: '바람', kind: 'aoe', first: 26, period: 32, cast: 3, warn: 'aoe', when: { variant: [1] }, effect: { p: 'all', dmg: 150 } },
       { key: 'fly', name: '빛을 잃은 반딧불', icon: '반딧', kind: 'instant', first: 19, period: 32, cast: 0, when: { variant: [0, 1] },
-        how: '빈 칸의 반딧불에 단일 힐. 살리면 보스가 약해져 판이 짧아짐. 놓쳐도 피해 없음',
+        how: '빈 칸의 반딧불에 단일 힐. 놓치면 보스가 단단해져 판이 길어짐',
         effect: { p: 'soul', name: '빛을 잃은 반딧불', short: '반딧', art: 'mob-soul-firefly', hp: 0.4, size: 0.5, sec: 16,
-          win: { text: '12초 동안 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 12 } }, fail: { text: '반딧불이 꺼짐', dmg: 0 } } },
+          win: { text: '반딧불이 다시 빛남' }, fail: { text: '반딧불이 꺼져 어둠이 보스를 감쌈', dmg: 0, guard: { pct: 0.25, sec: 12 } } } },
       { key: 'flyc', name: '빛을 잃은 반딧불', icon: '반딧', kind: 'instant', first: null, period: 999, cast: 0, when: { variant: [2] },
         effect: { p: 'soul', name: '빛을 잃은 반딧불', short: '반딧', art: 'mob-soul-firefly', hp: 0.4, size: 0.5, sec: 16,
-          win: { text: '12초 동안 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 12 } }, fail: { text: '반딧불이 꺼짐', dmg: 0 } } },
+          win: { text: '반딧불이 다시 빛남' }, fail: { text: '반딧불이 꺼져 어둠이 보스를 감쌈', dmg: 0, guard: { pct: 0.25, sec: 12 } } } },
     ],
     flow: [{ p: 'when', if: { variant: [2], idle: 'flyc', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'flyc', in: 1 }, { p: 'text', text: '반딧불 하나가 빠져나옴' }] }],
     variants: ['등불 바람 → 반딧불', '딜러 한 명 지목 → 반딧불', '체력 절반에 반딧불 한 번'],
@@ -5530,19 +5535,19 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['검은 향로 → 약한 질병', '검은 향로 → 광역 연기', '광역 연기 → 검은 향로'],
     enrage: { name: '향로 폭주', period: 2, dmg: 220 },
   },
-  // 급수 경비덩굴 (S10 정예 = 보스 ①): 꽃봉오리 예습 (광역 뒤 꽃, 채우면 파티 회복, 놓쳐도 피해 없음)
+  // 급수 경비덩굴 (S10 정예 = 보스 ①): 꽃봉오리 예습 (광역 뒤 꽃, 못 채우면 시들며 가시가 터져 전원 피해)
   vineguard: {
     phase: [1, ''],
     skills: [
       AUTO(U.tank(0.055)),
       BUSTER('덩굴 채찍', '덩굴', 4, 18, U.tank(0.38)),
       { key: 'spray', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 8, period: 30, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.18) } },
-      { key: 'bud', name: '꽃봉오리', icon: '꽃', kind: 'instant', first: 11, period: 30, cast: 0, how: '꽃봉오리를 채우면 파티 전원 회복. 한 명이 위험하면 그 사람 먼저',
-        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 10% 회복', partyHeal: { pct: 0.1 } }, fail: { text: '꽃이 시듦', dmg: 0 } } },
+      { key: 'bud', name: '꽃봉오리', icon: '꽃', kind: 'instant', first: 11, period: 30, cast: 0, how: '꽃봉오리를 못 채우면 시들며 가시가 터져 전원 피해. 한 명이 위험하면 그 사람 먼저',
+        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '꽃이 핌' }, fail: { text: '꽃이 시들며 가시가 터짐', dmg: U.dps(0.1) } } },
     ],
     enrage: { name: '덩굴 폭주', period: 2, dmg: 190 },
   },
-  // 마른 덩굴 말림 (S10 새싹 급수장): 광역이 끝난 직후 꽃봉오리 (평균 딜러 체력 35%, 40%에서 시작, 14초, 채우면 살아 있는 모두 최대 체력 12% 회복), 주기 36초.
+  // 마른 덩굴 말림 (S10 새싹 급수장): 광역이 끝난 직후 꽃봉오리 (평균 딜러 체력 35%, 40%에서 시작, 14초, 못 채우면 시들며 가시가 터져 전원 피해, 예전에는 채우면 모두 최대 체력 12% 회복 · 2026-10-28 Lim), 주기 36초.
   // A 광역 → 꽃, B 약한 탱커 타격 → 광역 → 꽃, C 광역 두 번 → 꽃
   mallim: {
     phase: [1, ''],
@@ -5556,8 +5561,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'thorn2', name: '마른 가시 비', icon: '가시', kind: 'aoe', first: 17, period: 36, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: U.dps(0.14) } },
       ...([[0, 17], [1, 17], [2, 20]] as const).map(([v, at]): SkillDef => ({
         key: `bud${v}`, name: '꽃봉오리', icon: '꽃', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
-        how: '여럿이 조금씩 다쳤으면 꽃을 채워 파티 전원 회복. 한 명이 위험하면 그 사람 먼저. 놓쳐도 피해 없음',
-        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 12% 회복', partyHeal: { pct: 0.12 } }, fail: { text: '꽃이 시듦', dmg: 0 } },
+        how: '꽃을 못 채우면 시들며 가시가 터져 전원 피해. 한 명이 위험하면 그 사람 먼저',
+        effect: { p: 'soul', name: '꽃봉오리', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '꽃이 핌' }, fail: { text: '꽃이 시들며 가시가 터짐', dmg: U.dps(0.12) } },
       })),
     ],
     variants: ['광역 → 꽃봉오리', '약한 탱커 타격 → 광역 → 꽃봉오리', '광역 두 번 → 꽃봉오리'],
@@ -5643,7 +5648,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['번호표 → 광역', '광역 → 번호표', '번호표 → 끝나고 6초 뒤 강타'],
     enrage: { name: '표찰 폭주', period: 2, dmg: 195 },
   },
-  // 약초 도둑 훔침 (S15 야간 약초수레길): 서로 간격을 둔 질병 둘 (12초, 중첩 없음) 뒤 약초 정령 (채우면 살아 있는 모두에게서 질병 하나씩, 놓쳐도 피해 없음).
+  // 약초 도둑 훔침 (S15 야간 약초수레길): 서로 간격을 둔 질병 둘 (12초, 중첩 없음) 뒤 약초 정령 (못 채우면 흩어지며 모두에게 독한 꽃가루, 예전에는 채우면 질병 하나씩 지움 · 2026-10-28 Lim).
   // A 열병 → 꽃가루 → 정령, B 꽃가루 → 열병 → 정령, C 열병 → 약한 광역 → 정령
   humchim: {
     phase: [1, ''],
@@ -5660,8 +5665,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       })),
       { key: 'sack', name: '약초 자루 휘두르기', icon: '자루', kind: 'aoe', first: 10, period: 32, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 140 } },
       { key: 'spirit', name: '약초 정령', icon: '정령', kind: 'instant', first: 16, period: 32, cast: 0,
-        how: '정령을 채우면 살아 있는 모두에게서 질병이 하나씩 사라짐. 지금 위험한 사람은 정화로 바로',
-        effect: { p: 'soul', name: '약초 정령', short: '정령', hp: 0.4, size: 0.5, sec: 14, win: { text: '모두에게서 질병 하나씩', cure: '질병' }, fail: { text: '정령이 흩어짐', dmg: 0 } } },
+        how: '정령을 못 채우면 흩어지며 모두에게 독한 꽃가루 (질병). 지금 위험한 사람은 정화로 바로',
+        effect: { p: 'soul', name: '약초 정령', short: '정령', hp: 0.4, size: 0.5, sec: 14, win: { text: '정령이 약초 자루로 돌아감' },
+          fail: { text: '정령이 흩어지며 꽃가루', dmg: 0, debuff: { name: '독한 꽃가루', type: '질병', left: 12, dot: 20 } } } },
     ],
     variants: ['약초 열병 → 독한 꽃가루 → 약초 정령', '독한 꽃가루 → 약초 열병 → 약초 정령', '약초 열병 → 약한 광역 → 약초 정령'],
     enrage: { name: '도둑 폭주', period: 2, dmg: 195 },
@@ -5742,7 +5748,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['깃발 버티기 → 끝나고 광역', '약한 광역 → 깃발 버티기', '한 명 지목 → 깃발 버티기'],
     enrage: { name: '수호상 폭주', period: 2, dmg: 195 },
   },
-  // 안개 사냥꾼 흐릿 (S20 안개등 징검길): 안개등 정령 (16초, 채우면 10초 적 피해 −25%)이 있는 동안 지목 두 번 (6초 이상 사이). 놓쳐도 피해 없음.
+  // 안개 사냥꾼 흐릿 (S20 안개등 징검길): 안개등 정령 (16초, 못 채우면 꺼져 10초 적 피해 +25%)이 있는 동안 지목 두 번 (6초 이상 사이). 예전에는 채우면 −25% · 놓쳐도 피해 없음 (2026-10-28 Lim).
   // A 등불 → 지목 둘, B 지목 → 등불 → 지목, C 등불 → 약한 광역
   heurit: {
     phase: [1, ''],
@@ -5751,8 +5757,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('갈대 활 내려치기', '갈대', 4, 36, 330),
       ...([[0, 10], [1, 12], [2, 10]] as const).map(([v, at]): SkillDef => ({
         key: `lamp${v}`, name: '안개등 정령', icon: '등불', kind: 'instant', first: at, period: 36, cast: 0, when: { variant: [v] },
-        how: '지목 대상이 안전하면 등불을 먼저 채워 다음 공격을 약하게, 위험하면 그 사람부터',
-        effect: { p: 'soul', name: '안개등 정령', short: '등불', hp: 0.4, size: 0.5, sec: 16, win: { text: '10초 동안 적 피해 −25%', weak: { pct: 0.25, sec: 10 } }, fail: { text: '등불이 꺼짐', dmg: 0 } },
+        how: '지목 대상이 안전하면 등불을 먼저 채워 다음 공격이 세지지 않게, 위험하면 그 사람부터',
+        effect: { p: 'soul', name: '안개등 정령', short: '등불', hp: 0.4, size: 0.5, sec: 16, win: { text: '등불이 다시 켜짐' }, fail: { text: '등불이 꺼짐', dmg: 0, rage: { pct: 0.25, sec: 10 } } },
       })),
       ...([[0, 13, 1], [0, 20, 2], [1, 8, 1], [1, 20, 2]] as const).map(([v, at, i]): SkillDef => ({
         key: `shot${v}${i}`, name: '안개 화살', icon: '화살', kind: 'buster', first: at, period: 36, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [v] },
@@ -5763,16 +5769,16 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['안개등 → 안개 화살 두 번', '안개 화살 → 안개등 → 안개 화살', '안개등 → 약한 광역'],
     enrage: { name: '안개 폭주', period: 2, dmg: 165 },
   },
-  // 물방울지기 또롱 (S21 빛고임 수초밭): 14초에 빛의 그릇 (12초 동안 넘친 치유를 모아 파티 최대 체력 합 4%면 14초 전원 보호막), 그릇 10초 뒤 약한 광역 물방울.
-  // 그릇 실패에 피해 없음. A 그릇 → 광역, B 한 명 지목 → 그릇 → 광역, C 그릇 → 앞줄 물살
+  // 물방울지기 또롱 (S21 빛고임 수초밭): 14초에 빛의 그릇 (12초 동안 넘친 치유를 모아 파티 최대 체력 합 4%를 못 채우면 깨지며 전원 피해, 덜 찬 만큼), 그릇 7초 뒤 약한 광역 물방울.
+  // 예전에는 채우면 14초 전원 보호막 · 실패에 피해 없음 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」). A 그릇 → 광역, B 한 명 지목 → 그릇 → 광역, C 그릇 → 앞줄 물살
   ttorong: {
     phase: [1, ''],
     skills: [
       AUTO(85),
       BUSTER('물대야 내려치기', '대야', 4, 36, 330),
       { key: 'vessel', name: '빛의 그릇', icon: '그릇', kind: 'instant', first: 14, period: 36, cast: 0,
-        how: '파티가 안전할 때 넘친 치유를 모으면 10초 뒤 물방울을 보호막으로 받음. 위험한 사람 먼저, 남는 치유가 그릇으로',
-        effect: { p: 'vessel', name: '빛의 그릇', need: 0.04, sec: 12, shield: 14 } },
+        how: '넘친 치유를 모아 12초 안에 그릇을 채우기. 못 채우면 그릇이 깨지며 전원 피해. 위험한 사람 먼저, 남는 치유가 그릇으로',
+        effect: { p: 'vessel', name: '빛의 그릇', need: 0.04, sec: 12, dmg: 120 } },
       { key: 'drops', name: '물방울 터짐', icon: '물방', kind: 'aoe', first: 21, period: 36, cast: 3, warn: 'aoe', when: { variant: [0, 1] }, effect: { p: 'all', dmg: 140 } },
       { key: 'aim', name: '물방울 쏘기', icon: '물방', kind: 'buster', first: 8, period: 36, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { variant: [1] }, effect: { p: 'strike', dmg: 180 } },
       { key: 'wave', name: '앞줄 물살', icon: '물살', kind: 'zone', first: 21, period: 36, cast: 3, warn: 'zone', fixed: true, hitDmg: 150, cells: { p: 'line', at: 'front' }, when: { variant: [2] },
@@ -5928,7 +5934,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     variants: ['포자 정전기', '포자 흩뿌리기 → 포자 정전기', '포자 정전기 → 6초 뒤 실 뱉기'],
     enrage: { name: '누에 폭주', period: 2, dmg: 195 },
   },
-  // 이슬 먹는 달팽이 꾸물 (S29 이슬꽃 쉼터): 파티 전체에 작은 피해 뒤 이슬꽃 (채우면 전원 최대 체력 15%), 꽃이 있는 동안 탱커 평타는 계속.
+  // 이슬 먹는 달팽이 꾸물 (S29 이슬꽃 쉼터): 파티 전체에 작은 피해 뒤 이슬꽃 (못 채우면 시들며 점액이 튀어 전원 피해, 예전에는 채우면 전원 최대 체력 15% · 2026-10-28 Lim), 꽃이 있는 동안 탱커 평타는 계속.
   // A 광역 → 꽃, B 광역 두 번 → 꽃, C 탱커 강타 → 약한 광역 · 꽃
   kkumul: {
     phase: [1, ''],
@@ -5942,8 +5948,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'slimec', name: '점액 튀기기', icon: '점액', kind: 'aoe', first: 12, period: 32, cast: 3, warn: 'aoe', when: { variant: [2] }, effect: { p: 'all', dmg: 120 } },
       ...([[0, 13], [1, 16], [2, 15]] as const).map(([v, at]): SkillDef => ({
         key: `dew${v}`, name: '이슬꽃', icon: '꽃', kind: 'instant', first: at, period: 32, cast: 0, when: { variant: [v] },
-        how: '여럿이 조금씩 다쳤으면 이슬꽃을 채워 전원 회복. 탱커가 위험하면 탱커 먼저. 놓쳐도 피해 없음',
-        effect: { p: 'soul', name: '이슬꽃', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '파티 전원 체력 15% 회복', partyHeal: { pct: 0.15 } }, fail: { text: '이슬꽃이 시듦', dmg: 0 } },
+        how: '이슬꽃을 못 채우면 시들며 점액이 튀어 전원 피해. 탱커가 위험하면 탱커 먼저',
+        effect: { p: 'soul', name: '이슬꽃', short: '꽃', art: 'mob-soul-bud', hp: 0.4, size: 0.35, sec: 14, win: { text: '이슬꽃이 핌' }, fail: { text: '이슬꽃이 시들며 점액이 튐', dmg: 90 } },
       })),
     ],
     variants: ['점액 → 이슬꽃', '점액 두 번 → 이슬꽃', '껍데기 굴리기 → 약한 점액 · 이슬꽃'],
