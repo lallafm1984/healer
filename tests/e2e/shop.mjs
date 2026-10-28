@@ -118,7 +118,7 @@ export default async function shop(url, shots) {
   // 휴식 충전은 위 휴식 칸의 휴식 창에서 (광고 제거 패키지 = 광고 없이 바로)
   await page.click('#s-party .tb-back'); await page.clock.runFor(100);
   await page.click('#s-content [data-stamina-open]'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-info') && /모자라면 있는 만큼 쓰고 보너스도 그만큼/.test(await text('.st-modal .note')) && !/1\/3|줄어|감소/.test(await text('.st-modal')), '휴식 창: 휴식 보너스 · 비례 안내 (깎임 말 없음)');
+  ok(await page.isVisible('.st-modal .st-info') && /경험치 · 골드를 \d배로 받습니다/.test(await text('.st-modal .note')) && !/1\/3|줄어|감소|가득까지|다음 \+1/.test(await text('.st-modal')), '휴식 창: 짧은 휴식 보너스 안내, 시간 줄 없음 (깎임 말 없음)');
   await page.screenshot({ path: `${shots}/shop_rest_window.png` });
   await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
   sv = await save();
