@@ -416,13 +416,25 @@ describe('출전 경험 (97): 레벨', () => {
     expect(Gd.addMemberXp(n, 50, 20)).toEqual([]);
     expect([n.lv, n.xp]).toEqual([20, 50]);
   });
-  it('그 칸 경험치를 자기 레벨 기준으로: ±5 칸 가득, 더 높은 칸도 자기 몫, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지)', () => {
+  it('그 칸 경험치를 자기 레벨 기준으로: ±5 칸 가득, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지)', () => {
     const o = (stage: number) => ({ stage, diff: '보통' as const, grade: 'A' as const, raid: 0 as const, win: true });
     const full = clearXp(30, '보통', 'A', { raid: 0, win: true });
     expect(Gd.memberXp({ lv: 30 }, o(25))).toBe(full);
-    expect(Gd.memberXp({ lv: 30 }, o(60))).toBe(full);
+    expect(Gd.memberXp({ lv: 30 }, o(35))).toBe(full);
     expect(Gd.memberXp({ lv: 30 }, o(20))).toBe(Math.round(full * 0.5));
     expect(Gd.memberXp({ lv: 30 }, o(1))).toBe(Math.round(full * 0.3));
+  });
+  it('더 높은 칸 한 판 상한 (2026-10-28 Lim): 다음 레벨 필요량 × 90% (6레벨 높음) → 한 레벨마다 10%씩 → 30%', () => {
+    const o = (stage: number, diff: '보통' | '악몽' = '보통') => ({ stage, diff, grade: 'S' as const, raid: 0 as const, win: true });
+    // Lv 11 = 자기 몫이 한 판 1레벨 넘음 (악몽 S 1.9레벨): 높은 칸에서는 상한
+    expect(clearXp(11, '악몽', 'S', { raid: 0, win: true })).toBeGreaterThan(xpToNext(11));
+    expect(Gd.memberXp({ lv: 11 }, o(16, '악몽'))).toBe(clearXp(11, '악몽', 'S', { raid: 0, win: true }));
+    expect(Gd.memberXp({ lv: 11 }, o(17, '악몽'))).toBe(Math.round(xpToNext(11) * 0.9));
+    expect(Gd.memberXp({ lv: 11 }, o(21))).toBe(Math.round(xpToNext(11) * 0.5));
+    expect(Gd.memberXp({ lv: 11 }, o(26))).toBe(Math.round(xpToNext(11) * 0.3));
+    expect(Gd.memberXp({ lv: 11 }, o(80))).toBe(Math.round(xpToNext(11) * 0.3));
+    // 자기 몫이 상한보다 작으면 그대로 (Lv 40 보통 S ≈ 0.25레벨 < 6레벨 높은 칸 90%)
+    expect(Gd.memberXp({ lv: 40 }, o(46))).toBe(clearXp(40, '보통', 'S', { raid: 0, win: true }));
   });
 });
 

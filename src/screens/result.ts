@@ -3,7 +3,8 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { setResultWin } from '../bgm';
-import { STAT_NAMES } from '../data/fm';
+import { STAT_NAMES, type StatKey } from '../data/fm';
+import { CLASSES } from '../data/classes';
 import { EXPED, guildLvOf, REQ } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
@@ -23,7 +24,8 @@ import { AFFIXES } from '../data/affixes';
 import { chalReward } from '../data/challenge';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
-import { esc, fmt, mmss, screen, topBar } from './kit';
+import { esc, fmt, mmss, ROLE, screen, topBar } from './kit';
+import { classIcon } from './members';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
 import { sortie } from './stamina';
@@ -311,6 +313,21 @@ function loseHtml(r: BattleResult): string {
 }
 
 /**
+ * 길드원 한 사람 레벨 업 묶음 (2026-10-28 Lim 「파티원별로 묶어 잘리지 않게」): 직업 칸 · 이름 · Lv 이전 → 새 레벨 · 두 배 / 오른 능력치 칩 (줄바꿈, 자르지 않음) · 한 일.
+ * 예전 한 줄 셋 (경험치 + 레벨 · 레벨업 두 배 · 능력치 둘)은 길어서 잘렸다. 두 배로 오른 칸 (dblStats)은 초록 테
+ */
+function guildUpHtml(m: NonNullable<Settlement['guild']>['members'][number]): string {
+  const mem = G.save.guild.members.find(x => x.nick === m.nick);
+  const from = m.ups[0] - 1, to = m.ups[m.ups.length - 1];
+  const got = new Map<StatKey, { n: number; to: number }>();
+  for (const s of m.stats) got.set(s.k, { n: (got.get(s.k)?.n ?? 0) + 1, to: s.shown ?? s.to });
+  const dbl = new Set(m.dblStats ?? []), why = m.stats.find(s => s.why)?.why;
+  const chips = [...got].map(([k, v]) => `<span class="r-gm-st${dbl.has(k) ? ' dbl' : ''}">${STAT_NAMES[k]} <b>${v.to}</b><small>+${v.n}</small></span>`).join('');
+  const ic = mem ? `<span class="r-gm-ic" style="background:${ROLE[CLASSES[mem.cls].role].color}">${classIcon(mem.cls)}</span>` : '';
+  return `<li>${ic}<div class="r-gm-b"><p class="r-gm-l1"><b class="r-gm-nick">${esc(m.nick)}</b><span class="r-gm-lv">Lv ${from} → <b>${to}</b></span>${m.dbl ? `<i class="r-dbl">레벨업 두 배${m.dbl > 1 ? ` ×${m.dbl}` : ''}</i>` : ''}</p>${chips || why ? `<p class="r-gm-sts">${chips}${why ? `<small class="r-gm-why">${esc(why)}</small>` : ''}</p>` : ''}</div></li>`;
+}
+
+/**
  * 알림 줄: 길드원 · 부탁 · 원정 · 임무. 끝났다는 것만 알리고 누를 수 없다 (2026-10-24 Lim 「다른 곳으로 이동되지 않고 완료됐다는 것만 알려주자. 다른 것도」).
  * 「보상 받기」 · 「모집 공고로 영입」 같은 할 일 글 · › 화살표 · 눌러서 화면 이동은 다시 넣지 않는다
  */
@@ -322,22 +339,13 @@ function notesHtml(x: Settlement): string {
   if (x.jobs?.reqs.length) out.push(`<div class="r-note">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></div>`);
   if (x.jobs?.exped.length) out.push(`<div class="r-note${x.jobs.expedAll ? ' hi' : ''}">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></div>`);
   if (x.founded) out.push(`<div class="r-note hi">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>길드 결성</b></span></div>`);
-  if (gd?.members.length) {
-    const sum = gd.members.reduce((s, m) => s + m.xp, 0);
-    const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<div class="r-note">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></div>`);
-    // 레벨업 두 배 (LV_DOUBLE, 103 Lim 「레벨업시 20프로 확률로 2업」 · 「각각 다른 능력치」): 한 줄로 따로 (길드원 줄은 길어 잘림).
-    // 한 사람이면 오른 두 칸 (「이름 공격 +1 · 회피 +1」), 여럿이거나 길면 이름만 (한 판에 두 번이면 ×2)
-    const dbl = gd.members.filter(m => m.dbl);
-    if (dbl.length) {
-      const one = dbl.length === 1 && (dbl[0].dblStats?.length ?? 0) >= 2 ? `${dbl[0].nick} ${dbl[0].dblStats!.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : '';
-      const body = one && one.length <= 24 ? esc(one) : dbl.map(m => `${esc(m.nick)}${(m.dbl ?? 0) > 1 ? ` ×${m.dbl}` : ''}`).join(' · ');
-      out.push(`<div class="r-note">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">레벨업 두 배</i> · ${body}</span></div>`);
-    }
-    const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
-    if (st.length) out.push(`<div class="r-note">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></div>`);
-    // 후원 (98): 쉬는 판에 출전만큼 받은 사람
-    if (gd.boosted.length) out.push(`<div class="r-note">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></div>`);
+  if (gd?.first) out.push(`<div class="r-note hi">${gameIcon('guild-fame', uiIcon('star'))}<span><b>길드 첫 처치</b></span></div>`);
+  if (gd) {
+    // 길드원 경험치 숫자 줄 (「길드원 경험치 +N」 · 「길드원 레벨 상한」)은 없다 (2026-10-28 Lim). 레벨이 오른 길드원만 한 사람에 한 묶음
+    const rows = gd.members.filter(m => m.ups.length).map(guildUpHtml);
+    if (rows.length) out.push(`<section class="r-note r-gm" aria-label="길드원 레벨 업"><p class="r-gm-h">${gameIcon('guild-members', uiIcon('guild'))}<b>길드원 레벨 업</b></p><ul>${rows.join('')}</ul></section>`);
+    // 후원 (98): 쉬는 판에 출전만큼 받은 사람 (경험치 숫자 없이 남은 판만)
+    if (gd.boosted.length) out.push(`<div class="r-note">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></div>`);
   }
   if (x.missions.length) out.push(`<div class="r-note">${gameIcon('mission', uiIcon('quest'))}<span>임무 완료 <b>${x.missions.length}</b></span></div>`);
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';

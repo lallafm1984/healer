@@ -20,6 +20,37 @@
 /* 길드원 레벨업 두 배 (103 「레벨업시 20% 확률로 2업」): 금빛 작은 글 */
 #s-settle .r-note .r-dbl { font-style: normal; font-weight: 700; color: #8ed99a; white-space: nowrap; }
 #s-settle .r-note b, #s-settle .r-rec > summary { color: var(--gk-head); }
+/*
+ * 길드원 레벨 업 판 (2026-10-28 Lim 「레벨업 · 능력치 상승은 파티원별로 묶어 잘리지 않게」): 레벨이 오른 길드원 한 사람 = 한 줄 묶음.
+ * 직업 칸 · 이름 · Lv 이전 → 새 레벨 · 두 배 / 오른 능력치 칩 (줄바꿈) · 한 일. 경험치 숫자는 없다
+ */
+#s-settle .r-note.r-gm { display: block; padding: 8px 10px 10px; }
+#s-settle .r-gm-h { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; font: 800 13px/1.2 var(--font-body); }
+#s-settle .r-gm-h > :is(.ui-icon, img, svg) { flex: none; width: 22px; height: 22px; }
+#s-settle .r-gm ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+#s-settle .r-gm li { display: flex; align-items: flex-start; gap: 9px; padding: 7px 0 0; }
+#s-settle .r-gm li + li { margin-top: 7px; border-top: 1px solid var(--gk-line); }
+#s-settle .r-gm-ic {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center; box-sizing: border-box;
+  border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: inset 0 0 0 1px #0000002e, 0 1px 2px #0008; color: #12100C;
+}
+#s-settle .r-gm-ic svg { width: 18px; height: 18px; }
+#s-settle .r-gm-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+#s-settle .r-gm-l1 { margin: 0; min-height: 30px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font: 13px/1.25 var(--font-body); }
+#s-settle .r-gm .r-gm-nick { color: var(--gk-ink); font-weight: 800; overflow-wrap: anywhere; }
+#s-settle .r-gm-lv {
+  flex: none; padding: 1px 7px; border: 1px solid var(--gk-edge); border-radius: 5px; background: var(--gk-chip);
+  color: var(--gk-ink2); font: 600 12px/1.4 var(--font-body); white-space: nowrap;
+}
+#s-settle .r-gm-lv b { font-weight: 800; }
+#s-settle .r-gm-sts { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+#s-settle .r-gm-st {
+  display: inline-flex; align-items: baseline; gap: 3px; padding: 2px 7px; border-radius: 999px;
+  background: var(--gk-chip); box-shadow: inset 0 0 0 1px var(--gk-card-bd); color: var(--gk-chip-ink); font: 12px/1.35 var(--font-body); white-space: nowrap;
+}
+#s-settle .r-gm-st small { color: #8ed99a; font: 700 11px/1 var(--font-body); }
+#s-settle .r-gm-st.dbl { box-shadow: inset 0 0 0 1px #8ed99a; }
+#s-settle .r-gm-why { color: var(--gk-mute); font: 12px/1.35 var(--font-body); }
 #s-settle .r-rec > summary::before { color: var(--gk-edge); }
 /* a2-theme.css의 .ns:not(#s-lobby) :is(… .meter …) 나무결보다 세게 (#s-settle.ns) */
 #s-settle.ns .r-rec .meter { background: var(--gk-route); border: 1px solid var(--gk-card-bd); box-shadow: none; }
