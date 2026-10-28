@@ -6,14 +6,17 @@
  * 2026-10-18 Lim 「메뉴의 상점을 빼고 길드를 넣자. 상점의 진입 루트는 로비이다」: 하단 탭이 아니라 로비 「상점」 팻말 (예전 「잡화점」, 2026-10-21 이름 바꿈) · 휴식 창 · 직업 구매에서 들어오는 화면.
  * 탭 막대 없이 「← 상점」, 뒤로 = 들어온 화면 (없으면 로비).
  * 2026-10-27 (마무리 목록 8번): 본문 = 길드 판 셋 (휴식 · 광고 제거 패키지 · 직업, guild-hall.css .g-card · .g-row), 판 밖 소제목 없음. 머리 그림은 그대로
+ * 2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」: 직업 줄은 현금 버튼 아래 골드 버튼 (JOB_GOLD, 확인 창 뒤 buyJobWithGold)
  */
-import { NOADS, PAID_HEROES, REST_BONUS, STAMINA, jobProductId } from '../data/economy';
+import { JOB_GOLD, NOADS, PAID_HEROES, REST_BONUS, STAMINA, jobProductId } from '../data/economy';
 import { HEROES } from '../data/heroes';
-import { grantProduct, products } from '../game/economy';
+import { buyJobWithGold, grantProduct, products } from '../game/economy';
+import { resourceBalance } from '../game/resources';
+import { askModal } from '../platform/ads';
 import { commit, G, refreshDay, syncAds } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { esc, fmt, previous, screen, topBar } from './kit';
-import { classEmblem, currencyIcon, gameIcon, uiIcon } from './art';
+import { classEmblem, currencyAmount, currencyIcon, gameIcon, uiIcon } from './art';
 import { refreshCells } from './stamina';
 import { staminaView } from '../game/stamina';
 import { sfx } from '../sfx';
@@ -53,8 +56,11 @@ function cashHtml(): string {
   const buyBtn = (id: string, price: string) => own(id)
     ? '<span class="cash-own">보유</span>'
     : `<button class="btn mini primary cash-buy" type="button" data-iap="${id}">${price}${dev ? '<small>시험 구매</small>' : ''}</button>`;
+  // 직업은 골드로도 (현금 버튼 아래)
+  const goldBtn = (id: string) => (PAID_HEROES.some(h => jobProductId(h) === id) && !own(id)
+    ? `<button class="btn mini cash-gold" type="button" data-gold-job="${id}">${currencyAmount('gold', JOB_GOLD)}</button>` : '');
   const row = (id: string, icon: string, name: string, line: string) =>
-    `<li class="g-row cash-row${own(id) ? ' owned' : ''}${st.focus === id ? ' hi' : ''}" data-prod="${id}"><span class="g-ri">${icon}</span><div class="g-rm"><b>${esc(name)}</b><span class="g-sub wrap">${line}</span></div><span class="g-rs">${buyBtn(id, products(G.save).find(p => p.id === id)!.price)}</span></li>`;
+    `<li class="g-row cash-row${own(id) ? ' owned' : ''}${st.focus === id ? ' hi' : ''}" data-prod="${id}"><span class="g-ri">${icon}</span><div class="g-rm"><b>${esc(name)}</b><span class="g-sub wrap">${line}</span></div><span class="g-rs">${buyBtn(id, products(G.save).find(p => p.id === id)!.price)}${goldBtn(id)}</span></li>`;
   const card = (key: string, icon: string, title: string, body: string) =>
     `<section class="g-card sh-card" data-sec="${key}"><header class="g-hd"><span class="g-hi">${icon}</span><h3>${title}</h3></header>${body}</section>`;
   const v = staminaView(G.save, Date.now());
@@ -62,12 +68,23 @@ function cashHtml(): string {
       <button class="cash-meter" type="button" data-stamina-open aria-label="휴식 창 열기">${currencyIcon('rest')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
       <p class="g-sub wrap">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×${REST_BONUS} · 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></div>`)}
     ${card('noads', gameIcon('noads', uiIcon('star')), '광고 제거 패키지', `<ul class="g-rows">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `배너 · 전면 광고 없음 · 휴식 충전도 바로 · 휴식 최대 +${STAMINA.bonus}`)}</ul>`)}
-    ${card('jobs', uiIcon('char'), '직업', `<p class="g-sub wrap sh-lead">사면 레벨 조건 없이 바로 열림 · 모든 캐릭터</p><ul class="g-rows">${PAID_HEROES.map(h => row(jobProductId(h), classEmblem(h, 'md'), HEROES[h].name, JOB_LINE[h])).join('')}</ul>`)}
+    ${card('jobs', uiIcon('char'), '직업', `<p class="g-sub wrap sh-lead">현금 또는 골드 · 레벨 조건 없이 바로 열림 · 모든 캐릭터</p><ul class="g-rows">${PAID_HEROES.map(h => row(jobProductId(h), classEmblem(h, 'md'), HEROES[h].name, JOB_LINE[h])).join('')}</ul>`)}
     <p class="note sh-foot">${dev ? '개발 빌드: 누르면 결제 없이 바로 받음' : esc(STORE_WHY)}</p>`;
 }
 
 s.el.addEventListener('click', async e => {
   const t = e.target as HTMLElement, save = G.save;
+  const gb = t.closest<HTMLButtonElement>('[data-gold-job]');
+  if (gb && !gb.disabled) {
+    const hero = PAID_HEROES.find(h => jobProductId(h) === gb.dataset.goldJob)!, name = HEROES[hero].name, have = resourceBalance(save, 'gold');
+    if (have < JOB_GOLD) { sfx('deny'); st.msg = `골드가 모자랍니다 (필요 ${fmt(JOB_GOLD)} · 보유 ${fmt(have)})`; render(); return; }
+    if (!(await askModal(`${name} 해금`, `골드 ${fmt(JOB_GOLD)}으로 ${esc(name)} 직업을 엽니다.`, '취소', '골드로 사기'))) return;
+    const err = buyJobWithGold(save, hero);
+    sfx(err ? 'deny' : 'purchase');
+    st.msg = err || `${name} 해금 · 캐릭터 → 직업에서 전환`;
+    commit(); render(); refreshCells();
+    return;
+  }
   const iap = t.closest<HTMLButtonElement>('[data-iap]');
   if (iap && !iap.disabled) {
     const id = iap.dataset.iap!;

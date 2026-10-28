@@ -46,6 +46,8 @@ export const NOADS: Product = { id: 'noads', name: '광고 제거 패키지', pr
 /** 상점에서 파는 직업 (사면 레벨 조건 없이 열림). 사제 처음부터 · 드루이드 Lv 20 · 성기사 Lv 30은 무료 */
 export const PAID_HEROES: HeroKey[] = ['shaman', 'monk', 'astrologer', 'warder'];
 export const JOB_PRICE = '2,200원';
+/** 직업은 골드로도 살 수 있음 (2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」): 레벨 조건 없음, 산 기록은 앱 결제와 같은 bought (계정 것) */
+export const JOB_GOLD = 50_000;
 export const jobProductId = (h: HeroKey) => `job_${h}`;
 
 // ---------- 행상인 · 미확인 장비 (106, 2026-10-20 Lim 「디아블로2 갬블 요소처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처」) ----------

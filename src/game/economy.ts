@@ -7,7 +7,7 @@ import { RAID10_LV, RAID20_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  JOB_PRICE, jobProductId, NOADS, PAID_HEROES,
+  JOB_GOLD, JOB_PRICE, jobProductId, NOADS, PAID_HEROES,
 } from '../data/economy';
 import { HEROES } from '../data/heroes';
 import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade } from '../data/equipment';
@@ -19,6 +19,7 @@ import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '
 import { dayKey, daysBetween, weekKey } from './clock';
 import { CHAL } from '../data/challenge';
 import { pickChalContent } from './runmode';
+import { resourceBalance, spendResource } from './resources';
 
 // ---------- 리셋 ----------
 /**
@@ -244,4 +245,13 @@ export function grantProduct(save: SaveData, id: string): string {
   if (save.bought.includes(id)) return '이미 산 상품';
   save.bought.push(id);
   return '';
+}
+/** 직업을 골드로 사기 (JOB_GOLD, 레벨 조건 없음): 골드를 쓰고 앱 결제와 같은 상품을 줌. 성공 = 빈 문자열 */
+export function buyJobWithGold(save: SaveData, h: HeroKey): string {
+  const id = jobProductId(h);
+  if (!PAID_HEROES.includes(h)) return '없는 상품';
+  if (save.bought.includes(id)) return '이미 산 상품';
+  if (resourceBalance(save, 'gold') < JOB_GOLD) return '골드 부족';
+  spendResource(save, 'gold', JOB_GOLD);
+  return grantProduct(save, id);
 }

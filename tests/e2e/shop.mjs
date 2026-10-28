@@ -68,13 +68,31 @@ export default async function shop(url, shots) {
 
   // ---- 상품 (81): 광고 제거 패키지 5,500원 · 직업 4종 2,200원 (개발 빌드는 누르면 바로) ----
   ok(/5,500원/.test(await text('#s-shop [data-prod="noads"]')) && (await page.locator('#s-shop [data-prod^="job_"]').count()) === 4
-    && (await page.locator('#s-shop [data-prod^="job_"] .cash-buy').allInnerTexts()).every(t => /2,200원/.test(t)), '상품: 광고 제거 5,500원 · 직업 4종 2,200원');
+    && (await page.locator('#s-shop [data-prod^="job_"] .cash-buy').allInnerTexts()).every(t => /2,200원/.test(t))
+    && (await page.locator('#s-shop [data-prod^="job_"] .cash-gold').allInnerTexts()).filter(t => /50,000/.test(t)).length === 4, '상품: 광고 제거 5,500원 · 직업 4종 2,200원 또는 골드 50,000');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너 숨김 · 휴식 최대 150');
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
-  ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')), '직업 구매: 수도사 보유');
+  ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')) && (await page.locator('#s-shop [data-prod="job_monk"] .cash-gold').count()) === 0, '직업 구매: 수도사 보유 (골드 버튼도 사라짐)');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
+  // ---- 직업 골드 구매 (2026-10-28 Lim 「레벨 제한없이 5만 및 2200원으로 하자」): 모자라면 안내만, 있으면 확인 창 → 보유 · 골드 −50,000 ----
+  const goldTo = async n => {
+    await page.evaluate(n => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.gold = n; localStorage.setItem('healer.save', JSON.stringify(s)); }, n);
+    await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+    await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
+  };
+  await goldTo(30000);
+  await page.click('#s-shop [data-gold-job="job_shaman"]'); await page.clock.runFor(50);
+  ok(/골드가 모자랍니다/.test(await text('#s-shop .warnbox')) && !(await page.isVisible('.admodal.ask')) && !(await save()).bought.includes('job_shaman'), '골드 모자람: 확인 창 없이 안내 · 안 삼');
+  await goldTo(80000);
+  await page.click('#s-shop [data-gold-job="job_shaman"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('.admodal.ask') && /주술사 해금/.test(await text('.admodal.ask')) && /50,000/.test(await text('.admodal.ask')), '골드 버튼 = 확인 창 (주술사 해금 · 골드 50,000)');
+  await page.screenshot({ path: `${shots}/shop_job_gold_confirm.png` });
+  await page.click('.admodal.ask [data-ask="ok"]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(sv.bought.includes('job_shaman') && sv.player.gold === 30000 && /보유/.test(await text('#s-shop [data-prod="job_shaman"]')), `골드로 사기: 주술사 보유 · 골드 80,000 → ${sv.player.gold}`);
+  await page.screenshot({ path: `${shots}/shop_job_gold.png` });
 
   // ---- 출전 (90 · 2026-10-17 Lim 「출전전 휴식 팝업은 제거」): 입장 확인 팝업 없이 바로 편성 → 출발 = 바로 전투.
   // 전투 전에는 휴식 표시 없음 (출전 · 출발 버튼에 휴식 숫자 없음), 휴식은 클리어할 때 씀. 충전은 위 휴식 칸 · 로비 소켓 · 상점 ----
