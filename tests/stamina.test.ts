@@ -1,9 +1,9 @@
 /** 휴식 보너스 (90, 예전 81 스테미너) · 전면 광고 · 앱 결제 상품 · 직업 해금 (81, 2026-10-15 Lim) */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
-import { INTERSTITIAL, jobProductId, NOADS, PAID_HEROES, REST_BONUS, STAMINA } from '../src/data/economy';
+import { INTERSTITIAL, JOB_GOLD, jobProductId, NOADS, PAID_HEROES, REST_BONUS, STAMINA } from '../src/data/economy';
 import { HEROES } from '../src/data/heroes';
-import { grantProduct, products } from '../src/game/economy';
+import { buyJobWithGold, grantProduct, products } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
 import { adCharge, adsFree, restBase, restBonusOf, restGain, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
@@ -201,6 +201,24 @@ describe('직업 해금 (81 3-2)', () => {
     expect(heroStatus('monk').state).toBe('locked');
     expect(switchHero('warder', T0)).toBe(true);
     expect(G.save.hero).toBe('warder');
+  });
+  it('골드로도 삼: 50,000골드 · 레벨 조건 없음, 산 기록은 현금과 같은 상품 (2026-10-28 Lim)', () => {
+    expect(JOB_GOLD).toBe(50_000);
+    G.save.player.level = 1; G.save.player.gold = JOB_GOLD - 1;
+    expect(buyJobWithGold(G.save, 'monk')).toMatch(/골드 부족/);
+    expect([G.save.player.gold, G.save.bought]).toEqual([JOB_GOLD - 1, []]);
+    G.save.player.gold = JOB_GOLD + 7;
+    expect(buyJobWithGold(G.save, 'monk')).toBe('');
+    expect([G.save.player.gold, G.save.bought]).toEqual([7, [jobProductId('monk')]]);
+    expect(heroStatus('monk')).toMatchObject({ state: 'open', buy: false });
+    expect(switchHero('monk', T0)).toBe(true);
+    G.save.player.gold = 1e6;
+    expect(buyJobWithGold(G.save, 'monk')).toMatch(/이미/);
+    expect(buyJobWithGold(G.save, 'druid')).toMatch(/없는/); // 무료 직업은 상품이 아님
+    expect(G.save.player.gold).toBe(1e6);
+    // 개발 빌드 골드 무제한: 잔액은 그대로 (91)
+    G.save.settings.devGold = true; G.save.player.gold = 0;
+    expect([buyJobWithGold(G.save, 'warder'), G.save.player.gold]).toEqual(['', 0]);
   });
   it('예전에 바꿔 본 직업은 사지 않아도 계속 열림 (이전 해금 보존)', () => {
     G.save.heroes.monk = { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 3 };

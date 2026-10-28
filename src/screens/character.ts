@@ -10,7 +10,7 @@
 import { GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, optionsOf, qualityOf, sellGold, SLOTS, slotName, specKeysOf, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
-import { JOB_PRICE, jobProductId } from '../data/economy';
+import { JOB_GOLD, JOB_PRICE, jobProductId } from '../data/economy';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { openTiers, TALENT_TREES, type TalentKey } from '../data/talents';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
@@ -763,16 +763,18 @@ const HERO_STYLE: Record<HeroKey, string> = {
 };
 /** 아직 켜지 않은 직업 (직업 PR마다 ready로 켬, 79 6-2) */
 const upcomingHeroes = () => ALL_HERO_KEYS.filter(k => !HEROES[k].ready);
-/** 잠긴 직업 글: 드루이드 · 성기사 = 「Lv N 해금」, 상점 직업 = 값 (81) */
+/** 잠긴 직업 글: 드루이드 · 성기사 = 「Lv N 해금」, 상점 직업 = 값 (81), 골드 값도 (2026-10-28) */
 const lockWord = (k: HeroKey) => (HEROES[k].unlock.buy ? JOB_PRICE : `Lv ${HEROES[k].unlock.lv} 해금`);
+const lockHtml = (k: HeroKey) => (HEROES[k].unlock.buy ? `<span class="c7-job-price">${JOB_PRICE}<small>또는</small>${currencyAmount('gold', JOB_GOLD)}</span>` : lockWord(k));
 function heroRow(k: HeroKey): string {
   const h = HEROES[k], st = heroStatus(k), open = switchOpen();
-  const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? lockWord(k) : open.ok ? '전환 가능' : open.why;
+  const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? (st.buy ? `${JOB_PRICE} 또는 골드 ${JOB_GOLD.toLocaleString('ko-KR')}` : lockWord(k)) : open.ok ? '전환 가능' : open.why;
+  const shown = st.state === 'locked' ? lockHtml(k) : word;
   const state = st.state === 'open' && !open.ok ? 'unavailable' : st.state === 'locked' && st.buy ? 'locked buy' : st.state;
   // 상점 직업은 누르면 상점 그 상품으로 (81, Lim 「판매 캐릭터 누르면 상점으로 이동」)
   return `<li><button type="button" class="c7-hc c7-job-row ${state}" data-hcard="${k}"${st.buy ? '' : ' aria-haspopup="dialog"'}${st.state === 'now' ? ' aria-current="true"' : ''} aria-label="${h.name} · ${HERO_STYLE[k]} · ${st.buy ? `상점 ${word} · 상점으로` : word}">
     ${classEmblem(k, 'lg')}<span class="c7-job-copy"><b>${h.name}</b><small>${HERO_STYLE[k]}</small></span>
-    <span class="c7-job-state">${word}${st.buy ? uiIcon('arrow') : st.state === 'locked' ? uiIcon('lock') : st.state === 'now' ? '' : uiIcon('arrow')}</span></button></li>`;
+    <span class="c7-job-state">${shown}${st.buy ? uiIcon('arrow') : st.state === 'locked' ? uiIcon('lock') : st.state === 'now' ? '' : uiIcon('arrow')}</span></button></li>`;
 }
 
 /** 직업 선택용 요약. 수치·상세 효과는 스킬 탭에서 확인한다. */
