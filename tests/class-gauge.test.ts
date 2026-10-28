@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { create, use, setBeacon } from '../src/engine';
-import { classGaugeState, beaconLabel } from '../src/battle/class-gauge-state';
+import { classGaugeState, beaconLabel, wholeCells } from '../src/battle/class-gauge-state';
+import { putSeal } from '../src/engine/warder';
 import { putHot } from '../src/engine/heroes';
 
 describe('직업 게이지의 실제 전투 상태',()=>{
@@ -50,6 +51,16 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     putHot(f.party[0],'sprout',{sec:12,every:3,total:100});
     f.party[1].alive=false;
     const s=classGaugeState(f);expect(s.count).toBe(1);expect(s.max).toBe(f.party.length-1);
+  });
+  it('잎 · 인장 다섯 칸은 통째로만 켠다: 다섯 명까지 칸 하나 = 한 명, 레이드는 비율 (2026-10-28 Lim)',()=>{
+    expect([0,1,2,3,4].map(n=>wholeCells(n,4))).toEqual([0,1,2,3,4]);
+    expect([0,1,2,3].map(n=>wholeCells(n,3))).toEqual([0,1,2,3]);
+    expect([0,1,4,10,19,20].map(n=>wholeCells(n,20))).toEqual([0,1,1,3,4,5]);
+    expect([1,5,9,10].map(n=>wholeCells(n,10))).toEqual([1,3,4,5]);
+    const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
+    f.party[1].alive=false;putSeal(f,f.party[0]);
+    expect(classGaugeState(f)).toMatchObject({count:1,lit:1});
+    f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
   it('파도 후광은 실제 힘 소모와 끝없는 빛·가벼운 파도 조건을 따른다',()=>{
     for(const endless of [false,true])for(const free of [false,true]){
