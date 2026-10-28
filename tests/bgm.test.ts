@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { bgmFor, setBattleRegion, setResultWin } from '../src/bgm';
 import { ADVENTURE_REGIONS } from '../src/data/adventure-regions';
+import { CONTENT } from '../src/data/content';
 
 /** src/screens에서 만드는 화면 id (screen('s-…')) */
 function screenIds(): string[] {
@@ -31,13 +32,20 @@ describe('배경음', () => {
     for (const id of ids) expect(['title', 'lobby', 'defeat'], id).toContain(bgmFor(id));
   });
 
-  it('곡 파일은 <구간>-<번호>.ogg, 구간은 타이틀 · 로비 · 결과 · 지역, 번호는 1부터 빠짐없이, 한 곡 4 MB 밑 (폰 앱)', () => {
+  it('장소 전용 곡 (place-<장소>-<n>.ogg)이 있는 장소 전투는 그 곡, 없으면 지역 곡', () => {
+    setBattleRegion('rust', 'brasspress');
+    expect(bgmFor('battle')).toBe('place-brasspress');
+    setBattleRegion('rust', 'plateau');
+    expect(bgmFor('battle')).toBe('rust');
+  });
+
+  it('곡 파일은 <구간>-<번호>.ogg, 구간은 타이틀 · 로비 · 결과 · 지역 · 장소 (place-<장소 key>), 번호는 1부터 빠짐없이, 한 곡 4 MB 밑 (폰 앱)', () => {
     const files = existsSync('src/bgm') ? readdirSync('src/bgm').filter(f => /\.(ogg|opus|mp3|m4a)$/.test(f)) : [];
     const by: Record<string, number[]> = {};
     for (const f of files) {
-      const m = /^([a-z]+)-(\d+)\.ogg$/.exec(f);
+      const m = /^((?:place-)?[a-z0-9]+)-(\d+)\.ogg$/.exec(f);
       expect(m, f).not.toBeNull();
-      expect(['title', 'lobby', 'victory', 'defeat', ...ADVENTURE_REGIONS.map(r => r.key)], f).toContain(m![1]);
+      expect(['title', 'lobby', 'victory', 'defeat', ...ADVENTURE_REGIONS.map(r => r.key), ...CONTENT.map(c => `place-${c.key}`)], f).toContain(m![1]);
       (by[m![1]] ??= []).push(Number(m![2]));
       expect(statSync(join('src/bgm', f)).size, f).toBeLessThan(4 * 1024 * 1024);
     }
