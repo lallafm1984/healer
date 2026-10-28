@@ -132,7 +132,7 @@ export function adRefreshPost(save: SaveData, r: () => number, now = Date.now())
   g.postAdAt = now;
   return '';
 }
-/** 고른 공고 지원자를 영입한다 (골드 = 능력치로 정한 hireGold). 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
+/** 고른 공고 지원자를 영입한다 (골드 = 레벨 × 능력 배율 hireGold). 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
 export function hire(save: SaveData, i: number): string {
   const g = save.guild, c = g.post?.cands[i];
   if (!c) return '지원자 없음';

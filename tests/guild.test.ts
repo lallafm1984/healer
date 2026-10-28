@@ -214,23 +214,28 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     Gd.hire(s, 0);
     expect(Gd.recruitExclude(s).has(cands[0])).toBe(true);
   });
-  it('영입 골드 = 능력치 (레벨을 곱하지 않음): 능력 점수 6을 넘는 1점마다 1,000골드 · 10골드 단위 · 적어도 100 (2026-10-28 Lim)', () => {
+  it('영입 골드 = Lv × 100 × 능력 배율 (같은 레벨 ★★ 1배 · ★ 하나마다 ±40%, 0.4 ~ 2.6배) · 10골드 단위 · 적어도 100 (2026-10-28 Lim)', () => {
+    // 모든 칸이 v인 사람: 같은 레벨 대비 점수 = v − 0.094 × (Lv − 1)
     const flat = (v: number) => Object.fromEntries(STAT_KEYS.map(k => [k, v])) as Stats;
-    expect(POST).toMatchObject({ hireFrom: 6, hirePer: 1000, hireMin: 100 });
-    expect([1, 6, 9.2, 11.16, 15.68, 20].map(v => hireGold({ cls: 'warrior', stats: flat(v) }))).toEqual([100, 100, 3200, 5160, 9680, 14000]);
+    const at = (lv: number, d: number, cls: ClassKey = 'warrior') => hireGold({ cls, lv, stats: flat(6.4 + 0.094 * (lv - 1) + d) });
+    expect(POST).toMatchObject({ hirePerLv: 100, hirePivot: 6.4, hireStep: 0.2, hireQ: [0.4, 2.6], hireMin: 100 });
+    expect([at(30, 0), at(30, 2), at(30, -2), at(30, 4)]).toEqual([3000, 4200, 1800, 5400]); // ★★ · ★★★ · ★ · ★★★★
+    expect([at(1, -6), at(1, 14), at(50, 0)]).toEqual([100, 260, 5000]); // 끝 배율 0.4 · 2.6, 적어도 100
+    // 능력이 좋아도 레벨이 많이 낮으면 쌈 (Lim: Lv 13 ★★★가 Lv 23 ★★보다 비쌌음)
+    expect(at(13, 2)).toBeLessThan(at(23, 0));
     // 역할 핵심 넷 60% · 나머지 여덟 40% (능력 ★과 같은 점수): 같은 합이라도 핵심 칸이 높은 사람이 비쌈
     const core = (role: 'tank' | 'melee', hi: number, lo: number) => Object.fromEntries(STAT_KEYS.map(k => [k, ROLE_CORE[role].includes(k) ? hi : lo])) as Stats;
-    expect(hireGold({ cls: 'warrior', stats: core('tank', 14, 8) })).toBe(Math.round((14 * 0.6 + 8 * 0.4 - 6) * 100) * 10);
-    expect(hireGold({ cls: 'warrior', stats: core('tank', 14, 8) })).toBeGreaterThan(hireGold({ cls: 'rogue', stats: core('tank', 14, 8) }));
-    // 같은 레벨의 지원자는 능력 ★이 높을수록 비쌈, 레벨은 값에 직접 안 들어감
+    expect(hireGold({ cls: 'warrior', lv: 1, stats: core('tank', 9, 5) })).toBe(Math.round((1 + 0.2 * (9 * 0.6 + 5 * 0.4 - 6.4)) * 10) * 10);
+    expect(hireGold({ cls: 'warrior', lv: 30, stats: core('tank', 14, 8) })).toBeGreaterThan(hireGold({ cls: 'rogue', lv: 30, stats: core('tank', 14, 8) }));
+    // 같은 레벨의 지원자는 능력 ★이 높을수록 비쌈, 레벨이 높을수록 비쌈 (같은 사람), 지원자 평균은 Lv × 100 근처
     const s = founded(60, 0);
     const cands = Gd.makeCandidates(s, rng, 40);
     for (const a of cands) for (const b of cands) {
       const role = (m: GuildMember) => CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
       if (a.lv === b.lv && abilityStars(a.stats, role(a), a.lv) > abilityStars(b.stats, role(b), b.lv)) expect(hireGold(a), `${a.nick} > ${b.nick}`).toBeGreaterThanOrEqual(hireGold(b));
     }
-    const low: GuildMember = { ...cands[0], lv: 1 }, high: GuildMember = { ...cands[0], lv: 100 };
-    expect(hireGold(low)).toBe(hireGold(high));
+    const ratio = cands.reduce((a, c) => a + hireGold(c) / (c.lv * 100), 0) / cands.length;
+    expect(ratio).toBeGreaterThan(0.85); expect(ratio).toBeLessThan(1.15);
   });
   it('영입 골드가 모자라면 못 함. 영입한 사람만 빠지고 나머지는 저장을 다시 읽어도 남음', () => {
     const s = founded(30, 0); s.guild.fame = GUILD_STEPS[5]; // 길드 Lv 6 · 정원 7 (103)
