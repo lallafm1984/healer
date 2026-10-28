@@ -92,17 +92,19 @@ describe('전투 변주 A · B · C (113 7-4)', () => {
 });
 
 describe('새 공통 기믹 (113 6장)', () => {
-  it('꽃의 파티 회복: 꽃을 채우면 살아 있는 파티원 각자 최대 체력 × pct', () => {
-    const f = E.create({ encounter: 'mallim', diff: '보통', seed: 3, variant: 0 });
-    for (const u of f.party) u.hp = u.max * 0.5;
-    while (!f.souls.length && f.t < 30) step(f);
-    expect(f.souls.length).toBe(1);
-    const before = f.party.map(u => u.hp);
-    const bud = f.souls[0];
-    bud.hp = bud.max;
-    step(f);
-    expect(f.souls.length).toBe(0);
-    f.party.forEach((u, i) => { if (u.alive) expect(u.hp - before[i]).toBeGreaterThan(u.max * 0.05); });
+  it('꽃봉오리 (2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」, 예전 채우면 파티 회복): 채우면 아무 일 없고, 못 채우면 시들며 가시가 터져 전원 피해', () => {
+    const go = (fill: boolean) => {
+      const f = E.create({ encounter: 'mallim', diff: '보통', seed: 3, variant: 0 });
+      while (!f.souls.length && f.t < 30) step(f);
+      expect(f.souls.length).toBe(1);
+      f.skills.forEach(s => { s.next = Infinity; }); // 끝날 때까지 다른 기술 · 평타 없음
+      for (const u of f.party) u.hp = u.max;
+      if (fill) f.souls[0].hp = f.souls[0].max;
+      while (f.souls.length) step(f);
+      return f.party.filter(u => u.alive && u.hp < u.max - 1e-6).length;
+    };
+    expect(go(true)).toBe(0);
+    expect(go(false)).toBe(5);
   });
   it('봉합 상처: 실제로 오른 체력만큼 봉합량이 줄고 (넘친 치유는 안 셈), 다 채우면 멎음', () => {
     const f = E.create({ encounter: 'ttakkeum', diff: '보통', seed: 4, variant: 0 });

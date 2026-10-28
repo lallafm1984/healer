@@ -7,7 +7,7 @@ import { ABILITY_SOUND_OF, BOSS_CAST_OWN, BOSS_CAST_SOUND, BOSS_SKILL_OWN, BOSS_
 
 export const FX_SOUND: Record<FxName, string> = {
   spawn: 'magic-grow', explode: 'burst', slam: 'boss-impact', warn: 'zone', shockwave: 'boss-wave',
-  crumble: 'stone-break', dizzy: 'status-stagger', 'chain-break': 'stone-break', 'soul-purify': 'dispel', bloom: 'magic-grow',
+  crumble: 'stone-break', dizzy: 'status-stagger', 'chain-break': 'stone-break', 'soul-purify': 'dispel',
   splash: 'magic-water', 'link-snap': 'magic-link', bubble: 'magic-water', overflow: 'magic-water',
   'fireball-green': 'magic-fire', hearts: 'ally-heal', hook: 'magic-link', rage: 'boss-enrage',
   recoil: 'parry', soak: 'magic-water', swap: 'magic-shift', slow: 'magic-dark', absorb: 'shield',

@@ -221,16 +221,16 @@ describe('생명 사슬 균형형 (P-LINK)', () => {
 });
 
 describe('넘치는 빛 (P-OVER)', () => {
-  it('그릇형: 모두 가득 차 있어도 넘치게 힐해서 전원 보호막', () => {
+  it('그릇형: 모두 가득 차 있어도 넘치게 힐해서 깨지기 전에 채움', () => {
     const f = make();
     tanksHot(f);
     f.me.hot = 9;
     expect(act(f)).toBeNull();
-    run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 15, shield: 6 });
+    run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 15, dmg: 100 });
     while (f.vessel && f.t < 15) auto(f, 0.1);
     expect(f.vessel).toBeNull();
-    expect(f.t).toBeLessThan(15); // 시간이 다 돼서 사라진 게 아니라 채움
-    expect(f.party.filter(u => u.alive).every(u => u.shield > 0)).toBe(true);
+    expect(f.t).toBeLessThan(15); // 시간이 다 돼서 깨진 게 아니라 채움
+    expect(f.events.some(e => e.type === 'msg' && e.text.includes('깨짐'))).toBe(false);
   });
   it('과부하형: 표식 대상은 모자란 양이 힐 한 번보다 적으면 두고, 많이 빠지면 채움', () => {
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, hero: 'priest', level: 40, heroLv: 40, stageLv: 40 });

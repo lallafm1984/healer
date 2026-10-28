@@ -21,7 +21,7 @@ describe('장미 울타리 미로', () => {
     expect(artPlaces('rosemaze')).toEqual(['rosemaze', 'lily']);
   });
 
-  it('백합 여사제: 꽃병을 채우면 전원 보호막', () => {
+  it('백합 여사제: 꽃병을 채우면 깨지지 않음 (보호막 없음)', () => {
     const f = E.create({ encounter: 'priestess48', diff: '보통', seed: 3, level: 48 });
     until(f, 14, () => !!f.vessel, true);
     expect(f.vessel!.name).toBe('백합 꽃병');
@@ -29,7 +29,7 @@ describe('장미 울타리 미로', () => {
     f.vessel!.fill = f.vessel!.need;
     E.step(f);
     expect(f.vessel).toBeNull();
-    for (const u of E.living(f)) expect(u.shield).toBeGreaterThan(9);
+    for (const u of E.living(f)) expect(u.shield).toBe(0);
   });
 
   it('Lv 25 자동 힐러, 보통이면 거의 다 깸 (중간 등급 장비)', () => {

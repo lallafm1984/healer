@@ -338,9 +338,14 @@ export function createTalk(rand: () => number = Math.random) {
     const byId = (id: number) => f.party.find(x => x.id === id);
     const healedNow = new Map<number, Extract<FightEvent, { type: 'heal' }>>();
     const barked = new Set(f.events.filter(e => e.type === 'bark').map(e => (e as { id: number }).id));
-    // 헤매는 영혼이 끝남: 채웠나(해제로 바로 성공 포함) 놓쳤나
-    const soulEnd: boolean[] = [];
-    for (const [id, s] of st.souls) if (!f.souls.includes(s)) { st.souls.delete(id); soulEnd.push(!!s.soul?.cleansed || s.hp >= s.max - 1e-6); }
+    // 헤매는 영혼이 끝남: 채웠나(해제로 바로 성공 포함) 놓쳤나. 채워도 축복이 없는 영혼 (놓치면 벌만, 2026-10-28 Lim 「이로운 스킬을 해로운 스킬로」)은 말 없음
+    const soulEnd: ('win' | 'safe' | 'fail')[] = [];
+    for (const [id, s] of st.souls) {
+      if (f.souls.includes(s)) continue;
+      st.souls.delete(id);
+      const w = s.soul?.win;
+      soulEnd.push(!(s.soul?.cleansed || s.hp >= s.max - 1e-6) ? 'fail' : w && (w.cure || w.heal || w.weak || w.vuln) ? 'win' : 'safe');
+    }
 
     for (const ev of f.events) {
       const u = 'id' in ev ? byId(ev.id) : undefined;
@@ -356,7 +361,7 @@ export function createTalk(rand: () => number = Math.random) {
         case 'cure': {
           // 감옥·매혹이 풀린 건 jailFree·charmFree, 숨 고르기로 지워진 건 bossRest, 영혼 축복으로 지워진 건 soulWin
           if (!u || u.me || [...(us.get(u.id)?.held.values() ?? [])].some(h => h.name === ev.name)) break;
-          if ((f.daze?.name && !st.daze) || soulEnd.includes(true)) break;
+          if ((f.daze?.name && !st.daze) || soulEnd.includes('win')) break;
           add('cured', u);
           break;
         }
@@ -584,7 +589,7 @@ export function createTalk(rand: () => number = Math.random) {
     st.watch = watch;
     // 헤매는 영혼 · 생명 사슬(균형형이 시간 전에 끊어짐) · 넘치는 빛 그릇
     for (const s of f.souls) if (!st.souls.has(s.id)) { st.souls.set(s.id, s); add('soulOn'); }
-    for (const ok of soulEnd) add(ok ? 'soulWin' : 'soulFail');
+    for (const r of soulEnd) if (r !== 'safe') add(r === 'win' ? 'soulWin' : 'soulFail');
     for (const l of st.links) {
       if (f.links.includes(l)) continue;
       st.links.delete(l);

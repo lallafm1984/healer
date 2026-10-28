@@ -545,7 +545,7 @@ export type FightEvent =
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
-export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'bloom' | 'splash'
+export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'splash'
   | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil'
   | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer'
   /** 묶음 B 새 부품 (46 5장, 그림 37 G · 47 E): 부풀기 지워서 퐁 · 치유 상한 먹물 · 뒤집힘 금화. 두어서 터지면 explode */
@@ -897,8 +897,8 @@ export interface Fight {
   souls: Unit[];
   /** 생명 사슬 (P-LINK): 이어진 두 파티원 */
   links: LinkState[];
-  /** 넘치는 빛 그릇 (P-OVER): 넘친 치유를 모음 / 가득 / 끝 시각. 차면 전원 shield초 보호막 */
-  vessel: { name: string; fill: number; need: number; until: number; shield: number } | null;
+  /** 넘치는 빛 그릇 (P-OVER): 넘친 치유를 모음 / 가득 / 끝 시각. 못 채우고 끝나면 전원 dmg × 덜 찬 비율 */
+  vessel: { name: string; fill: number; need: number; until: number; dmg: number } | null;
   /** 녹는 보호막 (P-MELT, 51 5장): until까지 흡수 보호막이 초마다 rate씩 녹고 보호막 · 외부 생존기 시간이 두 배로 줄어듦 */
   melt: { name: string; until: number; rate: number } | null;
   /** 가시 갑옷 (P-THORNS, 111 4-3): 이때까지 보스를 때리는 파티원이 한 대마다 dmg (탱커 × tank) */
@@ -907,9 +907,9 @@ export interface Fight {
   glass: GlassState[];
   /** 영혼 축복: until까지 받는 치유 × heal (정화의 물) */
   bless: { heal: number; until: number } | null;
-  /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
+  /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림. cut < 0 = 놓친 영혼의 벌 (보스가 성남, SoulFail.rage) */
   weak: { cut: number; until: number } | null;
-  /** 영혼 축복: until까지 보스가 받는 피해 × vuln (숲 할아버지가 왕관을 흔듦, 48 4-3). 보스가 기술은 그대로 씀 (멍함과 다름) */
+  /** 영혼 축복: until까지 보스가 받는 피해 × vuln (숲 할아버지가 왕관을 흔듦, 48 4-3). 보스가 기술은 그대로 씀 (멍함과 다름). vuln < 1 = 놓친 영혼의 벌 (SoulFail.guard) */
   expose: { vuln: number; until: number } | null;
   /** 장비 특수능력 (42, engine/specials). 없으면 null */
   sp: SpecRun | null;
