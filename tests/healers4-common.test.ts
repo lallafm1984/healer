@@ -66,13 +66,13 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
 });
 
 describe('스킬마다 GCD (79 6-1)', () => {
-  it('수도사 생기 손바닥 GCD 1.0초 (가속 반영), 다른 스킬은 규칙 GCD (82: 즉시가 된 안개 감싸기도)', () => {
+  it('수도사 생기 손바닥도 다른 스킬과 같은 규칙 GCD (2026-10-28 Lim 「수도사는 gcd를 다른 직업과 통일」, 예전 1.0초)', () => {
     const f = fight('monk');
-    expect(gcdOf(f, 'vitalPalm')).toBeCloseTo(f.gcdBase / 1.5, 9);
+    expect(gcdOf(f, 'vitalPalm')).toBeCloseTo(f.gcdBase, 9);
     expect(gcdOf(f, 'mistWrap')).toBeCloseTo(f.gcdBase, 9);
     expect(gcdOf(f, 'mistBreath')).toBeCloseTo(f.gcdBase, 9);
     use(f, 'vitalPalm', tank(f).cell);
-    expect(f.gcd).toBeCloseTo(f.gcdBase / 1.5, 9);
+    expect(f.gcd).toBeCloseTo(f.gcdBase, 9);
   });
   it('GCD 0 (차 한 잔): GCD · 시전 중에도 바로 나가고 시전을 끊지 않음, GCD를 안 바꿈', () => {
     const f = fight('monk');

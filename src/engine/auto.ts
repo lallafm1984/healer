@@ -77,15 +77,12 @@ export function noviceHealer(f: Fight, opts?: Partial<NoviceOpts>): void {
     n.intent = null;
     return;
   }
-  const pre = !!n.o.preQueue && !f.cast && f.channel <= 0 && f.gcd > 0 && f.gcd <= n.o.react + n.o.pick * Math.log2(living(f).length + 1) + n.o.tap; // GCD 중 미리 고르기
-  if (f.cast || f.channel > 0 || (f.gcd > 0 && !pre) || f.queued || f.over) return;
+  if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued || f.over) return;
   if (lapseNow(f, n)) return;
   rollSight(f, n);
   n.pick = null; nov = n;
-  const g = f.gcd;
-  if (pre) f.gcd = 0;
-  try { autoHealer(f); } finally { nov = null; f.gcd = g; }
-  if (n.pick) { n.intent = n.pick; n.pick = null; n.due = Math.max(f.t + g, f.t + thinkTime(f, n, n.intent)); }
+  try { autoHealer(f); } finally { nov = null; }
+  if (n.pick) { n.intent = n.pick; n.pick = null; n.due = f.t + thinkTime(f, n, n.intent); }
 }
 /** 고른 행동 누르기 (가끔 옆 칸). 안 되면 (빈 칸 · 마나 · 상황이 바뀜) 다음 틱에 다시 고름 */
 function press(f: Fight, n: Novice, a: NoviceAct): void {
