@@ -1,15 +1,16 @@
 /**
  * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「로비에 디아블로2 갬블 요소 처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처 용도」): 로비 오른쪽 팻말에서 들어오는 화면.
- * 가운데 = 부위 카드 6 (Lim 「부위만 고르게」: 종류는 그 부위 다섯 가지 중 무작위), 아래 = 사기 (값 · 등급 확률).
+ * 가운데 = 부위 카드 6 (Lim 「부위만 고르게」: 종류는 그 부위 다섯 가지 중 무작위), 아래 = 사기 (값).
  * 사면 봉인 꾸러미 (icon-merchant)가 흔들리다 풀리고 장비 카드 (영웅 · 품질은 결과창과 같은 빛기둥) → 상세 · 판매 · 한 번 더.
  * 탭 막대 없이 「← 로비」 (상점과 같은 하위 화면). 규칙 · 수치는 game/merchant.ts · data/economy MERCHANT
  * 2026-10-27 (마무리 목록 8번): 부위 고르기 · 사기를 길드 판 둘로 (guild-hall.css .g-card, 판 머리 = 그림 · 제목 · 숫자). 머리 그림 · 감정 결과 시트는 그대로
  * 2026-10-27 Lim: 부위 설명 줄 · 부위 칸 「종류 5가지」 · 맨 아래 영웅 · 장비 레벨 줄 · 감정 결과 「점수 N」은 없앰 (다시 넣지 않는다), 판매는 장비 상세와 같은 확인 창 (sellConfirmHtml)을 거침
+ * 2026-10-28 Lim: 사기 판의 등급 확률 칩은 없앰 (다시 넣지 않는다, 확률은 game/merchant merchantOdds 안에만)
  */
 import { art } from '../art';
-import { GRADE_STYLE, ITEM_GRADES, kindOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
+import { GRADE_STYLE, kindOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
 import { specName } from '../game/charinfo';
-import { buyUnknown, merchantOdds, merchantOffer } from '../game/merchant';
+import { buyUnknown, merchantOffer } from '../game/merchant';
 import { resourceBalance } from '../game/resources';
 import { commit, findItem, G, refreshDay, sell } from '../game/state';
 import { specKeysOf } from '../data/equipment';
@@ -34,15 +35,10 @@ const s = screen('s-merchant', '행상인', {
 /** 뒤로가기 · Esc: 판매 확인 창이 떠 있으면 그것만 닫음 */
 const modal = sheetDialog(s.el, () => { if (st.ask) st.ask = false; else st.got = null; render(); });
 
-/** 확률 글자: 1% 넘으면 소수 한 자리, 그 밑은 두 자리 (끝 0 없앰) */
-const pct = (p: number) => `${(p * 100).toFixed(p >= 0.01 ? 1 : 2).replace(/\.?0+$/, '')}%`;
-
 function render(): void {
   modal.beforeRender();
   const save = G.save, o = merchantOffer(save), slot = st.slot, nm = esc(slotName(slot));
   const have = resourceBalance(save, 'gold');
-  const odds = merchantOdds(o.lv);
-  const chips = ITEM_GRADES.map((g, i) => (odds[i] > 0 ? `<li style="--g:${GRADE_STYLE[g].color};--gi:${GRADE_INK[g]}"><b>${g}</b> ${pct(odds[i])}</li>` : '')).join('');
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '행상인' })}
     <div class="ns-body mc">
       <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">떠돌이 행상인</p><h2>미확인 장비</h2></div>
@@ -53,7 +49,6 @@ function render(): void {
       </section>
       <section class="g-card mc-buy" data-sec="buy" aria-label="사기"><header class="g-hd"><span class="g-hi">${gearIcon({ slot })}</span><h3>미확인 ${nm}</h3><span class="g-meta">Lv ${o.lv}<small>종류 무작위</small></span></header>
         <div class="mc-buy-body">
-        <ul class="mc-odds" aria-label="등급 확률">${chips}</ul>
         <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${nm} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
         ${o.why || st.msg ? `<p class="mc-why" role="status">${esc(st.msg || (o.lock || `${o.why} · 보유 ${fmt(have)}`))}</p>` : ''}
         </div>

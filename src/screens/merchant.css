@@ -1,6 +1,6 @@
 /*
  * 떠돌이 상인 (106, merchant.ts): 상점 · 길드와 같은 길드 홀 돌색 (--gk-*, service-hall.css · guide-sheet.css 목록에 #s-merchant).
- * 머리 그림 ui-merchant (Codex), 부위 탭 → 종류 카드 3열 → 사기 판 (값 · 등급 확률 칩) → 감정 결과 시트 (봉인 꾸러미 icon-merchant가 흔들리다 풀림).
+ * 머리 그림 ui-merchant (Codex), 부위 탭 → 종류 카드 3열 → 사기 판 (값, 등급 확률 칩은 2026-10-28 Lim에 없앰) → 감정 결과 시트 (봉인 꾸러미 icon-merchant가 흔들리다 풀림).
  */
 #s-merchant { display: flex; flex-direction: column; }
 #s-merchant .mc { display: flex; flex-direction: column; gap: 10px; padding-bottom: 16px; }
@@ -32,9 +32,6 @@
 
 /* 사기 판 */
 #s-merchant .mc-buy-body { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
-#s-merchant .mc-odds { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-#s-merchant .mc-odds li { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--g); background: #0d0b08; color: var(--gi); font-size: 12px; font-weight: 700; }
-#s-merchant .mc-odds li b { font-weight: 800; color: var(--g); }
 #s-merchant .mc-go { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; font-size: 17px; }
 #s-merchant .mc-go .currency-amount b { font-size: 16px; }
 #s-merchant .mc-go .currency-icon { width: 20px; height: 20px; }
