@@ -21,6 +21,7 @@ import { create, recruitParty, step } from '../engine/fight';
 import { noviceAt, noviceOf, type NoviceOpts } from '../engine/novice';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { DUO_PARTY } from '../game/tutorial';
+import { HERO_HAND } from './familiar';
 import { rampPlayer } from './ramp';
 
 /** 누가 누르나: 처음 하는 사람 · 지금 자동 힐러 */
@@ -86,7 +87,7 @@ export function runNovice(x: NoviceCell, hero: HeroKey, seed: number, pilot: Pil
   const affixes = c.kind === 'dungeon' ? diffAffixes(d, stageLv) : [];
   const talents = TALENTS.map(t => (t.lv <= rp.lv ? seed % 3 : null));
   const out: NoviceRun = { win: false, time: 0, reason: '', lv: rp.lv, gear: Object.keys(rp.eq).length, presses: 0, misTaps: 0, lapses: 0, fails: 0 };
-  const who = { ...noviceAt(rp.lv, seed), ...opts }; // 한 판 내내 같은 사람 (구간마다 시드가 달라도)
+  const who = { ...noviceAt(rp.lv, seed), ...HERO_HAND[hero], ...opts }; // 한 판 내내 같은 사람 (구간마다 시드가 달라도), 직업 손 (수도사 연타 예약)
   const healer = pilot === 'novice' ? (f: Fight) => noviceHealer(f, who) : autoHealer;
   let carry: Carry | undefined;
   for (let i = 0; i < segs.length; i++) {

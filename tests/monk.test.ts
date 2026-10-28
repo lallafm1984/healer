@@ -58,8 +58,9 @@ describe('데이터 (79 3장)', () => {
     expect(HEROES.monk.ready).toBe(true);
     expect(HEROES.monk.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 40)
     expect(HEROES.monk.dispel).toEqual(['마법', '질병']);
-    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.2 }); // 84: 1.5 → 1.2 (단 마나 보정 없음)
-    expect(MONK.palmGcdMin).toBe(1); // 84: 가속과 상관없이 1초
+    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, cost: 1.2 }); // 84: 1.5 → 1.2 (단 마나 보정 없음)
+    expect(SKILLS.vitalPalm.gcd).toBeUndefined(); // 2026-10-28 Lim: 다른 직업과 같은 공통 GCD
+    expect(MONK.palmGcdMin).toBe(0); // 1초 하한도 없음
     expect(SKILLS.tea).toMatchObject({ gcd: 0, cost: 0, cd: 60 });
   });
   it('특성 10단 × 3, 보조 버튼은 천 개의 손 · 모이는 안개 · 기 폭발 · 안개 폭풍', () => {
@@ -74,7 +75,7 @@ describe('데이터 (79 3장)', () => {
 });
 
 describe('기 리듬 (79 3-3)', () => {
-  it('생기 손바닥: 즉시, 다음 행동 1초, 리듬 1마다 +6% (올린 뒤), 최대 5', () => {
+  it('생기 손바닥: 즉시, 다음 행동 = 공통 GCD (2026-10-28), 리듬 1마다 +6% (올린 뒤), 최대 5', () => {
     const f = fight(), u = others(f)[0];
     big(u);
     const amts: number[] = [];
@@ -82,9 +83,9 @@ describe('기 리듬 (79 3-3)', () => {
       E.use(f, 'vitalPalm', u.cell);
       if (i === 0) expect(f.gcd).toBeCloseTo(gcdOf(f, 'vitalPalm'), 6);
       amts.push(healOn(healsOf(f), u)); f.events.length = 0;
-      step(f, 1.0);
+      step(f, f.gcdBase);
     }
-    expect(gcdOf(f, 'vitalPalm')).toBeCloseTo(1.0, 6);
+    expect(gcdOf(f, 'vitalPalm')).toBeCloseTo(f.gcdBase, 6);
     expect(amts).toEqual([1, 2, 3, 4, 5, 5].map(b => Math.round(P * (1 + b * STEP))));
     expect(f.beat).toBe(5);
   });
@@ -303,7 +304,7 @@ describe('특성 (79 3-7)', () => {
     expect(healOn(cast(f, 'vitalPalm', u.cell), u)).toBe(Math.round(P * (1 + 2 * TX.focusBeat)));
     const g = fight(['wideBeat']), w = others(g)[0];
     big(w); cast(g, 'vitalPalm', w.cell);
-    step(g, 2.4);
+    step(g, 3.4 - gcdOf(g, 'vitalPalm')); // 느슨한 박자 3.5초 안 (보통 2.5초는 넘음)
     expect(g.beat).toBe(1);
     const h = fight(['sevenBeat']), x = others(h)[0];
     big(x);
@@ -471,6 +472,6 @@ describe('직업 전용 특수능력 (79 3-8)', () => {
     const h = sp('palmMist', 1), w = others(h)[0];
     big(w);
     cast(h, 'vitalPalm', w.cell);
-    expect(mistOf(w)?.left).toBeCloseTo(6 - 1, 1);
+    expect(mistOf(w)?.left).toBeCloseTo(6 - gcdOf(h, 'vitalPalm'), 1);
   });
 });

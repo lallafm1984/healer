@@ -70,6 +70,12 @@ export const familiarPlayer = (x: FamiliarCell, hero: HeroKey, seed: number, bas
   return { lv, eq: basis === 'journey' ? gearAt(journey(hero, ((seed - 1) % JOURNEYS) + 1), lv) : midGear(lv, hero, seed) };
 };
 
+/**
+ * 직업마다 손 (2026-10-28 Lim 「수도사 손을 연타예약으로 체크」): 수도사는 손바닥을 같은 사람에게 이어 치는 직업이라 연타는 GCD 중에 미리 눌러 둔다고 봄 (engine/novice queueSame).
+ * 그 레벨 사람 · 중급자 손 위에 겹침 (sim/novice 초보 검사도 같음)
+ */
+export const HERO_HAND: Partial<Record<HeroKey, Partial<NoviceOpts>>> = { monk: { queueSame: true } };
+
 export interface FamiliarCell { c: ContentDef; d: DiffName }
 /** 검사 칸: 순차 구간 밖 장소 (레이드 포함) × 난이도, 적 레벨 순 */
 export const familiarCells = (diffs: DiffName[]): FamiliarCell[] =>
@@ -91,7 +97,7 @@ export function measureFamiliar(x: FamiliarCell, n: number, pilot: 'familiar' | 
     let w = 0;
     for (let s = 1; s <= n; s++) {
       const player = pilot === 'familiar' && basis !== 'std' ? familiarPlayer(x, h, s, basis) : undefined;
-      const who = { ...noviceAt(Math.min(100, stageOf(x.c, x.d)), s), ...opts };
+      const who = { ...noviceAt(Math.min(100, stageOf(x.c, x.d)), s), ...opts, ...HERO_HAND[h] };
       const tweak = pilot === 'familiar' ? { healer: (f: Parameters<typeof noviceHealer>[0]) => noviceHealer(f, who), player } : undefined;
       const r = runOnce(x.c, x.d, h, s, tune, 'common', tweak);
       all += r.time; heals += r.heals;
