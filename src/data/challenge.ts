@@ -23,9 +23,13 @@ export const CHAL = {
   /** 단계마다 적 피해 × dmgRate, pivot단계 = 깨기 반 배율 (110 2차: 익숙한 사람 90% → 10%가 피해 1.6배 사이라 10단계 ≈ 90 · 20단계 ≈ 10%) */
   dmgRate: 1.045,
   pivot: 15,
-  /** 제한시간 = 던전 1단계 가운데 시간 × (timeSlack + timeGrow × (단계 − 1)), 5초 단위 */
-  timeSlack: 1.2,
-  timeGrow: 0.03,
+  /**
+   * 제한시간 = 던전 1단계 가운데 시간 × (timeSlack + timeGrow × (단계 − 1)), 5초 단위.
+   * 2026-10-28 Lim 「주간도전의 제한시간이 너무 짧다」: 1.2 + 0.03 → 1.6 + 0.04. 가운데 시간은 어픽스 없는 1단계라 1.2배면 어픽스 주 (폭군 보스 체력 +15% · 진동 · 결속)
+   * 1 ~ 5단계에서 이긴 판 다섯에 하나가 시간을 넘겼음 (보스 빠르기 뒤 녹슨 요새 가운데 405 → 213초, 남는 시간 40초)
+   */
+  timeSlack: 1.6,
+  timeGrow: 0.04,
   /** 셋째 어픽스가 붙는 단계 (115 나안, 2026-10-27 Lim 「나안」): 1 ~ 9단계는 이번 주 어픽스 앞 둘, 이 단계부터 셋 다 */
   third: 10,
   /** 단계 보너스 (110): 클리어 골드 · 경험치 × (1 + rewardStep × (단계 − 1)). 10단계 ×1.27 · 20단계 ×1.57 */
@@ -60,7 +64,7 @@ export const chalMult = (stage: number, key: ContentKey, lv: number) => ({
 });
 /** 화면에 보이는 단계 세기: 1단계보다 적 체력 · 피해 +몇 % (던전마다 바탕 세기는 표 안에) */
 export const chalShown = (stage: number) => ({ hp: CHAL.hpStep * (stage - 1), dmg: CHAL.dmgRate ** (stage - 1) - 1 });
-/** 제한시간 (휴식 뺀 전투 시간 합, 초): 던전 1단계 가운데 시간 × (1.2 + 0.03 × (단계 − 1)), 5초 단위. 표 없는 던전은 8분 기준 */
+/** 제한시간 (휴식 뺀 전투 시간 합, 초): 던전 1단계 가운데 시간 × (timeSlack + timeGrow × (단계 − 1)), 5초 단위. 표 없는 던전은 400초 기준 */
 export function chalLimit(stage: number, key: ContentKey): number {
   const t1 = CHAL_DUN[key]?.t ?? 400;
   return Math.round((t1 * (CHAL.timeSlack + CHAL.timeGrow * (stage - 1))) / 5) * 5;
