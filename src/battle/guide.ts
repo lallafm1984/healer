@@ -389,7 +389,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
       '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
     case 'soul': { // 놓쳤을 때: 피해 · 디버프 · 보스 피해 (끝까지 · 잠깐) · 보스가 받는 피해 감소
       const fl = e.fail, hits = [
-        fl.dmg > 0 ? `${fl.near ? '이웃 칸' : '전원'} <b>${n(fl.dmg)}</b>` : '',
+        fl.dmg > 0 ? `${fl.near ? '이웃 칸' : '전원'}에게 <b>${n(fl.dmg)}</b> 피해` : '',
         fl.debuff ? `${fl.dmg > 0 ? '' : fl.near ? '이웃 칸에 ' : '모두에게 '}${debuffText(fl.debuff, n)}` : '',
         fl.boost ? `보스 피해 +${pctT(fl.boost)} (끝까지 쌓임)` : '',
         fl.rage ? `${secT(fl.rage.sec)} 동안 적 피해 +${pctT(fl.rage.pct)}` : '',
@@ -400,7 +400,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : e.pick === 'tanks' ? '두 탱커를' : '두 사람을'} 「${e.name}」${roJ(e.name)} ${secT(e.sec)} 이음 (해제 안 됨): ${e.kind === 'balance'
       ? `두 사람 체력 비율 차이가 ${pctT(e.gap ?? 0.3)} 넘게 벌어지면 사슬이 끊어지며 둘 다 <b>${n(e.dmg ?? 0)}</b>`
       : '이어진 둘이 받는 피해 · 치유를 반씩 나눔 (한쪽만 힐해도 둘 다 참)'}`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
-    case 'vessel': return [`「${e.name}」: ${secT(e.sec)} 동안 넘친 치유가 그릇에 모임 (끝 = 파티 최대 체력 합의 ${pctT(e.need)}). 못 채우면 그릇이 깨지며 전원 <b>${n(e.dmg)}</b> (덜 찬 비율만큼, 반만 찼으면 절반), 가득 차면 피해 없음`, '일부러 넘치게 힐하기'];
+    case 'vessel': return [`「${e.name}」: ${secT(e.sec)} 동안 넘친 치유가 모임 (끝 = 파티 최대 체력 합의 ${pctT(e.need)}). 못 채우면 깨지며 전원에게 <b>${n(e.dmg)}</b> 피해 (덜 찬 비율만큼: 반만 찼으면 절반). 가득 차면 피해 없음`, '일부러 넘치게 힐하기'];
     case 'auto': return [`탱커에게 ${n(e.dmg)}`, ''];
     case 'share': return [`🎯 대상과 이웃 칸 아군이 <b>${n(e.dmg)}</b>를 인원 수로 나눠 받음 (혼자면 그대로)`, '가까운 파티원이 모임. 대상을 미리 채우고, 모인 칸에 광역 힐'];
     case 'trade': return [`두 탱커의 「${e.name}」 중첩이 서로 바뀜`, '바뀐 뒤 바로 교대가 오니 두 탱커 모두 채워 두기'];
