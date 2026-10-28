@@ -3,7 +3,7 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { BARK, BEACON, HAND_GUARD, QUIETWOOD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
+import { BARK, BEACON, HAND_GUARD, LEAF, QUIETWOOD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
 import { warderApply, warderShieldBroken, warderTaken, warderTick } from './warder';
@@ -163,6 +163,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     if (on.cleanFlower && f.t >= f.tx.cleanAt && u.debuffs.some(d => dispellable(f, d.type) && !d.lock && !d.trap) && dispelled(f, u)) f.tx.cleanAt = f.t + TX.cleanFlower.cd; // 맑은 새싹 (77)
     u.lastHeal = f.t; if (u.sulking) u.sulking = false;
     if (f.sp && sv(f, 'sproutWind') && f.rng() < sv(f, 'sproutWind')) giveSprout(f, sproutless(f, u), false); // 퍼지는 새싹 (42 드루 23)
+    f.leaves = Math.min(LEAF.max, f.leaves + 1); // 잎 (2026-10-28): 직접 심은 새싹만 (퍼지는 새싹 · 고요한 숲 · 봄비는 안 셈)
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'growth') {
     const amt = sk.amt! * (on.sproutGrowth && hasSprout(u) ? 1 + TX.sproutGrowth : 1); // 단비 (77)
@@ -181,7 +182,10 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'wildflower') {
     const r = areaRadius(f, 'wildflower'); // 20인은 2칸 (26 9-1)
     if (f.sp) aoeCount(f, around(f, u, r).length);
-    const vs = wildAt(f, u.cell, 1, r);
+    const n = f.leaves, full = n >= LEAF.max; // 잎을 모두 씀 (2026-10-28)
+    f.leaves = 0;
+    const vs = wildAt(f, u.cell, 1 + LEAF.heal * n, r);
+    if (full) for (const v of vs) if (!hasSprout(v)) putSprout(f, v); // 잎 5장: 닿은 아군 중 새싹이 없는 사람에게 새싹
     if (on.rebloomField) f.tx.later.push({ at: f.t + 7, cell: u.cell, amt: TX.rebloomField, r, kind: 'wild' }); // 다시 피는 들꽃 (77)
     if (on.flowerTrail || on.wakeForest) for (const v of vs) for (const h of v.hots) if (h.key === 'sprout') {
       if (on.flowerTrail) { h.rest += (h.per / h.every) * TX.flowerTrail; h.left += TX.flowerTrail; } // 이어 피는 꽃 (77): 시간 + 그만큼 회복량
@@ -379,7 +383,7 @@ export function heroTick(f: Fight, dt: number): void {
 /** 전투 시작 때 직업별 안내 (전투 화면 위쪽 문구) */
 export const heroRing = (f: Fight): { label: string; value: string } => {
   if (f.hero === 'paladin') return { label: '신성한 힘', value: `${f.power3}/${powerMax(f)}` };
-  if (f.hero === 'druid') return { label: '새싹', value: String(f.party.filter(u => u.alive && u.hots.some(h => h.key === 'sprout')).length) };
+  if (f.hero === 'druid') return { label: '잎', value: `${f.leaves}/${LEAF.max}` };
   return { label: '마나', value: String(Math.floor(f.mana)) };
 };
 

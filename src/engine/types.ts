@@ -797,6 +797,8 @@ export interface Fight {
   hero: HeroKey;
   /** 성기사 신성한 힘 (0~3) */
   power3: number;
+  /** 드루이드 잎 (0~5, LEAF): 새싹으로 모으고 들꽃 군락이 씀 */
+  leaves: number;
   /** 성기사 봉화 대상 id */
   beacon: number | null;
   /** 성기사 봉화를 바꾼 뒤 남은 대기 */

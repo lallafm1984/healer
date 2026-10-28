@@ -31,8 +31,10 @@ export interface WarderState {
   /** 거울 막 (결계 02): 빛의 막을 씌운 양 (배율 전 단위, 깨질 때 되돌림) */
   barrier: Map<number, number>;
   telSeen: number;
+  /** 결계력 (0~5, WARDER.ward): 내 보호막이 피해로 다 깨지면 1칸, 심판이 씀 */
+  ward: number;
 }
-export const newWarder = (): WarderState => ({ veil: null, stepCd: 0, preCd: 0, lastCd: 0, selfAt: 0, judgeCut: 0, barrier: new Map(), telSeen: 0 });
+export const newWarder = (): WarderState => ({ veil: null, stepCd: 0, preCd: 0, lastCd: 0, selfAt: 0, judgeCut: 0, barrier: new Map(), telSeen: 0, ward: 0 });
 const st = (f: Fight): WarderState => (f.warder ??= newWarder());
 const adjLowest = (f: Fight, u: Unit, n: number, pick: (v: Unit) => boolean = () => true): Unit[] => {
   const c = cellOf(f, u);
@@ -84,13 +86,14 @@ function directMult(f: Fight, u: Unit): number {
 
 // ---------- 스킬 ----------
 /** 심판 회복 (인장이 붙은 가장 다친 n명) · 심판의 막 (결계 21: 회복량의 비율만큼 보호막) */
-function sealBurst(f: Fight, key: SkillKey, n: number, amt: number): Unit[] {
+function sealBurst(f: Fight, key: SkillKey, n: number, amt: number, full = false): Unit[] {
   const vs = sealTargets(f, n);
   vs.forEach((v, i) => {
     noteUsed(f, key, v.id);
     const eff = heal(f, v, amt * (key === 'judgment' && i === 0 && f.tx.on.heavyJudge ? TX.heavyJudge : 1), true); // 무거운 심판
     if (f.sp && sv(f, 'judgeHit') && eff > 0) giveAbsorb(f, v, eff * sv(f, 'judgeHit'), 6, WARDER.shieldCap, true); // 심판의 막 (결계 21)
-    if (key === 'judgment' && f.tx.on.sealEcho) v.seal = f.t + sealSec(f); // 인장의 메아리
+    if (full && eff > 0) giveAbsorb(f, v, eff, WARDER.ward.sec, WARDER.shieldCap, true); // 결계력 5칸: 회복량만큼 보호막
+    if ((key === 'judgment' && f.tx.on.sealEcho) || full) v.seal = f.t + sealSec(f); // 인장의 메아리 · 결계력 5칸
   });
   return vs;
 }
@@ -98,7 +101,9 @@ function sealBurst(f: Fight, key: SkillKey, n: number, amt: number): Unit[] {
 function judgment(f: Fight): void {
   const s = st(f);
   s.judgeCut = 0;
-  const vs = sealBurst(f, 'judgment', judgeCount(f), SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)));
+  const n = s.ward, full = n >= WARDER.ward.max; // 결계력을 모두 씀 (2026-10-28)
+  s.ward = 0;
+  const vs = sealBurst(f, 'judgment', judgeCount(f), SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)) * (1 + WARDER.ward.heal * n), full);
   if (s.veil && s.veil.until > f.t && f.tx.on.sharedLoad) s.veil.judged = true;
   if (vs.length >= WARDER.price.n && heroPassive(f, '인장의 대가')) f.mana = Math.min(100, f.mana + WARDER.price.mana);
   if (f.sp && sv(f, 'judgeMana')) f.mana = Math.min(100, f.mana + vs.length * sv(f, 'judgeMana')); // 심판의 마나 (결계 17)
@@ -219,6 +224,7 @@ export function warderShieldBroken(f: Fight, u: Unit): void {
   if (heroPassive(f, '깨진 막의 빛')) under(null, false, () => heal(f, u, WARDER.broken * (1 + (f.sp ? sv(f, 'brokenMore') : 0)), true));
   if (f.sp && sv(f, 'barrierSeal') && sealed(f, u)) u.seal = f.t + sealSec(f);
   const s = st(f), amt = s.barrier.get(u.id);
+  s.ward = Math.min(WARDER.ward.max, s.ward + 1); // 결계력 (2026-10-28): 막이 다 막아 내고 깨질 때마다 1칸
   if (amt != null) {
     s.barrier.delete(u.id);
     // 거울 막 (결계 02, 2026-10-16 보스 공격 대신): 붙어 있는 가장 다친 아군에게 그 막 두께의 비율만큼 막

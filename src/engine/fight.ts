@@ -66,7 +66,7 @@ export function create(cfg: FightConfig): Fight {
     mana: 100, gcd: 0, gcdBase: R.gcd / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
-    hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relays: [],
+    hero: cfg.hero ?? 'priest', power3: 0, leaves: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relays: [],
     totems: [], beat: 0, beatUntil: 0, shards: 0,
     tx: null as unknown as TalentState, // 아래 newTalents
     manaCut: 1,

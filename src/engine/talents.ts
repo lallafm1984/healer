@@ -2,7 +2,7 @@
  * 특성 효과: 사제 (06 6장) · 드루이드 · 성기사 (77). 특성이 없으면 어느 함수도 결과를 바꾸지 않는다 (×1, +0, 난수 그대로 → 프로토타입 일치).
  * 보조 버튼 특성 (기적 · 쉼터 · 정점 · 흩빛 · 봄비 · 숲의 기억 · 고목 · 결의 · 새벽)은 GCD 밖에서 바로 쓰고 마나도 안 든다
  */
-import { DRUID_BIG, HAND_GUARD, WAVE } from '../data/heroConst';
+import { DRUID_BIG, HAND_GUARD, LEAF, WAVE } from '../data/heroConst';
 import { TALENT_DEF, TALENT_TREES, talentKeys, TX, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -112,6 +112,7 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
   if (f.sp && freeCast(f, key)) return 0;
   if (key === 'chainHeal' && f.tx.on.stormChain && raining(f)) return 0; // 폭풍 사슬 (79 2-7)
   if (instantStar(f, key)) return 0; // 은하수 (79 4-7)
+  if (key === 'wildflower' && f.hero === 'druid' && f.leaves >= LEAF.max) return 0; // 잎 5장이면 들꽃 군락 바로 (2026-10-28)
   if (CONSTELLATION.has(key) && activeOn(f, 'fallingNight')) return 0; // 내리는 밤 (83: 별자리 스킬 바로 시전)
   const cut = (key === 'heal' && f.tx.on.practiced) || (key === 'holyLight' && f.tx.on.swiftLight) ? (key === 'heal' ? 0.3 : TX.swiftLight)
     : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : key === 'starHeal' && f.tx.on.brightStar ? TX.brightStar : CONSTELLATION.has(key) && f.tx.on.quickLink ? TX.quickLink : 0; // 빠른 잔물결 (79 2-7) · 밝은 별 (79 4-7) · 빠른 잇기 (83)

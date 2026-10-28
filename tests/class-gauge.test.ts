@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { create, use, setBeacon } from '../src/engine';
-import { classGaugeState, beaconLabel, wholeCells } from '../src/battle/class-gauge-state';
-import { putSeal } from '../src/engine/warder';
-import { putHot } from '../src/engine/heroes';
+import { classGaugeState, beaconLabel } from '../src/battle/class-gauge-state';
+import { putSeal, warderApply, warderShieldBroken } from '../src/engine/warder';
+import { heroApply } from '../src/engine/heroes';
+import { castOf } from '../src/engine/talents';
+import { absorbLeft } from '../src/engine/abilities';
+import { LEAF, WARDER } from '../src/data/heroConst';
 
 describe('직업 게이지의 실제 전투 상태',()=>{
   it('봉화 이름은 실제 지정 대상을 따라 바뀌고 미지정·없는 ID도 처리한다',()=>{
@@ -46,20 +49,35 @@ describe('직업 게이지의 실제 전투 상태',()=>{
     f.hero='monk';f.tx.on.sevenBeat=true;f.beat=6;f.beatUntil=f.t+3.5;
     expect(classGaugeState(f)).toMatchObject({count:6,max:7,remaining:3.5});
   });
-  it('새싹 비율은 생존 파티원과 유효한 지속 치유만 센다',()=>{
+  it('드루이드 잎: 직접 심은 새싹마다 1장 (최대 5), 들꽃 군락이 모두 써서 잎마다 +15%, 5장이면 바로 시전 + 새싹 (2026-10-28 Lim 1안)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'druid'});
-    putHot(f.party[0],'sprout',{sec:12,every:3,total:100});
-    f.party[1].alive=false;
-    const s=classGaugeState(f);expect(s.count).toBe(1);expect(s.max).toBe(f.party.length-1);
+    const [a,b]=f.party;
+    expect(classGaugeState(f)).toMatchObject({count:0,max:LEAF.max,lit:0});
+    for(let i=0;i<7;i++)heroApply(f,'sprout',a);
+    expect(f.leaves).toBe(LEAF.max);expect(classGaugeState(f)).toMatchObject({count:5,lit:5,percent:100});
+    expect(castOf(f,'wildflower')).toBe(0);
+    b.hots=b.hots.filter(h=>h.key!=='sprout');
+    heroApply(f,'wildflower',a);
+    expect(f.leaves).toBe(0);expect(castOf(f,'wildflower')).toBeGreaterThan(0);
+    const wild=(u:typeof a)=>u.hots.find(h=>h.key==='wildflower')!;
+    const full=wild(a).rest;
+    expect(b.hots.some(h=>h.key==='sprout')).toBe(true); // 5장: 새싹 없던 아군에게 새싹
+    a.hots=[];heroApply(f,'wildflower',a);
+    expect(full/wild(a).rest).toBeCloseTo(1+LEAF.heal*LEAF.max,5);
   });
-  it('잎 · 인장 다섯 칸은 통째로만 켠다: 다섯 명까지 칸 하나 = 한 명, 레이드는 비율 (2026-10-28 Lim)',()=>{
-    expect([0,1,2,3,4].map(n=>wholeCells(n,4))).toEqual([0,1,2,3,4]);
-    expect([0,1,2,3].map(n=>wholeCells(n,3))).toEqual([0,1,2,3]);
-    expect([0,1,4,10,19,20].map(n=>wholeCells(n,20))).toEqual([0,1,1,3,4,5]);
-    expect([1,5,9,10].map(n=>wholeCells(n,10))).toEqual([1,3,4,5]);
+  it('결계사 결계력: 내 보호막이 다 깨질 때마다 1칸 (최대 5), 심판이 모두 써서 칸마다 +20%, 5칸이면 보호막 + 인장 처음으로 (2026-10-28 Lim 1안)',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'warder'});
-    f.party[1].alive=false;putSeal(f,f.party[0]);
-    expect(classGaugeState(f)).toMatchObject({count:1,lit:1});
+    const vs=f.party.slice(0,2);
+    for(let i=0;i<7;i++)warderShieldBroken(f,vs[0]);
+    expect(f.warder!.ward).toBe(WARDER.ward.max);expect(classGaugeState(f)).toMatchObject({count:5,lit:5,percent:100});
+    const judge=()=>{for(const v of vs){v.hp=v.max*0.3;putSeal(f,v);v.seal=f.t+1;}const before=vs.map(v=>v.hp);warderApply(f,'judgment',vs[0]);return vs.map((v,i)=>v.hp-before[i]);};
+    const big=judge();
+    expect(f.warder!.ward).toBe(0);
+    for(const v of vs){expect(absorbLeft(f,v)).toBeGreaterThan(0);expect(v.seal!).toBeCloseTo(f.t+15,5);}
+    for(const v of vs)v.mods=v.mods.filter(m=>m.k!=='absorb');
+    const small=judge();
+    expect(big[1]/small[1]).toBeCloseTo(1+WARDER.ward.heal*WARDER.ward.max,5);
+    for(const v of vs)expect(absorbLeft(f,v)).toBe(0);
     f.hero='priest';expect(classGaugeState(f).lit).toBeNull();
   });
   it('신성한 힘 칸 수는 실제 최대치: 넘치는 신성한 힘이면 4칸 (2026-10-28 Lim)',()=>{
