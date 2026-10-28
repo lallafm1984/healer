@@ -310,17 +310,17 @@ function inventoryHtml(): string {
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   return `<section class="c7-inventory${picks ? ' c7-picking' : ''}" aria-label="인벤토리">
-      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3></header>
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3>${picks ? pickBarHtml() : ''}</header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
-      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div>${picks ? pickBarHtml() : ''}</section>`;
+      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
 }
 
 /** 고른 장비 (가방에 있고 잠기지 않은 것만) */
 const pickedItems = () => G.save.gear.bag.filter(it => picks?.has(it.id) && !it.lock);
 const goldOf = (items: GearItem[]) => items.reduce((a, it) => a + sellGold(it), 0);
 
-/** 고르는 동안 인벤토리 아래 줄: 고른 개수 · 받을 골드 합계 · 취소 · 판매 (판매는 확인 창을 한 번 더) */
+/** 고르는 동안 「인벤토리」 제목 오른쪽 (2026-10-28 Lim): 고른 개수 · 받을 골드 합계 · 취소 · 판매 (판매는 확인 창을 한 번 더) */
 function pickBarHtml(): string {
   const items = pickedItems();
   return `<div class="c7-pickbar" role="group" aria-label="판매할 장비 고르기">
@@ -407,10 +407,14 @@ function confirmBox(title: string, items: string, gold: number): string {
 export function sellConfirmHtml(it: GearItem): string {
   return confirmBox('장비 판매', `<div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(it.name)}</b></div>`, sellGold(it));
 }
+const CONFIRM_TILES = 21;
 /** 여러 개 판매 확인 (2026-10-28 Lim): 제목에 개수, 고른 장비 그림 (등급 높은 것부터), 받는 골드 합계 */
 function sellManyHtml(): string {
   const items = pickedItems().sort((a, b) => gradeIdx(b) - gradeIdx(a) || SORTS[bagSort].cmp(a, b));
-  const icons = items.map(it => `<span class="c7-confirm-icon" style="${gvars(it)}" role="img" aria-label="${esc(`${it.grade} ${qualityTxt(it)}${it.name}`)}">${itemIc(it)}</span>`).join('');
+  // 그림은 한 줄 7칸 · 세 줄까지 (21개까지 다 보임, 넘으면 20개 + 「+N」 칸, 2026-10-28 Lim 「20개를 판매해도 보기에 이상하지 않게」)
+  const shown = items.length > CONFIRM_TILES ? items.slice(0, CONFIRM_TILES - 1) : items, more = items.length - shown.length;
+  const icons = shown.map(it => `<span class="c7-confirm-icon" style="${gvars(it)}" role="img" aria-label="${esc(`${it.grade} ${qualityTxt(it)}${it.name}`)}">${itemIc(it)}</span>`).join('')
+    + (more ? `<span class="c7-confirm-more" role="img" aria-label="그 밖에 ${more}개">+${more}</span>` : '');
   return confirmBox(`장비 ${items.length}개 판매`, `<div class="c7-confirm-item c7-confirm-many">${icons}</div>`, goldOf(items));
 }
 
