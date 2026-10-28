@@ -87,7 +87,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 280, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스)
   droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 4, amt: 330, target: 'ally' },
   washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
-  chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 300, target: 'ally' },
+  chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 260, target: 'ally' }, // 2026-10-28 통합 점검: 300 → 260 (깊은 물 50 → 20%와 함께)
   earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'cell' },
   rainTotem: { name: '비구름 토템', short: '비구름', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 60, target: 'none' },
   spiritLink: { name: '영혼 잇기', short: '잇기', slot: 'unique', lv: 15, cast: 0, cost: 5, cd: 120, target: 'ally' },
@@ -114,7 +114,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 1.5, cost: 5, cd: 12, target: 'ally' }, // 마나 8 → 5% · 재사용 30 → 20초 (79 4-11), 83: 모으기 → 시전, 힐량을 내린 몫은 재사용 20 → 12초로
 
   // ---------- ⑦ 결계사 (79 5장) ----------
-  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 440, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 350 → 440 · 시전 2.2 → 2.0초
+  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 400, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스) · 2026-10-22 Lim 「결계사 스킬을 끌어 올리자」: 350 → 440 · 시전 2.2 → 2.0초 · 2026-10-28 통합 점검: 440 → 400 (주술사와 함께 어려움 · 악몽 모든 묶음에서 기준 평균보다 높았음)
   lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 150, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300 // 2026-10-19 Lim 「막 이외의 다른건 그전으로 계수를 돌리고 막은 계수를 60프로로 하자」: 300 → 180 → 2026-10-19 Lim 「막은 50프로로 하고 결계 원은 1칸까지., 굳히기는 재사용시간 두배 늘리자.」: 180 → 150
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
@@ -161,7 +161,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   sprout: { kind: '심기', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다. 심을 때마다 잎을 1장 모읍니다 (최대 5장).' },
   growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {250} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
   bloom: { kind: '거두기', desc: '대상의 지속 힐 하나를 거둬 남은 회복량의 150%를 즉시 회복합니다.' },
-  wildflower: { kind: '광역 심기', desc: `대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다. 모은 잎을 모두 써서 잎 1장마다 ${Math.round(LEAF.heal * 100)}% 더 회복합니다. 잎이 ${LEAF.max}장이면 바로 시전되고, 닿은 아군 중 새싹이 없는 사람에게 새싹을 심습니다.` },
+  wildflower: { kind: '광역 심기', desc: `대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다. 모은 잎을 모두 써서 잎 1장마다 ${Math.round(LEAF.heal * 100)}% (20인 레이드 ${Math.round(LEAF.big.heal * 100)}%) 더 회복합니다. 잎이 ${LEAF.max}장이면 바로 시전되고, 닿은 아군 중 새싹이 없는 사람에게 새싹을 심습니다 (20인 레이드 제외).` },
   natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다.' },
   bark: { kind: '생존기', desc: '12초 동안 대상이 받는 피해가 20% 줄고, 대상에게 걸린 내 지속 힐이 20% 강해집니다.' },
   quietwood: { kind: '전원 심기', desc: '파티 전원에게 새싹을 심습니다. 이미 새싹이 있는 아군은 그대로 둡니다. 걸린 지속 힐은 모두 그 자리에서 한 번 더 회복하고 6초 늘어나며, 늘어난 만큼 더 회복합니다.' },
@@ -179,7 +179,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   ripple: { kind: '튀는 힐', desc: '대상의 체력을 {280} 회복하고, 붙어 있는 다친 아군 중 체력 비율이 가장 낮은 1명에게 튀어 {84} 회복합니다. 물방울이 걸린 아군에게는 2칸 거리까지 튑니다.' },
   droplet: { kind: '다리 · 지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {330}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
   washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
-  chainHeal: { kind: '튀는 광역', desc: '대상의 체력을 {300} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
+  chainHeal: { kind: '튀는 광역', desc: '대상의 체력을 {260} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
   earthTotem: { kind: '토템', desc: '고른 칸에 대지 토템을 세웁니다. 빈 칸에도 세울 수 있습니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 사람을 따라가지 않습니다.' },
   rainTotem: { kind: '토템 · 공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {60}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
   spiritLink: { kind: '체력 나누기', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
@@ -203,7 +203,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   starMemory: { kind: '별자리 · 되감기', desc: '시전이 끝나면 모은 별 조각을 모두 써서 파티 전원이 받은 피해를 되감습니다. 별 (1 + 조각) 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 65%를 회복합니다. 적어도 {100}씩 회복합니다.' },
   polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
-  sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {440} 회복하고 15초 동안 인장을 붙입니다.' },
+  sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {400} 회복하고 15초 동안 인장을 붙입니다.' },
   lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
