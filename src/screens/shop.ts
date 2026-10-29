@@ -66,8 +66,8 @@ function cashHtml(): string {
   const v = staminaView(G.save, Date.now());
   return `${card('rest', currencyIcon('rest'), '휴식', `<div class="cash-stam">
       <button class="cash-meter" type="button" data-stamina-open aria-label="휴식 창 열기">${currencyIcon('rest')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
-      <p class="g-sub wrap">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×${REST_BONUS} · 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></div>`)}
-    ${card('noads', gameIcon('noads', uiIcon('star')), '광고 제거 패키지', `<ul class="g-rows">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `배너 · 전면 광고 없음 · 휴식 충전도 바로 · 휴식 최대 +${STAMINA.bonus}`)}</ul>`)}
+      <p class="g-sub wrap">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×${REST_BONUS} · 광고 보고 최대 충전 · 하루 ${STAMINA.adDaily}번</p></div>`)}
+    ${card('noads', gameIcon('noads', uiIcon('star')), '광고 제거 패키지', `<ul class="g-rows">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `전면 광고 없음 · 휴식 최대 +${STAMINA.bonus}`)}</ul>`)}
     ${card('jobs', uiIcon('char'), '직업', `<p class="g-sub wrap sh-lead">현금 또는 골드 · 레벨 조건 없이 바로 열림 · 모든 캐릭터</p><ul class="g-rows">${PAID_HEROES.map(h => row(jobProductId(h), classEmblem(h, 'md'), HEROES[h].name, JOB_LINE[h])).join('')}</ul>`)}
     <p class="note sh-foot">${dev ? '개발 빌드: 누르면 결제 없이 바로 받음' : esc(STORE_WHY)}</p>`;
 }

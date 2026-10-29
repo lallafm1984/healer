@@ -105,11 +105,11 @@ export default async function character(url, shots) {
   ok((await save()).settings.tapKey === 'flash' && await page.getAttribute('#s-char [data-tap="flash"]', 'aria-pressed') === 'true', '칸 탭 기본 힐 = 순간 치유 저장');
   await page.click('#s-char [data-tap="heal"]'); await page.clock.runFor(50);
 
-  // ---- 설정에서 캐릭터 → 스킬로 ----
+  // ---- 설정에서 뒤로 돌아오면 보던 캐릭터 스킬 탭 유지 ----
   await page.click('#s-char .tb-set'); await page.clock.runFor(100);
-  ok(!(await page.isVisible('#s-settings .lslot')), '설정엔 스킬 배치 없음');
-  await page.click('#toSkills'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="skill"]', 'aria-selected') === 'true', '설정 「→ 캐릭터」 = 캐릭터 스킬');
+  ok(!(await page.isVisible('#s-settings .lslot')) && await page.locator('#toSkills').count() === 0, '설정엔 스킬 배치·캐릭터 바로가기 없음');
+  await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="skill"]', 'aria-selected') === 'true', '설정에서 뒤로 = 보던 캐릭터 스킬 탭');
 
   // ---- 특성: Lv 1 / Lv 25 ----
   await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);

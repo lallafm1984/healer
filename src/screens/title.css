@@ -1,0 +1,107 @@
+/* 기존 신전 풍경 → 투명 제목 장식판 → 게임 이름. 하단은 황동 테·붉은 칠의 시작 버튼. */
+#s-title {
+  --t-plate-width: clamp(280px, 90vw, 400px);
+  isolation: isolate;
+  overflow: hidden;
+  background: #314d59 var(--art-scene-sanctuary, none) center 44% / cover no-repeat;
+}
+#s-title::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0f1e4338, transparent 48%, #131b1b1f 76%, #0d141670);
+  pointer-events: none;
+}
+#s-title .t-wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: clamp(44px, 9dvh, 88px) 24px 24px;
+  text-align: center;
+  pointer-events: none;
+}
+#s-title .t-brand { position: relative; isolation: isolate; width: max-content; max-width: 100%; }
+#s-title .t-brand::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: var(--t-plate-width);
+  aspect-ratio: 4 / 3;
+  transform: translate(-50%, -50%);
+  background: var(--art-ui-title-backplate-v2, none) center / contain no-repeat;
+  /* 풍경은 은은하게 비치고, 제목 뒤 파란 면은 충분히 남겨 글자를 읽기 쉽게 한다. */
+  opacity: .82;
+  filter: brightness(.94) saturate(.9);
+  pointer-events: none;
+}
+#s-title .t-name {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding-bottom: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+#s-title .t-prefix {
+  padding-left: .12em;
+  color: #fff3d3;
+  font-size: clamp(34px, 10.3vw, 48px);
+  letter-spacing: .12em;
+  text-shadow: 0 2px 0 #57401e, 0 4px 12px #172b4280;
+}
+#s-title .t-main {
+  padding: 0 .045em .08em .09em;
+  color: #f8da8b;
+  -webkit-text-stroke: .5px #79532170;
+  font-size: clamp(76px, 26vw, 112px);
+  letter-spacing: .045em;
+  filter: drop-shadow(0 3px 0 #573311) drop-shadow(0 6px 11px #14233280);
+}
+#s-title #titleStart {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: clamp(24px, 5dvh, 48px);
+  transform: translateX(-50%);
+  width: min(82%, 328px);
+  aspect-ratio: 3 / 1;
+  min-height: 64px;
+  margin: 0;
+  padding: 0 18%;
+  border: 0;
+  border-radius: 18px;
+  background: var(--art-ui-title-start-red-v1, none) center / contain no-repeat;
+  box-shadow: none;
+  color: #fff2cb;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 6.5vw, 28px);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #340609, 0 1px 5px #26000580;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#s-title #titleStart:focus-visible { outline: 2px solid #fff0b5; outline-offset: 0; }
+/* 웹 개발용 광고 자리 문구도 첫 화면에서는 보이지 않는다. 광고 영역 크기는 공통 틀 그대로. */
+body:has(#s-title:not([hidden])) #adBanner > span { visibility: hidden; }
+@media (max-height: 480px) {
+  #s-title { --t-plate-width: min(66vw, 238px); }
+  #s-title .t-wrap { padding-top: 44px; }
+  #s-title .t-name { padding-bottom: 6px; }
+  #s-title .t-prefix { font-size: 25px; }
+  #s-title .t-main { font-size: 60px; }
+  #s-title #titleStart { width: min(68%, 264px); bottom: 12px; font-size: 22px; }
+}

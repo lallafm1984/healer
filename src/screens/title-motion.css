@@ -1,0 +1,90 @@
+/* 타이틀 전용: 위치·투명도 위주로 움직이며, 나가면 t-live를 빼 모든 반복을 끝낸다. */
+#s-title .t-atmosphere { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+#s-title .t-dawn {
+  position: absolute; left: 50%; top: 20%; width: min(126vw, 560px); aspect-ratio: 1;
+  transform: translate(-50%, -50%); opacity: 0;
+  background: var(--art-fx-title-sunbloom-v1, none) center / contain no-repeat;
+  mix-blend-mode: screen;
+}
+#s-title .t-mote {
+  position: absolute; left: var(--x); top: var(--y); width: var(--size); aspect-ratio: 1; opacity: 0;
+  background: var(--art-fx-gear-twinkle, none) center / contain no-repeat;
+}
+#s-title .t-plate-fx {
+  position: absolute; z-index: 0; left: 50%; top: 50%; width: var(--t-plate-width); aspect-ratio: 4 / 3;
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+#s-title .t-sheen {
+  position: absolute; inset: 0; overflow: hidden;
+  -webkit-mask: var(--art-ui-title-backplate-v2, none) center / contain no-repeat;
+  mask: var(--art-ui-title-backplate-v2, none) center / contain no-repeat;
+}
+#s-title .t-sheen > i {
+  position: absolute; inset: -15% auto -15% -65%; width: 40%; opacity: 0;
+  background: linear-gradient(90deg, transparent, #fff5d673 50%, transparent);
+  transform: translateX(0) skewX(-18deg); mix-blend-mode: screen;
+}
+#s-title .t-glint { position: absolute; left: 83%; top: 22%; width: 24px; aspect-ratio: 1; opacity: 0; background: var(--art-fx-gear-twinkle, none) center / contain no-repeat; }
+#s-title .t-letter { position: relative; display: inline-block; --rise: -1px; --glow: .24; }
+#s-title .t-main .t-letter {
+  --rise: -3px; --glow: .45;
+  background: linear-gradient(#fff5d1 12%, #f8da8b 45%, #dcaa4f 82%, #c18a37);
+  background-clip: text; -webkit-background-clip: text; color: transparent;
+  -webkit-text-stroke: .5px #79532170;
+}
+#s-title .t-letter::after {
+  content: attr(data-glyph); position: absolute; inset: 0; color: #fff7d8;
+  -webkit-text-stroke: 0; opacity: 0; pointer-events: none;
+}
+#s-title #titleStart { isolation: isolate; }
+#s-title #titleStart::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none;
+  background: var(--art-ui-title-start-red-v1, none) center / contain no-repeat;
+  filter: brightness(1.18) drop-shadow(0 0 9px #ffd78b80);
+}
+#s-title .t-start-label { position: relative; z-index: 1; }
+
+#s-title.t-live:not(.t-calm) {
+  .t-brand { animation: t-appear 1s cubic-bezier(.18,.7,.25,1) both; }
+  .t-letter { animation: t-letter-wave 6.4s calc(var(--letter) * -.35s) ease-in-out infinite; }
+  .t-letter::after { animation: t-letter-light 6.4s calc(var(--letter) * -.35s) ease-in-out infinite; }
+  .t-dawn { animation: t-dawn-breathe 12.8s ease-in-out infinite; }
+  .t-mote { animation: t-mote-rise var(--duration) var(--delay) linear infinite; }
+  .t-sheen > i { animation: t-gold-sweep 12.8s 2.2s ease-in-out infinite; }
+  .t-glint { animation: t-rim-glint 12.8s 5.2s ease-in-out infinite; }
+  #titleStart { animation: t-start-appear .65s .35s ease-out both; }
+  #titleStart::before { animation: t-start-breathe 6.4s 3.2s ease-in-out infinite; }
+  #titleStart:focus-visible { animation: none; opacity: 1; }
+}
+#s-title.t-paused *, #s-title.t-paused *::after, #s-title.t-paused *::before { animation-play-state: paused !important; }
+#s-title.t-calm :is(.t-atmosphere, .t-plate-fx) { display: none; }
+
+@keyframes t-appear { from { opacity: 0; transform: translateY(14px) scale(.965); } to { opacity: 1; transform: none; } }
+@keyframes t-letter-wave { 0%, 48%, 100% { transform: translateY(0); } 23% { transform: translateY(var(--rise)); } }
+@keyframes t-letter-light { 0%, 46%, 100% { opacity: 0; } 22% { opacity: var(--glow); } }
+@keyframes t-dawn-breathe { 0%, 100% { opacity: .04; } 50% { opacity: .11; } }
+@keyframes t-mote-rise {
+  0% { opacity: 0; transform: translate(0, 30px) scale(.45); }
+  18% { opacity: .32; }
+  70% { opacity: .2; }
+  100% { opacity: 0; transform: translate(var(--drift), -110px) scale(.85); }
+}
+@keyframes t-gold-sweep {
+  0%, 65%, 100% { opacity: 0; transform: translateX(0) skewX(-18deg); }
+  5% { opacity: .38; }
+  25% { opacity: 0; transform: translateX(490%) skewX(-18deg); }
+}
+@keyframes t-rim-glint {
+  0%, 16%, 100% { opacity: 0; transform: scale(.3) rotate(-12deg); }
+  6% { opacity: .55; transform: scale(1) rotate(0); }
+  12% { opacity: .1; transform: scale(.7) rotate(12deg); }
+}
+@keyframes t-start-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes t-start-breathe { 0%, 100% { opacity: .04; } 50% { opacity: .3; } }
+@media (max-height: 480px) {
+  #s-title .t-glint { width: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #s-title *, #s-title *::before, #s-title *::after { animation: none !important; }
+  #s-title :is(.t-atmosphere, .t-plate-fx) { display: none; }
+}

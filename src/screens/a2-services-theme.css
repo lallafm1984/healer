@@ -25,29 +25,6 @@
   color: var(--a2-muted);
 }
 
-/* 타이틀/이야기: 기존 배경 그림과 문장 배치는 유지한다. */
-#s-title .t-name,
-#s-title .t-sub,
-#s-title .t-tap,
-#s-story .story > p {
-  color: var(--a2-ink);
-}
-
-#s-title .t-name span,
-#s-title .t-brand .eyebrow,
-#s-title .t-emblem,
-#s-story .story .h {
-  color: var(--a2-brass-hi);
-}
-
-#s-title .t-ver {
-  color: var(--a2-muted);
-}
-
-#s-story .story > p {
-  text-shadow: 0 1px 2px #1a100b;
-}
-
 #s-tut .story > p {
   color: var(--a2-ink);
 }

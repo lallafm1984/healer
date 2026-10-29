@@ -1,0 +1,112 @@
+/* 첫 이야기: 치유의 신전·모험길 → 짧은 이야기 → 첫 전투. 그림과 글의 자리를 분리한다. */
+#app #s-story {
+  background: #10222c;
+  color: #f4eddf;
+  isolation: isolate;
+}
+#s-story .intro-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+#s-story .intro-scene {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 160px;
+  overflow: hidden;
+  margin: 0;
+}
+#s-story .intro-scene img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+#s-story .intro-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #10222c0a 52%, #10222c38 72%, #10222c);
+  pointer-events: none;
+}
+#s-story .intro-copy {
+  position: relative;
+  flex: none;
+  padding: 12px 20px 16px;
+  text-align: center;
+  word-break: keep-all;
+}
+#s-story h1 {
+  margin: 0;
+  color: #fff0c8;
+  font: 800 clamp(30px, 9vw, 40px)/1.3 var(--font-display);
+  letter-spacing: -.035em;
+  text-shadow: 0 2px 2px #06131c;
+}
+#s-story h1 > span { display: block; }
+#s-story h1 .intro-premise {
+  margin-bottom: 8px;
+  color: #e2dfd4;
+  font-size: .62em;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+#s-story .intro-actions {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  padding: 0 16px max(8px, env(safe-area-inset-bottom));
+}
+#s-story #tutGo {
+  width: min(100%, 328px);
+  aspect-ratio: 3 / 1;
+  min-height: 76px;
+  margin: 0;
+  padding: 0 32px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--art-ui-title-start-red-v1, none) center / contain no-repeat;
+  color: #fff2cb;
+  font: 800 22px/1.2 var(--font-display);
+  text-shadow: 0 2px 0 #340609, 0 1px 5px #26000580;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#s-story #tutGo:active { filter: brightness(.87); }
+#s-story #tutGo:focus-visible { outline: 2px solid #fff0b5; outline-offset: 0; }
+#s-story #tutSkip {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  box-shadow: none;
+  color: #b6c1c4;
+  font: 500 11px/1.5 var(--font-body);
+  text-shadow: none;
+}
+/* 광고 영역은 공통 크기를 유지하고 개발용 자리 안내만 감춘다. */
+body:has(#s-story:not([hidden])) #adBanner > span { visibility: hidden; }
+#s-story:not(.intro-calm) .intro-scene img { animation: intro-arrive .8s ease-out both; }
+@keyframes intro-arrive { from { opacity: .4; transform: scale(1.025); } to { opacity: 1; transform: none; } }
+@media (max-height: 480px) {
+  #s-story .intro-body { display: grid; grid-template-columns: 42% 1fr; }
+  #s-story .intro-scene { min-height: 100%; }
+  #s-story .intro-scene::after { background: linear-gradient(90deg, transparent 60%, #10222c); }
+  #s-story .intro-copy { align-self: center; padding: 12px 12px 8px 8px; }
+  #s-story h1 { font-size: 24px; }
+  #s-story h1 .intro-premise { margin-bottom: 6px; font-size: 13px; }
+  #s-story .intro-actions { padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+  #s-story #tutGo { width: min(68vw, 264px); min-height: 64px; font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #s-story .intro-scene img { animation: none !important; }
+}

@@ -31,15 +31,8 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .tb-back, .tb-set { border: 0; background: none; font-size: 22px; width: 40px; height: 44px; cursor: pointer; color: var(--ink); }
 .tb-back { margin-left: -10px; }
 
-/* S01 타이틀 */
-#s-title { cursor: pointer; background: radial-gradient(ellipse at 50% 35%, #382E21 0%, #17130F 70%); }
-.t-wrap { margin: auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; }
+/* 이야기 화면의 해 문장 (타이틀은 title.css). */
 .t-emblem svg { width: 120px; height: 120px; filter: drop-shadow(0 0 18px rgba(240, 196, 106, 0.35)); }
-.t-name { margin: 8px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 46px; color: var(--gold-hi); text-shadow: 0 3px 0 var(--line); }
-.t-sub { margin: 0; color: var(--mute); }
-.t-tap { margin: 36px 0 0; font-size: 16px; animation: tblink 1.6s ease-in-out infinite; }
-.t-ver { margin: 28px 0 0; font-size: 11px; color: #6B6052; }
-@keyframes tblink { 50% { opacity: 0.35; } }
 
 /* S02 로비 */
 .lobby { gap: 14px; }

@@ -124,10 +124,11 @@ export default async function shop(url, shots) {
   await page.screenshot({ path: `${shots}/shop_rest_window.png` });
   await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(!(await page.isVisible('.admodal [data-ad]')) && sv.stamina.n === 30 && sv.stamina.ads === 1, '광고 충전: 0 → 30, 오늘 1번 (광고 제거 패키지 = 광고 없이 바로)');
+  ok(!(await page.isVisible('.admodal [data-ad]')) && sv.stamina.n === 150 && sv.stamina.ads === 1, '광고 충전: 0 → 최대 150, 오늘 1번 (광고 제거 패키지 = 광고 없이 바로)');
+  ok(await page.locator('.st-modal [data-st="ad"]').isDisabled() && /휴식 가득 참/.test(await text('.st-modal')), '가득 차면 광고 충전 비활성화');
   await page.click('.st-modal [data-st="no"]'); await page.clock.runFor(50);
   await page.click('#contentGo'); await page.clock.runFor(100);
-  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party') && (await save()).stamina.n === 30, '충전 뒤 다시 출전 = 바로 편성, 휴식 그대로 30');
+  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party') && (await save()).stamina.n === 150, '충전 뒤 다시 출전 = 바로 편성, 휴식 그대로 150');
 
   await ctx.close();
   await browser.close();

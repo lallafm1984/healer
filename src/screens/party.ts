@@ -215,7 +215,7 @@ function render(keepScroll = true): void {
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
-      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
+      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」을 누릅니다.</p>' : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml() : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
     </div>

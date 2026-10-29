@@ -1,12 +1,13 @@
 /**
  * 화면 전환 연출 (2026-10-24 Lim, A안 「햇빛 번짐」): 메뉴 화면이 바뀔 때 한 곳.
- * - 타이틀 → 로비 (0.8초): 해 문장에서 옅은 반투명 햇빛이 번져 화면에 퍼지고 (`titleBloom`), 빛이 걷히며 새 화면이 살짝 다가온다.
+ * - 타이틀 → 로비 (0.8초): 제목에서 옅은 반투명 햇빛 그림이 번져 화면에 퍼지고 (`titleBloom`), 빛이 걷히며 새 화면이 살짝 다가온다.
  * - 아래 메뉴 탭끼리 (0.18초): 위 정보창 · 아래 메뉴는 그대로, 가운데 내용만 누른 탭 쪽에서 미끄러져 떠오르고 고른 탭 소켓에 금빛 한 번.
  * - 하위 화면 (상점 · 행상인 · 임무 · 주간 도전 · 편성 · 설정, 0.22초): 화면째 오른쪽에서, 「←」로 돌아가면 왼쪽에서.
  * 위치 (transform) · 투명도만 움직여 폰이 화면을 다시 그리지 않는다. 전투 · 정비 · 결과 · 이야기 · 튜토리얼은 그대로.
  * 「시각 효과 줄이기」 · 기기 「동작 줄이기」면 0.12초 옅어지기만 (타이틀 금빛 없음).
  * Playwright (navigator.webdriver)는 연출 없음 (화면 테스트가 위치 · 투명도를 바로 잼), 검사는 `window.__screenFx = true`.
  */
+import { art } from '../art';
 import { setShiftHandler } from './kit';
 import { TABS } from './tabs';
 
@@ -20,6 +21,15 @@ const TAB_MS = 180, TAB_SHIFT = 18, SUB_MS = 220, SUB_SHIFT = 36, CALM_MS = 120,
 
 let calm: () => boolean = () => false;
 let running: Animation[] = [];
+let titleLight: HTMLImageElement | null = null;
+
+/** 첫 터치 때 그림을 읽느라 햇빛이 늦게 뜨지 않게 타이틀을 열면서 준비한다. */
+export function prepareTitleBloom(): void {
+  if (titleLight) return;
+  titleLight = new Image();
+  titleLight.src = art('fx-title-sunbloom-v1');
+  void titleLight.decode().catch(() => undefined);
+}
 
 const off = (): boolean => navigator.webdriver && !(window as unknown as { __screenFx?: boolean }).__screenFx;
 const motionOk = (): boolean => typeof Element.prototype.animate === 'function' && !off();
@@ -91,13 +101,13 @@ function glint(): void {
 }
 
 /**
- * 타이틀을 누름: 해 문장에서 햇빛이 번져 화면에 다 퍼진 뒤 `done` (로비 · 이야기로 감), 그다음 빛이 걷힘. 빛은 다 퍼져도 반투명 (색은 transition.css).
+ * 타이틀을 누름: 제목에서 햇빛 그림이 번져 화면에 다 퍼진 뒤 `done` (로비 · 이야기로 감), 그다음 빛이 걷힘. 빛은 다 퍼져도 반투명 (색은 transition.css).
  * 연출이 없으면 (동작 줄이기 · 화면 테스트) 바로 `done`. 빛이 다 덮기 전에 다시 눌러도 한 번만.
  */
-export function titleBloom(emblem: Element | null, done: () => void): void {
+export function titleBloom(anchor: Element | null, done: () => void): void {
   const host = document.getElementById('viewport');
   if (!motionOk() || calm() || !host) { done(); return; }
-  const vr = host.getBoundingClientRect(), er = emblem?.getBoundingClientRect();
+  const vr = host.getBoundingClientRect(), er = anchor?.getBoundingClientRect();
   const x = er && er.width ? er.left + er.width / 2 - vr.left : vr.width / 2;
   const y = er && er.height ? er.top + er.height / 2 - vr.top : vr.height * 0.15;
   const layer = host.appendChild(document.createElement('div'));
@@ -117,8 +127,8 @@ export function titleBloom(emblem: Element | null, done: () => void): void {
   };
   glow.animate([
     { transform: 'scale(.25)', opacity: 0 },
-    { transform: 'scale(1.6)', opacity: 1, offset: 0.5 },
-    { transform: 'scale(2.6)', opacity: 1 },
+    { transform: 'scale(1.6)', opacity: 0.7, offset: 0.5 },
+    { transform: 'scale(2.6)', opacity: 0.45 },
   ], { duration: BLOOM_IN, easing: 'cubic-bezier(.4,0,.8,.5)', fill: 'forwards' });
   const veilIn = veil.animate([{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 1 }], { duration: BLOOM_IN, easing: 'cubic-bezier(.55,0,.85,.45)', fill: 'forwards' });
   veilIn.onfinish = veilIn.oncancel = peak;

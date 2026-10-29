@@ -92,8 +92,6 @@
 }
 
 /* 고정된 한 화면: 장소는 세로 스크롤 대신 페이지 단위로 바뀐다. */
-body:has(#s-content:not([hidden])) #app,
-body:has(#s-content:not([hidden])) #tabs { max-width: 880px; }
 #s-content { --b-page-size: 4; overflow: hidden; }
 #s-content .b-body { overflow: hidden; padding: 0 10px 6px; gap: 6px; }
 #s-content .b-gate { flex: 1 1 120px; height: auto; min-height: 90px; max-height: none; }

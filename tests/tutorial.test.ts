@@ -4,6 +4,7 @@ import { CLASSES } from '../src/data/classes';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import * as E from '../src/engine';
+import { damage, dripDamage, heal } from '../src/engine/core';
 import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT, tutLockedContent, tutReplay } from '../src/game/tutorial';
 import { settle } from '../src/game/settle';
 import { migrate, newSave } from '../src/platform/storage';
@@ -26,6 +27,40 @@ describe('2인 첫 전투', () => {
     const f = E.create({ encounter: 'duo', diff: '쉬움', seed: 1, level: 1, party: DUO_PARTY });
     while (!f.over && f.t < 120) { E.step(f); f.events.length = 0; }
     expect(f.over).toBe('lose');
+  });
+});
+
+describe('튜토리얼 체력 보호', () => {
+  it.each(['duo', 'field', 'patrol'] as const)('%s: 큰 한 방·광역·지속 피해에도 체력 1을 유지하고 다시 치유할 수 있음', encounter => {
+    const f = E.create({ encounter, diff: '쉬움', seed: 1, level: encounter === 'duo' ? 1 : 2,
+      party: encounter === 'duo' ? DUO_PARTY : E.recruitParty('field', 1), tutorial: true });
+    for (const u of f.party) {
+      u.hp = 8; u.guardian = 5;
+      damage(f, u, 1e6, true, 'fixed');
+      expect([u.hp, u.alive, u.guardian]).toEqual([1, true, 5]);
+      dripDamage(f, u, 1e6, true, 'fixed');
+      expect([u.hp, u.alive]).toEqual([1, true]);
+      expect(f.cells[u.cell].unit).toBe(u);
+      heal(f, u, 20, true, true);
+      expect(u.hp).toBeGreaterThan(1);
+    }
+    expect(f.stats.deaths).toBe(0);
+    expect(f.events.some(e => e.type === 'death')).toBe(false);
+  });
+
+  it('치유하지 않아도 2인 첫 전투에서 패배하지 않음', () => {
+    const f = E.create({ encounter: 'duo', diff: '쉬움', seed: 1, level: 1, party: DUO_PARTY, tutorial: true });
+    while (!f.over && f.t < 120) { E.step(f); f.events.length = 0; }
+    expect(f.over).toBe('win');
+    expect(f.party.every(u => u.alive && u.hp >= 1)).toBe(true);
+    expect(f.stats.deaths).toBe(0);
+  });
+
+  it('튜토리얼 보호가 없는 일반 전투는 치명적인 피해로 쓰러짐', () => {
+    const f = E.create({ encounter: 'field', diff: '쉬움', seed: 1, level: 2 });
+    const tank = f.party.find(u => u.role === 'tank')!;
+    damage(f, tank, 1e6, true, 'fixed');
+    expect([tank.hp, tank.alive, f.stats.deaths]).toEqual([0, false, 1]);
   });
 });
 

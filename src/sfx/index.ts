@@ -40,6 +40,7 @@ const prioOf = (name: string) => PRIO[name] ?? (name.endsWith('-cast') || name.s
 const MAX_VOICES = 10;
 
 let on = true;
+let paused = false;
 /** 설정 「효과음」 크기 (0~1) */
 let volume = 1;
 let ctx: AudioContext | null = null;
@@ -52,8 +53,18 @@ const loading = new Map<string, Promise<AudioBuffer | null>>();
 /** 설정 「소리」 (settings → battle settings()에서 부름). 끄면 지금 울리는 것도 멈춤 */
 export function setSfxOn(v: boolean): void {
   on = v;
+  syncPlayback();
+}
+
+/** 재생 중인 효과음·반복음을 함께 멈추고, 계속할 때 같은 자리부터 이어 듣는다. */
+export function setSfxPaused(v: boolean): void {
+  paused = v;
+  syncPlayback();
+}
+
+function syncPlayback(): void {
   if (!ctx) return;
-  if (v && !document.hidden) void ctx.resume().catch(() => {});
+  if (on && !paused && !document.hidden) void ctx.resume().catch(() => {});
   else void ctx.suspend().catch(() => {});
 }
 
@@ -65,7 +76,7 @@ export function setSfxVolume(v: number): void {
 
 /** 소리 문맥 (합성음도 같이 씀). 처음이면 만들고, 멈춰 있으면 깨움. 못 만들면 null */
 export function audioCtx(): AudioContext | null {
-  if (!on || typeof window === 'undefined') return null;
+  if (!on || paused || typeof window === 'undefined' || document.hidden) return null;
   try {
     if (!ctx) {
       const W = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
@@ -145,7 +156,7 @@ export function sfx(name: string, o: { rate?: number; vol?: number; delay?: numb
   if (voices >= budget && prio < 3) return true;
   lastAt.set(name, now); lastAny = now;
   const start = (buf: AudioBuffer) => {
-    if (!on || !out) return;
+    if (!on || paused || document.hidden || !out) return;
     if (voices >= budget && prio < 3) return; // Recheck after asynchronous decoding.
     const src = c.createBufferSource(), g = c.createGain();
     src.buffer = buf;
@@ -221,8 +232,6 @@ if (typeof document !== 'undefined') {
   // 처음 누를 때 소리 문맥을 엶 (브라우저는 누름 없이 소리를 못 냄). 앱이 뒤로 가면 멈춤
   document.addEventListener('pointerdown', () => { audioCtx(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => {
-    if (!ctx) return;
-    if (document.hidden) void ctx.suspend().catch(() => {});
-    else if (on) void ctx.resume().catch(() => {});
+    syncPlayback();
   });
 }

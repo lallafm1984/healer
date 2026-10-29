@@ -93,12 +93,22 @@ export default async function combatAudio(url, shots) {
     }
     // 이번 전투에서 안 푼 보스 기술 소리도 실제로 풀리는지: 빌드된 파일을 같은 소리 문맥으로 직접 풂
     const assets = readdirSync('dist/assets');
-    const bossUrls = COMBAT_SOUNDS.filter(s => perBattle(s.name)).map(s => assets.find(f => f.startsWith(`${s.name}-`) && /^[\w-]{8}\.ogg$/.test(f.slice(s.name.length + 1))));
+    const inline = new Map();
+    for (const js of assets.filter(f => f.endsWith('.js'))) {
+      for (const [data] of readFileSync(`dist/assets/${js}`, 'utf8').matchAll(/data:(?:audio|application)\/ogg;base64,[A-Za-z0-9+/=]+/g)) {
+        const name = hashes[createHash('sha256').update(Buffer.from(data.split(',')[1], 'base64')).digest('hex')];
+        if (name) inline.set(name, data);
+      }
+    }
+    const bossUrls = COMBAT_SOUNDS.filter(s => perBattle(s.name)).map(s => {
+      const file = assets.find(f => f.startsWith(`${s.name}-`) && /^[\w-]{8}\.ogg$/.test(f.slice(s.name.length + 1)));
+      return file ? `assets/${file}` : inline.get(s.name);
+    });
     ok(bossUrls.every(Boolean), '보스 기술 소리 파일이 빌드에 모두 있음', bossUrls.filter(x => !x).length);
     await page.evaluate(async urls => {
       const c = window.__audioQA.contexts[0];
       for (const u of urls) { try { await c.decodeAudioData(await (await fetch(u)).arrayBuffer()); } catch { /* failed에 남음 */ } }
-    }, bossUrls.filter(Boolean).map(f => `assets/${f}`));
+    }, bossUrls.filter(Boolean));
     await page.clock.runFor(4500);
     await page.evaluate(() => {
       const f = window.__proto.F;

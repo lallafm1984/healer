@@ -1,5 +1,6 @@
 import adventureDeparture from './adventure-departure.mjs';
 import menuButtons from './menu-buttons.mjs';
+import titleMotion from './title-motion.mjs';
 import classControls from './class-controls.mjs';
 import priestAura from './priest-aura.mjs';
 import paladinWave from './paladin-wave.mjs';
@@ -10,6 +11,7 @@ import adventurePlaceRow from './adventure-place-row.mjs';
 import headerConsistency from './header-consistency.mjs';
 import partyRefinement from './party-refinement.mjs';
 import combatAudio from './combat-audio.mjs';
+import audioPause from './audio-pause.mjs';
 // 화면 테스트 묶음 목록 (scripts/e2e.mjs가 차례로 돌림). CI는 러너 여러 대에 나눠 동시에 돌린다 (E2E_SHARD=2/6 → 6몫 중 2번째)
 import appShell from './app-shell.mjs';
 import character from './character.mjs';
@@ -51,7 +53,9 @@ import skillTipHold from './skill-tip-hold.mjs';
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
+  ['타이틀 반복 연출·효과 줄이기', titleMotion, 12],
   ['전투 효과음 재생·누락·음소거', combatAudio, 60],
+  ['전투 소리 일시정지·결과 옵션 배경음', audioPause, 20],
   ['메뉴 버튼 공통 색상·대비', menuButtons, 30],
   ['직업별 조작판·아이템 안전 여백', classControls, 45],
   ['사제 평온 만충 후광', priestAura, 40],

@@ -51,9 +51,7 @@ function render(): void {
     <div class="ns-body settings">
       <header class="art-hero st-hero"><div class="ah-copy"><p class="eyebrow">모험가의 책상</p><h2>게임 설정</h2></div></header>
       ${card('sound', 'sound', '소리 · 진동', [vol('sfx', '효과음'), vol('music', '배경음'), tog('vibrate', '진동')])}
-      ${card('hand', 'wheel', '스킬 휠 위치', [`<div class="chips">${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}</div>`,
-        '<button class="btn" type="button" id="toSkills">칸 탭 기본 힐 · 스킬 배치 → 캐릭터</button>'])}
-      ${card('board', 'zoom', '20인 판', [tog('zoom', '탭한 칸 확대해 보여주기 (0.3초)')])}
+      ${card('hand', 'wheel', '스킬 휠 위치', [`<div class="chips st-hand">${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}</div>`])}
       ${card('screen', 'eye', '전투 화면', [`<div class="st-col">${tog('reducedEffects', '시각 효과 줄이기')}<p class="g-sub wrap">피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p></div>`])}
       <section class="group dev"><h2>개발 빌드</h2>
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
@@ -101,7 +99,6 @@ s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const c = t.closest<HTMLElement>('[data-set]');
   if (c) { (G.save.settings as unknown as Record<string, string>)[c.dataset.set!] = c.dataset.val!; saveSettings(); return; }
-  if (t.closest('#toSkills')) { go('s-char', 'skill'); return; }
   const lvBtn = t.closest<HTMLButtonElement>('#devLevelUp, #devMaxLevel');
   if (lvBtn) {
     const scrollTop = s.el.querySelector('.settings')?.scrollTop ?? 0;

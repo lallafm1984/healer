@@ -523,7 +523,7 @@ export function updateStage(now: number): void {
     if (changed) {
       const focused = document.activeElement instanceof HTMLElement && queueEl.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
       // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸. 칸 안 기술 아이콘은 뺌 (2026-10-13 Lim, 누르면 나오는 설명 팝업에는 있음)
-      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span><span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
+      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span><span class="tx"><span class="nm"></span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
         + '<span class="q-empty" aria-hidden="true"></span>'.repeat(3 - q.length);
       cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
       // 순서가 바뀌었을 때만, 여전히 예고 중인 같은 기술로 포커스를 이어 준다.
@@ -536,7 +536,7 @@ export function updateStage(now: number): void {
       const el = cards[i], cls = `q${i === 0 ? ' first' : ''}${hot ? ' hot' : i === firstCool ? ' next' : ' later'}${it.casting ? ' casting' : ''}${tipMatch(icon, it.impact) ? ' tipon' : ''}`;
       if (el.className !== cls) el.className = cls;
       setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
-      // 남은 초를 먼저 넣고 잼 (새 칸은 초 글자가 비어 이름 자리가 넓게 재짐)
+      // 남은 초를 먼저 넣어 이름의 폭을 잰다. 종류는 읽기 이름과 설명 팝업에만 표시한다.
       const names = [...new Set([it.name, QSHORT[it.name || ''], it.icon].filter((n): n is string => !!n))];
       fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names : ['기술']);
       const label = `${it.name || '기술'}, ${qKind(it.kind).name}, ${Math.ceil(sec)}초 뒤${it.casting ? ', 시전 중' : ''}. 기술 설명`;
@@ -719,14 +719,14 @@ const lowest = (f: Fight) => f.party.filter(u => u.alive).reduce((a, b) => (b.hp
 const firstTel = (f: Fight, kind: string) => f.tels.find(t => t.kind === kind && f.t - t.start < 0.5);
 const COACH: Record<string, CoachStep[]> = {
   duo: [
-    { when: f => { const u = tankOf(f); return f.t >= 6 || (!!u && u.hp / u.max < 0.92); }, text: '탱커가 맞는 중. <b>탱커 칸을 탭</b>하면 치유', at: tankOf, need: 'heal' },
-    { when: f => (f.stats.casts.heal || 0) >= 1 && f.t >= 5, freeze: false, text: '좋아! 아래 막대가 차면 힐이 들어감. 체력이 줄 때마다 다시 탭' },
+    { when: f => { const u = tankOf(f); return f.t >= 6 || (!!u && u.hp / u.max < 0.92); }, text: '탱커가 공격받고 있습니다. <b>탱커 칸을 탭</b>하면 치유를 시작합니다.', at: tankOf, need: 'heal' },
+    { when: f => (f.stats.casts.heal || 0) >= 1 && f.t >= 5, freeze: false, text: '아래 시전 막대가 차면 치유가 들어갑니다. 체력이 줄어들 때마다 다시 탭합니다.' },
   ],
   explore: [
-    { when: f => f.t >= 1 && knows(f, 'renew'), text: () => `새로 배운 <b>소생</b>: <b>탱커 칸을 누른 채 ${arrowOf('renew')} 쪽으로 쓸기</b>. 휠에서 소생이 있는 방향 = 쓰는 방향`, at: tankOf, slot: 'renew', need: 'swipe:renew', swipe: 'renew' },
-    { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: () => `체력이 확 줄었음. <b>순간 치유</b>: 칸에서 ${arrowOf('flash')} 쪽으로 쓸기, 또는 휠에서 누르고 칸을 탭 (마나 두 배)`, at: lowest, slot: 'flash', need: 'flash', swipe: 'flash' },
-    { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위에 뜬 기술이 끝나면 탱커가 크게 맞음. 미리 채워 두기' },
-    { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞음. 맞고 나면 가장 낮은 사람부터 채우기' },
+    { when: f => f.t >= 1 && knows(f, 'renew'), text: () => `새로 배운 <b>소생</b>입니다. <b>탱커 칸을 누른 채 ${arrowOf('renew')} 쪽으로 쓸어 사용합니다.</b> 휠의 소생과 같은 방향입니다.`, at: tankOf, slot: 'renew', need: 'swipe:renew', swipe: 'renew' },
+    { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: () => `체력이 크게 줄었습니다. <b>순간 치유</b>는 칸에서 ${arrowOf('flash')} 쪽으로 쓸거나, 휠에서 선택한 뒤 칸을 탭해 사용합니다. 마나 소모가 큽니다.`, at: lowest, slot: 'flash', need: 'flash', swipe: 'flash' },
+    { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위의 시전 막대가 끝나면 탱커가 큰 피해를 받습니다. 체력을 미리 채웁니다.' },
+    { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 파티원 모두가 피해를 받습니다. 공격 후 체력이 가장 낮은 파티원부터 치유합니다.' },
   ],
 };
 const swipeEl = document.createElement('div');

@@ -12,11 +12,11 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
-import { setBattleRegion } from '../bgm';
+import { setBattleRegion, setBgmPaused } from '../bgm';
 import { adventureRegionOf } from '../data/adventure-regions';
 import type { ContentKey } from '../data/content';
 import type { ClassKey } from '../data/classes';
-import { castLoopFor, hasSfx, preloadSfx, setSfxOn, sfx, sfxLoop } from '../sfx';
+import { castLoopFor, hasSfx, preloadSfx, setSfxOn, setSfxPaused, sfx, sfxLoop } from '../sfx';
 import { bossSoundsFor, combatSounds, impactSound } from './combat-sound';
 import { priestSounds, PRIEST_TALENT_SOUNDS } from './priest-sound';
 import { classSounds, CLASS_TALENT_SOUNDS } from './class-sound';
@@ -56,13 +56,15 @@ function resetRun(): void {
  */
 function startBattle(guideSec = 0): void {
   dialogs.closeAll();
+  syncCastLoop(false);
+  setPaused(false);
   setPauseInert(false);
   const R = S.run!;
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined,
     carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, specs: S.specs,
-    affixes: S.affixes, bossMult: S.bossMult, variant: S.variant,
+    affixes: S.affixes, bossMult: S.bossMult, variant: S.variant, tutorial: !!S.coach,
   });
   B.F = F;
   void preloadSfx(bossSoundsFor(F.enc.script)); // 이 보스의 기술 착탄 소리만 풀어 둠 (다른 보스 것은 내려 놓음)
@@ -81,6 +83,7 @@ function startBattle(guideSec = 0): void {
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; hidePreview(); clearToasts();
+  $('pauseBtn').hidden = !!S.coach;
   $('giveUp').hidden = true; $('stage').classList.remove('give-up');
   $('battle').classList.remove('over-win', 'over-lose'); $('banner').classList.remove('show');
   clearCoach();
@@ -636,12 +639,20 @@ function handleEvents(now: number): void {
 }
 
 // ---------- 일시정지: 전투 전과 같은 공략 (지금 단계·지금 나오는 기술 표시) ----------
+function setPaused(v: boolean): void {
+  B.paused = v;
+  setBgmPaused(v);
+  setSfxPaused(v);
+}
 function setPause(v: boolean): void {
   const F = B.F;
   if (!F || F.over) return;
-  B.paused = v; $('pause').hidden = !v;
+  setPaused(v); $('pause').hidden = !v;
   setPauseInert(v);
-  if (!v) { $('pauseBtn').focus({ preventScroll: true }); return; }
+  if (!v) {
+    (S.coach ? $('wheel').querySelector<HTMLElement>('.slot[data-slot="heal"]') : $('pauseBtn'))?.focus({ preventScroll: true });
+    return;
+  }
   endSlot(true); endAux(true); endPointer(true);
   closeTip();
   const g = guideOf(F);
@@ -665,7 +676,7 @@ $('pause').addEventListener('keydown', e => {
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
 });
-$('pauseBtn').addEventListener('click', () => setPause(true));
+$('pauseBtn').addEventListener('click', () => { if (!S.coach) setPause(true); });
 // 개발 빌드: 일시정지에서 자동 치유 켜고 끄기 (설정에도 저장). 한 번이라도 켜진 판은 결과 화면에 「자동 힐러」 (기록 · 임무는 그대로 셈)
 $('pauseAuto').addEventListener('change', e => {
   S.auto = (e.target as HTMLInputElement).checked;
@@ -676,7 +687,7 @@ $('resumeBtn').addEventListener('click', () => { Snd.init(); setPause(false); })
 $('restartBtn').addEventListener('click', () => dialogs.confirm('restart'));
 function quit(how: 'quit' | 'giveUp'): void {
   if (!B.F || B.F.over) return;
-  closeTip(); B.paused = false; $('pause').hidden = true;
+  closeTip(); syncCastLoop(false); setPaused(false); $('pause').hidden = true;
   setPauseInert(false);
   finish(how);
 }
@@ -684,7 +695,7 @@ $('quitBtn').addEventListener('click', () => dialogs.confirm('quit'));
 // 탱커가 모두 쓰러지면 나오는 포기 버튼 (2026-10-07 Lim): 전멸과 같은 실패로 셈 (일시정지의 「포기하고 나가기」는 보상 없음)
 $('giveUp').addEventListener('click', () => dialogs.confirm('giveUp'));
 const dialogs = initBattleDialogs({
-  getFight: () => B.F, getPaused: () => B.paused, setPaused: v => { B.paused = v; },
+  getFight: () => B.F, getPaused: () => B.paused, setPaused,
   act: kind => { if (kind === 'restart') { resetRun(); startBattle(); } else quit(kind); },
 });
 document.addEventListener('visibilitychange', () => {
@@ -698,6 +709,7 @@ document.addEventListener('visibilitychange', () => {
 /** end = 전투가 끝남(endSegment가 합산함) · quit = 일시정지에서 포기 · giveUp = 탱커 전멸 뒤 포기 버튼 (전멸로 셈) */
 function finish(how: 'end' | 'quit' | 'giveUp'): void {
   dialogs.closeAll(); setPauseInert(false);
+  syncCastLoop(false); setPaused(false);
   const R = S.run!, f = B.F!, st = f.stats, quitted = how === 'quit', win = how === 'end' && f.over === 'win';
   const acc = tapAccuracy(), min = Math.max(1 / 60, f.t / 60);
   if (how !== 'end') { R.time += chalTime(f); R.deaths += st.deaths; addStats(R, f, st); } // 도전자의 위기 (115)로 더한 초까지 (주간 도전 제한시간)
@@ -867,7 +879,7 @@ function updatePull(dt: number): void {
 }
 /**
  * 시전음 (2026-10-21 Lim): 시전 시간이 있는 주문을 시전하는 동안 반복 (즉시 발동엔 F.cast가 없어 안 남).
- * 직업 파일 (cast-loop-<직업>)이 있으면 그것, 없으면 공통 파일. 끝 · 취소 · 일시정지 · 판 끝 · 화면을 떠나면 멈추고, 이어지는 다음 시전은 끊지 않음
+ * 직업 파일 (cast-loop-<직업>)이 있으면 그것, 없으면 공통 파일. 일시정지는 소리 문맥과 함께 멈추고, 끝 · 취소 · 판 끝 · 화면을 떠나면 종료
  */
 let castLoop: { stop(fade?: number): void } | null = null;
 function syncCastLoop(casting: boolean): void {
@@ -896,7 +908,7 @@ function frame(now: number): void {
       }
     }
     handleEvents(now);
-    syncCastLoop(!!F.cast && !B.paused && !F.over && ui.pullLeft <= 0 && !(ui.coach && ui.coach.freeze) && S.sound);
+    if (!B.paused) syncCastLoop(!!F.cast && !F.over && ui.pullLeft <= 0 && !(ui.coach && ui.coach.freeze) && S.sound);
     updateStage(now); updateWheel(); updateAux(); updateCastbar(); updatePreview(now);
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
@@ -987,6 +999,8 @@ function frame(now: number): void {
     if (!inBattle && !inRest) return false;
     if (dialogs.cancel()) return true;
     if (inRest) { restSheet(false); return true; }
+    // 튜토리얼에서는 뒤로가기로도 옵션을 열지 않음. 앱 전환으로 이미 멈춘 판은 재개할 수 있다.
+    if (S.coach && $('pause').hidden) return true;
     if (B.F && !B.F.over) setPause(!!$('pause').hidden);
     return true;
   },

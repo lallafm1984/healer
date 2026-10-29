@@ -19,8 +19,8 @@ export default async function appShell(url, shots) {
     const banner = await rect('#adBanner');
     ok(banner.top === 0 && banner.height === 70, `${w}: 배너 영역 = 맨 위 70 ${JSON.stringify({ top: banner.top, h: banner.height })}`);
     ok(await page.isVisible('#s-title') && await page.isHidden('#tabs'), `${w}: 처음 = 타이틀, 탭 숨김`);
-    await page.click('#s-title'); await page.clock.runFor(100);
-    ok(await page.isVisible('#s-story'), `${w}: 새 저장은 화면을 누르면 튜토리얼 이야기`);
+    await page.click('#titleStart'); await page.clock.runFor(100);
+    ok(await page.isVisible('#s-story'), `${w}: 새 저장은 시작 버튼을 누르면 튜토리얼 이야기`);
     await pastTitle(page);
     ok(await page.isVisible('#s-lobby'), `${w}: 튜토리얼 건너뛰기 → 로비`);
     const top = await rect('#s-lobby .topbar');

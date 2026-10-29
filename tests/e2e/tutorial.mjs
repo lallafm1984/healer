@@ -40,13 +40,30 @@ export default async function tutorial(url, shots) {
   await page.clock.runFor(300);
 
   // ---- 이야기 ----
-  await page.click('#s-title'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-story') && /라스트 온라인/.test(await page.textContent('#s-story')), '새 저장: 타이틀 → 짧은 이야기');
+  await page.click('#titleStart'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-story') && /내가 하겠다/.test(await page.textContent('#s-story')), '새 저장: 타이틀 → 직접 힐러를 맡는 이야기');
+  for (const [width, height] of [[320, 640], [360, 780], [430, 932], [360, 360]]) {
+    await page.setViewportSize({ width, height }); await page.clock.runFor(100);
+    const layout = await page.locator('#s-story').evaluate(el => {
+      const image = el.querySelector('.intro-scene img');
+      const copy = el.querySelector('.intro-copy').getBoundingClientRect();
+      const start = el.querySelector('#tutGo').getBoundingClientRect();
+      const skip = el.querySelector('#tutSkip').getBoundingClientRect();
+      return image.complete && image.naturalWidth > 0 && copy.top >= 70 && copy.bottom <= start.top
+        && start.left >= 0 && start.right <= innerWidth && start.height >= 44
+        && skip.bottom <= innerHeight && skip.height >= 44;
+    });
+    ok(layout, `${width}×${height}: 이야기 그림·문장·전투 버튼이 겹치지 않고 화면 안에 표시`);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: `${shots}/tut_story.png` });
 
   // ---- 2인 첫 전투: 탱커 칸을 탭하라는 안내에서 멈춤 ----
   await page.click('#tutGo'); await page.clock.runFor(3100 + 6200);
   ok(await page.evaluate(() => window.__proto.F.party.length === 2 && window.__proto.F.cells.length === 7), '첫 전투 = 탱커 + 나, 7칸 판');
+  ok(await page.isHidden('#pauseBtn') && await page.evaluate(() => window.__proto.F.cfg.tutorial), '2인 튜토리얼: 옵션 버튼 숨김·체력 보호 켜짐');
+  await page.evaluate(() => window.__back());
+  ok(await page.isHidden('#pause'), '튜토리얼에서 뒤로가기로도 옵션을 열지 않음');
   let c = await coach();
   ok(c && c.need === 'heal' && c.freeze && /탱커 칸을 탭/.test(c.text), `안내: 「탱커 칸을 탭」 (${c && c.text.slice(0, 20)})`);
   ok(await page.evaluate(() => { const T = window.__proto.F.party.find(u => u.role === 'tank'); return T.hp < T.max; }), '안내는 탱커가 맞기 시작한 뒤에');
@@ -60,14 +77,17 @@ export default async function tutorial(url, shots) {
   await page.clock.runFor(1000);
   ok(await t() > t0 + 0.5, '전투 다시 흐름');
 
-  // 지면: 다시 하기 안내
+  // 튜토리얼: 치유를 놓쳐도 체력 1에서 버티고 계속 배울 수 있음
   await page.evaluate(() => { const T = window.__proto.F.party.find(u => u.role === 'tank'); T.hp = 1; T.hot = 0; window.__proto.F.cast = null; });
   await page.clock.runFor(4000);
-  ok(await page.isVisible('#s-tut') && await page.isVisible('#tutRetry') && /탱커 칸을 자주 탭/.test(await page.textContent('#s-tut')), '지면 = 요령 + 「다시 하기」');
-  ok((await save()).tut === 0, '지면 튜토리얼 단계 그대로');
-  await page.click('#tutRetry'); await page.clock.runFor(3100 + 6200);
-  ok((await coach())?.need === 'heal', '다시 하기 = 처음 안내부터');
+  ok(await page.isVisible('#battle') && await page.evaluate(() => {
+    const f = window.__proto.F, tank = f.party.find(u => u.role === 'tank');
+    return tank.hp === 1 && tank.alive && !f.over && f.stats.deaths === 0;
+  }), '체력 1에서 피해를 받아도 게임 오버 없이 전투 유지');
+  ok((await save()).tut === 0, '전투 중 튜토리얼 단계 그대로');
   await tap('tank');
+  await page.clock.runFor(3000);
+  ok(await page.evaluate(() => window.__proto.F.party.find(u => u.role === 'tank').hp > 1), '체력 1에서 다시 치유해 계속 진행');
   await killEnemies(page); await page.clock.runFor(2000);
   ok(await page.isVisible('#s-tut') && await page.isVisible('#tutNext'), '이기면 = 다음 단계 카드');
   ok(/Lv 2/.test(await page.textContent('#s-tut')) && /소생/.test(await page.textContent('#s-tut')), '카드: Lv 2, 새 스킬 소생');
@@ -77,7 +97,7 @@ export default async function tutorial(url, shots) {
 
   // 앱을 껐다 켜도 이어서
   await page.reload(); await page.clock.runFor(300);
-  await page.click('#s-title'); await page.clock.runFor(100);
+  await page.click('#titleStart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-tut') && await page.isVisible('#tutNext'), '다시 켜면 탐험 카드부터');
 
   // ---- 3인 탐험: 소생 안내 → 휴식 → 순찰병 → 순간 치유 안내 ----
@@ -85,8 +105,9 @@ export default async function tutorial(url, shots) {
   // 느린 러너에서는 판 그림을 읽느라 시작이 늦어 안내가 아직 없을 수 있음: 전투 1초 뒤 안내가 뜰 때까지 조금씩 (최대 3초 더)
   for (let i = 0; i < 15 && (await coach())?.need !== 'swipe:renew'; i++) await page.clock.runFor(200);
   ok(await page.evaluate(() => window.__proto.F.party.length === 3 && window.__proto.dungeon.segs.join() === 'field,patrol'), '탐험 = 3인, 잡몹 → 순찰병');
+  ok(await page.isHidden('#pauseBtn') && await page.evaluate(() => window.__proto.F.cfg.tutorial), '3인 튜토리얼 탐험에도 옵션 숨김·체력 보호 적용');
   c = await coach();
-  ok(c?.need === 'swipe:renew' && /← 쪽으로 쓸기/.test(c.text) && await page.isVisible('#wheel .slot.coach-hi[data-slot="renew"]'), '안내: 소생은 칸에서 ← 쪽으로 쓸기 (휠 소생 칸 반짝임)');
+  ok(c?.need === 'swipe:renew' && /← 쪽으로 쓸어 사용합니다/.test(c.text) && await page.isVisible('#wheel .slot.coach-hi[data-slot="renew"]'), '안내: 소생은 칸에서 ← 쪽으로 쓸어 사용합니다 (휠 소생 칸 반짝임)');
   ok(await page.isVisible('#swipeHint .sw'), '탱커 칸에 쓸 방향 화살표');
   await page.screenshot({ path: `${shots}/tut_explore_coach.png` });
   await slot('renew'); await tap('tank');
@@ -102,6 +123,7 @@ export default async function tutorial(url, shots) {
   ok(await page.isVisible('#rest'), '잡몹 구간 끝 → 휴식');
   await page.click('#restGo'); await page.clock.runFor(3100 + 500);
   ok(await page.evaluate(() => window.__proto.F.enc.key === 'patrol'), '계속 → 고철 순찰병');
+  ok(await page.isHidden('#pauseBtn') && await page.evaluate(() => window.__proto.F.cfg.tutorial), '탐험 다음 구간에도 튜토리얼 보호 유지');
   // 딜러는 근접 · 원거리 반반이라 (76) 원거리가 없는 판도 있음: 탱커 · 나 말고 한 명
   await page.evaluate(() => { const u = window.__proto.F.party.find(x => !x.me && x.role !== 'tank'); u.hp = u.max * 0.4; });
   await page.clock.runFor(200);
@@ -117,7 +139,7 @@ export default async function tutorial(url, shots) {
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   const tip = await page.textContent('#s-settle .coachtip');
   sv = await save();
-  ok(/첫 장비/.test(tip) && /튜토리얼은 여기까지/.test(tip) && /장착함/.test(await page.textContent('#s-settle .r-item')) && Object.keys(sv.gear.equipped).length === 1 && sv.gear.bag.length === 0
+  ok(/첫 장비/.test(tip) && /튜토리얼을 마쳤습니다/.test(tip) && /장착함/.test(await page.textContent('#s-settle .r-item')) && Object.keys(sv.gear.equipped).length === 1 && sv.gear.bag.length === 0
     && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비는 바로 장착 (「장착」 버튼 없음) · 튜토리얼 끝 안내, 로비 버튼 하나');
   await page.screenshot({ path: `${shots}/tut_reward.png` });
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
@@ -136,7 +158,7 @@ export default async function tutorial(url, shots) {
   // ---- Lv 5: 첫 던전 녹슨 요새 안내 (로비 · 전투 탭 · 편성) ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 5; s.player.xp = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300);
-  await page.click('#s-title'); await page.clock.runFor(100);
+  await page.click('#titleStart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-lobby .coachtip') && /녹슨 요새/.test(await page.textContent('#s-lobby .coachtip')) && await page.isVisible('#lobbyStart.hi-pulse'), 'Lv 5 로비: 첫 던전 안내 + 「출전」 반짝임');
   // 전투 탭(모험 선택)에서도 녹슨 요새를 짚어 줌
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
@@ -154,6 +176,7 @@ export default async function tutorial(url, shots) {
 
   // ---- 녹슨 요새 쉬움: 전투 안내 팝업 없이 4구간 → 끝 (2026-10-13 Lim) ----
   await departGo(page); await page.clock.runFor(3100 + 1200);
+  ok(await page.isVisible('#pauseBtn') && await page.evaluate(() => !window.__proto.F.cfg.tutorial), '튜토리얼이 끝난 일반 전투는 옵션 버튼 복원·체력 보호 해제');
   const t1 = await t();
   await page.clock.runFor(4500);
   ok(await t() > t1 + 3 && await coach() === null, '첫 던전 전투: 안내 팝업 없이 진행');
@@ -166,11 +189,11 @@ export default async function tutorial(url, shots) {
   sv = await save();
   ok(sv.clears.rustfort?.['쉬움'], '저장: 녹슨 요새 쉬움 클리어');
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
-  ok(/첫 던전 클리어/.test(await page.textContent('#s-settle .coachtip')) && /보통/.test(await page.textContent('#s-settle .coachtip')), '결과: 첫 던전 클리어 · 다음은 보통');
+  ok(/첫 던전을 클리어했습니다/.test(await page.textContent('#s-settle .coachtip')) && /보통/.test(await page.textContent('#s-settle .coachtip')), '결과: 첫 던전 클리어 · 다음은 보통');
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   ok(!(await page.isVisible('#s-lobby .coachtip')) && !(await page.isVisible('#lobbyStart.hi-pulse')), '로비: 첫 던전 안내 끝');
   await page.reload(); await page.clock.runFor(300);
-  await page.click('#s-title'); await page.clock.runFor(100);
+  await page.click('#titleStart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-lobby'), '다시 켜면 타이틀 → 바로 로비');
   // 개발 빌드: 설정에서 다시 보기 (레벨·장비는 그대로)
   await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
