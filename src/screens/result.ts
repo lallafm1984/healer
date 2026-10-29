@@ -252,8 +252,10 @@ function xpRow(x: Settlement, anim = false): string {
   const rest = xb ? `<small class="r-rest${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(xb)}</small>` : '';
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
+  // Lv 100 (더 오를 레벨 없음): 「경험치 +0 · 100%」 대신 「최대 레벨」 (위 정보창의 MAX와 같은 뜻, QA 2026-10-29)
+  const top = !isFinite(need) && !up && !x.xp;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${countUp(x.xp, xb, anim)}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
+      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span>${top ? '<b>최대 레벨</b><em>MAX</em>' : `<b>경험치 +${countUp(x.xp, xb, anim)}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em>`}</span></div>${rest}</div></div>`;
 }
 
 /**

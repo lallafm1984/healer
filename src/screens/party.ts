@@ -33,6 +33,15 @@ import { askModal, noticeModal } from '../platform/ads';
 import { notify } from './toast';
 import { sfx } from '../sfx';
 
+/** 부탁 「장소 보기」로 왔으면 그 부탁을 한 길드원을 편성에 넣음: 자리가 남으면 더하고, 다 찼으면 마지막에 고른 같은 역할 (없으면 마지막) 사람과 바꿈 */
+function withNeeded(pick: number[], nick: string | undefined): number[] {
+  const m = nick ? G.save.guild.members.find(x => x.nick === nick) : undefined;
+  if (!m || pick.includes(m.id)) return pick;
+  if (pick.length < seatsOf(firstEnc())) return [...pick, m.id];
+  const role = (id: number) => CLASSES[G.save.guild.members.find(x => x.id === id)!.cls].role;
+  const at = pick.map(role).lastIndexOf(CLASSES[m.cls].role), i = at >= 0 ? at : pick.length - 1;
+  return pick.map((id, k) => (k === i ? m.id : id));
+}
 const s = screen('s-party', '파티 편성', {
   enter() {
     if (!Flow.party) {
@@ -41,7 +50,8 @@ const s = screen('s-party', '파티 편성', {
       // 길드 탭 「길드파티로 출전」 · 부탁으로 왔으면 길드파티로 (30). 길드파티 탭을 누르면 그 규모의 지난 편성 (autoPick)
       Flow.mode = guildReady() && Flow.preferGuild ? 'guild' : 'public';
       Flow.preferGuild = false;
-      Flow.gpick = guildReady() ? autoPick(G.save, firstEnc()) : [];
+      Flow.gpick = guildReady() ? withNeeded(autoPick(G.save, firstEnc()), Flow.needNick) : [];
+      Flow.needNick = undefined;
       compose();
     }
     sheet = null; openRow = -1; openGid = -1; help = false;

@@ -1111,7 +1111,12 @@ const endInv = (e: PointerEvent) => {
 s.el.addEventListener('pointerup', endInv);
 s.el.addEventListener('pointercancel', endInv);
 // 끈 뒤 · 꾹 누른 뒤에 오는 누름은 상세를 열지 않음 (잡고 있던 칸 · 목록 어디서든)
-s.el.addEventListener('click', e => { if (invSwallow || held) { invSwallow = held = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+// 키보드 Enter · Space 누름 (e.detail 0)은 버리지 않음: 꾹 누른 뒤 손을 뗀 누름이 안 오면 (안드로이드 pointercancel) held가 남아 다음 키보드 누름을 먹었음 (QA 2026-10-29)
+s.el.addEventListener('click', e => {
+  const swallow = invSwallow || (held && e.detail !== 0);
+  invSwallow = held = false;
+  if (swallow) { e.stopImmediatePropagation(); e.preventDefault(); }
+}, true);
 s.el.addEventListener('wheel', stopFling, { passive: true });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || s.el.hidden) return;

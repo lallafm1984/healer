@@ -211,7 +211,7 @@ function todoSec(): Sec {
     <span class="g-rs"><b class="g-num">${xd}<small> / ${ex.length}</small></b>${expedReady(G.save) ? '<button class="btn mini primary" type="button" id="expedChest">상자 받기</button>' : g.exped.got ? okPill('받음') : famePill(EXPED.fame)}</span></li>
     <li class="g-exped-places" id="guild-exped-places"><ul class="g-places" aria-label="주간 원정 장소">${places}</ul></li>` : '';
   const reqs = g.reqs.list.map(q => `<li class="g-row g-job${q.done ? ' done' : ''}"><span class="g-ri">${IC.req()}</span><div class="g-rm"><div class="g-job-title"><b>${esc(q.nick)}</b>${q.done ? '' : `<span class="g-rewards">${pill('', `경험치 ×${REQ.xpMult}`, 'xp', esc(q.nick))}</span>`}</div><span class="g-sub wrap">${placeName(q.content)} · ${esc(q.diff)} 이상</span></div>
-    <span class="g-rs">${q.done ? `<span class="g-rewards">${okPill('완료')}</span>` : `<button class="btn mini primary" type="button" data-goto="${esc(q.content)}" data-gdiff="${esc(q.diff)}" aria-label="${esc(q.nick)} 부탁 · ${placeName(q.content)} 장소 보기">장소 보기</button>`}</span></li>`).join('');
+    <span class="g-rs">${q.done ? `<span class="g-rewards">${okPill('완료')}</span>` : `<button class="btn mini primary" type="button" data-goto="${esc(q.content)}" data-gdiff="${esc(q.diff)}" data-gneed="${esc(q.nick)}" aria-label="${esc(q.nick)} 부탁 · ${placeName(q.content)} 장소 보기">장소 보기</button>`}</span></li>`).join('');
   const left = (w.got ? 0 : 1) + (ex.length && !g.exped.got ? 1 : 0) + g.reqs.list.filter(q => !q.done).length;
   return {
     key: 'todo', flat: true, icon: IC.goal(), title: '할 일', meta: left ? `${left}개 남음` : '완료', sum: w.n >= need && !w.got || expedReady(G.save) ? '보상 받기' : left ? `${left}개 남음` : '완료', dot: jobsDot(G.save) || (w.n >= need && !w.got), body: `<h3 class="g-job-group">오늘의 부탁<span class="g-group-meta"><small>${g.reqs.list.filter(q => q.done).length}/${g.reqs.list.length} 완료</small></span></h3><ul class="g-rows">${reqs || `<li class="g-empty0">${g.members.length ? '새 부탁 없음' : '길드원 영입 뒤 부탁 도착'}</li>`}</ul><h3 class="g-job-group">이번 주</h3><ul class="g-rows">${goal}${exped}</ul>`,
@@ -404,7 +404,7 @@ s.el.addEventListener('click', e => {
   if (dest) {
     const c = CONTENT.find(c => c.key === dest.dataset.goto);
     const diff = dest.dataset.gdiff;
-    if (c && (diff === '쉬움' || diff === '보통' || diff === '어려움' || diff === '악몽')) { Flow.preferGuild = true; go('s-content', { content: c.key, diff }); }
+    if (c && (diff === '쉬움' || diff === '보통' || diff === '어려움' || diff === '악몽')) { Flow.preferGuild = true; Flow.needNick = dest.dataset.gneed; go('s-content', { content: c.key, diff }); }
     return;
   }
   const mr = t.closest<HTMLButtonElement>('[data-mrole]');
