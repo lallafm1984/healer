@@ -1,6 +1,6 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import { syncBgm } from '../bgm';
-import { locale, t } from '../i18n';
+import { lang, locale, t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -21,7 +21,8 @@ export const fmt = (n: number) => Math.round(n).toLocaleString(locale());
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /** 받침 있으면 a, 없으면 b */
-export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
+/** 조사 (이/가 · 은/는 · 과/와 · 으로/로): 한국어에서만, 다른 언어는 빈 글 (기획 121) */
+export const josa = (w: string, a: string, b: string) => { if (lang() !== 'ko') return ''; const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 
 export const ROLE: Record<string, { name: string; short: string; color: string }> = {
   tank: { name: '탱커', short: '탱', color: '#9AA3B5' },
