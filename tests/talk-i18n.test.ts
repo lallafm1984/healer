@@ -23,7 +23,8 @@ const BARK_SITS = ['mistake', 'dodge', 'stubborn', 'brave', 'wrongStep', 'noEsca
   'bounce', 'relief', 'windUp', 'vent', 'burst', 'breather', 'timing', 'gritMax', 'aggroHealerHigh', 'aggroDealerHigh', 'aggroStealHigh'] as const satisfies readonly TalkSit[];
 const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS, 'hello', 'go', 'winClean', 'buster', 'low25', 'low10', 'saved', 'pullNightmare', 'aoeWarn', 'allyDown', 'tankDown', 'lose',
   'pullBoss', 'healed', 'hurtBig', 'partyLow', 'meterTop', 'busterOk', 'clutch', 'noHeal', 'healerLow', 'pullTrash', 'debLong', 'loseHealer',
-  'idle', 'lastMob', 'pullRaid', 'gauge', 'hotOn', 'healCut', 'boss5', 'pullElite', 'aoeHit', 'boss20', 'dispelled', 'boss50', 'raidCd'];
+  'idle', 'lastMob', 'pullRaid', 'gauge', 'hotOn', 'healCut', 'boss5', 'pullElite', 'aoeHit', 'boss20', 'dispelled', 'boss50', 'raidCd',
+  'noDps', 'guardOn', 'mobDown', 'pulled', 'enraged', 'quakeWarn', 'jealous', 'zoneHit', 'debPoison', 'soulOn', 'low50', 'noTank'];
 
 describe('파티원 대사 사전', () => {
   afterAll(async () => { await setLang('ko'); });
