@@ -3,6 +3,7 @@
  * 흐름 상단, 경고 줄 (미달일 때만), 공략 시트 (구간 노드 줄 + 보스별 공략 접기 + 어픽스).
  */
 import type { DiffName } from '../data/difficulty';
+import { t, tc } from '../i18n';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { AFFIXES, type AffixKey } from '../data/affixes';
 import { art } from '../art';
@@ -16,15 +17,18 @@ export const BOOK = svg('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1
 
 /** 흐름 화면 상단 (편성·주간 도전 입장, 시안 .hd): 뒤로 · (문양) · 제목 + 아래 작은 글 · 오른쪽 끝 (버튼 등) */
 export function flowHead(back: string, title: string, sub: string, mark = '', right = ''): string {
-  return `<header class="topbar f-hd"><button class="tb-back" type="button" data-go="${back}" aria-label="뒤로">${BACK}</button>${mark}<span class="f-tb"><b class="f-ttl">${esc(title)}</b><small class="cap f-hcap">${sub}</small></span><span class="f-sp"></span>${right}</header>`;
+  return `<header class="topbar f-hd"><button class="tb-back" type="button" data-go="${back}" aria-label="${t('뒤로')}">${BACK}</button>${mark}<span class="f-tb"><b class="f-ttl">${esc(title)}</b><small class="cap f-hcap">${sub}</small></span><span class="f-sp"></span>${right}</header>`;
 }
 
 
+/** 구간 등급 글: 「일반」은 장비 등급 「일반」 (Common)과 다른 뜻이라 꼬리표 @seg (Trash · 雑魚) */
+const segText = (g: string) => (g === '일반' ? tc('일반', 'seg') : t(g));
+
 /** 구간 노드 줄: 일반·정예 ● · 보스 ◆ */
 export function timeline(segs: EncounterKey[]): string {
-  return `<ol class="segs f-tl" aria-label="구간 ${segs.length}개">${segs.map(k => {
+  return `<ol class="segs f-tl" aria-label="${t('구간 {n}개', { n: segs.length })}">${segs.map(k => {
     const e = ENCOUNTERS[k], g = segGrade(e);
-    return `<li class="${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(e.name) : g}</span></li>`;
+    return `<li class="${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(t(e.name)) : segText(g)}</span></li>`;
   }).join('')}</ol>`;
 }
 
@@ -33,9 +37,9 @@ export function timeline(segs: EncounterKey[]): string {
  * 일반·정예 ● · 보스 ◆, 고른 구간은 금빛 고리. sel = 처음 보이는 구간 (기본 = 마지막 보스)
  */
 export function segTabs(segs: EncounterKey[], sel: number): string {
-  return `<div class="f-route" role="tablist" aria-label="구간 ${segs.length}개">${segs.map((k, i) => {
+  return `<div class="f-route" role="tablist" aria-label="${t('구간 {n}개', { n: segs.length })}">${segs.map((k, i) => {
     const e = ENCOUNTERS[k], g = segGrade(e), on = i === sel;
-    return `<button type="button" role="tab" id="gtab${i}" class="f-rt ${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}" data-gseg="${i}" aria-selected="${on}" aria-controls="gpane${i}" tabindex="${on ? 0 : -1}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(e.name) : g}</span></button>`;
+    return `<button type="button" role="tab" id="gtab${i}" class="f-rt ${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}" data-gseg="${i}" aria-selected="${on}" aria-controls="gpane${i}" tabindex="${on ? 0 : -1}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(t(e.name)) : segText(g)}</span></button>`;
   }).join('')}</div>`;
 }
 
@@ -51,7 +55,7 @@ export function afxRows(keys: AffixKey[], label = ''): string {
   if (!keys.length) return '';
   return `<div class="afxlist">${keys.map(k => {
     const a = AFFIXES[k];
-    return `<div class="f-afr">${afxIcon(k)}<span class="f-afx">${a.name}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(a.desc)}<small>${esc(a.tip)}</small></span></div>`;
+    return `<div class="f-afr">${afxIcon(k)}<span class="f-afx">${t(a.name)}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(t(a.desc))}<small>${esc(t(a.tip))}</small></span></div>`;
   }).join('')}</div>`;
 }
 
@@ -62,4 +66,4 @@ export function afxIcon(k: AffixKey): string {
 }
 
 /** 어픽스 이름 칸만 (관문·편성 머리) */
-export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx">${AFFIXES[k].name}</span>`).join('');
+export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx">${t(AFFIXES[k].name)}</span>`).join('');
