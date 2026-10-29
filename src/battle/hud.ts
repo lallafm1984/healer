@@ -1,5 +1,5 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
-import { lang, locale, t, tc } from '../i18n';
+import { locale, t, tc } from '../i18n';
 import { classGaugeState } from './class-gauge-state';
 import { talentCd, waveNeed } from '../engine/talents';
 import { chalTime } from '../engine/affixes';
@@ -23,7 +23,7 @@ import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUse
 import { art, cssUrl } from '../art';
 import { encArt, mobLook, skillMark } from './art';
 import { L, screenCenter } from './board';
-import { $, alarm, arrowOf, B, DIR_VEC, DIRS, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
+import { $, alarm, arrowOf, B, DIR_VEC, DIRS, glyphOf, mmss, ROLE, S, Snd, tapKey, toast, type Dir, ui, vibe } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
 import { debuffBrief, shieldTimerOf } from './party-display';
@@ -434,7 +434,7 @@ const QSHORT: Record<string, string> = {
   '인터미션 끝': '복귀', '고철 폭주': '폭주', '증기 폭주': '폭주', '역병 폭주': '폭주',
 };
 /** 예고 칸 마지막 후보 (두 글자 아이콘 글자, 121 3단계 ①): 한국어는 데이터 글자, 영어는 번역 이름의 머리글자 (Scrap Swing → SS), 일본어는 번역 이름 앞 두 글자 */
-const qGlyph = (icon: string, name: string): string => (lang() === 'ko' || !name ? icon : lang() === 'en' ? t(name).split(/[^A-Za-z0-9]+/).filter(Boolean).slice(0, 3).map(w => w[0].toUpperCase()).join('') : t(name).slice(0, 2));
+const qGlyph = (icon: string, name: string): string => glyphOf(icon, t(name));
 /** 이름 후보를 앞에서부터 보통 크기 → 조금 줄인 크기로 넣어 보고 처음 들어가는 것을 씀. 후보가 같으면 다시 재지 않음 */
 function fitQName(nm: HTMLElement, names: string[]): void {
   const key = names.join('|');
@@ -598,7 +598,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(tipHtml({ icon: qIc(ic, qEl.dataset.kind, qEl.dataset.art || '', 'ic qk'), name: t(s.name), kind: F.enc.script === 'trash' ? t('적 기술') : t('보스 기술'), rows: [[t(s.every)]], desc: t(what) }), qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: qIc(ic, qEl.dataset.kind, qEl.dataset.art || '', 'ic qk'), name: s.name, kind: F.enc.script === 'trash' ? t('적 기술') : t('보스 기술'), rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }

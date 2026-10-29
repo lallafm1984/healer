@@ -62,18 +62,18 @@ function dataNames(): [string, string | undefined][] {
   for (const [n, p] of Object.entries(PERS)) { add(n, 'pers'); add(p.desc); } for (const c of Object.keys(CATS)) add(c);
   for (const a of Object.values(AFFIXES)) { add(a.name, 'affix'); add(a.desc); add(a.tip); }
   for (const m of [...DAILY, ...WEEKLY]) add(m.text);
-  for (const e of Object.values(ENCOUNTERS)) { add(e.tier); add(e.name); for (const m of e.mobs ?? []) add(m.name); }
   for (const f of Object.values(FACTIONS)) add(f.name); for (const p of Object.values(PLACES)) add(p.name);
   for (const r of ADVENTURE_REGIONS) { add(r.name); add(r.shortName); }
   for (const c of CONTENT) { add(c.name); add(c.place); add(c.tip); for (const b of c.bosses ?? []) add(b); }
   for (const [k, looks] of Object.entries(MOB_LOOKS)) { add(k); for (const l of looks) add(l.name); }
-  // 보스 데이터: name · short · phase 글, 영혼 성공 · 실패 text. 아이콘 글자 (icon) · 설명 (how · flow text · tip) 은 빼고
+  // 보스 데이터: name · short · phase 글, 영혼 성공 · 실패 text, 흐름 글 (flow text, 공략 진행 줄 ⑤-b). 아이콘 글자 (icon) · 설명 (how · tip) 은 빼고
   const walk = (v: unknown, path: string) => {
-    if (typeof v === 'string') { const last = path.split('.').pop(); if ((last === 'name' || last === 'short' || last === 'phase' || (last === 'text' && /\.(win|fail)$/.test(path.slice(0, -5)))) && !/\bhow\b|flow\.do\.text/.test(path)) add(v); }
+    if (typeof v === 'string') { const last = path.split('.').pop(); if ((last === 'name' || last === 'short' || last === 'phase' || (last === 'text' && (/\.(win|fail)$/.test(path.slice(0, -5)) || /flow\.do\.text$/.test(path)))) && !/\bhow\b/.test(path)) add(v); }
     else if (Array.isArray(v)) v.forEach(x => walk(x, path));
     else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, `${path}.${k}`);
   };
   for (const b of Object.values(BOSSES)) walk(b, 'boss');
+  for (const e of Object.values(ENCOUNTERS)) { add(e.tier); add(e.name); walk(e.mobs ?? [], 'enc.mobs'); } // 구간 적 이름 · 공격 이름 · 디버프 (공략 시트, ⑤-b)
   for (const g of Object.values(SPEC_GROUPS)) add(g.name, 'spec');
   for (const s of Object.values(SPECS)) { add(s.name); add(s.text); }
   for (const n of NAMED) { add(n.name); add(n.text); add(n.placeName); }
