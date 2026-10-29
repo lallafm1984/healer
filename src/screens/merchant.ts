@@ -8,6 +8,7 @@
  * 2026-10-28 Lim: 사기 판의 등급 확률 칩은 없앰 (다시 넣지 않는다, 확률은 game/merchant merchantOdds 안에만)
  */
 import { art } from '../art';
+import { t } from '../i18n';
 import { GRADE_STYLE, kindOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
 import { specName } from '../game/charinfo';
 import { buyUnknown, merchantOffer } from '../game/merchant';
@@ -30,7 +31,7 @@ const st: { slot: SlotKey; got: number | null; fresh: boolean; ask: boolean } = 
 /** 지난 그리기에 띄운 감정 결과 (같은 창을 다시 그릴 땐 올라오는 움직임 없이) */
 let shown: number | null = null;
 
-const s = screen('s-merchant', '행상인', {
+const s = screen('s-merchant', t('행상인'), {
   enter() { refreshDay(); st.got = null; st.ask = false; render(); },
 });
 /** 뒤로가기 · Esc: 판매 확인 창이 떠 있으면 그것만 닫음 */
@@ -40,18 +41,18 @@ function render(): void {
   modal.beforeRender();
   const save = G.save, o = merchantOffer(save), slot = st.slot, nm = esc(slotName(slot));
   const have = resourceBalance(save, 'gold');
-  s.el.innerHTML = `${topBar({ back: 's-lobby', title: '행상인' })}
+  s.el.innerHTML = `${topBar({ back: 's-lobby', title: t('행상인') })}
     <div class="ns-body mc">
-      <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">떠돌이 행상인</p><h2>미확인 장비</h2></div>
+      <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">${t('떠돌이 행상인')}</p><h2>${t('미확인 장비')}</h2></div>
         <p class="mc-have">${currencyAmount('gold', isFinite(have) ? have : '∞')}</p></header>
-      <section class="g-card mc-card-slot" data-sec="slot"><header class="g-hd"><span class="g-hi">${gameIcon('merchant', uiIcon('shop'))}</span><h3>부위 고르기</h3></header>
-        <div class="mc-kinds" role="radiogroup" aria-label="부위">${SLOTS.map(x => `<button type="button" class="mc-kind" role="radio" data-mslot="${x.key}" aria-checked="${x.key === slot}">
-          <span class="mc-art">${gearIcon({ slot: x.key })}</span><b>${x.name}</b></button>`).join('')}</div>
+      <section class="g-card mc-card-slot" data-sec="slot"><header class="g-hd"><span class="g-hi">${gameIcon('merchant', uiIcon('shop'))}</span><h3>${t('부위 고르기')}</h3></header>
+        <div class="mc-kinds" role="radiogroup" aria-label="${t('부위')}">${SLOTS.map(x => `<button type="button" class="mc-kind" role="radio" data-mslot="${x.key}" aria-checked="${x.key === slot}">
+          <span class="mc-art">${gearIcon({ slot: x.key })}</span><b>${t(x.name)}</b></button>`).join('')}</div>
       </section>
-      <section class="g-card mc-buy" data-sec="buy" aria-label="사기"><header class="g-hd"><span class="g-hi">${gearIcon({ slot })}</span><h3>미확인 ${nm}</h3><span class="g-meta">Lv ${o.lv}<small>종류 무작위</small></span></header>
+      <section class="g-card mc-buy" data-sec="buy" aria-label="${t('사기')}"><header class="g-hd"><span class="g-hi">${gearIcon({ slot })}</span><h3>${t('미확인 {s}', { s: t(nm) })}</h3><span class="g-meta">Lv ${o.lv}<small>${t('종류 무작위')}</small></span></header>
         <div class="mc-buy-body">
-        <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${nm} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
-        ${o.why ? `<p class="mc-why">${esc(o.lock || `${o.why} · 보유 ${fmt(have)}`)}</p>` : ''}
+        <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="${t('미확인 {s} 사기 · 골드 {g}', { s: t(nm), g: fmt(o.gold) })}"><span>${t('사기')}</span>${currencyAmount('gold', o.gold)}</button>
+        ${o.why ? `<p class="mc-why">${esc(o.lock ? t(o.lock) : t('{w} · 보유 {n}', { w: t(o.why), n: fmt(have) }))}</p>` : ''}
         </div>
       </section>
     </div>
@@ -76,27 +77,27 @@ function revealHtml(id: number): string {
   return `<div class="sheet-dim" data-mc-close></div>
     <section class="sheet mc-reveal${anim ? ' anim' : ''}${!st.fresh && shown === id ? ' still' : ''}" aria-labelledby="mcRevealTitle" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <div class="grip"></div>
-      <h3 id="mcRevealTitle" class="mc-rt">감정 결과</h3>
+      <h3 id="mcRevealTitle" class="mc-rt">${t('감정 결과')}</h3>
       <div class="mc-stage" aria-hidden="true">${beam}${anim ? `<span class="mc-bundle">${gameIcon('merchant', uiIcon('shop'))}</span>` : ''}<span class="mc-item">${gearIcon(it)}</span></div>
       <div class="mc-card">
-        <p class="mc-grade"><i>${it.grade}</i>${q ? ` <span class="r-q" data-q="${q}">${q}</span>` : ''}</p>
-        <h4 class="mc-name">${esc(it.name)}</h4>
-        <p class="mc-sub">${esc(slotName(it.slot))} · ${esc(kindOf(it).name)} · Lv ${it.lv ?? o.lv}</p>
-        ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(specName(k))).join(' · ')}</p>` : ''}
+        <p class="mc-grade"><i>${t(it.grade)}</i>${q ? ` <span class="r-q" data-q="${q}">${t(q)}</span>` : ''}</p>
+        <h4 class="mc-name">${esc(t(it.name))}</h4>
+        <p class="mc-sub">${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))} · Lv ${it.lv ?? o.lv}</p>
+        ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(t(specName(k)))).join(' · ')}</p>` : ''}
       </div>
       <div class="mc-acts">
-        <button type="button" class="btn" data-mc-detail="${it.id}">상세</button>
-        <button type="button" class="btn" data-mc-sell="${it.id}"${worn || it.lock ? ' disabled' : ''}>판매 ${currencyAmount('gold', sellGold(it), { prefix: '+' })}</button>
-        <button type="button" class="btn primary" data-mc-again${o.ok ? '' : ' disabled'} aria-label="한 번 더 · 골드 ${fmt(o.gold)}">한 번 더 ${currencyAmount('gold', o.gold)}</button>
+        <button type="button" class="btn" data-mc-detail="${it.id}">${t('상세')}</button>
+        <button type="button" class="btn" data-mc-sell="${it.id}"${worn || it.lock ? ' disabled' : ''}>${t('판매')} ${currencyAmount('gold', sellGold(it), { prefix: '+' })}</button>
+        <button type="button" class="btn primary" data-mc-again${o.ok ? '' : ' disabled'} aria-label="${t('한 번 더 · 골드 {g}', { g: fmt(o.gold) })}">${t('한 번 더')} ${currencyAmount('gold', o.gold)}</button>
       </div>
-      <button type="button" class="btn2 mc-close" data-mc-close>닫기</button>
+      <button type="button" class="btn2 mc-close" data-mc-close>${t('닫기')}</button>
     </section>${ask ? sellConfirmHtml(it) : ''}`;
 }
 
 /** 지금 고른 부위로 사기 (종류는 무작위) → 감정 결과 창 */
 function buy(): void {
   const r = buyUnknown(G.save, st.slot);
-  if (typeof r === 'string') { sfx('deny'); render(); void noticeModal('사기 안 됨', esc(r)); return; }
+  if (typeof r === 'string') { sfx('deny'); render(); void noticeModal(t('사기 안 됨'), esc(t(r))); return; }
   commit();
   // 107: 금화를 내고 꾸러미가 흔들리다 풀림 → 장비가 튀어나오는 때 (merchant.css mcPop 0.66초) 등급 소리. 효과 줄이기면 바로
   const calm = G.save.settings.reducedEffects, it = findItem(r.id);

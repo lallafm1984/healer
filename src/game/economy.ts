@@ -3,6 +3,7 @@
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
 import { EXPED } from '../data/guild';
+import { t } from '../i18n';
 import { RAID10_LV, RAID20_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -148,7 +149,7 @@ export function missionGold(save: SaveData, kind: 'daily' | 'weekly'): number {
 /** 임무 보상 받기. 91: v16의 강화석 → #172 전 골드 */
 export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
-  if (!s || !missionReady(s)) return '아직 못 채움';
+  if (!s || !missionReady(s)) return t('아직 못 채움');
   s.got = true;
   return give(save, { gold: missionGold(save, kind) });
 }
@@ -163,9 +164,9 @@ export function chestState(save: SaveData): { today: boolean; banked: number } {
 }
 export function claimChest(save: SaveData, r: () => number, double = false): Gain | string {
   const st = chestState(save);
-  if (!st.today && !st.banked && !double) return `임무 ${save.daily.missions.length}개를 다 받으면 열림`; // Lv 1~4는 4개 (105 QA)
+  if (!st.today && !st.banked && !double) return t('임무 {n}개를 다 받으면 열림', { n: save.daily.missions.length }); // Lv 1~4는 4개 (105 QA)
   if (double) {
-    if (!save.daily.chest || save.daily.chest2) return '오늘 상자를 먼저 받기';
+    if (!save.daily.chest || save.daily.chest2) return t('오늘 상자를 먼저 받기');
     save.daily.chest2 = true;
   } else if (st.today) save.daily.chest = true;
   else save.daily.banked--;
@@ -179,8 +180,8 @@ export function claimChest(save: SaveData, r: () => number, double = false): Gai
 /** 주간 원정 상자 (93 8장): 원정 셋을 다 끝내면 클리어 골드 5판 + 장비 1 (지금 직업 레벨 · 전용 70%) */
 export function claimExped(save: SaveData, r: () => number): Gain | string {
   const x = save.guild.exped;
-  if (!x.list.length || !x.list.every(c => c.done)) return '원정 셋을 다 끝내면 열림';
-  if (x.got) return '이번 주는 받음';
+  if (!x.list.length || !x.list.every(c => c.done)) return t('원정 셋을 다 끝내면 열림');
+  if (x.got) return t('이번 주는 받음');
   x.got = true;
   const my = save.player.level;
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my });
@@ -190,7 +191,7 @@ export function claimExped(save: SaveData, r: () => number): Gain | string {
 /** 길드 주간 목표 (93 6-1): 명성 보상 */
 export function claimGuildGoal(save: SaveData): string {
   const g = save.weekly.guild;
-  if (g.got || g.n < GUILD_GOAL.need) return '아직 못 채움';
+  if (g.got || g.n < GUILD_GOAL.need) return t('아직 못 채움');
   g.got = true;
   save.guild.fame += GUILD_GOAL.fame;
   return '';
@@ -211,7 +212,7 @@ export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGra
 }
 export function claimChalChest(save: SaveData, r: () => number): Gain | string {
   const stage = save.chalChest;
-  if (!stage) return '받을 상자 없음';
+  if (!stage) return t('받을 상자 없음');
   // v12: 어느 직업에서든 수령 가능. 장비 효과는 기록을 세운 직업을 따른다.
   const h = save.chalChestHero ?? save.hero;
   save.chalChest = 0;
@@ -241,17 +242,17 @@ export function products(save: SaveData): ProductInfo[] {
 }
 /** 결제가 끝난 뒤 상품 주기 (화면이 platform/billing purchase 성공 뒤에 부름). 성공 = 빈 문자열 */
 export function grantProduct(save: SaveData, id: string): string {
-  if (!products(save).some(p => p.id === id)) return '없는 상품';
-  if (save.bought.includes(id)) return '이미 산 상품';
+  if (!products(save).some(p => p.id === id)) return t('없는 상품');
+  if (save.bought.includes(id)) return t('이미 산 상품');
   save.bought.push(id);
   return '';
 }
 /** 직업을 골드로 사기 (JOB_GOLD, 레벨 조건 없음): 골드를 쓰고 앱 결제와 같은 상품을 줌. 성공 = 빈 문자열 */
 export function buyJobWithGold(save: SaveData, h: HeroKey): string {
   const id = jobProductId(h);
-  if (!PAID_HEROES.includes(h)) return '없는 상품';
-  if (save.bought.includes(id)) return '이미 산 상품';
-  if (resourceBalance(save, 'gold') < JOB_GOLD) return '골드 부족';
+  if (!PAID_HEROES.includes(h)) return t('없는 상품');
+  if (save.bought.includes(id)) return t('이미 산 상품');
+  if (resourceBalance(save, 'gold') < JOB_GOLD) return t('골드 부족');
   spendResource(save, 'gold', JOB_GOLD);
   return grantProduct(save, id);
 }
