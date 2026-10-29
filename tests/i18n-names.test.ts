@@ -17,13 +17,15 @@ import enBossParts from '../src/i18n/boss-parts-en';
 import jaBossParts from '../src/i18n/boss-parts-ja';
 import enGear from '../src/i18n/gear-en';
 import jaGear from '../src/i18n/gear-ja';
+import enDesc from '../src/i18n/desc-en';
+import jaDesc from '../src/i18n/desc-ja';
 import { UNIQUES } from '../src/data/uniques';
 import { BOSSES } from '../src/data/bosses';
 import { FACTIONS, PLACES } from '../src/data/places';
 import { CONTENT } from '../src/data/content';
 import { ADVENTURE_REGIONS } from '../src/data/adventure-regions';
 import { MOB_LOOKS } from '../src/data/mob-looks';
-import { SKILL_INFO, SKILLS } from '../src/data/skills';
+import { PASSIVE_DESC, SKILL_INFO, SKILLS } from '../src/data/skills';
 import { TALENT_TREES } from '../src/data/talents';
 import { HEROES } from '../src/data/heroes';
 import { CLASSES } from '../src/data/classes';
@@ -48,21 +50,22 @@ function dataNames(): [string, string | undefined][] {
   const out: [string, string | undefined][] = [];
   const add = (s: string | undefined, ctx?: string) => { if (s && /[가-힣]/.test(s)) out.push([s, ctx]); };
   for (const s of Object.values(SKILLS)) { add(s.name, 'skill'); add(s.short, 'skill'); }
-  for (const b of Object.values(SKILL_INFO)) add(b.kind, 'kind');
+  for (const b of Object.values(SKILL_INFO)) { add(b.kind, 'kind'); add(b.desc); }
+  for (const d of Object.values(PASSIVE_DESC)) add(d);
   for (const g of GROW_TYPES) { add(g.type); add(g.desc); }
-  for (const tree of Object.values(TALENT_TREES)) for (const tier of tree) { add(tier.theme); for (const p of tier.picks) { add(p.name, 'talent'); add(p.active?.short, 'talent'); } }
-  for (const h of Object.values(HEROES)) { add(h.name); add(h.line); add(h.system?.name); for (const p of h.passives ?? []) add(p.name); add(h.unlock?.how); add(h.unlock?.quest?.name); }
+  for (const tree of Object.values(TALENT_TREES)) for (const tier of tree) { add(tier.theme); for (const p of tier.picks) { add(p.name, 'talent'); add(p.active?.short, 'talent'); add(p.desc); } }
+  for (const h of Object.values(HEROES)) { add(h.name); add(h.line); add(h.system?.name); add(h.system?.desc); for (const p of h.passives ?? []) { add(p.name); add(p.desc); } add(h.unlock?.how); add(h.unlock?.quest?.name); add(h.unlock?.quest?.text); }
   for (const c of Object.values(CLASSES)) { add(c.name, 'class'); add(c.short, 'class'); add(c.line); }
   for (const s of SLOTS) add(s.name); for (const s of Object.values(STATS)) add(s.name); for (const k of KINDS) add(k.name);
   for (const g of Object.values(GRADE_STYLE)) add(g.word, 'grade'); for (const w of Object.values(LOOK_WORD)) add(w, 'look');
-  for (const k of Object.values(AB_KIND)) add(k.name); for (const a of Object.values(ABILITIES)) { add(a.name, 'ab'); add(a.when); }
-  for (const n of Object.keys(PERS)) add(n, 'pers'); for (const c of Object.keys(CATS)) add(c);
-  for (const a of Object.values(AFFIXES)) add(a.name, 'affix');
+  for (const k of Object.values(AB_KIND)) add(k.name); for (const a of Object.values(ABILITIES)) { add(a.name, 'ab'); add(a.when); add(a.desc); }
+  for (const [n, p] of Object.entries(PERS)) { add(n, 'pers'); add(p.desc); } for (const c of Object.keys(CATS)) add(c);
+  for (const a of Object.values(AFFIXES)) { add(a.name, 'affix'); add(a.desc); add(a.tip); }
   for (const m of [...DAILY, ...WEEKLY]) add(m.text);
   for (const e of Object.values(ENCOUNTERS)) { add(e.tier); add(e.name); for (const m of e.mobs ?? []) add(m.name); }
   for (const f of Object.values(FACTIONS)) add(f.name); for (const p of Object.values(PLACES)) add(p.name);
   for (const r of ADVENTURE_REGIONS) { add(r.name); add(r.shortName); }
-  for (const c of CONTENT) { add(c.name); add(c.place); for (const b of c.bosses ?? []) add(b); }
+  for (const c of CONTENT) { add(c.name); add(c.place); add(c.tip); for (const b of c.bosses ?? []) add(b); }
   for (const [k, looks] of Object.entries(MOB_LOOKS)) { add(k); for (const l of looks) add(l.name); }
   // 보스 데이터: name · short · phase 글, 영혼 성공 · 실패 text. 아이콘 글자 (icon) · 설명 (how · flow text · tip) 은 빼고
   const walk = (v: unknown, path: string) => {
@@ -84,9 +87,9 @@ function dataNames(): [string, string | undefined][] {
 describe('이름 사전 (121 3단계 ①)', () => {
   const list = dataNames();
   it('데이터 이름이 300개 넘게 모인다', () => { expect(list.length).toBeGreaterThan(300); });
-  const enAll = { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts, ...enGear }, jaAll = { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts, ...jaGear };
-  for (const [lang, ui, names, parts] of [['en', en, enAll, [enNames, enPlaces, enEnemies, enBossSkills, enBossParts, enGear]], ['ja', ja, jaAll, [jaNames, jaPlaces, jaEnemies, jaBossSkills, jaBossParts, jaGear]]] as const) {
-    it(`${lang}: 모든 데이터 이름 · 효과 글에 번역이 있다`, () => {
+  const enAll = { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts, ...enGear, ...enDesc }, jaAll = { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts, ...jaGear, ...jaDesc };
+  for (const [lang, ui, names, parts] of [['en', en, enAll, [enNames, enPlaces, enEnemies, enBossSkills, enBossParts, enGear, enDesc]], ['ja', ja, jaAll, [jaNames, jaPlaces, jaEnemies, jaBossSkills, jaBossParts, jaGear, jaDesc]]] as const) {
+    it(`${lang}: 모든 데이터 이름 · 효과 글 · 설명에 번역이 있다`, () => {
       const miss = [...new Set(list.filter(([k, c]) => !has(ui, names, k, c)).map(([k, c]) => (c ? `${k} (@${c})` : k)))];
       expect(miss).toEqual([]);
     });

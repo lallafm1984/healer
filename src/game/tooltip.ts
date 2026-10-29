@@ -4,6 +4,7 @@
  * 정보 줄은 지금처럼 짧은 명사형, 설명만 문장. 전투 팝업(#tip)과 캐릭터 탭이 같이 씀
  */
 import { healText, SKILL_INFO, SKILLS, type SkillKey } from '../data/skills';
+import { t, tc } from '../i18n';
 
 export interface TipSpec {
   /** 이름 앞 아이콘 (HTML) */
@@ -26,13 +27,13 @@ export function tipHtml(t: TipSpec): string {
 /** 시전 줄 왼쪽: 즉시 / N초 시전 / N초 정신 집중 */
 export function castText(k: SkillKey): string {
   const sk = SKILLS[k];
-  return sk.channel ? `${sk.channel}초 정신 집중` : sk.cast ? `${sk.cast}초 시전` : '즉시';
+  return sk.channel ? t('{n}초 정신 집중', { n: sk.channel }) : sk.cast ? t('{n}초 시전', { n: sk.cast }) : t('즉시');
 }
-export const cdText = (k: SkillKey) => (SKILLS[k].cd ? `${SKILLS[k].cd}초 재사용 대기시간` : '');
-export const costText = (k: SkillKey) => (SKILLS[k].cost ? `마나 ${SKILLS[k].cost}%` : '마나 없음');
+export const cdText = (k: SkillKey) => (SKILLS[k].cd ? t('{n}초 재사용 대기시간', { n: SKILLS[k].cd }) : '');
+export const costText = (k: SkillKey) => (SKILLS[k].cost ? t('마나 {n}%', { n: SKILLS[k].cost }) : t('마나 없음'));
 
 /** 스킬: lockLv = 아직 못 배웠으면 배우는 레벨, int = 지금 지능 (설명에 지금 회복량, 34 1-2) */
 export function skillTip(k: SkillKey, lockLv = 0, int?: number): TipSpec {
   const info = SKILL_INFO[k];
-  return { name: SKILLS[k].name, kind: info?.kind, rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? `레벨 ${lockLv} 필요` : '', desc: info && healText(info.desc, int) };
+  return { name: t(SKILLS[k].name), kind: info && tc(info.kind, 'kind'), rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? t('레벨 {n} 필요', { n: lockLv }) : '', desc: info && healText(t(info.desc), int) };
 }
