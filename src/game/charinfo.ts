@@ -6,7 +6,7 @@ import { gearStatsOf, GRADE_STYLE, itemScore, itemSpecs, kindOf, LOOK_WORD, spec
 import { lang, t, tc } from '../i18n';
 import { uniqueOf, uniqueValue } from '../data/uniques';
 import { HEROES } from '../data/heroes';
-import { namedOf, SPEC_GROUPS, SPECS, specText, type SpecGroup } from '../data/specials';
+import { fmtSpec, namedOf, SPEC_GROUPS, SPECS, type SpecGroup, type SpecUnit } from '../data/specials';
 import { lvPower } from '../data/progression';
 import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
@@ -20,7 +20,9 @@ export const HEALER_HP = 550;
 export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined, G.save.player.level) * 10);
 
 /** 특수능력 · 이름 있는 장신구 이름 (키 → 이름) */
-export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
+export const specName = (key: string) => t(SPECS[key]?.name ?? namedOf(key)?.name ?? key);
+/** 특수능력 효과 글 (번역, {v} = 값): data/specials specText와 같되 사전을 거침 (121 3단계 ①) */
+const specTextT = (d: { text: string; unit: SpecUnit }, v: number) => t(d.text).replace('{v}', fmtSpec(v, d.unit));
 
 /** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 (굴림 막대 · 줄 번호는 재설정과 함께 2026-10-21 없앰) */
 export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; off: string }
@@ -41,14 +43,14 @@ export function specRows(it: GearItem): SpecRow[] {
   const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? t('겹치지 않음') : '');
   const out: SpecRow[] = [];
   const nm = namedOf(it.named);
-  if (nm) out.push({ key: nm.key, name: t(nm.name), group: 'named', badge: t('고유'), text: specText(nm, nm.val), off: dup(nm.key) });
+  if (nm) out.push({ key: nm.key, name: t(nm.name), group: 'named', badge: t('고유'), text: specTextT(nm, nm.val), off: dup(nm.key) });
   const un = uniqueOf(it.unique), ud = un && SPECS[un.spec];
-  if (un && ud) out.push({ key: ud.key, name: t('{n} (고유)', { n: t(ud.name) }), group: ud.group, badge: t('고유'), text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), off: dup(ud.key) });
+  if (un && ud) out.push({ key: ud.key, name: t('{n} (고유)', { n: t(ud.name) }), group: ud.group, badge: t('고유'), text: specTextT(ud, uniqueValue(un, it.grade, it.uniqueMult)), off: dup(ud.key) });
   for (const l of it.specs ?? []) {
     const d = SPECS[l.key];
     if (!d) continue;
     const off = d.hero && d.hero !== hero ? t('{h} 전용', { h: t(HEROES[d.hero].name) }) : dup(d.key);
-    out.push({ key: d.key, name: l.legend ? t('{n} (고유)', { n: t(d.name) }) : t(d.name), group: d.group, badge: l.legend ? t('고유') : tc(SPEC_GROUPS[d.group].name, 'spec'), text: specText(d, specLineValue(it, l)), off });
+    out.push({ key: d.key, name: l.legend ? t('{n} (고유)', { n: t(d.name) }) : t(d.name), group: d.group, badge: l.legend ? t('고유') : tc(SPEC_GROUPS[d.group].name, 'spec'), text: specTextT(d, specLineValue(it, l)), off });
   }
   return out;
 }
