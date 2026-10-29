@@ -10,6 +10,9 @@ import { commit, G, heroNow, resetSave, setTestLevelUp, setTestMaxLevel, TEST_LE
 import { TUT } from '../game/tutorial';
 import { uiIcon } from './art';
 import { battle, go, previous, screen, topBar } from './kit';
+import { noticeModal } from '../platform/ads';
+import { noticeList } from '../platform/server';
+import { noticesHtml } from './server-notice';
 import './settings.css';
 
 let back = 's-lobby';
@@ -53,6 +56,7 @@ function render(): void {
       ${card('sound', 'sound', '소리 · 진동', [vol('sfx', '효과음'), vol('music', '배경음'), tog('vibrate', '진동')])}
       ${card('hand', 'wheel', '스킬 휠 위치', [`<div class="chips st-hand">${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}</div>`])}
       ${card('screen', 'eye', '전투 화면', [`<div class="st-col">${tog('reducedEffects', '시각 효과 줄이기')}<p class="g-sub wrap">피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p></div>`])}
+      ${card('info', 'info', '공지', [`<span class="st-label">운영 공지</span><button class="btn st-open" type="button" id="noticeOpen">보기</button>`])}
       <section class="group dev"><h2>개발 빌드</h2>
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
         ${tog('autoNovice', '자동 치유를 초보처럼')}<p>처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.</p>
@@ -108,6 +112,7 @@ s.el.addEventListener('click', e => {
     s.el.querySelector<HTMLButtonElement>(`#${lvBtn.id}:not(:disabled)`)?.focus({ preventScroll: true });
     return;
   }
+  if (t.closest('#noticeOpen')) { void noticeModal('공지', noticesHtml(noticeList())); return; }
   if (t.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;
     G.save.tut = again ? TUT.intro : TUT.done; commit();

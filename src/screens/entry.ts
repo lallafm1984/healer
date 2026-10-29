@@ -77,7 +77,7 @@ function render(): void {
   // 이번 주 어픽스 (줄 + 다음 주 알약) · 구간 · 보상 (세 칸 + 보너스 알약 + 월요일 상자 줄)
   // 이번 주 어픽스 셋 (115 나안): 셋째는 CHAL.third단계부터, 그 아래 단계를 고르면 셋째 줄은 흐리게 + 「10단계부터」
   const week = weekAffixes();
-  const afxTip = week.map(k => `<p><b>${AFFIXES[k].name}</b>${esc(AFFIXES[k].tip)}</p>`).join('') + `<p>셋째 어픽스는 ${CHAL.third}단계부터 붙습니다. 어픽스는 월요일 오전 6시에 바뀝니다.</p>`;
+  const afxTip = week.map(k => `<p><b>${AFFIXES[k].name}</b>${esc(AFFIXES[k].tip)}</p>`).join('') + `<p>셋째 어픽스는 ${CHAL.third}단계부터 붙습니다. 어픽스는 월요일 오전 9시에 바뀝니다.</p>`;
   const afx = `<ul class="g-rows wc-afx">${week.map((k, i) => {
     const later = i >= 2, off = later && !m.affixes.includes(k);
     return `<li class="g-row${off ? ' wc-later' : ''}"><span class="g-ri">${afxIcon(k)}</span><div class="g-rm"><b>${AFFIXES[k].name}</b><span class="g-sub wrap">${esc(AFFIXES[k].desc)}</span></div>${later ? `<span class="g-rs">${pill(`${CHAL.third}단계부터`, off ? '' : 'warn')}</span>` : ''}</li>`;

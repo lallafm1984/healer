@@ -19,6 +19,7 @@ import { CHAL, chalDropDiff, chalReward } from '../data/challenge';
 import type { RosterEntry } from '../engine/types';
 import type { AffixKey } from '../data/affixes';
 import { restBase, restGain, staminaCost, useRest, type RestUse } from './stamina';
+import { now as gameNow } from '../platform/time';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -115,7 +116,7 @@ export function heroWin(save: SaveData, h: HeroKey = save.hero): void {
 }
 
 /** roster = 전투에 넘긴 편성 (길드원 경험치 · 능력치). 길드원이 없으면 길드 정산 안 함 */
-export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
+export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = gameNow()): Settlement {
   const c = contentOf(r.content);
   const hero = r.hero ?? save.hero;
   // 튜토리얼이 끝난 뒤부터 재화·임무. 개발 빌드 자동 치유 판도 사람이 한 판처럼 모두 셈 (2026-10-25 Lim 「추천으로 던전을 클리어했는데 임무에 반영이 안되어 있다」: 예전엔 임무만 뺐음)

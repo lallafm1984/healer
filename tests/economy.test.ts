@@ -15,7 +15,7 @@ import { migrate, newSave, type SaveData } from '../src/platform/storage';
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 /** 2026-10-07 (수) 정오 */
-const T0 = new Date(2026, 9, 7, 12).getTime();
+const T0 = Date.UTC(2026, 9, 7, 12);
 const H = 3600e3, D = 24 * H;
 
 function save(level = 20): SaveData {
@@ -33,12 +33,12 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
   party: [{ nick: '가', pers: '덜렁이', role: 'melee', alive: true }], detail: [], ...o,
 });
 
-describe('리셋 시각 (13 1장: 오전 6시, 월요일)', () => {
-  it('오전 6시 전은 어제, 주간은 월요일', () => {
-    expect(dayKey(new Date(2026, 9, 7, 5, 59).getTime())).toBe('2026-10-06');
-    expect(dayKey(new Date(2026, 9, 7, 6, 0).getTime())).toBe('2026-10-07');
+describe('리셋 시각 (기획 120 9-3: UTC 0시 = 한국 오전 9시, 월요일)', () => {
+  it('UTC 0시 전은 어제, 주간은 월요일', () => {
+    expect(dayKey(Date.UTC(2026, 9, 6, 23, 59))).toBe('2026-10-06');
+    expect(dayKey(Date.UTC(2026, 9, 7, 0, 0))).toBe('2026-10-07');
     expect(weekKey(T0)).toBe('2026-10-05');
-    expect(weekKey(new Date(2026, 9, 5, 5).getTime())).toBe('2026-09-28');
+    expect(weekKey(Date.UTC(2026, 9, 4, 23))).toBe('2026-09-28');
     expect(daysBetween('2026-10-05', '2026-10-08')).toBe(3);
   });
 });
@@ -145,12 +145,12 @@ describe('주간 (13 3장)', () => {
     expect(claimMission(s, 'weekly', 0)).toMatch(/못 채움/);
     expect(WEEKLY.length).toBeGreaterThanOrEqual(3);
   });
-  it('월요일 오전 6시에 리셋: 레이드 장비 기록, 주간 도전 기록 → 상자', () => {
+  it('월요일 UTC 0시에 리셋: 레이드 장비 기록, 주간 도전 기록 → 상자', () => {
     const s = save(40);
     s.weekly.loot = ['abyss1|보통']; s.weekly.chalBest = 12;
-    rollover(s, new Date(2026, 9, 12, 5).getTime(), rng);
+    rollover(s, Date.UTC(2026, 9, 11, 23), rng);
     expect(s.weekly.loot.length).toBe(1);
-    rollover(s, new Date(2026, 9, 12, 6).getTime(), rng);
+    rollover(s, Date.UTC(2026, 9, 12, 0), rng);
     expect([s.weekly.loot.length, s.weekly.chalBest, s.chalChest]).toEqual([0, 0, 12]);
     const r = claimChalChest(s, rng);
     expect(typeof r).toBe('object');
@@ -279,12 +279,12 @@ describe('105 QA 3바퀴: 주 첫 접속이 토 · 일', () => {
     for (let i = 0; i < 20; i++) {
       seed = i + 7;
       const s = save(15);
-      const sat = new Date(2026, 9, 17, 12).getTime(); // 10-12 주의 토요일
+      const sat = Date.UTC(2026, 9, 17, 12); // 10-12 주의 토요일
       rollover(s, sat, rng);
       expect(s.weekly.missions.some(m => m.key === 'w_chest5'), `seed ${seed}`).toBe(false);
     }
     let any = false;
-    for (let i = 0; i < 20 && !any; i++) { seed = i + 7; const s = save(15); rollover(s, new Date(2026, 9, 12, 12).getTime(), rng); any = s.weekly.missions.some(m => m.key === 'w_chest5'); }
+    for (let i = 0; i < 20 && !any; i++) { seed = i + 7; const s = save(15); rollover(s, Date.UTC(2026, 9, 12, 12), rng); any = s.weekly.missions.some(m => m.key === 'w_chest5'); }
     expect(any).toBe(true);
   });
 });

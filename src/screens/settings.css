@@ -16,3 +16,10 @@
 #s-settings.ns .st-col .g-sub { margin: 0 0 2px 32px; }
 /* 개발 빌드: 출시 때 정리하는 옛 점선 판 그대로 (판 사이 간격만 맞춤) */
 #s-settings.ns .settings .group.dev { margin: 6px 0 0; }
+/* 공지 줄 (기획 120 9-5): 이름 · 「보기」. 목록은 알림 창 (noticeModal) 안 */
+#s-settings.ns .st-row > .st-label { flex: 1 1 auto; min-width: 0; }
+#s-settings.ns .st-row > .st-open { flex: none; margin: 0; min-width: 88px; }
+.admodal .st-notices { display: flex; flex-direction: column; gap: 12px; max-height: min(52vh, 420px); overflow-y: auto; text-align: left; }
+.admodal .st-notice { display: flex; flex-direction: column; gap: 4px; }
+.admodal .st-notice b { color: var(--gk-head, inherit); }
+.admodal .st-notice-empty { display: block; text-align: center; }

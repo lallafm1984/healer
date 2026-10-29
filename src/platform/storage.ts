@@ -18,6 +18,7 @@ import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { CONTENT, type ContentKey } from '../data/content';
 import { STAMINA } from '../data/economy';
 import type { Grade } from '../data/progression';
+import { now as gameNow } from './time';
 
 export const SAVE_KEY = 'healer.save';
 /**
@@ -263,7 +264,7 @@ const AUTOMATION = typeof navigator !== 'undefined' && navigator.webdriver === t
 /** 새 저장 설정. 「레벨 잠금 무시」 (devUnlock)는 꺼짐 (2026-10-16 Lim QA 「추천대로」: 새로 시작하면 처음 하는 사람과 같은 잠금), 화면 테스트만 켜짐. 옛 저장은 저장된 값 그대로 */
 export const DEFAULT_SETTINGS: Settings = { sound: true, music: true, sfxVol: 1, musicVol: 1, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: true, reducedEffects: false, auto: false, devUnlock: AUTOMATION, allSkills: false, layout: null };
 
-export function newSave(now = Date.now()): SaveData {
+export function newSave(now = gameNow()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
     player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, clears: {}, last: null, recent: [], nextId: 1, tut: 0,
@@ -281,7 +282,7 @@ export const newRoster = (hero: HeroKey, now: number, level = 1): Roster => ({ c
 export function migrate(raw: unknown): SaveData {
   if (!raw || typeof raw !== 'object') return newSave();
   const o = raw as Partial<SaveData>;
-  const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : Date.now());
+  const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : gameNow());
   const obj = <T extends object>(v: unknown, d: T): T => (v && typeof v === 'object' && !Array.isArray(v) ? { ...d, ...(v as T) } : d);
   const users = (raw as { users?: Record<string, { pt?: unknown }> }).users;
   const legacySkill = (nick: string) => {

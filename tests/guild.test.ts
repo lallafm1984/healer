@@ -66,7 +66,7 @@ describe('길드를 빼 두면', () => {
     expect([m.xp, m.runs, s.guild.fame]).toEqual([0, 0, 0]);
   });
   it('일일 임무에 「길드파티로 클리어」가 안 뽑히고, 이미 뽑힌 것은 교체 횟수 없이 다른 임무로', () => {
-    const T = new Date(2026, 9, 7, 12).getTime();
+    const T = Date.UTC(2026, 9, 7, 12);
     for (let i = 0; i < 40; i++) {
       const s = save(30);
       rollover(s, T + i * 864e5, rng);
@@ -84,7 +84,7 @@ describe('길드를 빼 두면', () => {
 });
 
 describe('길드원이 없으면 (2026-10-22 가상 사용자 QA: 결성 뒤 영입을 안 한 사람이 「길드파티로 클리어」를 한 번도 못 채움)', () => {
-  const T = new Date(2026, 9, 7, 12).getTime();
+  const T = Date.UTC(2026, 9, 7, 12);
   it('결성만 하고 길드원이 0명이면 「길드파티로 클리어」가 안 뽑히고, 뽑혀 있던 것은 다른 임무로', () => {
     for (let i = 0; i < 40; i++) {
       const s = save(30); s.guild.founded = true;
@@ -170,9 +170,9 @@ describe('결성 (93 4-1)', () => {
 
 describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 · Lv 1 ~ 내 레벨 · 레벨 비례 영입 골드)', () => {
   beforeEach(() => { seed = 7; });
-  const T = new Date(2026, 9, 22, 12).getTime(), H = 3600e3;
+  const T = Date.UTC(2026, 9, 22, 12), H = 3600e3;
   const founded = (lv: number, gold = 100000) => { const s = save(lv, gold); s.guild.founded = s.guild.storySeen = true; return s; };
-  it('공고는 무료, 하루 한 번 (오전 6시) 지원자 3명. 같은 날은 그대로 · 다 데려가도 그날은 새로 안 옴 · 시계를 뒤로 돌린 날도 그대로', () => {
+  it('공고는 무료, 하루 한 번 (UTC 0시 = 한국 오전 9시) 지원자 3명. 같은 날은 그대로 · 다 데려가도 그날은 새로 안 옴 · 시계를 뒤로 돌린 날도 그대로', () => {
     const s = founded(30, 0); s.guild.fame = GUILD_STEPS[3]; // 정원 5 (셋을 다 데려가려고)
     expect(Gd.refreshPost(s, rng, T)).toBe(true);
     expect(s.player.gold).toBe(0);
@@ -181,9 +181,9 @@ describe('영입 (93 4-2, 2026-10-22 Lim 매일 공고 · 광고 새로 뽑기 �
     expect(Gd.refreshPost(s, rng, T + 5 * H)).toBe(false);
     s.player.gold = 1e6;
     while (s.guild.post!.cands.length) expect(Gd.hire(s, 0)).toBe('');
-    expect(Gd.refreshPost(s, rng, T + 6 * H)).toBe(false); // 다음 날 오전 6시 전 (밤 12시 ~ 6시는 아직 그날)
+    expect(Gd.refreshPost(s, rng, T + 6 * H)).toBe(false); // 다음 날 UTC 0시 전 (아직 그날)
     expect(s.guild.post!.cands).toEqual([]);
-    expect(Gd.refreshPost(s, rng, T + 19 * H)).toBe(true); // 다음 날 오전 7시
+    expect(Gd.refreshPost(s, rng, T + 19 * H)).toBe(true); // 다음 날 UTC 7시
     expect(s.guild.post!.cands.length).toBe(3);
     const now = JSON.stringify(s.guild.post);
     expect(Gd.refreshPost(s, rng, T)).toBe(false);

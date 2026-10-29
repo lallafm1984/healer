@@ -23,6 +23,7 @@ import { notify } from './toast';
 import { staminaView } from '../game/stamina';
 import { sfx } from '../sfx';
 import './shop.css';
+import { now as gameNow } from '../platform/time';
 
 /** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」, 앞 「cash」는 예전 하위 탭 이름), from = 뒤로 갈 화면 */
 const st: { focus: string; from: string } = { focus: '', from: 's-lobby' };
@@ -63,7 +64,7 @@ function cashHtml(): string {
     `<li class="g-row cash-row${own(id) ? ' owned' : ''}${st.focus === id ? ' hi' : ''}" data-prod="${id}"><span class="g-ri">${icon}</span><div class="g-rm"><b>${esc(name)}</b><span class="g-sub wrap">${line}</span></div><span class="g-rs">${buyBtn(id, products(G.save).find(p => p.id === id)!.price)}${goldBtn(id)}</span></li>`;
   const card = (key: string, icon: string, title: string, body: string) =>
     `<section class="g-card sh-card" data-sec="${key}"><header class="g-hd"><span class="g-hi">${icon}</span><h3>${title}</h3></header>${body}</section>`;
-  const v = staminaView(G.save, Date.now());
+  const v = staminaView(G.save, gameNow());
   return `${card('rest', currencyIcon('rest'), '휴식', `<div class="cash-stam">
       <button class="cash-meter" type="button" data-stamina-open aria-label="휴식 창 열기">${currencyIcon('rest')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
       <p class="g-sub wrap">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×${REST_BONUS} · 광고 보고 최대 충전 · 하루 ${STAMINA.adDaily}번</p></div>`)}

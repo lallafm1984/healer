@@ -21,6 +21,7 @@ import { FEATURES } from '../data/features';
 import { topLevel, type SaveData } from '../platform/storage';
 import { dayKey } from './clock';
 import { TUT } from './tutorial';
+import { now as gameNow } from '../platform/time';
 
 /** 길드가 열렸는지 (GUILD_LEVEL = Lv 30, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
@@ -53,12 +54,12 @@ export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers
   const role = CLASSES[p.cls].role as 'tank' | 'melee' | 'ranged', prof = profileOf(p.nick, p.pers, role), at = Math.max(1, Math.min(topLevel(save), lv));
   const birth = prof.stats, add = lvAdds(p.nick, p.pers, role, at, birth);
   const stats = Object.fromEntries(STAT_KEYS.map(k => [k, birth[k] + add[k]])) as Stats;
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now() };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: gameNow() };
 }
 
 function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
-  const nm: GuildMember = { ...m, id: g.nextId++, joined: Date.now() };
+  const nm: GuildMember = { ...m, id: g.nextId++, joined: gameNow() };
   g.members.push(nm);
   // 합류한 사람만 공고 지원자에서 빼고 나머지 지원자는 다음 갱신까지 유지한다 (다 데려가도 그날 공고는 남음: 같은 날 다시 3명이 오지 않게)
   if (g.post) g.post.cands = g.post.cands.filter(c => c.nick !== m.nick);
@@ -70,7 +71,7 @@ function join(save: SaveData, m: GuildMember): GuildMember {
  * 길드원 없이 결성한다 (Lim 10-21 「길드에서 스토리 동료 제거, 자동 영입 제거」): 영입은 모집 공고로만.
  * 예전엔 말없는탱 (스토리 동료) + 도적 1명이 저절로 들어왔음 (정원 2, 103).
  */
-export function foundGuild(save: SaveData, r: () => number = Math.random, now = Date.now()): boolean {
+export function foundGuild(save: SaveData, r: () => number = Math.random, now = gameNow()): boolean {
   const g = save.guild;
   if (g.founded || !guildOpen(save).ok) return false;
   g.founded = true;
@@ -108,24 +109,24 @@ export function makeCandidates(save: SaveData, r: () => number, n: number = POST
   return out;
 }
 /** 매일 공고 (오전 6시, dayKey): 결성한 길드에 그날 공고가 없으면 지원자 POST.cands명. 시계를 뒤로 돌린 날은 그대로. 새로 왔으면 true */
-export function refreshPost(save: SaveData, r: () => number, now = Date.now()): boolean {
+export function refreshPost(save: SaveData, r: () => number, now = gameNow()): boolean {
   const g = save.guild, day = dayKey(now);
   if (!g.founded || (g.post && g.post.day >= day)) return false;
   g.post = { day, cands: makeCandidates(save, r, POST.cands), seen: false };
   return true;
 }
 /** 새 지원자가 왔거나 올 것 (길드 탭 · 영입 탭 빨간 점): 정원이 남았고 그날 공고를 아직 안 봤거나 날이 바뀜 */
-export function postNew(save: SaveData, now = Date.now()): boolean {
+export function postNew(save: SaveData, now = gameNow()): boolean {
   const g = save.guild, p = g.post;
   return g.founded && !full(save) && (!p || p.day < dayKey(now) || (!p.seen && p.cands.length > 0));
 }
 /** 광고로 새로 뽑기까지 남은 시간 (ms, 0 = 지금 됨). 실제 시간 1시간 (시계를 뒤로 돌렸으면 바로) */
-export function postAdWait(save: SaveData, now = Date.now()): number {
+export function postAdWait(save: SaveData, now = gameNow()): number {
   const at = save.guild.postAdAt ?? 0;
   return at > now ? 0 : Math.max(0, at + POST.adCooldownMs - now);
 }
 /** 보상형 광고를 본 뒤 (광고 제거면 바로): 지원자를 POST.adCands명으로 새로. 성공 = 빈 문자열 */
-export function adRefreshPost(save: SaveData, r: () => number, now = Date.now()): string {
+export function adRefreshPost(save: SaveData, r: () => number, now = gameNow()): string {
   const g = save.guild;
   if (!g.founded) return '길드 결성 전';
   if (postAdWait(save, now) > 0) return '아직 쿨타임';

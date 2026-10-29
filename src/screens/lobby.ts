@@ -33,6 +33,7 @@ import { noticeModal } from '../platform/ads';
 import { sfx } from '../sfx';
 import { mountVillage } from './village';
 import { ENCOUNTERS } from '../data/encounters';
+import { now as gameNow } from '../platform/time';
 
 /** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
 const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
@@ -212,7 +213,7 @@ function merchantPlate(): string {
  * 0이면 휴식 보너스 (클리어 경험치 · 골드 × REST_BONUS)를 못 받아 빛남. 누르면 휴식 창 (최대 충전 하루 3번, 광고 제거면 바로)
  */
 function restSock(): string {
-  const v = staminaView(G.save, Date.now());
+  const v = staminaView(G.save, gameNow());
   if (v.unlimited || v.n >= STAMINA_COST.dungeon || !v.adsLeft) return '';
   return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="휴식 충전 · 휴식 ${v.n}/${v.max} · 휴식이 있으면 보너스 ×${REST_BONUS}"`, currencyIcon('rest'), '휴식 충전',
     `${adsFree(G.save) ? '바로' : '광고'} 최대 충전`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
