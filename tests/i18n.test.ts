@@ -35,7 +35,7 @@ describe('i18n', () => {
     expect(tc('주간 도전', 'short')).toBe('주간 도전');
   });
   it('영어 · 일본어: 사전에 있으면 번역, 없으면 한국어, 자리값', async () => {
-    const enD = await loadDict('en');
+    const enD = loadDict('en');
     expect(enD['설정']).toBe('Settings');
     await setLang('en');
     expect(t('설정')).toBe('Settings');

@@ -1,11 +1,14 @@
 /**
  * 다국어 (기획 121, 2026-10-29 Lim 「설정에 언어 선택 (한국어 · English · 日本語, 기본은 기기 언어)」 · 「한국어 UI는 1px도 깨지지 않게」).
  * 열쇠 = 한국어 원문: t('출전') · t('휴식 보너스 +{n}', { n }). 한국어면 자리값만 끼워 그대로 돌려준다 (사전을 안 봄) → 한국어 화면은 예전과
- * 바이트 단위로 같다 (tests/e2e/i18n-ko.mjs 스냅샷). 영어 · 일본어는 사전 (en.ts · ja.ts, 지금 언어 것만 동적 import)에서 찾고 없으면 한국어 그대로.
+ * 바이트 단위로 같다 (tests/e2e/i18n-ko.mjs 스냅샷). 영어 · 일본어는 사전 (en.ts · ja.ts)에서 찾고 없으면 한국어 그대로.
+ * 사전은 정적 import (2026-10-29 2단계 ⑤: 동적 import는 game 층이 i18n을 쓰면 시뮬 rolldown 단일 파일 묶음을 깨뜨렸음. 앱은 로컬 파일이라 묶음 크기보다 단순함이 낫다).
  * 언어는 localStorage healer.lang (저장 파일 밖: 「저장 지우고 처음부터」 · 서버 백업과 상관없는 기기 설정), 없으면 기기 언어 (ko → 한국어, ja → 일본어, 그 밖 영어).
  * t()는 화면 층 (screens · battle · platform · game)에서만. engine · data · sim의 한국어는 열쇠 · 저장 값 (난이도 '쉬움' · 등급 '희귀')이라 보여 줄 때 거친다 (AGENTS.md 「다국어」).
- * 이 모듈은 읽히는 순간 (top-level await) 사전을 다 읽어 두므로, 여기서 t를 가져오는 모듈은 import 시점부터 t를 쓸 수 있다 (screen() 이름 · 탭 이름).
+ * 이 모듈은 읽히는 순간 언어를 정하므로, 여기서 t를 가져오는 모듈은 import 시점부터 t를 쓸 수 있다 (screen() 이름 · 탭 이름).
  */
+import en from './en';
+import ja from './ja';
 export type Lang = 'ko' | 'en' | 'ja';
 export interface LangDef { key: Lang; /** 설정 칩 글 (늘 그 말로, 번역하지 않음) */ name: string; locale: string }
 export const LANGS: readonly LangDef[] = [
@@ -34,12 +37,12 @@ let cur: Lang = 'ko';
 let dict: Dict = {};
 const listeners: (() => void)[] = [];
 
-const LOADERS: Record<Exclude<Lang, 'ko'>, () => Promise<{ default: Dict }>> = { en: () => import('./en'), ja: () => import('./ja') };
+const DICTS: Record<Exclude<Lang, 'ko'>, Dict> = { en, ja };
 /** 그 언어 사전 (한국어는 빈 것: 열쇠가 곧 글) */
-export const loadDict = async (l: Lang): Promise<Dict> => (l === 'ko' ? {} : (await LOADERS[l]()).default);
+export const loadDict = (l: Lang): Dict => (l === 'ko' ? {} : DICTS[l]);
 
-async function apply(l: Lang): Promise<void> {
-  dict = await loadDict(l);
+function apply(l: Lang): void {
+  dict = loadDict(l);
   cur = l;
   if (hasWindow) document.documentElement.lang = l;
 }
@@ -51,7 +54,7 @@ export const locale = (): string => LANGS.find(l => l.key === cur)!.locale;
 /** 설정에서 고름: 저장하고 사전을 읽은 뒤 등록한 곳 (정적 글 · 탭)에 알림. 부른 쪽이 지금 화면을 다시 그린다 */
 export async function setLang(l: Lang): Promise<void> {
   if (hasWindow) { try { localStorage.setItem(LANG_KEY, l); } catch { /* 저장소가 막혀도 이번 실행은 바뀜 */ } }
-  await apply(l);
+  apply(l);
   listeners.forEach(fn => fn());
 }
 export function onLangChange(fn: () => void): void { listeners.push(fn); }
@@ -87,4 +90,4 @@ export function shortAmount(n: number): string {
 /** 자릿수 쉼표 (반올림) */
 export const fmtInt = (n: number): string => Math.round(n).toLocaleString(locale());
 
-await apply(detectLang());
+apply(detectLang());
