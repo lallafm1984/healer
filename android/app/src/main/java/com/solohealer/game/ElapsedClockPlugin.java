@@ -1,4 +1,4 @@
-package com.lallafm.healer;
+package com.solohealer.game;
 
 import android.os.SystemClock;
 import android.provider.Settings;

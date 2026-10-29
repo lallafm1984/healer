@@ -43,7 +43,7 @@ describe('게임 시각 기준', () => {
 describe('앱이 켜질 때 창 (강제 업데이트 · 새 버전 · 점검 · 공지)', () => {
   const boot = (o: Partial<NonNullable<Boot['config']>> = {}, notices: Boot['notices'] = []): Boot => ({
     now: 0,
-    config: { min_version: 100, latest_version: 120, store_url: 'https://play.google.com/store/apps/details?id=com.lallafm.healer', update_message: null, maintenance: false, maintenance_message: null, flags: {}, ...o },
+    config: { min_version: 100, latest_version: 120, store_url: 'https://play.google.com/store/apps/details?id=com.solohealer.game', update_message: null, maintenance: false, maintenance_message: null, flags: {}, ...o },
     notices,
   });
   const n = (id: number, popup = true) => ({ id, title: `공지 ${id}`, body: '본문', popup, starts_at: 0 });
