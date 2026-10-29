@@ -15,15 +15,13 @@ import jaTalk from '../src/i18n/talk-ja';
 import { hasTalk, setLang, talkOf } from '../src/i18n';
 
 const slots = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join(',');
-/** 성격 대사 가운데 번역이 있어야 하는 상황: 엔진 bark 사건의 상황 (BarkSit, sits.ts 와 같은 목록) + 인사 · 출발 · 실수 */
+/** 성격 대사 가운데 번역이 있어야 하는 상황: 엔진 bark 사건의 상황 (BarkSit, sits.ts 와 같은 목록) + 인사 · 출발 · 깔끔 승리 · 강타 (⑥-3c 1 · 2묶음) */
 const BARK_SITS = ['mistake', 'dodge', 'stubborn', 'brave', 'wrongStep', 'noEscape', 'lateDodge', 'wrongDodge', 'tankLost', 'whiff', 'skillFumble', 'spaceOut', 'reel', 'clump', 'coverCut', 'alone', 'standIn', 'regroup',
   'aggroHold', 'aggroIgnore', 'aggroAdds', 'aggroPanic', 'aggroLost', 'flee', 'shelter', 'sulk', 'thanks', 'revived', 'slowMove', 'follow', 'wander', 'luckLost', 'luckBack', 'cover', 'selfish', 'cheer', 'rival', 'rage', 'calmStep',
   'optimist', 'pessimist', 'panic', 'panicEnd', 'allIn', 'tired', 'warmUp', 'focusBroken', 'shaken', 'learned', 'hoardUse', 'spamUse', 'cutTry', 'addHunt', 'oneTrack', 'preGuard', 'clutchOk', 'clutchLate', 'gather', 'aggroSlip', 'selfCare',
   'aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel', 'foresee', 'foreseeWrong', 'hop', 'endure', 'edgeStep', 'freeze', 'buddyUp', 'yieldStep', 'homeBack', 'mentor', 'moodUp', 'praise', 'repay', 'envy', 'cry',
   'bounce', 'relief', 'windUp', 'vent', 'burst', 'breather', 'timing', 'gritMax', 'aggroHealerHigh', 'aggroDealerHigh', 'aggroStealHigh'] as const satisfies readonly TalkSit[];
-/** 아직 번역하지 않은 성격 신호 상황 (⑥-3c 2묶음): 역할 · 공통 줄이 있어 영어 · 일본어에서 그 줄로 내려감 */
-const PERS_SITS_LATER: TalkSit[] = ['dodge', 'noEscape', 'revived', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel', 'aggroSteal', 'aggroEase'];
-const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS.filter(s => !PERS_SITS_LATER.includes(s)), 'hello', 'go'];
+const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS, 'hello', 'go', 'winClean', 'buster'];
 
 describe('파티원 대사 사전', () => {
   afterAll(async () => { await setLang('ko'); });
