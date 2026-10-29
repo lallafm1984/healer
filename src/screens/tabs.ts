@@ -19,7 +19,7 @@ import { topLevel } from '../platform/storage';
 import { TUT } from '../game/tutorial';
 import { go, setTabsHandler, type TabKey } from './kit';
 import { classEmblem, gameIcon, uiIcon } from './art';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 
 export interface TabDef {
   key: TabKey;
@@ -78,7 +78,7 @@ export function mountTabs(nav: HTMLElement): void {
       // 잠금 = 다른 탭과 같은 결의 황동 자물쇠 그림 tab-lock (2026-10-28 Lim 「자물쇠도 아이콘으로 다른아이콘과 비슷한걸로」), 없으면 선 아이콘
       const icon = locked || tl ? gameIcon('lock', uiIcon('lock'), 'tab') : tab.key === 'battle' ? gameIcon('a2-swords', baseIcon) : baseIcon;
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
-      return `<button type="button" data-tab="${tab.key}"${tab.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t(tab.name)}</span>${tl ? `<small>${t('잠금')}</small>` : locked ? `<span class="sr"> ${t('Lv {n}에 열림', { n: tab.lv! })}</span>` : ''}${!tl && !locked && dotOf(tab.key) ? `<i class="rdot" aria-label="${t('새 소식')}"></i>` : ''}</button>`;
+      return `<button type="button" data-tab="${tab.key}"${tab.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${tc(tab.name, 'tab')}</span>${tl ? `<small>${t('잠금')}</small>` : locked ? `<span class="sr"> ${t('Lv {n}에 열림', { n: tab.lv! })}</span>` : ''}${!tl && !locked && dotOf(tab.key) ? `<i class="rdot" aria-label="${t('새 소식')}"></i>` : ''}</button>`;
     }).join('');
     nav.append(...glints);
   };

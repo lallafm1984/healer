@@ -23,6 +23,7 @@ html:is([lang="en"], [lang="ja"]) #s-content .b-cat .b-ci { display: none; }
 html:is([lang="en"], [lang="ja"]) #s-content .b-cat > .b-cl { align-items: center; width: 100%; }
 html[lang="en"] #s-content .b-cat b { font-size: 12.5px; letter-spacing: -.02em; }
 html[lang="ja"] #s-content .b-cat b { font-size: 13px; }
+html[lang="ja"] #s-content .b-dc small { font-size: 9px; letter-spacing: -.03em; }
 #s-content .b-ci:has(.g-ic) { width: 25px; height: 30px; }
 
 #s-content .b-gate {

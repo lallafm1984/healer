@@ -8,7 +8,7 @@
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
-import { t as tr } from '../i18n';
+import { lang, onLangChange, t as tr } from '../i18n';
 import { art } from '../art';
 import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
@@ -57,7 +57,10 @@ const C = {
   shield: 0x66a6ff, shieldFill: 0x1f55c8,
   empty: 0x2c241b, dangerBg: 0x3b1514, bronze: 0x5c4424, frame: 0x9c7a3c, dark: 0x12100c,
 };
-const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
+/** 판 위 글꼴: 본문 글꼴과 같음 (일본어는 Noto Sans JP, 2026-10-29 기획 121 7장). 언어를 바꾸면 다음 판부터 (글자 캐시 sig에 글꼴이 들어감) */
+const fontOf = () => (lang() === 'ja' ? '"Noto Sans JP", "Noto Sans KR", sans-serif' : '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif');
+let FONT = fontOf();
+onLangChange(() => { FONT = fontOf(); });
 /** 글자 굵기: 이름·배지 700, 체력 숫자 900 */
 const W_TEXT: TextStyleFontWeight = '700', W_NUM: TextStyleFontWeight = '900';
 
