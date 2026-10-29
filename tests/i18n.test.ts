@@ -5,6 +5,7 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { scanHtmlKeys, scanKeys, slots } from '../scripts/i18n/scan.mjs';
+import { checkTerms, EXCEPT, TERMS } from '../scripts/i18n/terms.mjs';
 import { fmtInt, lang, LANGS, loadDict, setLang, shortAmount, t, tc } from '../src/i18n';
 import en from '../src/i18n/en';
 import ja from '../src/i18n/ja';
@@ -57,5 +58,17 @@ describe('i18n', () => {
     await setLang('ja');
     expect([12345, 123456, 1234567, 123456789].map(shortAmount)).toEqual(['1.23万', '12.3万', '123万', '1.23億']);
     await setLang('ko');
+  });
+});
+
+describe('용어 일관성 (121 5장, Lim 2026-10-29 「공통 단어를 다르게 쓰지 않도록」)', () => {
+  it('한국어 열쇠에 용어가 있으면 영어 · 일본어 번역에도 표의 말이 있다', () => {
+    const show = (v: { key: string; term: string; text: string }[]) => v.map(x => `[${x.term}] ${x.key} → ${x.text}`);
+    expect(show(checkTerms(en, 'en'))).toEqual([]);
+    expect(show(checkTerms(ja, 'ja'))).toEqual([]);
+  });
+  it('용어 표 · 예외 목록이 사전과 맞는다', () => {
+    for (const t of TERMS) { expect(t.en.length, t.ko).toBeGreaterThan(0); expect(t.ja.length, t.ko).toBeGreaterThan(0); }
+    for (const k of Object.keys(EXCEPT)) expect(k in en || k in ja, `예외 열쇠가 사전에 없음: ${k}`).toBe(true);
   });
 });
