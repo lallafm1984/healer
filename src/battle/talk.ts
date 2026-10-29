@@ -3,7 +3,7 @@
  * 엔진 상태는 읽기만 하고 고치지 않는다 (전투 결과·전투 난수에 영향 없음). 난수는 화면 쪽 것을 씀.
  * 말 빈도는 절제 (아래 PACE·PER_MIN): 우선순위 위기 > 기믹·실수 신호 > 반응·잡담 (04 10장), 판에 동시에 3개까지.
  */
-import { hasTalk, nickOf, talkOf } from '../i18n';
+import { hasTalk, nickOf, t, talkOf } from '../i18n';
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
@@ -187,9 +187,9 @@ export function createTalk(rand: () => number = Math.random) {
 
   const holes = (f: Fight) => f.cells.filter(c => c.block === 'hole').length;
   const bossName = (f: Fight): string => {
-    if (!f.bodyHp) return f.enc.name;
+    if (!f.bodyHp) return t(f.enc.name);
     const m = f.mobs.find(x => x.alive && !x.add && (x.boss || x.elite)) || f.mobs.find(x => x.alive && !x.add);
-    return m ? mobLook(f, m).name : f.enc.name; // 구간 적은 보이는 얼굴 이름 (data/mob-looks)
+    return t(m ? mobLook(f, m).name : f.enc.name); // 구간 적은 보이는 얼굴 이름 (data/mob-looks), 영어 · 일본어는 이름 사전 (enemies-*.ts, HUD bossTitle과 같음)
   };
 
   // ---------- 말하기 ----------
