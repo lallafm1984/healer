@@ -9,6 +9,7 @@
  * 난이도 칸 적합도 (여유 · 적정 · 도전 · 위험)와 「추천」.
  */
 import { adventureContents, adventureRegionOf, adventureTabOf, type AdventureTab } from '../data/adventure-regions';
+import { t, tc } from '../i18n';
 import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
@@ -127,15 +128,15 @@ export function markHtml(c: ContentDef, size: 'sm' | 'md' | 'lg' = 'lg'): string
 /** 그 난이도 최고 별 (★☆ 3칸) */
 function stars(c: ContentDef, d: DiffName): string {
   const n = G.save.clears[c.key]?.[d]?.stars || 0;
-  return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
+  return `<span class="sr">${t('별 {n}개', { n })}</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
 /** 레이드: 이번 주 첫 클리어 보상 받음 (칸 = 보스 × 난이도, 2026-10-19 Lim 「주 첫 판만 크게」). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤. 휴식은 전투 전에 안 보여 줌 (90 · 2026-10-17) */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
-  const dots = `<span class="b-loot" role="img" aria-label="이번 주 첫 보상 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 첫 클리어 보상: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">주간</span>${dots}</span>`;
+  const dots = `<span class="b-loot" role="img" aria-label="${t('이번 주 첫 보상')} ${ALL_DIFFS.map((d, i) => `${t(d)} ${got[i] ? t('받음') : t('아직')}`).join(', ')}" title="${t('이번 주 첫 클리어 보상: 쉬움 · 보통 · 어려움 · 악몽')}">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">${t('주간')}</span>${dots}</span>`;
 }
 
 /** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 길잡이 추천 (86) → 첫 장소 (장소가 없는 분류면 null) */
@@ -177,16 +178,17 @@ function diffOf(c: ContentDef): DiffName {
  * 레이드는 칸이 좁아서 「10인 / 레이드」처럼 인원을 위 줄에 (잠겼으면 아래 줄이 자물쇠 Lv)
  */
 function cats(): string {
-  return `<nav class="b-cats" role="tablist" aria-label="콘텐츠 분류">${KINDS.map(k => {
+  return `<nav class="b-cats" role="tablist" aria-label="${t('콘텐츠 분류')}">${KINDS.map(k => {
     const list = listOf(k.kind);
     const sizes = [...new Set(list.map(c => c.size('보통')))].sort((a, b) => a - b);
     const lv = Math.min(...list.map(c => c.unlockLv));
     const lock = list.length > 0 && list.every(c => lockOf(c).locked);
-    const raid = k.icon === 'raid', [top, cap] = raid ? k.name.split(' ') : [k.name, `${sizes.join('·')}인`];
-    const sub = !list.length ? '준비 중' : lock ? `${LOCK}Lv ${lv}` : cap;
-    const label = `${k.name}${!list.length ? ' · 준비 중' : lock ? ` · Lv ${lv}에 열림` : raid ? '' : ` · ${cap}`}`;
+    // 레이드 칸은 「10인 / 레이드」 두 줄 (이름을 띄어쓰기로 나누지 않고 인원 · 「레이드」를 따로 번역)
+    const raid = k.icon === 'raid', [top, cap] = raid ? [t('{n}인', { n: k.kind === 'raid10' ? 10 : 20 }), t('레이드')] : [t(k.name), t('{n}인', { n: sizes.join('·') })];
+    const sub = !list.length ? tc('준비 중', 'content') : lock ? `${LOCK}Lv ${lv}` : cap;
+    const label = `${t(k.name)}${!list.length ? ` · ${tc('준비 중', 'content')}` : lock ? ` · ${t('Lv {n}에 열림', { n: lv })}` : raid ? '' : ` · ${cap}`}`;
     const rec = !!gd && k.kind !== tab && tabOf(contentOf(gd.content)) === k.kind;
-    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}${rec ? ' · 추천 있음' : ''}"><span class="b-ci">${catIcon(k)}</span><span class="b-cl" aria-hidden="true"><b>${top}</b><small>${sub}</small></span>${rec ? '<i class="b-rec-dot" aria-hidden="true"></i>' : ''}</button>`;
+    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}${rec ? ` · ${t('추천 있음')}` : ''}"><span class="b-ci">${catIcon(k)}</span><span class="b-cl" aria-hidden="true"><b>${top}</b><small>${sub}</small></span>${rec ? '<i class="b-rec-dot" aria-hidden="true"></i>' : ''}</button>`;
   }).join('')}</nav>`;
 }
 
@@ -196,11 +198,11 @@ function cats(): string {
  */
 function chalCell(): string {
   if (G.save.tut < TUT.done) return '';
-  const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, left = `${weekRemaining()} 남음`;
-  const tag = g.ok ? left.replace(' 남음', '') : `${LOCK}Lv ${g.lv}`;
-  const sr = ` 「${esc(CHAL.name)}」 · ${g.ok ? `${esc(contentOf(chalContent(G.save)).name)} · ` : ''}${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
+  const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, rem = weekRemaining(), left = t('{n} 남음', { n: rem });
+  const tag = g.ok ? rem : `${LOCK}Lv ${g.lv}`;
+  const sr = ` 「${esc(t(CHAL.name))}」 · ${g.ok ? `${esc(t(contentOf(chalContent(G.save)).name))} · ` : ''}${aff.map(k => t(AFFIXES[k].name)).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}${t('최고 {n}', { n: best ? t('{n}단', { n: best }) : t('없음') })} · ${left}` : t('Lv {n}에 열림', { n: g.lv })}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
-    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>주간 도전</small><span class="b-weekly-arrow" aria-hidden="true">${NEXT}</span><span class="sr">${sr}</span>
+    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>${t('주간 도전')}</small><span class="b-weekly-arrow" aria-hidden="true">${NEXT}</span><span class="sr">${sr}</span>
   </button>`;
 }
 
@@ -228,28 +230,28 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   // 탐험은 판마다 장비 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 판은 언제나): 등급별 확률은 장비가 나왔을 때
   const dropP = play && c.kind === 'explore' ? EXPLORE_DROP : 1;
   const items: SceneReward[] = [{
-    key: 'gear', name: '장비 등급별 확률', label: maxGrade, icon: gameIcon('gear', ICON.gear),
+    key: 'gear', name: t('장비 등급별 확률'), label: t(maxGrade), icon: gameIcon('gear', ICON.gear),
     color: GRADE_STYLE[maxGrade].color, probability: dropP, maxGrade,
     gradeOdds: odds,
     // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 레이드는 주 첫 클리어 · 다시 깬 판
-    basis: `최소 ${minG}${dropP < 1 ? ` · 장비는 판마다 ${Math.round(dropP * 100)}%` : ''}${raid && play ? (lootOpen ? ' · 이번 주 첫 클리어' : ' · 다시 깬 판 (첫 보상은 받음)') : ''}`,
+    basis: `${t('최소 {g}', { g: t(minG) })}${dropP < 1 ? ` · ${t('장비는 판마다 {n}%', { n: Math.round(dropP * 100) })}` : ''}${raid && play ? ` · ${lootOpen ? t('이번 주 첫 클리어') : t('다시 깬 판 (첫 보상은 받음)')}` : ''}`,
   }];
-  const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
+  const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = t('클리어 시'), probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
   // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD.
   // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값 (휴식 판 restRun의 1/REST_BONUS). 휴식 보너스는 결과 화면에서만. 튜토리얼 판은 예전 값 그대로
   const stage = runMode(G.save, c, d, { chal: 0 }).stage;
   const raw = clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1);
-  currency('gold', '골드', play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', '클리어 시 · A 평가');
+  currency('gold', t('골드'), play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', t('클리어 시 · A 평가'));
   return items;
 }
 
 /** 장비는 최고 획득 가능 등급 색상의 아이콘 하나로 표시하고, 누르면 등급별 확률을 보여 준다. */
 function rewards(c: ContentDef, d: DiffName): string {
-  return `<section class="b-scene-rewards" aria-label="획득 보상">
-    <div class="b-scene-rewards-heading"><b>획득 보상</b></div>
-    <div class="b-scene-reward-list">${rewardItems(c, d).map(r => `<button type="button" class="b-scene-reward${r.probability ? '' : ' received'}" data-reward="${r.key}" data-probability="${r.probability}"${r.maxGrade ? ` data-max-grade="${r.maxGrade}"` : ''} style="--reward-color:${r.color}" aria-label="${esc(r.maxGrade ? `장비 · ${r.probability ? `최고 ${r.maxGrade}` : '이번 주 수령 완료'} · 등급별 확률 보기` : `${r.name} · 획득 확률 보기`)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="bRewardChance">
+  return `<section class="b-scene-rewards" aria-label="${t('획득 보상')}">
+    <div class="b-scene-rewards-heading"><b>${t('획득 보상')}</b></div>
+    <div class="b-scene-reward-list">${rewardItems(c, d).map(r => `<button type="button" class="b-scene-reward${r.probability ? '' : ' received'}" data-reward="${r.key}" data-probability="${r.probability}"${r.maxGrade ? ` data-max-grade="${r.maxGrade}"` : ''} style="--reward-color:${r.color}" aria-label="${esc(r.maxGrade ? `${t('장비')} · ${r.probability ? t('최고 {g}', { g: t(r.maxGrade) }) : t('이번 주 수령 완료')} · ${t('등급별 확률 보기')}` : `${r.name} · ${t('획득 확률 보기')}`)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="bRewardChance">
       <span class="b-scene-reward-icon">${r.icon}</span><small>${r.label}</small></button>`).join('')}</div>
     ${lootLine(c)}
   </section>`;
@@ -259,13 +261,13 @@ function rewards(c: ContentDef, d: DiffName): string {
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), lk = lockOf(c), pl = PLACES[pa.place];
   const other = lk.locked ? otherHeroFor(lk.lv) : null;
-  const status = !c.ready ? '준비 중' : other ? `${HEROES[other.hero].name} Lv ${other.lv}로 입장 가능` : lk.locked ? `Lv ${lk.lv}에 열림` : '';
+  const status = !c.ready ? tc('준비 중', 'content') : other ? t('{h} Lv {n}로 입장 가능', { h: t(HEROES[other.hero].name), n: other.lv }) : lk.locked ? t('Lv {n}에 열림', { n: lk.lv }) : '';
   const scene = pa.url ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">` : '';
-  return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
+  return `<section class="b-gate${status ? ' off' : ''}" aria-label="${t('출전할 곳')} · ${esc(t(c.name))}">
     ${scene}<div class="b-gate-shade"></div>
-    <div class="b-gt"><span class="b-gn">${adventureRegionOf(c).name === c.name ? '' : `<small>${esc(adventureRegionOf(c).name)}</small>`}<b>${esc(c.name)}</b></span></div>
-    <div class="b-level" aria-label="권장 레벨 ${recLevel(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${recLevel(c, d)}</strong></div>
-    ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
+    <div class="b-gt"><span class="b-gn">${adventureRegionOf(c).name === c.name ? '' : `<small>${esc(t(adventureRegionOf(c).name))}</small>`}<b>${esc(t(c.name))}</b></span></div>
+    <div class="b-level" aria-label="${t('권장 레벨 {n}', { n: recLevel(c, d) })}"><span>${tc('권장 레벨', 'short')}</span><strong><small>Lv.</small> ${recLevel(c, d)}</strong></div>
+    ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="${t('이전 장소')}">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="${t('다음 장소')}">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${lk.locked && !other ? LOCK : ''}${status}</span>` : ''}
     ${rewards(c, d)}
   </section>`;
@@ -277,13 +279,13 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
  */
 function placeRow(c: ContentDef): string {
   return `<section class="b-region-section" aria-labelledby="bRegionTitle">
-    <div class="b-section-title"><h2 id="bRegionTitle">장소 선택</h2></div>
-    <nav class="b-regions" aria-label="${esc(KINDS.find(k => k.kind === tab)!.name)} 장소">${shownOf(tab).map(x => {
+    <div class="b-section-title"><h2 id="bRegionTitle">${t('장소 선택')}</h2></div>
+    <nav class="b-regions" aria-label="${esc(t(KINDS.find(k => k.kind === tab)!.name))} ${t('장소')}">${shownOf(tab).map(x => {
       const on = x.key === c.key, off = isOff(x), rec = gd?.content === x.key;
       // 보충 장소 (113 8장)의 「새 장소」 꼬리표는 없앰 (2026-10-28 Lim 「새장소 표시는 제거해줘」). 다시 넣지 않는다
-      const label = `${x.name} · ${!x.ready ? '준비 중' : off ? `Lv ${lockOf(x).lv}에 열림` : `Lv ${x.unlockLv}`}${rec ? ` · 추천 ${gd!.diff}` : ''}`;
+      const label = `${t(x.name)} · ${!x.ready ? tc('준비 중', 'content') : off ? t('Lv {n}에 열림', { n: lockOf(x).lv }) : `Lv ${x.unlockLv}`}${rec ? ` · ${t('추천 {d}', { d: t(gd!.diff) })}` : ''}`;
       return `<button type="button" class="b-region${on ? ' on' : ''}${rec ? ' rec' : ''}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}">
-        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(SHORT[x.key] ?? x.name)}</span><small>Lv ${x.unlockLv}</small>${rec ? '<span class="b-rec" aria-hidden="true">추천</span>' : ''}</button>`;
+        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(t(SHORT[x.key] ?? x.name))}</span><small>Lv ${x.unlockLv}</small>${rec ? `<span class="b-rec" aria-hidden="true">${t('추천')}</span>` : ''}</button>`;
     }).join('')}</nav>
   </section>`;
 }
@@ -294,13 +296,13 @@ function placeRow(c: ContentDef): string {
  * 지금 레벨로 못 들어가는 칸 (장소 · 난이도 레벨 잠금, 개발 빌드로 연 곳)은 꼬리표 없이 잠금 표시만 (fitShown)
  */
 function diffs(c: ContentDef, d: DiffName): string {
-  return `<div class="b-df" role="group" aria-label="난이도">${ALL_DIFFS.map(x => {
+  return `<div class="b-df" role="group" aria-label="${t('난이도')}">${ALL_DIFFS.map(x => {
     const l = diffLocked(c, x), dis = !c.ready || l.locked, on = c.ready && x === d;
-    const sub = !c.ready || !l.locked ? stars(c, x) : l.need ? `${LOCK}${l.need} 깨기<span class="sr">면 열림</span>` : `${LOCK}Lv ${l.lv}`;
+    const sub = !c.ready || !l.locked ? stars(c, x) : l.need ? `${LOCK}${t('{d} 깨기', { d: t(l.need) })}<span class="sr">${t('면 열림')}</span>` : `${LOCK}Lv ${l.lv}`;
     const fit = dis ? null : fitShown(c, x), rec = !dis && gd?.content === c.key && gd.diff === x;
-    const tag = rec ? '<span class="b-fit rec" aria-hidden="true">추천</span>' : fit ? `<span class="b-fit" data-fit="${fit}" aria-hidden="true">${fit}</span>` : '';
-    const sr = fit ? `<span class="sr"> · ${rec ? '추천 · ' : ''}${fit} (${FIT_TEXT[fit]})</span>` : '';
-    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}"${fit ? ` data-fit="${fit}"` : ''} aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${sub}</small>${sr}${tag}</button>`;
+    const tag = rec ? `<span class="b-fit rec" aria-hidden="true">${t('추천')}</span>` : fit ? `<span class="b-fit" data-fit="${fit}" aria-hidden="true">${t(fit)}</span>` : '';
+    const sr = fit ? `<span class="sr"> · ${rec ? `${t('추천')} · ` : ''}${t(fit)} (${t(FIT_TEXT[fit])})</span>` : '';
+    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}"${fit ? ` data-fit="${fit}"` : ''} aria-pressed="${on}"${dis ? ' disabled' : ''}>${t(x)}<small>${sub}</small>${sr}${tag}</button>`;
   }).join('')}</div>`;
 }
 
@@ -308,13 +310,13 @@ function diffs(c: ContentDef, d: DiffName): string {
 function cta(c: ContentDef | null, d: DiffName): string {
   const lk = c ? lockOf(c, d) : null, tutOff = !!c && tutLockedContent(G.save, c.key); // 튜토리얼 중엔 튜토리얼 판만 (103)
   const ok = !!c && c.ready && !lk!.locked && !tutOff;
-  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : tutOff ? `${c.name} · 튜토리얼을 마치면 출전` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
+  const sub = !c ? tc('준비 중', 'content') : !c.ready ? `${t(c.name)} · ${tc('준비 중', 'content')}` : tutOff ? `${t(c.name)} · ${t('튜토리얼을 마치면 출전')}` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${t(c.name)} · ${t('{d}부터 깨기', { d: t(lk!.need) })}` : `${t(c.name)} · ${t('Lv {n}에 열림', { n: lk!.lv })}`) : `${t(c.name)} · ${t(d)}`;
   const mk = classEmblem(heroNow(), 'md');
   // 휴식 (클리어 때 쓰는 몫)은 전투 전에 안 보여 줌 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 · 출발 버튼 휴식과 함께 없앰)
-  return `<button type="button" class="g-cta" id="contentGo" aria-label="출전 · ${esc(sub)}"${ok ? '' : ' disabled'}><span class="g-mk" aria-hidden="true">${mk}</span><span class="g-ct"><b>출전</b></span>${departureArrow()}</button>`;
+  return `<button type="button" class="g-cta" id="contentGo" aria-label="${t('출전')} · ${esc(sub)}"${ok ? '' : ' disabled'}><span class="g-mk" aria-hidden="true">${mk}</span><span class="g-ct"><b>${t('출전')}</b></span>${departureArrow()}</button>`;
 }
 
-const s = screen('s-content', '모험 선택', {
+const s = screen('s-content', t('모험 선택'), {
   tab: 'battle',
   // arg = 열 분류 (로비: 주간 도전 → dungeon, 레이드 팻말 → raid10 · raid20) 또는 고를 장소 · 난이도 (로비 「출전」 · 다음 목표 · 길드 부탁).
   // 없으면 첫 분류 탐험 (2026-10-21 Lim 「각 메뉴에 들어갔을때 그전의 탭화면을 유지 하지 말고 항상 첫번째 탭」), 「←」로 돌아오면 보던 분류
@@ -375,7 +377,7 @@ function render(keep = true): void {
   s.el.dataset.selectedRegion = region ?? '';
   s.el.dataset.selectedDiff = d;
   s.el.innerHTML = `${topBar({ settings: true })}
-    <div class="ns-body b-body">${cats()}${tab === 'dungeon' && c ? chalCell() : ''}${c ? gate(c, d, list.length > 1) + placeRow(c) + `<section class="b-difficulty"><div class="b-section-title"><h2>난이도</h2></div>${diffs(c, d)}</section>` : ''}</div>
+    <div class="ns-body b-body">${cats()}${tab === 'dungeon' && c ? chalCell() : ''}${c ? gate(c, d, list.length > 1) + placeRow(c) + `<section class="b-difficulty"><div class="b-section-title"><h2>${t('난이도')}</h2></div>${diffs(c, d)}</section>` : ''}</div>
     <footer class="b-foot">${cta(c, d)}</footer>`;
   const rewardRow = s.el.querySelector<HTMLElement>('.b-scene-reward-list');
   if (rewardRow) rewardRow.scrollLeft = rewardFrom;
@@ -448,13 +450,13 @@ function openRewardChance(key: string): void {
   // 장비는 나오는 등급만 (2026-10-13 Lim: 0% 등급은 안 보임). 높은 등급부터
   const grades = reward.gradeOdds ? [...ITEM_GRADES].reverse().filter(g => reward.gradeOdds![g] > 0) : [];
   const chance = reward.gradeOdds
-    ? grades.length ? `<dl class="b-grade-chances" aria-label="등급별 획득 확률">${grades.map(g => {
+    ? grades.length ? `<dl class="b-grade-chances" aria-label="${t('등급별 획득 확률')}">${grades.map(g => {
       const p = reward.gradeOdds![g];
-      return `<div class="b-grade-chance" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${g}</dt><dd>${percent(p)}%</dd></div>`;
+      return `<div class="b-grade-chance" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${t(g)}</dt><dd>${percent(p)}%</dd></div>`;
     }).join('')}</dl>` : ''
     : `<strong>${percent(reward.probability)}%</strong>`;
   s.el.insertAdjacentHTML('beforeend', `<div class="b-reward-chance" id="bRewardChance" role="dialog" aria-modal="false" aria-labelledby="bRewardChanceTitle" tabindex="-1" data-reward-key="${key}">
-    <button type="button" data-reward-close aria-label="확률 안내 닫기">×</button>
+    <button type="button" data-reward-close aria-label="${t('확률 안내 닫기')}">×</button>
     <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
   </div>`);
   positionRewardChance();

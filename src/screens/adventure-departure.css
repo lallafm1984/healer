@@ -18,6 +18,11 @@
 #s-content .b-cat[aria-selected="true"]::after { content: none; display: none; }
 #s-content .b-cat b { font-size: 14px; }
 #s-content .b-cat small { font-size: 10px; }
+/* 영어 · 일본어 (기획 121): 분류 이름 (Dungeon · 10-Player · ダンジョン)이 길어 그림을 빼고 글만 가운데. 한국어 CSS는 그대로 */
+html:is([lang="en"], [lang="ja"]) #s-content .b-cat .b-ci { display: none; }
+html:is([lang="en"], [lang="ja"]) #s-content .b-cat > .b-cl { align-items: center; width: 100%; }
+html[lang="en"] #s-content .b-cat b { font-size: 12.5px; letter-spacing: -.02em; }
+html[lang="ja"] #s-content .b-cat b { font-size: 13px; }
 #s-content .b-ci:has(.g-ic) { width: 25px; height: 30px; }
 
 #s-content .b-gate {
