@@ -375,6 +375,8 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     const c = coverPart(f, u, amt);
     if (c) { amt -= c.part; covering = true; try { damage(f, c.by, c.part / f.dmgMult, magic, 'fixed'); } finally { covering = false; } }
   }
+  // 튜토리얼은 탱커·힐러를 포함해 쓰러지지 않음. 큰 한 방·광역·지속 피해 모두 같은 경로에서 제한한다.
+  if (f.cfg.tutorial) amt = Math.min(amt, Math.max(0, u.hp - 1));
   // 은혜 갚기 (06 6장): 내가 죽을 피해를 이번 전투에서 내 치유가 크게 도운 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
     const total = f.party.reduce((t, x) => t + (x.me ? 0 : x.got), 0);

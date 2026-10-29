@@ -12,7 +12,7 @@ import { ALL_DIFFS, CONTENT, contentOf, isLeveling, raidSize, RAID10_LV, RAID20_
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS } from '../data/encounters';
 import { avgScore, gearStatsOf, itemScore, recommendedFor, SLOTS, specsOf, type ItemGrade } from '../data/equipment';
-import { MERCHANT } from '../data/economy';
+import { MERCHANT, STAMINA_COST } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildLvOf, hireGold } from '../data/guild';
 import { HEROES, type HeroKey } from '../data/heroes';
@@ -50,7 +50,7 @@ export interface PlayerType {
   hand: [number, number, number];
   /** 하루 접속: [시작 시각 (시), 분] */
   sessions: [number, number][];
-  /** 하루 광고 휴식 충전 (휴식이 30 밑일 때) */
+  /** 하루 광고 휴식 충전 (휴식이 던전 한 판 몫 밑일 때 최대 충전) */
   ads: number;
   /** 어디로 가나: 길잡이 1순위 · 제멋대로 (열린 칸 가운데 적 레벨이 가장 높은 곳, 악몽 포함) */
   route: 'guide' | 'greedy';
@@ -283,7 +283,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
         syncStamina(save, now);
         if (restStart < 0) restStart = save.stamina.n;
         const gold = (f: () => void) => { const g0 = save.player.gold; f(); const dg = save.player.gold - g0; if (dg > 0) goldIn += dg; else goldOut -= dg; };
-        const ads = () => { for (let i = 0; i < t.ads && save.stamina.n < 30; i++) if (adCharge(save, now)) break; };
+        const ads = () => { for (let i = 0; i < t.ads && save.stamina.n < STAMINA_COST.dungeon; i++) if (adCharge(save, now)) break; };
         /** 판 뒤 할 일: 장비 · 임무 · 상자 · 특성 · 직업 · 행상인 · 길드 */
         const after = () => {
           const lv = save.player.level, hero = save.hero;
@@ -395,7 +395,7 @@ export function livePlayer(t: PlayerType, seed: number, o: { maxDays?: number; m
         }
         // 본 판: 길잡이 · 제멋대로
         while (now < end && save.player.level < maxLv) {
-          if (save.stamina.n < 10) ads();
+          if (save.stamina.n < STAMINA_COST.dungeon) ads();
           const giveUp = GIVE_UP[t.route];
           let pickC: ContentDef | null = null, pickD: DiffName | null = null;
           if (t.route === 'guide') {

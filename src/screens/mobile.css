@@ -45,21 +45,6 @@ body { background: #0F0C08; }
 .ns-foot .btn.ghost { min-height: 44px; }
 .eyebrow { margin: 0; font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--gold-hi); }
 
-/* 타이틀 */
-#s-title { background: #241C14 var(--art-scene-sanctuary, none) center 48% / cover no-repeat; }
-#s-title::before { content: ''; position: absolute; inset: 0; background: linear-gradient(#1A140E48, transparent 38%, #0b1424b0 85%, #0b1424); pointer-events: none; }
-.t-wrap { position: relative; isolation: isolate; width: 100%; height: 100%; padding: 26px 28px 20px; margin: 0; justify-content: space-between; gap: 0; overflow-y: auto; }
-.t-brand { position: relative; z-index: 2; flex: none; }
-.t-brand .t-emblem svg { width: 46px; height: 46px; }
-.t-brand .eyebrow { margin-top: 8px; font-size: 10px; letter-spacing: .2em; }
-.t-name { margin: 8px 0; color: #faf1dc; font-size: 49px; letter-spacing: -.05em; text-shadow: 0 3px 0 #271E15, 0 0 30px #14100B; }
-.t-name span { color: #f0cb81; }
-.t-sub { font-size: 12px; color: #E4E2DF; text-shadow: 0 2px 6px #000; }
-.t-bottom { width: 100%; z-index: 2; flex: none; padding-top: 14px; }
-#titleStart { min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 22px; }
-.t-tap { margin: 14px 0 0; font-size: 11px; }
-.t-ver { margin: 9px 0 0; font-size: 10px; color: #C0B6A1; }
-
 /* 로비: 스크롤하는 정보와 고정된 출발 동작을 분리한다. */
 body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 .lobby .goal { gap: 8px; background: linear-gradient(110deg, #372F27, #2C2419); }
@@ -88,8 +73,6 @@ body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 .ns .gbtns .btn { min-width: 44px; }
 .ns .settings .toggle { min-height: 44px; }
 .ns .settings .group { gap: 10px; }
-.story-art { width: 100%; height: clamp(150px, 29vh, 245px); flex: none; margin: 0 auto 2px; }
-#s-story { background: linear-gradient(#211A12BB, #1C160F 65%), var(--art-scene-sanctuary, none) center / cover; }
 .story { padding: 22px; }
 .story p { font-size: 14px; line-height: 1.7; }
 .story .h { color: #f3d394; }
@@ -97,9 +80,6 @@ body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 @media (max-height: 780px) {
   body.tabs-on #s-lobby .lobby { gap: 9px; }
   .lobby .goal { padding: 10px 12px; gap: 4px; }
-  .t-wrap { padding-top: 14px; padding-bottom: 14px; }
-  .t-name { font-size: 42px; }
-  .t-brand .t-emblem svg { width: 32px; height: 32px; }
 }
 @media (max-width: 359px) {
   .ns-body { padding-left: 12px; padding-right: 12px; }

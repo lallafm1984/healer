@@ -2,7 +2,7 @@
  * 휴식 보너스 (90, 2026-10-16 Lim): 입장은 언제나 됨. 휴식은 최대 100 (광고 제거 패키지 +50), 15분마다 1, 최대치에서 멈춤 (넘는 만큼 쌓아 두지 않음).
  * 클리어할 때 (진 판 · 포기 아님) 휴식이 1 이상이면 콘텐츠 몫만큼 쓰고 (0 아래로 안 감) 경험치 · 골드에 휴식 보너스 (× REST_BONUS), 0이면 기본 보상
  * (정산 settle.ts). 2026-10-17 Lim: 「0이면 줄어듦」이 아니라 「있으면 보너스」로 보이게 (계산은 그대로, 기본 = 휴식 보상의 1/REST_BONUS).
- * 광고 충전 +30은 하루 3번 (오전 6시 리셋)이고 최대치를 넘어도 들어감.
+ * 광고 충전은 현재 최대치까지, 하루 3번 (오전 6시 리셋). 가득이면 충전·횟수 소모 없음.
  * 코드 · 저장 이름은 81 때 그대로 stamina (save.stamina = n · at · day · ads). 저장 형식은 바뀌지 않음.
  * 기기 시계 기준이라 시계를 앞당겼다 되돌리면 그 시각이 다시 올 때까지 차지 않음. 화면과 분리된 순수 계산 (시각은 받아서 씀)
  */
@@ -20,7 +20,7 @@ const testFree = (): boolean => typeof window !== 'undefined' && !!(window as un
 /** 개발 빌드 「휴식 무제한」: 클리어해도 줄지 않고 휴식 보너스가 늘 붙음 (실제 값은 그대로 두고 표시만 ∞) */
 export const unlimitedStamina = (save: SaveData): boolean => !!save.settings.devStamina || testFree();
 
-/** 클리어할 때 쓰는 휴식: 탐험 5 · 던전 10 · 주간 도전 10 · 10인 레이드 15 · 20인 레이드 20 */
+/** 클리어할 때 쓰는 휴식: 탐험 10 · 던전 20 · 주간 도전 10 · 10인 레이드 30 · 20인 레이드 40 */
 export function staminaCost(c: ContentDef, chal = 0): number {
   if (chal) return STAMINA_COST.chal;
   if (c.kind === 'raid') return raidSize(c) === 20 ? STAMINA_COST.raid20 : STAMINA_COST.raid10;
@@ -69,7 +69,7 @@ export function staminaView(save: SaveData, now: number): StaminaView {
 export interface RestUse { used: number; share: number }
 
 /**
- * 클리어할 때 (90): 휴식이 있으면 cost만큼 쓰고 휴식 보너스. 모자라면 있는 만큼 다 쓰고 보너스도 그만큼 (비례, 2026-10-17: 휴식 3 · 던전 10 = 3/10).
+ * 클리어할 때 (90): 휴식이 있으면 cost만큼 쓰고 휴식 보너스. 모자라면 있는 만큼 다 쓰고 보너스도 그만큼 (휴식 3 · 던전 20 = 3/20).
  * 0이면 쓰지 않고 기본 보상. 무제한 (개발 빌드 · 화면 테스트)이면 쓰지 않고 휴식 보너스 전부
  */
 export function useRest(save: SaveData, cost: number, now: number): RestUse {
@@ -91,16 +91,15 @@ export const restBonusOf = (n: number): number => n - restBase(n);
 /** 받는 값 = 기본 + 보너스 몫 × share (비례, useRest). 휴식 판 값 n, share 1이면 n 그대로 */
 export const restGain = (n: number, share: number): number => restBase(n) + Math.round(restBonusOf(n) * Math.max(0, Math.min(1, share)));
 
-/** 광고 충전 한 번 (+30, 최대치를 넘어도 들어감). 광고는 부른 쪽이 먼저 보여 줌. 성공 = 빈 문자열 */
+/** 광고 충전 한 번: 현재 최대치까지 채움. 광고는 부른 쪽이 먼저 보여 줌. 성공 = 빈 문자열 */
 export function adCharge(save: SaveData, now: number): string {
   syncStamina(save, now);
-  const s = save.stamina;
+  const s = save.stamina, max = staminaMax(save);
+  if (s.n >= max) return '휴식이 가득 찼습니다.';
   if (s.ads >= STAMINA.adDaily) return `오늘 광고 충전 ${STAMINA.adDaily}번을 다 씀`;
-  const max = staminaMax(save);
-  // 최대치를 넘기면 시계를 멈춤 (넘은 동안은 안 참)
   s.ads++;
-  s.n += STAMINA.ad;
-  if (s.n >= max) s.at = Math.max(s.at, now);
+  s.n = max;
+  s.at = Math.max(s.at, now);
   return '';
 }
 

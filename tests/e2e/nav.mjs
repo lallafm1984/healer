@@ -12,9 +12,9 @@ export async function patchSave(page, patch) {
   await page.clock.runFor(300);
 }
 
-/** 타이틀을 누름. 새 저장이면 튜토리얼 이야기가 나오니 건너뛰기 (개발 빌드) */
+/** 타이틀의 시작 버튼을 누름. 새 저장이면 튜토리얼 이야기가 나오니 건너뛰기 (개발 빌드) */
 export async function pastTitle(page) {
-  if (await page.isVisible('#s-title')) { await page.click('#s-title'); await page.clock.runFor(100); }
+  if (await page.isVisible('#s-title')) { await page.click('#titleStart'); await page.clock.runFor(100); }
   if (await page.isVisible('#s-story')) { await page.click('#tutSkip'); await page.clock.runFor(100); }
 }
 

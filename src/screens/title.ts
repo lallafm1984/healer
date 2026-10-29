@@ -1,29 +1,57 @@
-/** S01 타이틀 (09). 게임 이름은 아직 가제 (21 6장) */
-import { sunSvg, uiIcon } from './art';
+/** S01 타이틀: 게임 이름 · 하단 시작 버튼. 시작 입력은 버튼만 받는다. */
+import './title.css';
+import './title-motion.css';
+import { G } from '../game/state';
 import { battle, screen } from './kit';
 import { afterTitle } from './tutorial';
-import { titleBloom } from './transition';
+import { prepareTitleBloom, titleBloom } from './transition';
 import { sfx } from '../sfx';
+
+let stopMotion = () => {};
+const glyphs = (word: string, from = 0): string => [...word].map((glyph, i) =>
+  `<span class="t-letter" data-glyph="${glyph}" style="--letter:${from + i}">${glyph}</span>`).join('');
+const motes = [
+  [10, 73, -14, 11], [84, 62, 16, 13], [21, 87, 22, 15],
+  [74, 81, -18, 12], [7, 46, 17, 13], [80, 28, -12, 16],
+];
 
 const s = screen('s-title', '타이틀', {
   enter() {
-    s.el.innerHTML = `<div class="t-wrap">
-      <div class="t-brand"><div class="t-emblem">${sunSvg}</div>
-      <p class="eyebrow">오늘도 힐러 구함</p>
-      <h1 class="t-name">나혼자 <span>힐러</span></h1>
-      <p class="t-sub">당신의 작은 빛이, 파티를 지킨다.</p></div>
-      <div class="t-space" aria-hidden="true"></div>
-      <div class="t-bottom"><button class="btn primary" type="button" id="titleStart">모험 시작 ${uiIcon('arrow')}</button>
-      <p class="t-tap">화면을 누르면 시작</p>
-      <p class="t-ver">개발 빌드 · 게임명은 가제</p></div>
-    </div>`;
+    stopMotion();
+    prepareTitleBloom();
+    s.el.innerHTML = `<div class="t-atmosphere" aria-hidden="true"><i class="t-dawn"></i>${motes.map(([x, y, drift, duration], i) =>
+      `<i class="t-mote" style="--x:${x}%;--y:${y}%;--drift:${drift}px;--duration:${duration}s;--delay:${-i * 1.37}s;--size:${8 + i % 3 * 3}px"></i>`).join('')}</div>
+    <div class="t-wrap">
+      <div class="t-brand">
+        <div class="t-plate-fx" aria-hidden="true"><i class="t-sheen"><i></i></i><i class="t-glint"></i></div>
+        <h1 class="t-name" aria-label="나혼자 힐러"><span class="t-prefix" aria-hidden="true">${glyphs('나혼자')}</span> <span class="t-main" aria-hidden="true">${glyphs('힐러', 3)}</span></h1>
+      </div>
+    </div><button type="button" id="titleStart"><span class="t-start-label">시작하기</span></button>`;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => {
+      const automated = navigator.webdriver && !(window as unknown as { __screenFx?: boolean }).__screenFx;
+      s.el.classList.toggle('t-calm', !!G.save.settings.reducedEffects || reduce.matches || automated);
+      s.el.classList.toggle('t-paused', document.hidden);
+    };
+    sync();
+    s.el.classList.add('t-live');
+    reduce.addEventListener('change', sync);
+    document.addEventListener('visibilitychange', sync);
+    stopMotion = () => {
+      reduce.removeEventListener('change', sync);
+      document.removeEventListener('visibilitychange', sync);
+      s.el.classList.remove('t-live', 't-paused');
+    };
   },
+  leave() { stopMotion(); },
 });
 /** 타이틀 금빛이 덮는 동안 다시 눌러도 한 번만 (2026-10-24 화면 전환 A안) */
 let leaving = false;
-s.el.addEventListener('click', () => {
-  if (leaving) return;
+s.el.addEventListener('click', event => {
+  const button = (event.target as Element | null)?.closest<HTMLButtonElement>('#titleStart');
+  if (!button || leaving) return;
   leaving = true;
+  button.disabled = true;
   if (!sfx('title-start')) battle().sound('tick');
-  titleBloom(s.el.querySelector('.t-emblem'), () => { leaving = false; afterTitle(); });
+  titleBloom(s.el.querySelector('.t-name'), () => { leaving = false; afterTitle(); });
 });

@@ -58,8 +58,11 @@ const FADE_IN = 1.6, FADE_OUT = 1.0;
 const DELAY: Record<string, number> = {};
 
 let on = true;
+let paused = false;
 let want: BgmKey | null = null;
 let cur: { key: BgmKey; el: HTMLAudioElement; idx: number; step: number } | null = null;
+/** 화면 전환 중 작아지고 있는 이전 곡도 일시정지에 포함한다. */
+const retiring = new Set<HTMLAudioElement>();
 /** 구간마다 멈췄던 차례 (playOrder 안의 몇 번째) · 자리 (돌아오면 이어서) */
 const pos = new Map<string, { step: number; t: number }>();
 /** 구간마다 곡 차례 (앱을 켠 동안 그대로) */
@@ -98,13 +101,14 @@ function ramp(el: HTMLAudioElement, to: number, sec: number, then?: () => void):
 
 /** 브라우저가 첫 누름 전에는 소리를 막으면 (앱 웹뷰는 안 막음) 첫 누름에 다시 */
 function tryPlay(el: HTMLAudioElement): void {
+  if (!on || paused || document.hidden) return;
   void el.play().catch(() => {
     if (unlockWait) return;
     unlockWait = true;
     const go = () => {
       unlockWait = false;
       window.removeEventListener('pointerdown', go, true); window.removeEventListener('keydown', go, true);
-      if (cur && on && !document.hidden) void cur.el.play().catch(() => {});
+      if (cur && on && !paused && !document.hidden) void cur.el.play().catch(() => {});
     };
     window.addEventListener('pointerdown', go, true); window.addEventListener('keydown', go, true);
   });
@@ -115,7 +119,8 @@ function stop(): void {
   const { el, key, step } = cur;
   pos.set(key, { step, t: el.currentTime || 0 });
   cur = null;
-  ramp(el, 0, FADE_OUT, () => { el.pause(); el.removeAttribute('src'); el.load(); });
+  retiring.add(el);
+  ramp(el, 0, FADE_OUT, () => { el.pause(); el.removeAttribute('src'); el.load(); retiring.delete(el); });
 }
 
 function begin(key: BgmKey, step: number, at: number, delay: number, my: number): void {
@@ -145,7 +150,7 @@ function begin(key: BgmKey, step: number, at: number, delay: number, my: number)
   });
   cur = { key, el, idx, step };
   window.setTimeout(() => {
-    if (my !== token || cur?.el !== el || document.hidden) return;
+    if (my !== token || cur?.el !== el || paused || document.hidden) return;
     tryPlay(el);
     if (ONE_SHOT.has(key)) el.volume = vol; else ramp(el, vol, FADE_IN);
   }, delay * 1000);
@@ -155,7 +160,7 @@ function apply(delay = 0): void {
   const my = ++token;
   const fb = want ? FALLBACK[want] : undefined;
   const key = !on || !want ? null : bgmCount(want) ? want : fb && bgmCount(fb) ? fb : null;
-  if (cur && cur.key === key) { if (cur.el.paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
+  if (cur && cur.key === key) { if (cur.el.paused && !paused && !document.hidden) { tryPlay(cur.el); ramp(cur.el, volOf(key!), FADE_IN); } return; }
   stop();
   if (!key) return;
   // 처음 트는 구간은 섞은 차례의 첫 곡부터, 들었던 구간은 멈췄던 곳부터 (한 번만 트는 곡은 늘 처음부터)
@@ -166,10 +171,25 @@ function apply(delay = 0): void {
 
 /** 화면이 바뀜 (kit go · 전투 show가 부름) */
 export function syncBgm(screen: string): void {
+  // 설정은 들어오기 전 곡을 이어 듣는다. 결과로 돌아와도 같은 곡을 다시 시작하지 않는다.
+  if (screen === 's-settings') return;
   const next = bgmFor(screen);
   if (next === want) return;
   want = next;
   apply(DELAY[screen] ?? 0);
+}
+
+/** 전투 일시정지: 곡과 재생 위치를 유지하고, 계속할 때 같은 자리에서 이어 듣는다. */
+export function setBgmPaused(v: boolean): void {
+  if (paused === v) return;
+  paused = v;
+  if (v) {
+    cur?.el.pause();
+    for (const el of retiring) el.pause();
+  } else if (cur && on && !document.hidden) {
+    tryPlay(cur.el);
+    ramp(cur.el, volOf(cur.key), 0.15);
+  }
 }
 
 /** 설정 「배경음」 크기 (0~1, 설정 막대). 지금 곡에도 바로 */
@@ -187,9 +207,8 @@ export function setBgmOn(v: boolean): void {
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (!cur) return;
-    if (document.hidden) cur.el.pause();
-    else if (on) tryPlay(cur.el);
+    if (document.hidden) { cur?.el.pause(); for (const el of retiring) el.pause(); }
+    else if (cur && on) tryPlay(cur.el);
   });
 }
 

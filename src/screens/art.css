@@ -47,10 +47,7 @@
 
 /* ---------- 모험 카드 · 입장 (28 4장) ---------- */
 
-/* ---------- 타이틀 · 이야기 · 로비 · 캐릭터: 힐러 그림 자리 → 문장 ---------- */
-.t-space { flex: 1; min-height: 120px; }
-.story-art { display: grid; place-items: center; }
-.story-art .emblem { width: 132px; height: 132px; }
+/* ---------- 이야기: 힐러 그림 자리 → 문장 ---------- */
 
 /* ---------- 메뉴 머리 그림 (28 6장) ---------- */
 .art-hero {
@@ -80,7 +77,6 @@
 .res-head::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, var(--bg) 0%, rgba(21, 18, 14, 0.55) 55%, rgba(21, 18, 14, 0.7)), var(--res-art, none) center / cover; }
 
 /* 이야기 화면: 마을 그림이 위에서 비치게 */
-#s-story { background: linear-gradient(rgba(28, 22, 15, 0.3), rgba(28, 22, 15, 0.88) 58%, #1C160F 78%), var(--art-scene-sanctuary, none) center 28% / cover; }
 /* 레벨 세 자리 */
 
 @media (max-width: 359px) {

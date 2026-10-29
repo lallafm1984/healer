@@ -9,7 +9,7 @@
 #battle #bossArt .mob-deck i:nth-last-child(2) { left: 53px; top: 54px; }
 #battle #bossArt .mob-deck i:last-child { left: 44px; top: 52px; }
 #battle #bossArt .mob-count {
-  position: absolute; z-index: 3; left: -7px; top: -6px; min-width: 30px; height: 19px; padding: 0 6px;
+  position: absolute; z-index: 3; left: 3px; top: -6px; min-width: 30px; height: 19px; padding: 0 6px;
   border-radius: 10px; border: 1.5px solid #f8d478; background: #2a1a0c; color: #fff1cb;
   font: 800 11.5px/16px var(--font-body); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 1px #0e0c0a, 0 2px 3px rgba(0, 0, 0, .6); pointer-events: none;

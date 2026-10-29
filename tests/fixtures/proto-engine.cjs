@@ -278,6 +278,7 @@ const Engine = (() => {
     if (!u.alive || amt <= 0) return;
     amt *= f.dmgMult;
     if (u.shield > 0) amt *= 0.6;
+    if (f.cfg.tutorial) amt = Math.min(amt, Math.max(0, u.hp - 1));
     u.hp -= amt;
     if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; }
     else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });

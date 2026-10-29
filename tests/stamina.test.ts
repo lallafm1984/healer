@@ -49,11 +49,11 @@ describe('휴식 회복 (90)', () => {
 });
 
 describe('클리어할 때 쓰는 휴식 (90)', () => {
-  it('탐험 5 · 던전 10 · 주간 도전 10 · 10인 레이드 15 · 20인 레이드 20', () => {
+  it('탐험 10 · 던전 20 · 주간 도전 10 · 10인 레이드 30 · 20인 레이드 40', () => {
     expect([
       staminaCost(contentOf('plateau')), staminaCost(contentOf('rustfort')), staminaCost(contentOf('rustfort'), 4),
       staminaCost(contentOf('abyss1')), staminaCost(contentOf('cathedral1')),
-    ]).toEqual([5, 10, 10, 15, 20]);
+    ]).toEqual([10, 20, 10, 30, 40]);
   });
   it('몫만큼 쓰고 휴식 보너스 전부, 모자라면 있는 만큼 다 쓰고 보너스도 그만큼 (비례, 2026-10-17: 휴식 3 · 던전 10 = 3/10), 0이면 쓰지 않고 기본 보상', () => {
     const s = fresh();
@@ -68,11 +68,11 @@ describe('클리어할 때 쓰는 휴식 (90)', () => {
     // 받는 값 = 기본 + 보너스 몫 × share (휴식 판 300 = 기본 150 + 보너스 150)
     expect([restGain(300, 1), restGain(300, 0.3), restGain(300, 0), restGain(301, 0.5)]).toEqual([300, 195, 150, 226]);
   });
-  it('15분마다 차는 1로 보너스를 다 받는 틈이 없음 (비례): 0이 된 뒤 1로 던전 = 보너스 1/10', () => {
+  it('15분마다 차는 1로 던전 보너스는 1/20만 받음', () => {
     const s = fresh();
     s.stamina = { n: 0, at: T0, day: '', ads: 0 };
-    expect(useRest(s, 10, T0 + 15 * M)).toEqual({ used: 1, share: 0.1 });
-    expect(restGain(1000, 0.1) - restBase(1000)).toBe(50);
+    expect(useRest(s, staminaCost(contentOf('rustfort')), T0 + 15 * M)).toEqual({ used: 1, share: 0.05 });
+    expect(restGain(1000, 0.05) - restBase(1000)).toBe(25);
   });
   it('개발 빌드 「휴식 무제한」: 줄지 않고 0이어도 휴식 보너스 전부', () => {
     const s = fresh();
@@ -94,16 +94,16 @@ describe('정산의 휴식 (90 settle)', () => {
     healed: 1000, overheal: 100, dispels: 0, dispellable: 0, endMana: 40, minMana: 20, auto: false, party: [], detail: [], stage: 30, ...o,
   });
   const lv30 = (): SaveData => { const s = fresh(); s.player.level = 30; s.clears.rustfort = { '악몽': { stars: 3, grade: 'S', best: 100, n: 1 } }; return s; };
-  it('휴식이 있으면 던전 10을 쓰고 경험치 · 골드 휴식 보너스 (보너스 몫 기록), 0이면 기본 보상 · 휴식 3이면 보너스 3/10 · 장비는 휴식과 상관없음', () => {
+  it('던전 20 소비, 휴식 3이면 보너스 3/20, 휴식 0의 기본 보상·장비는 그대로', () => {
     const a = lv30(), b = lv30(), c = lv30();
     b.stamina.n = 0; c.stamina.n = 3;
     const xa = settle(a, run(), () => 0.5, [], T0), xb = settle(b, run(), () => 0.5, [], T0), xc = settle(c, run(), () => 0.5, [], T0);
-    expect(xa.rest).toEqual({ used: 10, share: 1 });
-    expect(a.stamina.n).toBe(90);
+    expect(xa.rest).toEqual({ used: 20, share: 1 });
+    expect(a.stamina.n).toBe(80);
     expect(xb.rest).toEqual({ used: 0, share: 0 });
-    expect(xc.rest).toEqual({ used: 3, share: 0.3 });
+    expect(xc.rest).toEqual({ used: 3, share: 0.15 });
     expect(c.stamina.n).toBe(0);
-    expect(xc.xp).toBe(xb.xp + Math.round((xa.xp - xb.xp) * 0.3));
+    expect(xc.xp).toBe(xb.xp + Math.round((xa.xp - xb.xp) * 0.15));
     expect(xc.restBonus).toEqual({ xp: xc.xp - xb.xp, gold: xc.gold - xb.gold });
     expect(b.stamina.n).toBe(0);
     expect(xb.xp).toBe(Math.round(xa.xp / REST_BONUS));
@@ -123,27 +123,37 @@ describe('정산의 휴식 (90 settle)', () => {
     expect(settle(t, run({ content: 'plateau', diff: '쉬움' }), () => 0.5, [], T0).rest).toBeNull();
     expect([s.stamina.n, t.stamina.n]).toEqual([100, 100]);
   });
-  it('주간 도전은 10, 레이드는 10인 15', () => {
+  it('주간 도전은 10, 레이드는 10인 30', () => {
     const s = lv30();
     expect(settle(s, run({ chal: 3, limit: 9999 }), () => 0.5, [], T0).rest).toEqual({ used: 10, share: 1 });
-    expect(settle(s, run({ content: 'abyss1', diff: '보통', segIdx: 0, segN: 1 }), () => 0.5, [], T0).rest).toEqual({ used: 15, share: 1 });
-    expect(s.stamina.n).toBe(75);
+    expect(settle(s, run({ content: 'abyss1', diff: '보통', segIdx: 0, segN: 1 }), () => 0.5, [], T0).rest).toEqual({ used: 30, share: 1 });
+    expect(s.stamina.n).toBe(60);
   });
 });
 
 describe('휴식 광고 충전 (90)', () => {
-  it('+30, 최대치를 넘어도 들어감, 넘은 동안은 안 참', () => {
+  it.each([0, 40, 99])('휴식 %i에서 광고를 보면 최대 100까지 충전하고 자연 회복 시계를 다시 시작', n => {
     const s = fresh();
-    s.stamina.n = 90;
+    s.stamina.n = n;
     expect(adCharge(s, T0)).toBe('');
-    expect(staminaView(s, T0 + H)).toMatchObject({ n: 120, next: 0 });
+    expect(staminaView(s, T0 + H)).toMatchObject({ n: 100, next: 0 });
     expect(useRest(s, 20, T0 + H)).toEqual({ used: 20, share: 1 });
-    expect(useRest(s, 10, T0 + H)).toEqual({ used: 10, share: 1 });
-    expect(staminaView(s, T0 + H + 15 * M).n).toBe(91);
+    expect(staminaView(s, T0 + H + 15 * M).n).toBe(81);
+  });
+  it('광고 제거 패키지는 최대 150까지 충전', () => {
+    const s = fresh(); s.bought.push(NOADS.id); s.stamina.n = 10;
+    expect(adCharge(s, T0)).toBe('');
+    expect([s.stamina.n, s.stamina.ads]).toEqual([150, 1]);
+  });
+  it.each([100, 130])('이미 %i이면 충전 횟수를 쓰지 않고 초과 보유량도 보존', n => {
+    const s = fresh(); s.stamina.n = n;
+    expect(adCharge(s, T0)).toMatch(/가득/);
+    expect([s.stamina.n, s.stamina.ads]).toEqual([n, 0]);
   });
   it('하루 3번, 오전 6시에 다시 3번', () => {
     const s = fresh();
-    for (let i = 0; i < 3; i++) expect(adCharge(s, T0)).toBe('');
+    for (let i = 0; i < 3; i++) { s.stamina.n = 0; expect(adCharge(s, T0)).toBe(''); }
+    s.stamina.n = 0;
     expect(adCharge(s, T0)).toMatch(/3번/);
     expect(staminaView(s, T0).adsLeft).toBe(0);
     const nextDay5 = new Date(2026, 9, 16, 5, 59).getTime(), nextDay6 = new Date(2026, 9, 16, 6).getTime();

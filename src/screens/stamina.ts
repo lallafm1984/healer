@@ -33,6 +33,7 @@ function staminaLabel(): string {
 // ---------- 팝업 틀 ----------
 let pop: HTMLElement | null = null;
 let opener: HTMLElement | null = null;
+let charging = false;
 
 function close(): void {
   pop?.remove(); pop = null;
@@ -74,20 +75,25 @@ function meter(extraCls = ''): string {
 /** 광고 충전 버튼 (광고 제거 패키지면 광고 없이 바로) */
 function adButton(): string {
   const v = view(), free = adsFree(G.save), left = v.adsLeft;
-  const label = `${free ? '바로' : '광고 보고'} +${STAMINA.ad}`;
-  return `<button class="btn primary st-ad" type="button" data-st="ad"${left ? '' : ' disabled'}>${label}<small>오늘 ${left}/${STAMINA.adDaily}</small></button>`;
+  const full = v.n >= v.max;
+  const label = full ? '휴식 가득 참' : `${free ? '바로' : '광고 보고'} 최대 충전`;
+  return `<button class="btn primary st-ad" type="button" data-st="ad"${left && !full && !charging ? '' : ' disabled'}>${label}<small>오늘 ${left}/${STAMINA.adDaily}</small></button>`;
 }
 
 /** 광고 보고 충전. 했으면 true */
 async function charge(): Promise<boolean> {
-  if (view().adsLeft <= 0) return false;
-  if (!(await showRewarded(`휴식 +${STAMINA.ad}`, adsFree(G.save)))) return false;
-  const err = adCharge(G.save, Date.now());
-  if (err) return false;
-  sfx('rest-charge');
-  commit();
-  refreshCells();
-  return true;
+  const v = view();
+  if (charging || v.adsLeft <= 0 || v.n >= v.max) return false;
+  charging = true;
+  try {
+    if (!(await showRewarded('휴식 최대 충전', adsFree(G.save)))) return false;
+    const err = adCharge(G.save, Date.now());
+    if (err) return false;
+    sfx('rest-charge');
+    commit();
+    refreshCells();
+    return true;
+  } finally { charging = false; }
 }
 
 // ---------- 휴식 창 (위 줄 칸 · 상점) ----------
@@ -103,7 +109,12 @@ export function openStamina(): void {
       const k = b.dataset.st;
       if (k === 'no') close();
       else if (k === 'shop') { close(); go('s-shop', 'cash'); }
-      else if (k === 'ad' && await charge()) { render(); notify(`휴식 +${STAMINA.ad}`); } // 창 안에 줄을 끼우면 버튼이 밀림 (2026-10-28): 짧은 알림
+      else if (k === 'ad') {
+        b.disabled = true;
+        const charged = await charge();
+        if (pop === el) render();
+        if (charged) notify('휴식 최대 충전');
+      }
     };
   };
   render();

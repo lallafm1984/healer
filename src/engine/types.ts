@@ -597,6 +597,8 @@ export interface FightConfig {
   armor?: boolean;
   /** 프로토타입 규칙 (34 이전 숫자·시전·GCD, data/rules PROTO_RULES). 난이도 보정(tune)도 안 씀. parity 테스트 전용 */
   proto?: boolean;
+  /** 조작을 배우는 튜토리얼 전투: 파티원 체력이 1 아래로 내려가지 않음. 일반 전투는 끔. */
+  tutorial?: boolean;
   /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전). 없으면 어픽스 없음 */
   affixes?: AffixKey[];
   /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */

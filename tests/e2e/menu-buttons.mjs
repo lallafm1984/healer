@@ -44,7 +44,8 @@ export default async function menuButtons(url, shots) {
   };
   try {
     await page.clock.install(); await page.goto(url); await page.clock.runFor(300);
-    await inspect('title', '#s-title'); await pastTitle(page);
+    // 타이틀 시작 버튼은 전용 그림이라 공통 메뉴 버튼 표면 검사의 대상이 아님.
+    await pastTitle(page);
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('healer.save'));
       s.player.level = 50; s.player.gold = 500000; s.tut = 99; s.settings.devUnlock = false;

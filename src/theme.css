@@ -114,11 +114,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 }
 .ns .subtabs button:disabled { color: var(--dim); }
 
-/* ---------- 타이틀 ---------- */
-#s-title::before { background: linear-gradient(rgba(13, 11, 9, 0.3), transparent 38%, rgba(13, 11, 9, 0.72) 85%, var(--bg-0)); }
-.t-name { font-family: var(--font-display); font-size: clamp(36px, 12vw, 48px); color: var(--ink); letter-spacing: -0.02em; text-shadow: 0 3px 0 var(--line), 0 0 30px #000; }
-.t-name span { color: var(--gold-hi); }
-.t-brand .eyebrow { color: var(--frame-hi); }
 .story .h { color: var(--gold-hi); }
 
 /* ---------- 로비 ---------- */
