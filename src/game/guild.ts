@@ -3,6 +3,7 @@
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
 import { resourceBalance, spendResource } from './resources';
+import { t } from '../i18n';
 import { ABILITIES } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { CONTENT } from '../data/content';
@@ -26,10 +27,10 @@ import { now as gameNow } from '../platform/time';
 /** 길드가 열렸는지 (GUILD_LEVEL = Lv 30, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
   if (!FEATURES.guild) return { ok: false, dev: false, why: '' };
-  if (save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
+  if (save.tut < TUT.done) return { ok: false, dev: false, why: t('튜토리얼을 마치면 열림') };
   // 이미 만든 길드는 레벨과 상관없이 열림 (2026-10-29 Lim 「A」: Lv 15에 열리던 때 만든 길드가 #498 Lv 30 뒤로 잠겨 길드원 · 명성 · 부탁이 멈췄음)
   const under = topLevel(save) < GUILD_LEVEL && !save.guild.founded;
-  if (under && !save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${GUILD_LEVEL}에 열림` };
+  if (under && !save.settings.devUnlock) return { ok: false, dev: false, why: t('Lv {n}에 열림', { n: GUILD_LEVEL }) };
   return { ok: true, dev: under, why: '' };
 }
 
@@ -128,8 +129,8 @@ export function postAdWait(save: SaveData, now = gameNow()): number {
 /** 보상형 광고를 본 뒤 (광고 제거면 바로): 지원자를 POST.adCands명으로 새로. 성공 = 빈 문자열 */
 export function adRefreshPost(save: SaveData, r: () => number, now = gameNow()): string {
   const g = save.guild;
-  if (!g.founded) return '길드 결성 전';
-  if (postAdWait(save, now) > 0) return '아직 쿨타임';
+  if (!g.founded) return t('길드 결성 전');
+  if (postAdWait(save, now) > 0) return t('아직 쿨타임');
   g.post = { day: dayKey(now), cands: makeCandidates(save, r, POST.adCands), seen: true };
   g.postAdAt = now;
   return '';
@@ -137,10 +138,10 @@ export function adRefreshPost(save: SaveData, r: () => number, now = gameNow()):
 /** 고른 공고 지원자를 영입한다 (골드 = 레벨 × 능력 배율 hireGold). 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
 export function hire(save: SaveData, i: number): string {
   const g = save.guild, c = g.post?.cands[i];
-  if (!c) return '지원자 없음';
-  if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
+  if (!c) return t('지원자 없음');
+  if (full(save)) return t('정원 {n}명이 다 참', { n: capOf(save).cap });
   const gold = hireGold(c);
-  if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
+  if (resourceBalance(save, 'gold') < gold) return t('골드 부족 ({n} 필요)', { n: gold.toLocaleString() });
   spendResource(save, 'gold', gold);
   join(save, c);
   return '';
@@ -151,17 +152,17 @@ const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.
 
 /** 골드 지원: 그 길드원 Lv × SPONSOR.per (50) 골드 = SPONSOR.runs판 (3). 남은 지원이 있거나 내 레벨과 같으면 안 됨. */
 export function sponsorWhy(save: SaveData, m: GuildMember): string {
-  if (m.boost > 0) return '지원 중';
-  if (m.lv >= topLevel(save)) return '내 레벨과 같음';
+  if (m.boost > 0) return t('지원 중');
+  if (m.lv >= topLevel(save)) return t('내 레벨과 같음');
   return '';
 }
 export function sponsor(save: SaveData, id: number): string {
   const m = memberOf(save, id);
-  if (!m) return '길드원 없음';
+  if (!m) return t('길드원 없음');
   const why = sponsorWhy(save, m);
   if (why) return why;
   const c = sponsorGold(m.lv);
-  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  if (resourceBalance(save, 'gold') < c) return t('골드 부족 ({n} 필요)', { n: c.toLocaleString() });
   spendResource(save, 'gold', c);
   m.boost += SPONSOR.runs;
   return '';
@@ -175,8 +176,8 @@ export function restSponsor(save: SaveData): { ids: number[]; gold: number } {
 /** 쉬는 길드원 모두 후원 (골드가 모자라면 아무도 안 함) */
 export function sponsorRest(save: SaveData): string {
   const { ids, gold } = restSponsor(save);
-  if (!ids.length) return '후원할 쉬는 길드원 없음';
-  if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
+  if (!ids.length) return t('후원할 쉬는 길드원 없음');
+  if (resourceBalance(save, 'gold') < gold) return t('골드 부족 ({n} 필요)', { n: gold.toLocaleString() });
   for (const id of ids) sponsor(save, id);
   return '';
 }
@@ -235,7 +236,7 @@ export function autoPick(save: SaveData, enc: Encounter, fresh = false): number[
 export function togglePick(save: SaveData, enc: Encounter, pick: number[], id: number): { pick: number[]; msg: string } {
   if (pick.includes(id)) return { pick: pick.filter(x => x !== id), msg: '' };
   if (!save.guild.members.some(x => x.id === id)) return { pick, msg: '' };
-  if (pick.length >= seatsOf(enc)) return { pick, msg: '자리가 다 참' };
+  if (pick.length >= seatsOf(enc)) return { pick, msg: t('자리가 다 참') };
   return { pick: [...pick, id], msg: '' };
 }
 export const savePick = (save: SaveData, enc: Encounter, pick: number[]) => { save.guild.picks[sizeKey(enc)] = pick.slice(); };
