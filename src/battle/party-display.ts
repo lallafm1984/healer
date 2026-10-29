@@ -150,7 +150,7 @@ export function debuffTag(d: Debuff): { long: string; short: string } {
   if (d.dpsCut) return one(t('딜↓'));
   if (d.drain) return one(t('마나↓'));
   if (d.feed) return one(t('흡혈'));
-  if (d.dot) return d.type === '물리' ? one(t('출혈')) : d.type === '독' ? one(t('중독')) : { long: t('지속 피해'), short: t('피해') };
+  if (d.dot) return d.type === '물리' ? one(t('출혈')) : d.type === '독' ? one(t('중독')) : { long: t('지속 피해'), short: tc('피해', 'debuff') };
   if (e?.p === 'spread') return one(t('번짐'));
   if (e?.p === 'jump') return { long: t('옮겨붙음'), short: t('옮김') };
   if (d.trap || e) return one(t('폭발'));
