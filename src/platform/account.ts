@@ -10,6 +10,7 @@ import { Capacitor } from '@capacitor/core';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { GOOGLE_WEB_CLIENT_ID, SUPABASE_KEY, SUPABASE_URL, serverOn } from './server-config';
 import { appVersion, platform } from './server';
+import { installId } from './install';
 
 let sb: SupabaseClient | null = null;
 /** Supabase 클라이언트 (서버 주소가 없으면 null). 로그인 정보는 기기 저장소 healer.auth */
@@ -89,14 +90,17 @@ async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<
   return data as T;
 }
 
-export interface UploadResult { ok: boolean; rev?: number; latest_rev?: number; duplicate?: boolean; reason?: 'conflict' | 'paused' | 'too_big' | 'bad_save'; level?: number; now?: number }
+export interface UploadResult { ok: boolean; rev?: number; latest_rev?: number; duplicate?: boolean; reason?: 'conflict' | 'paused' | 'too_big' | 'bad_save' | 'moved'; level?: number; now?: number }
+/** 이 설치가 이 계정의 현재 기기인가 (한 계정 = 한 기기, 9-2b). exists = 서버에 저장이 있음 */
+export interface DeviceStatus { exists: boolean; active: boolean; claimed?: boolean; rev?: number }
 export interface Download { exists: boolean; rev?: number; level?: number; v?: number; data?: unknown; updated_at?: number; now?: number }
 
 export const uploadSave = async (data: unknown, baseRev: number, uploadId: string, clientAt: number): Promise<UploadResult> =>
-  call<UploadResult>('upload_save', { p_data: data, p_base_rev: baseRev, p_upload_id: uploadId, p_app_version: await appVersion(), p_client_at: Math.round(clientAt) });
+  call<UploadResult>('upload_save', { p_data: data, p_base_rev: baseRev, p_upload_id: uploadId, p_app_version: await appVersion(), p_client_at: Math.round(clientAt), p_install: installId() });
 export const downloadSave = (): Promise<Download> => call<Download>('download_save');
 export const chooseProgress = async (keep: 'account' | 'device', accountRev: number | null, data: unknown, uploadId: string | null, clientAt: number): Promise<UploadResult> =>
-  call<UploadResult>('choose_progress', { p_keep: keep, p_account_rev: accountRev, p_data: data, p_upload_id: uploadId, p_app_version: await appVersion(), p_client_at: Math.round(clientAt) });
+  call<UploadResult>('choose_progress', { p_keep: keep, p_account_rev: accountRev, p_data: data, p_upload_id: uploadId, p_app_version: await appVersion(), p_client_at: Math.round(clientAt), p_install: installId() });
+export const deviceStatus = (): Promise<DeviceStatus> => call<DeviceStatus>('device_status', { p_install: installId() });
 export const deleteAccount = (): Promise<{ ok: boolean }> => call<{ ok: boolean }>('delete_account');
 
 /** 로그인 기록 (첫 익명 · 구글 연동 · 구글 로그인 · 켬 · 로그아웃, 서버 login_logs 60일). 실패해도 그만 */

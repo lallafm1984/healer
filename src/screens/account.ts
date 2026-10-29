@@ -4,16 +4,19 @@
  * - 앱을 끄거나 내릴 때 (pause) 저장이 바뀌었으면 올림. 같은 내용은 다시 안 올림, 응답을 못 받은 올림은 같은 upload_id로 다시 (서버가 한 번만 처리).
  * - 서버 저장을 받는 때는 둘뿐: 로그인할 때 (진행 고르기)와 저장이 깨졌을 때 (복구 대기, storage.load). 그 전에는 올리지 않는다.
  * - 계정이 바뀌면 이전 계정의 대기를 버림 (백업 상태는 사용자 ID마다 하나).
+ * - 한 계정 = 한 기기 (9-2b, 2026-10-29 Lim 「1번으로 하여 문제없도록 … 앱을 지우고 다시 복구시에도 문제 없도록」): 서버가 현재 기기 (설치 번호)를 적고,
+ *   다른 기기가 고르기로 받아 가면 옛 기기는 다음에 서버를 볼 때 안내 → 로그아웃 → 그 기기의 진행을 지움. 다시 깐 앱은 새 설치 번호라 구글 연결 → 고르기로 다시 현재 기기.
  */
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
-import { chooseProgress, connectGoogle, deleteAccount, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, type Download, type Me } from '../platform/account';
+import { chooseProgress, connectGoogle, deleteAccount, deviceStatus, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, type DeviceStatus, type Download, type Me } from '../platform/account';
+import { initInstall, markActive, renewInstall, wasActive } from '../platform/install';
 import { lastBoot, remoteFlag } from '../platform/server';
 import { serverOn } from '../platform/server-config';
 import { migrate, RESTORE_PENDING_KEY, save, type SaveData, type Settings } from '../platform/storage';
 import { now } from '../platform/time';
-import { G } from '../game/state';
+import { G, resetSave } from '../game/state';
 import { notify } from './toast';
 
 const STATE_KEY = 'healer.backup';
@@ -27,6 +30,17 @@ export function fnv(s: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+export type DeviceAction = 'ok' | 'none' | 'reconcile' | 'moved';
+/**
+ * 켤 때 · 앞으로 올 때 현재 기기 확인: ok = 이 설치가 현재 기기, none = 서버에 저장이 없음 (첫 백업 때 잡음),
+ * reconcile = 현재 기기였던 적 없는 설치 (다시 깐 앱 · 새 폰 · 복사된 저장) → 받아 보고 고르기, moved = 현재 기기였다가 다른 기기로 옮겨짐
+ */
+export function deviceAction(st: DeviceStatus, active: boolean): DeviceAction {
+  if (!st.exists) return 'none';
+  if (st.active) return 'ok';
+  return active ? 'moved' : 'reconcile';
 }
 
 export type BackupStep = 'upload' | 'same' | 'sync' | 'wait';
@@ -102,8 +116,10 @@ async function upload(u: Me, base: number): Promise<boolean> {
   const keep = st && st.uid === u.id ? st : { uid: u.id, rev: base, hash: '', at: 0 };
   writeState({ ...keep, pending: { id, hash } });
   const r = await uploadSave(G.save, base, id, now());
+  if (r.reason === 'moved') { await handleMoved(); return false; }
   if (r.ok && !(r.duplicate && r.latest_rev && r.rev && r.latest_rev > r.rev)) {
     writeState({ uid: u.id, rev: r.rev ?? base, hash, at: r.now ?? now() });
+    markActive();
     changed();
     return true;
   }
@@ -118,7 +134,36 @@ function applyServer(u: Me, d: Download): void {
   save(next);
   clearRestore();
   writeState({ uid: u.id, rev: d.rev ?? 0, hash: fnv(JSON.stringify(next)), at: d.updated_at ?? now() });
+  markActive();
   location.reload();
+}
+
+/**
+ * 다른 기기로 옮겨진 계정 (한 계정 = 한 기기): 안내 → 로그아웃 → 이 기기의 진행을 지우고 처음부터 (새 익명 계정 · 새 설치 번호).
+ * 진행은 계정 (지금 현재 기기)에 있고, 이 폰에서 다시 구글 연결 → 「계정 진행」으로 받아 올 수 있다 (그러면 저쪽이 옛 기기가 됨)
+ */
+async function handleMoved(): Promise<void> {
+  await noticeModal('다른 기기로 옮겨진 계정', '이 계정의 진행을 다른 기기에서 불러왔습니다.<br>이 기기는 로그아웃되고, 이 기기의 진행은 지워집니다.');
+  try { await logLogin('sign_out'); } catch { /* 그만 */ }
+  await signOut();
+  who = null;
+  writeState(null);
+  renewInstall();
+  resetSave();
+  location.reload();
+}
+
+let checkedAt = -Infinity;
+const CHECK_MS = 5 * 60e3;
+/** 현재 기기 확인 (구글 계정). 계속해도 되면 true */
+async function checkDevice(u: Me, force = false): Promise<boolean> {
+  if (!force && performance.now() - checkedAt < CHECK_MS) return true;
+  checkedAt = performance.now();
+  const a = deviceAction(await deviceStatus(), wasActive());
+  if (a === 'ok') { markActive(); return true; }
+  if (a === 'moved') { await handleMoved(); return false; }
+  if (a === 'reconcile') { await reconcile(u); return false; }
+  return true;
 }
 
 /**
@@ -135,6 +180,7 @@ async function reconcile(u: Me): Promise<void> {
     if (!r.ok) throw new Error(r.reason === 'conflict' ? '그 사이 계정 진행이 바뀜' : '백업 실패');
     clearRestore();
     writeState({ uid: u.id, rev: r.rev ?? 0, hash: fnv(json), at: r.now ?? now() });
+    markActive();
     changed();
   };
   if (restorePending()) {
@@ -168,10 +214,12 @@ async function syncForeground(): Promise<void> {
   if (busy || !serverOn()) return;
   const u = await googleUser();
   if (!u || serverPaused()) return;
-  const st = readState();
-  if (backupStep(st, u.id, '', { restorePending: restorePending(), paused: false }) !== 'sync') return;
   busy = true;
-  try { await reconcile(u); } catch { /* 다음에 */ } finally { busy = false; }
+  try {
+    if (!(await checkDevice(u))) return; // 옮겨짐 · 고르기를 했으면 끝
+    const st = readState();
+    if (backupStep(st, u.id, '', { restorePending: restorePending(), paused: false }) === 'sync') await reconcile(u);
+  } catch { /* 다음에 */ } finally { busy = false; }
 }
 
 /** 설정 「구글 계정 연결」 */
@@ -192,15 +240,35 @@ export async function linkGoogle(): Promise<void> {
   } finally { busy = false; changed(); }
 }
 
-/** 설정 「로그아웃」 */
+/** 로그아웃 전 마지막 백업: 바뀐 게 없거나 올렸으면 true. 서버와 맞춘 적 없거나 (복구 대기 · 충돌) 못 올리면 false */
+async function finalBackup(u: Me): Promise<boolean> {
+  const st = readState();
+  const step = backupStep(st, u.id, fnv(JSON.stringify(G.save)), { restorePending: restorePending(), paused: serverPaused() });
+  if (step === 'same') return true;
+  if (step !== 'upload' || !st) return false;
+  try { return await upload(u, st.rev); } catch { return false; }
+}
+
+/**
+ * 설정 「로그아웃」: 이 기기의 진행은 계정의 것이라 로그아웃하면 지운다 (한 계정 = 한 기기, 9-2b. 남겨 두면 다른 구글 계정에 연결해 진행을 복사할 수 있음).
+ * 지우기 전에 마지막 백업 (못 올리면 로그아웃하지 않음). 다시 로그인하면 「계정 진행」으로 받아 올 수 있다
+ */
 export async function signOutFlow(): Promise<void> {
-  if (!(await askModal('로그아웃', '로그아웃하면 자동 백업이 멈춥니다. 이 폰의 진행은 그대로 남습니다.', '취소', '로그아웃'))) return;
-  await logLogin('sign_out');
-  await signOut();
-  who = null;
-  writeState(null);
-  await backToAnonymous();
-  notify('로그아웃됨');
+  if (!(await askModal('로그아웃', '로그아웃하면 이 기기의 진행은 지워지고, 계정에 백업된 진행은 그대로 남습니다.<br>다시 로그인하면 불러올 수 있습니다.', '취소', '로그아웃'))) return;
+  if (busy) return;
+  busy = true;
+  try {
+    const u = await googleUser();
+    if (!u) return;
+    if (!(await finalBackup(u))) { await noticeModal('로그아웃', '마지막 진행을 백업하지 못했습니다.<br>인터넷에 연결된 뒤 다시 할 수 있습니다.'); return; }
+    await logLogin('sign_out');
+    await signOut();
+    who = null;
+    writeState(null);
+    renewInstall();
+    resetSave();
+    location.reload(); // 새 익명 계정으로 처음부터
+  } finally { busy = false; }
 }
 
 /** 설정 「계정 삭제」 (Google Play 정책) */
@@ -218,6 +286,7 @@ export async function deleteFlow(): Promise<void> {
 export function mountAccount(): void {
   if (!serverOn()) return;
   void (async () => {
+    await initInstall();
     who = await me();
     if (!who) { await backToAnonymous(); return; } // 처음 켬: 익명 계정
     changed();

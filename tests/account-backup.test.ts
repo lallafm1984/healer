@@ -3,7 +3,8 @@
  * 저장이 깨지면 복구 대기 (storage.load)
  */
 import { describe, expect, it } from 'vitest';
-import { backupStep, fnv, keepDeviceSettings, kstText, maskEmail, uploadIdFor, type BackupState } from '../src/screens/account';
+import { backupStep, deviceAction, fnv, keepDeviceSettings, kstText, maskEmail, uploadIdFor, type BackupState } from '../src/screens/account';
+import { pickInstall } from '../src/platform/install';
 import { load, newSave, RESTORE_PENDING_KEY, SAVE_BAK_KEY, SAVE_KEY, type KV } from '../src/platform/storage';
 
 const st = (o: Partial<BackupState> = {}): BackupState => ({ uid: 'u1', rev: 3, hash: 'aaaa', at: 1, ...o });
@@ -77,5 +78,21 @@ describe('저장이 깨졌을 때 (예전: 아무 말 없이 새 저장)', () =>
     const s = kv({});
     load(s);
     expect(s.data[RESTORE_PENDING_KEY]).toBeUndefined();
+  });
+});
+
+describe('한 계정 = 한 기기 (기획 120 9-2b)', () => {
+  it('설치 번호: 같은 기기 키면 그대로, 저장이 다른 폰으로 복사되면 (기기 키가 다름) 새 번호 · 현재 기기였던 적 없음', () => {
+    const saved = { id: 'i-1', dev: 'k-phoneA', active: true };
+    expect(pickInstall(saved, 'k-phoneA', () => 'new')).toBe(saved);
+    expect(pickInstall(saved, 'k-phoneB', () => 'new')).toEqual({ id: 'new', dev: 'k-phoneB', active: false });
+    expect(pickInstall(null, 'k-phoneA', () => 'new')).toEqual({ id: 'new', dev: 'k-phoneA', active: false });
+  });
+  it('켤 때 확인: 서버에 없음 · 현재 기기 · 다시 깐 앱 (고르기) · 옮겨진 옛 기기', () => {
+    expect(deviceAction({ exists: false, active: false }, false)).toBe('none');
+    expect(deviceAction({ exists: true, active: true }, false)).toBe('ok');
+    expect(deviceAction({ exists: true, active: true, claimed: true }, false)).toBe('ok');
+    expect(deviceAction({ exists: true, active: false }, false)).toBe('reconcile'); // 다시 깐 앱 · 새 폰 · 복사된 저장
+    expect(deviceAction({ exists: true, active: false }, true)).toBe('moved'); // 현재 기기였다가 다른 기기가 받아 감
   });
 });
