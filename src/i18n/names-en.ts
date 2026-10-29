@@ -245,7 +245,7 @@ const names: Record<string, string> = {
   '무모한 희생': 'Reckless Sacrifice',
   '광폭화@ab': 'Enrage',
   '돌진': 'Charge',
-  '소용돌이': 'Whirlwind',
+  '소용돌이@ab': 'Whirlwind', // 장소 「소용돌이」 (Whirlpool, places-en) 와 다름
   '재생의 격노': 'Enraged Regeneration',
   '재집결의 함성': 'Rallying Cry',
   '칼날폭풍': 'Bladestorm',
