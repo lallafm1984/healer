@@ -9,10 +9,11 @@ import { Flow } from '../game/flow';
 import { commit, G, heroNow, resetSave, setTestLevelUp, setTestMaxLevel, TEST_LEVEL_STEP } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { uiIcon } from './art';
-import { battle, go, previous, screen, topBar } from './kit';
+import { battle, current, go, previous, screen, topBar } from './kit';
 import { noticeModal } from '../platform/ads';
 import { noticeList } from '../platform/server';
 import { noticesHtml } from './server-notice';
+import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, signOutFlow } from './account';
 import './settings.css';
 
 let back = 's-lobby';
@@ -37,6 +38,21 @@ export function pushSettings(): void {
   b.onSetting = (k, v) => { (G.save.settings as unknown as Record<string, unknown>)[k] = v; commit(); };
 }
 
+/**
+ * 「계정」 판 (기획 120 9-2, Lim 「구글 계정 연결(사용자 선택)」 · 「설정에만」): 서버가 있을 때만.
+ * 게스트 = 연결 버튼 + 안내, 로그인 = 계정 · 마지막 백업 · 로그아웃 · 계정 삭제. 백업 · 불러오기 버튼은 없다 (앱을 내릴 때 자동)
+ */
+function accountRows(): string[] {
+  const a = accountView();
+  if (!a.user) {
+    return [`<span class="st-label">구글 계정</span><button class="btn st-open" type="button" id="acctLink"${a.ready ? '' : ' disabled'}>${a.ready ? '연결' : '준비 중'}</button>`,
+      `<p class="g-sub wrap st-note">연결하면 앱을 끄거나 내릴 때 진행이 자동으로 백업됩니다. 연결하지 않으면 앱을 지울 때 진행도 함께 사라집니다.</p>`];
+  }
+  return [`<span class="st-label">${maskEmail(a.user.email)}</span><button class="btn st-open" type="button" id="acctOut">로그아웃</button>`,
+    `<span class="st-label">마지막 백업</span><span class="st-value">${a.lastAt ? kstText(a.lastAt) : '아직 없음'}</span>`,
+    `<span class="st-label">계정 삭제</span><button class="btn st-open" type="button" id="acctDel">삭제</button>`];
+}
+
 function render(): void {
   const st = G.save.settings;
   const chip = (name: string, val: string, cur: string, label: string) => `<button class="chip" type="button" data-set="${name}" data-val="${val}" aria-pressed="${cur === val}">${label}</button>`;
@@ -56,6 +72,7 @@ function render(): void {
       ${card('sound', 'sound', '소리 · 진동', [vol('sfx', '효과음'), vol('music', '배경음'), tog('vibrate', '진동')])}
       ${card('hand', 'wheel', '스킬 휠 위치', [`<div class="chips st-hand">${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}</div>`])}
       ${card('screen', 'eye', '전투 화면', [`<div class="st-col">${tog('reducedEffects', '시각 효과 줄이기')}<p class="g-sub wrap">피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p></div>`])}
+      ${accountView().on ? card('account', 'char', '계정', accountRows()) : ''}
       ${card('info', 'info', '공지', [`<span class="st-label">운영 공지</span><button class="btn st-open" type="button" id="noticeOpen">보기</button>`])}
       <section class="group dev"><h2>개발 빌드</h2>
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
@@ -112,6 +129,9 @@ s.el.addEventListener('click', e => {
     s.el.querySelector<HTMLButtonElement>(`#${lvBtn.id}:not(:disabled)`)?.focus({ preventScroll: true });
     return;
   }
+  if (t.closest('#acctLink')) { void linkGoogle(); return; }
+  if (t.closest('#acctOut')) { void signOutFlow(); return; }
+  if (t.closest('#acctDel')) { void deleteFlow(); return; }
   if (t.closest('#noticeOpen')) { void noticeModal('공지', noticesHtml(noticeList())); return; }
   if (t.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;
@@ -128,3 +148,5 @@ s.el.addEventListener('change', e => {
   const i = (e.target as HTMLElement).closest<HTMLInputElement>('[data-tog]');
   if (i) { (G.save.settings as unknown as Record<string, boolean>)[i.dataset.tog!] = i.checked; saveSettings(); }
 });
+
+onAccountChange(() => { if (current === 's-settings') render(); });

@@ -56,7 +56,8 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(STUB);
   for (const m of MIGRATIONS) await db.exec(m);
-  await db.exec(`insert into auth.users (id, email) values ('${A}', 'a@x'), ('${B}', 'b@x'), ('${C}', 'c@x'), ('${D}', 'd@x'), ('${E}', 'e@x'), ('${ANON_USER}', null)`);
+  await db.exec(`insert into auth.users (id, email) values ('${A}', 'a@x'), ('${B}', 'b@x'), ('${C}', 'c@x'), ('${D}', 'd@x'), ('${E}', 'e@x');
+    insert into auth.users (id, is_anonymous) values ('${ANON_USER}', true)`);
 });
 
 describe('게스트 (공개 키)', () => {
@@ -177,9 +178,11 @@ describe('로그인 사용자 · 백업', () => {
     await expect(db.query(`select public.upload_save('[1]'::jsonb, 0, gen_random_uuid())`)).rejects.toThrow(/object/);
   });
 
-  it('익명 로그인 토큰은 백업 못 함 (익명 로그인은 쓰지 않음)', async () => {
+  it('익명 계정은 백업 · 받기 · 고르기 못 함 (구글 계정만 백업, 다시 로그인할 길이 없음)', async () => {
     await as(ANON_USER, { is_anonymous: true });
     await expect(upload(save(), 0)).rejects.toThrow(/anonymous/);
+    await expect(db.query('select public.download_save()')).rejects.toThrow(/anonymous/);
+    await expect(db.query(`select public.choose_progress('account', 1)`)).rejects.toThrow(/anonymous/);
   });
 
   it('점검 중이거나 원격 스위치로 백업을 끄면 paused', async () => {
@@ -263,6 +266,43 @@ describe('로그인 기록 (Lim 「로그인 기록도 따로 테이블로 남�
     await as('admin');
     expect((await db.query<{ event: string }>(`select event from public.login_logs where user_id = $1 order by id`, [B])).rows.map(r => r.event))
       .toEqual(['open', 'sign_out', 'open']);
+  });
+});
+
+describe('익명 로그인 → 구글 연동 (Lim 「일단 첫 사용자는 수파베이스에 익명로그인」)', () => {
+  it('익명 계정도 로그인 기록 (anonymous 표시) · 계정 삭제', async () => {
+    const u = uid();
+    await as('admin'); await db.query(`insert into auth.users (id, is_anonymous) values ($1, true)`, [u]);
+    await as(u, { is_anonymous: true });
+    expect(await rpc('log_login', ['anon_start', 'android', 101])).toMatchObject({ ok: true });
+    await as('admin');
+    expect((await db.query(`select event, anonymous from public.login_logs where user_id = $1`, [u])).rows).toEqual([{ event: 'anon_start', anonymous: true }]);
+    // 구글을 연결한 뒤 (같은 ID, 토큰의 is_anonymous가 꺼짐): link 기록, 백업 됨
+    await db.query(`update auth.users set is_anonymous = false, email = 'g@x' where id = $1`, [u]);
+    await as(u, { is_anonymous: false });
+    await rpc('log_login', ['link', 'android', 101]);
+    expect(await upload(save(), 0)).toMatchObject({ ok: true, rev: 1 });
+    await as('admin');
+    expect((await db.query<{ event: string; anonymous: boolean }>(`select event, anonymous from public.login_logs where user_id = $1 order by id`, [u])).rows.map(r => `${r.event}:${r.anonymous}`)).toEqual(['anon_start:true', 'link:false']);
+    const v = uid();
+    await db.query(`insert into auth.users (id, is_anonymous) values ($1, true)`, [v]);
+    await as(v, { is_anonymous: true });
+    expect(await rpc('delete_account')).toEqual({ ok: true });
+    await as('admin');
+    expect(Number((await one<{ n: string }>(`select count(*) as n from auth.users where id = $1`, [v])).n)).toBe(0);
+  });
+
+  it('admin_cleanup_anonymous: 오래 안 쓴 익명만 지움 (구글 · 최근에 쓴 익명은 남김), 앱은 못 부름', async () => {
+    const stale = uid(), fresh = uid(), old = uid(), google = uid();
+    await as('admin');
+    await db.query(`insert into auth.users (id, is_anonymous, created_at) values ($1, true, now() - interval '90 days'), ($2, true, now() - interval '90 days'), ($3, true, now() - interval '90 days'), ($4, false, now() - interval '90 days')`, [stale, fresh, old, google]);
+    await db.query(`insert into public.login_logs (user_id, event, created_at) values ($1, 'open', now() - interval '5 days'), ($2, 'open', now() - interval '70 days')`, [fresh, old]);
+    const r = await one<{ n: number }>('select public.admin_cleanup_anonymous() as n');
+    expect(r.n).toBeGreaterThanOrEqual(2);
+    const left = (await db.query<{ id: string }>(`select id from auth.users where id = any($1::uuid[])`, [[stale, fresh, old, google]])).rows.map(x => x.id).sort();
+    expect(left).toEqual([fresh, google].sort());
+    await as(A);
+    await expect(db.query('select public.admin_cleanup_anonymous()')).rejects.toThrow(/permission denied/);
   });
 });
 

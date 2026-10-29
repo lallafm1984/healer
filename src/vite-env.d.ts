@@ -6,4 +6,6 @@ interface ImportMetaEnv {
   /** Supabase 주소 · 공개 (anon) 키 (기획 120). 비우면 서버 없이 지금처럼 (기기 시계) */
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
+  /** 구글 로그인 웹 클라이언트 ID (공개 값) */
+  readonly VITE_GOOGLE_WEB_CLIENT_ID?: string;
 }
