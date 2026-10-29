@@ -24,6 +24,17 @@ export interface Boot { now: number; config: BootConfig | null; notices: Notice[
 const TIMEOUT_MS = 8000;
 const NOTICE_KEY = 'healer.notices';
 
+/**
+ * 머리글: apikey = 공개 키. Authorization = 로그인 사용자 토큰, 없으면 옛 anon 키 (JWT)일 때만 같은 키
+ * (새 publishable 키 sb_publishable_… 는 JWT가 아니라 Authorization에 넣지 않음)
+ */
+export function authHeaders(token?: string): Record<string, string> {
+  const h: Record<string, string> = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+  const bearer = token ?? (SUPABASE_KEY.startsWith('eyJ') ? SUPABASE_KEY : '');
+  if (bearer) h.Authorization = `Bearer ${bearer}`;
+  return h;
+}
+
 /** RPC 한 번 (POST /rest/v1/rpc/<이름>). token = 로그인 사용자 토큰 (없으면 공개 키) */
 export async function rpc<T>(name: string, args: Record<string, unknown>, token?: string): Promise<T> {
   const ctl = new AbortController();
@@ -31,7 +42,7 @@ export async function rpc<T>(name: string, args: Record<string, unknown>, token?
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
       method: 'POST',
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token ?? SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      headers: authHeaders(token),
       body: JSON.stringify(args),
       signal: ctl.signal,
     });
