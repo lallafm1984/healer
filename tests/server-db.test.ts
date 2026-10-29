@@ -306,6 +306,52 @@ describe('익명 로그인 → 구글 연동 (Lim 「일단 첫 사용자는 수
   });
 });
 
+describe('한 계정 = 한 기기 (Lim 1번 · 「앱을 지우고 다시 복구시에도 문제 없도록」)', () => {
+  const P1 = '20000000-0000-4000-8000-000000000001', P2 = '20000000-0000-4000-8000-000000000002', P3 = '20000000-0000-4000-8000-000000000003';
+  const up = (data: unknown, base: number, install: string | null) => rpc('upload_save', [JSON.stringify(data), base, crypto.randomUUID(), 101, Date.now(), install]);
+  it('첫 백업한 설치가 현재 기기, 다른 설치의 백업은 moved (덮지 않음)', async () => {
+    const u = uid();
+    await as('admin'); await db.query(`insert into auth.users (id) values ($1)`, [u]);
+    await as(u);
+    expect(await rpc('device_status', [P1])).toMatchObject({ exists: false, active: false });
+    expect(await up(save({ level: 10 }), 0, P1)).toMatchObject({ ok: true, rev: 1 });
+    expect(await rpc('device_status', [P1])).toMatchObject({ exists: true, active: true });
+    expect(await rpc('device_status', [P2])).toMatchObject({ exists: true, active: false });
+    expect(await up(save({ level: 99 }), 1, P2)).toMatchObject({ ok: false, reason: 'moved' });
+    expect((await rpc('download_save')).level).toBe(10);
+  });
+
+  it('다른 폰 · 다시 깐 앱: 고르기 (계정 진행)로 그 설치가 현재 기기 → 옛 설치는 moved', async () => {
+    const u = uid();
+    await as('admin'); await db.query(`insert into auth.users (id) values ($1)`, [u]);
+    await as(u);
+    await up(save({ level: 20 }), 0, P1);
+    // 새 설치 P2: 받아 보고 「계정 진행」
+    expect(await rpc('choose_progress', ['account', 1, JSON.stringify(save({ level: 1 })), null, 101, Date.now(), P2])).toMatchObject({ ok: true, rev: 1 });
+    expect(await rpc('device_status', [P2])).toMatchObject({ active: true });
+    expect(await rpc('device_status', [P1])).toMatchObject({ active: false });
+    expect(await up(save({ level: 21, wins: 4 }), 1, P1)).toMatchObject({ ok: false, reason: 'moved' });
+    expect(await up(save({ level: 21, wins: 4 }), 1, P2)).toMatchObject({ ok: true, rev: 2 });
+    // 또 다른 설치 P3: 「이 폰 진행」을 골라도 P3이 현재 기기
+    expect(await rpc('choose_progress', ['device', 2, JSON.stringify(save({ level: 5 })), crypto.randomUUID(), 101, Date.now(), P3])).toMatchObject({ ok: true, rev: 3 });
+    expect(await rpc('device_status', [P2])).toMatchObject({ active: false });
+    expect(await up(save({ level: 22, wins: 5 }), 3, P2)).toMatchObject({ ok: false, reason: 'moved' });
+  });
+
+  it('설치 번호를 모르는 옛 앱: 아직 아무도 안 잡은 계정만 백업, 잡힌 뒤에는 moved. 아무도 안 잡은 계정은 device_status가 잡음', async () => {
+    const u = uid();
+    await as('admin'); await db.query(`insert into auth.users (id) values ($1)`, [u]);
+    await as(u);
+    expect(await up(save(), 0, null)).toMatchObject({ ok: true, rev: 1 });
+    expect(await up(save({ wins: 4 }), 1, null)).toMatchObject({ ok: true, rev: 2 });
+    expect(await rpc('device_status', [P1])).toMatchObject({ exists: true, active: true, claimed: true });
+    expect(await up(save({ wins: 5 }), 2, null)).toMatchObject({ ok: false, reason: 'moved' });
+    await expect(db.query('select public.device_status(null)')).rejects.toThrow(/install required/);
+    await as(null);
+    await expect(db.query(`select public.device_status('${P1}')`)).rejects.toThrow(/permission denied/);
+  });
+});
+
 describe('관리자 · 계정 삭제', () => {
   it('admin_restore_save: 사본 한 판을 지금 판으로, 앱의 다음 올림은 conflict', async () => {
     await as(C);
