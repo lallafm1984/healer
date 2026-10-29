@@ -17,6 +17,15 @@
 
 보안: 모든 표 RLS, 앱 키로는 자기 `saves` · `purchases` 읽기만. 쓰기는 `security definer` RPC만 (`auth.uid()`로만 사용자를 정함, `search_path = ''`), 실행 권한은 위 표의 역할에만. **service_role 키는 앱 · 이 저장소 (공개)에 절대 넣지 않는다.**
 
+## 적용 기록
+
+| 날짜 | 프로젝트 | 마이그레이션 | 방법 |
+|---|---|---|---|
+| 2026-10-29 | `pdnffebscgldelfqjdan` 「Healer Project」 (lallafm0001@gmail.com 계정, 서울) | `20261029000000_server_init.sql` | Management API (`/database/query`), 공개 키로 `app_boot` · 권한 거절 확인 |
+
+다른 계정의 Lotto · nullplaying 프로젝트에는 적용하지 않는다 (이 마이그레이션은 `public` 스키마의 공개 권한을 거둬서 다른 앱이 깨짐).
+Supabase 보안 점검 (Advisors)의 「RLS는 켜졌는데 정책 없음」 · 「anon/authenticated가 security definer 함수를 부를 수 있음」은 의도한 모양이다 (표는 함수로만, 함수는 `auth.uid()`로만).
+
 ## 처음 설정 (Lim)
 
 1. [supabase.com](https://supabase.com) → New project → Free, Region **Northeast Asia (Seoul)**. DB 비밀번호는 따로 보관.
