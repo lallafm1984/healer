@@ -5,6 +5,8 @@
  */
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/\/+$/, '');
 export const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+/** 구글 로그인 웹 클라이언트 ID (Google Cloud, 기획 120 9-2). 앱에 들어가는 공개 값. 비면 「구글 계정 연결」이 준비 중 */
+export const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID ?? '';
 
 export function serverOn(): boolean {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;

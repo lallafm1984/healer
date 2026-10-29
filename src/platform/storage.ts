@@ -692,9 +692,14 @@ function store(): KV | null {
 /** 프로토타입 화면이 따로 쓰던 키 (스킬 배치). 처음 v2로 올릴 때 한 번 가져온다 */
 const OLD_LAYOUT = 'nhh.skillLayout.v1';
 
+/** 깨진 저장의 사본 키 · 복구 대기 표시 (기획 120 3-1): 서버 저장을 받아 보기 전에는 자동 백업을 하지 않음 (screens/account) */
+export const SAVE_BAK_KEY = 'healer.save.bak';
+export const RESTORE_PENDING_KEY = 'healer.restorePending';
+
 export function load(kv: KV | null = store()): SaveData {
+  let s: string | null | undefined;
   try {
-    const s = kv?.getItem(SAVE_KEY);
+    s = kv?.getItem(SAVE_KEY);
     const raw = s ? JSON.parse(s) : null;
     const d = migrate(raw);
     if (!raw || raw.v < 2) {
@@ -707,6 +712,8 @@ export function load(kv: KV | null = store()): SaveData {
     if (kv && d.roster.chars.some(c => c.park)) save(d, kv);
     return d;
   } catch {
+    // 읽다 깨짐: 옛 내용을 사본 키에 남기고 복구 대기 (예전에는 아무 말 없이 새 저장이 덮었음)
+    if (s) { try { kv?.setItem(SAVE_BAK_KEY, s); kv?.setItem(RESTORE_PENDING_KEY, '1'); } catch { /* 저장소가 가득이면 그만 */ } }
     return newSave();
   }
 }

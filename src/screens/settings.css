@@ -23,3 +23,6 @@
 .admodal .st-notice { display: flex; flex-direction: column; gap: 4px; }
 .admodal .st-notice b { color: var(--gk-head, inherit); }
 .admodal .st-notice-empty { display: block; text-align: center; }
+/* 계정 판 (기획 120 9-2): 이름 · 버튼 / 값, 안내 글은 줄 전체 */
+#s-settings.ns .st-row > .st-value { flex: none; color: var(--gk-head, inherit); font-variant-numeric: tabular-nums; }
+#s-settings.ns .st-row > .st-note { flex: 1 1 100%; margin: 0; }

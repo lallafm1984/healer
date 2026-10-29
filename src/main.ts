@@ -92,6 +92,7 @@ import { applyArtVars, warmArt } from './art';
 import { prepareVillage } from './screens/village';
 import { initClock } from './platform/time';
 import { mountServer } from './screens/server-notice';
+import { mountAccount } from './screens/account';
 
 applyArtVars();
 mountTabs(document.getElementById('tabs')!);
@@ -108,6 +109,7 @@ refreshDay();
 syncAds();
 go('s-title');
 mountServer(); // 서버 시각 · 강제 업데이트 · 점검 · 공지 (기획 120 9-5, 서버 주소가 없으면 아무것도 안 함)
+mountAccount(); // 구글 계정 · 앱을 내릴 때 자동 백업 (기획 120 9-2, 로그인한 사람만)
 void enterFullscreen();
 // 메뉴 · 로비 · 조작판 그림을 미리 디코딩 (지금 직업 조작판만). 장소 · 보스 · 이펙트 그림은 그 화면에서 (2026-10-17 Lim 「처음 페이지 열 때 살짝 느림」)
 prepareVillage(); // 로비 마을 (Pixi · 나무 · 집 · 구름 그림)도 타이틀에서 미리
