@@ -28,6 +28,8 @@ export const Flow: {
   chal: number;
   /** 길드 탭 「길드파티로 출전」 (30): 다음 편성을 길드파티로 시작 */
   preferGuild: boolean;
+  /** 부탁 「장소 보기」 (93 8장): 다음 길드파티 편성에 그 부탁을 한 길드원을 넣음 (QA 2026-10-29: 예전엔 지난 편성 그대로라 부탁한 사람이 자주 빠져 부탁이 안 끝남) */
+  needNick?: string;
 } = { content: 'rustfort', diff: '보통', party: null, seed: 1, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], chal: 0, preferGuild: false };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;

@@ -87,7 +87,7 @@ export function mountTabs(nav: HTMLElement): void {
     const t = TABS.find(x => x.key === b.dataset.tab);
     if (!t) return;
     // 길드 탭 「길드파티로 출전」은 그 길로 편성까지 갈 때만 (탭을 직접 누르면 취소)
-    Flow.preferGuild = false;
+    Flow.preferGuild = false; Flow.needNick = undefined;
     // 고른 탭을 다시 눌러도 그 탭의 루트로, 스크롤 맨 위 (잠긴 길드는 루트가 잠금 안내)
     go(t.root);
     document.querySelector<HTMLElement>(`#${t.root} .ns-body`)?.scrollTo({ top: 0 });

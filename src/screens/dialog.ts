@@ -56,8 +56,10 @@ export function sheetDialog(root: HTMLElement, close: () => void) {
     interaction = mark(e.target instanceof Element ? e.target : null, dialog || root);
   }, true);
 
+  // 시트 위에 뜬 알림 · 고르기 창 (.admodal, noticeModal · askModal)은 시트 밖이어도 초점 · Esc를 가져가지 않음 (QA 2026-10-29: 확인 버튼 초점을 시트가 빼앗고 Esc가 밑 시트를 닫았음)
+  const overModal = () => !!document.querySelector('.admodal:not(.st-modal)');
   document.addEventListener('keydown', e => {
-    if (!dialog || root.hidden || !dialog.isConnected) return;
+    if (!dialog || root.hidden || !dialog.isConnected || overModal()) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); return; }
     if (e.key !== 'Tab') return;
     const list = stops(dialog), first = list[0], last = list[list.length - 1], active = document.activeElement;
@@ -67,7 +69,7 @@ export function sheetDialog(root: HTMLElement, close: () => void) {
     }
   }, true);
   document.addEventListener('focusin', e => {
-    if (dialog && !root.hidden && dialog.isConnected && !dialog.contains(e.target as Node)) dialog.focus({ preventScroll: true });
+    if (dialog && !root.hidden && dialog.isConnected && !dialog.contains(e.target as Node) && !(e.target as Element | null)?.closest?.('.admodal')) dialog.focus({ preventScroll: true });
   });
 
   return {

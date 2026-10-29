@@ -195,6 +195,7 @@ export default async function guild(url, shots) {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.guild.reqs.list = [{ nick: '든든방패', content: 'rustfort', diff: '쉬움', done: false }];
     s.player.level = 15; // 녹슨 요새 (적 Lv 5 ~ 11)가 「낮은 장소」 (내 Lv − 10 밑, 103)가 아니게
+    s.settings.devUnlock = true; // 길드는 Lv 30에 열림 (2026-10-28 #498): Lv 15에서는 개발 빌드 「레벨 잠금 무시」로 열어 둠
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
