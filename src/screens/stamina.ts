@@ -3,6 +3,7 @@
  * 규칙은 game/stamina.ts (코드 이름은 stamina 그대로). 팝업은 .admodal 위에 그리고, 닫으면 연 버튼으로 초점을 돌려준다.
  */
 import { REST_BONUS, STAMINA } from '../data/economy';
+import { t } from '../i18n';
 import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
 import { adCharge, adsFree, staminaClock, staminaView } from '../game/stamina';
@@ -28,7 +29,7 @@ export function staminaCell(): string {
 }
 function staminaLabel(): string {
   const v = view();
-  return `휴식 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
+  return `${t('휴식')} ${v.unlimited ? t('무제한') : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · ${t('다음 1까지 {t}', { t: staminaClock(v.next) })}` : ''}`;
 }
 
 // ---------- 팝업 틀 ----------
@@ -77,8 +78,8 @@ function meter(extraCls = ''): string {
 function adButton(): string {
   const v = view(), free = adsFree(G.save), left = v.adsLeft;
   const full = v.n >= v.max;
-  const label = full ? '휴식 가득 참' : `${free ? '바로' : '광고 보고'} 최대 충전`;
-  return `<button class="btn primary st-ad" type="button" data-st="ad"${left && !full && !charging ? '' : ' disabled'}>${label}<small>오늘 ${left}/${STAMINA.adDaily}</small></button>`;
+  const label = full ? t('휴식 가득 참') : free ? t('바로 최대 충전') : t('광고 보고 최대 충전');
+  return `<button class="btn primary st-ad" type="button" data-st="ad"${left && !full && !charging ? '' : ' disabled'}>${label}<small>${t('오늘 {a}/{b}', { a: left, b: STAMINA.adDaily })}</small></button>`;
 }
 
 /** 광고 보고 충전. 했으면 true */
@@ -87,7 +88,7 @@ async function charge(): Promise<boolean> {
   if (charging || v.adsLeft <= 0 || v.n >= v.max) return false;
   charging = true;
   try {
-    if (!(await showRewarded('휴식 최대 충전', adsFree(G.save)))) return false;
+    if (!(await showRewarded(t('휴식 최대 충전'), adsFree(G.save)))) return false;
     const err = adCharge(G.save, gameNow());
     if (err) return false;
     sfx('rest-charge');
@@ -101,9 +102,9 @@ async function charge(): Promise<boolean> {
 /** 2026-10-28 Lim: 「다음 +1 · 가득까지」 시간 줄은 없앰, 설명은 두 줄 (남은 시간은 위 칸 읽어 주는 글에만) */
 export function openStamina(): void {
   const render = () => {
-    const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어할 때 써서 경험치 · 골드를 ${REST_BONUS}배로 받습니다.</p>
-      <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
+    const el = show('st-info', `<h3 id="stTitle">${t('휴식')}</h3>${meter()}
+      <p class="note">${t('{m}분마다 1씩 찹니다. 클리어할 때 써서 경험치 · 골드를 {x}배로 받습니다.', { m: STAMINA.regenMs / 60e3, x: REST_BONUS })}</p>
+      <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="shop">${t('상점')}</button><button class="btn" type="button" data-st="no">${t('닫기')}</button></div>`);
     el.onclick = async e => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-st]');
       if (!b || b.disabled) { if (e.target === el) close(); return; }
@@ -114,7 +115,7 @@ export function openStamina(): void {
         b.disabled = true;
         const charged = await charge();
         if (pop === el) render();
-        if (charged) notify('휴식 최대 충전');
+        if (charged) notify(t('휴식 최대 충전'));
       }
     };
   };

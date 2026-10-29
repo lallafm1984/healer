@@ -9,6 +9,7 @@
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
 import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
+import { t, tc } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
@@ -62,7 +63,7 @@ function goals(): Goal[] {
     : firstDungeonNow() ? { content: 'rustfort' as ContentKey, diff: '쉬움' as DiffName } : guide(); // 튜토리얼 중엔 튜토리얼 탐험 (105 QA)
   if (g) {
     const c = contentOf(g.content), first = !G.save.clears[c.key]?.[g.diff];
-    out.push({ title: c.name, tag: g.diff, sub: first ? '클리어' : '추천', prog: first ? '0/1' : `Lv ${stageOf(c, g.diff)}`, to: g });
+    out.push({ title: c.name, tag: g.diff, sub: first ? t('클리어') : t('추천'), prog: first ? '0/1' : `Lv ${stageOf(c, g.diff)}`, to: g });
   }
   let lv = lvNow;
   for (let i = 0; i < 20; i++) {
@@ -77,10 +78,10 @@ function goals(): Goal[] {
 }
 
 /** 권장 장비 (편성 화면 경고와 같은 값) — 목표 aria 설명용 */
-const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = recommendedFor(contentOf(to.content), to.diff); return r ? ` · 권장 ${r.label}` : ''; };
+const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = recommendedFor(contentOf(to.content), to.diff); return r ? ` · ${t('권장 {n}', { n: r.label })}` : ''; };
 
 /** 목표 칸 머리: A2 펼친 책 그림 + 「다음 목표」 */
-const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
+const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>${t('다음 목표')}</span></span>`;
 
 /**
  * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 레이드를 길드원만으로 다 채우는 인원 (10인 9 · 20인 19명, guildPartyNeed, 2026-10-28 길드파티는 길드원만), 길드를 빼 두면 그 줄 없음.
@@ -100,12 +101,12 @@ function gateTracker(): string {
   const gi = ITEM_GRADES.indexOf(g.grade);
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;
   const rows: [boolean, string, string, string][] = [
-    [lv >= g.lv, `레벨 ${g.lv}`, `${lv} / ${g.lv}`, ''],
-    ...(FEATURES.guild ? [[have >= need, `길드원 ${need}명`, `${have} / ${need}`, 's-guild'] as [boolean, string, string, string]] : []),
-    [gear >= SLOTS.length, `장비 ${g.grade} 이상`, `${gear} / ${SLOTS.length} 부위`, 's-char'],
+    [lv >= g.lv, t('레벨 {n}', { n: g.lv }), `${lv} / ${g.lv}`, ''],
+    ...(FEATURES.guild ? [[have >= need, t('길드원 {n}명', { n: need }), `${have} / ${need}`, 's-guild'] as [boolean, string, string, string]] : []),
+    [gear >= SLOTS.length, t('장비 {g} 이상', { g: t(g.grade) }), t('{a} / {b} 부위', { a: gear, b: SLOTS.length }), 's-char'],
   ];
   const to = rows.find(r => !r[0] && r[3])?.[3];
-  const inner = `${trkHead()}<span class="trk-tl"><strong class="trk-t">${g.name}</strong><small>Lv ${g.lv}</small></span>
+  const inner = `${trkHead()}<span class="trk-tl"><strong class="trk-t">${t(g.name)}</strong><small>Lv ${g.lv}</small></span>
     ${rows.map(([ok, k, v]) => `<span class="obj${ok ? ' ok' : ''}"><i></i><span>${k}</span><small>${v}</small></span>`).join('')}`;
   return to
     ? `<button type="button" class="lb-trk gate" data-go="${to}"${to === 's-char' ? ' data-arg="gear"' : ''}>${inner}</button>`
@@ -121,10 +122,10 @@ function tracker(): string {
   const main = first
     ? `<strong class="trk-t">${esc(first.title)}</strong>
       <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(first.tag)}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
-    : '<strong class="trk-t">마을 정비</strong>';
+    : `<strong class="trk-t">${t('마을 정비')}</strong>`;
   const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${shortGoalHtml(g)}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
-    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!)}">${inner}</button>`
+    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="${t('다음 목표')}: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
 }
 
@@ -163,7 +164,7 @@ function today() {
   const dGot = d.missions.filter(m => m.got).length, wGot = w.missions.filter(m => m.got).length;
   const ready = d.missions.filter(missionReady).length + w.missions.filter(missionReady).length;
   const chests = (ch.today ? 1 : 0) + ch.banked;
-  const line = `일일 ${dGot}/${d.missions.length}${w.missions.length ? ` · 주간 ${wGot}/${w.missions.length}` : ''}`;
+  const line = `${t('일일 {a}/{b}', { a: dGot, b: d.missions.length })}${w.missions.length ? ` · ${t('주간 {a}/{b}', { a: wGot, b: w.missions.length })}` : ''}`;
   return { d, dGot, ready, chests, line, done: d.chest };
 }
 
@@ -172,10 +173,10 @@ function today() {
  * 옆의 노란 「!」 (한 번에 받기)는 2026-10-24 Lim 「느낌표제거」로 뺐다
  */
 function missionSock(): string {
-  const t = today(), n = t.ready + t.chests;
-  const sub = !t.ready && t.chests ? '상자 열기' : `일일 ${t.dGot}/${t.d.missions.length}`;
-  return socket(`lb-missions${n ? ' hot' : ''}`, ` data-go="s-missions" aria-label="임무 · ${t.line}${t.chests ? ' · 일일 상자' : ''}${n ? ` · 받을 것 ${n}` : ''}"`,
-    gameIcon('mission', uiIcon('quest')), '임무', sub,
+  const td = today(), n = td.ready + td.chests;
+  const sub = !td.ready && td.chests ? t('상자 열기') : t('일일 {a}/{b}', { a: td.dGot, b: td.d.missions.length });
+  return socket(`lb-missions${n ? ' hot' : ''}`, ` data-go="s-missions" aria-label="${t('임무')} · ${td.line}${td.chests ? ` · ${t('일일 상자')}` : ''}${n ? ` · ${t('받을 것 {n}', { n })}` : ''}"`,
+    gameIcon('mission', uiIcon('quest')), t('임무'), sub,
     n ? `<i class="g-badge" aria-hidden="true">${n}</i>` : '');
 }
 /**
@@ -184,11 +185,11 @@ function missionSock(): string {
  */
 function chalSock(): string {
   const s = G.save, cg = chalGate(s), icon = gameIcon('challenge', uiIcon('hourglass'));
-  if (s.chalChest) return socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', icon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>');
+  if (s.chalChest) return socket('lb-chal hot', ` id="lbChal" aria-label="${t('주간 도전 상자 받기')}"`, icon, tc('주간 도전', 'short'), t('상자 받기'), '<i class="g-badge" aria-hidden="true">!</i>');
   if (!cg.ok) return '';
   // 바로 주간 도전 화면 (2026-10-22 Lim 「주간 도전 선택시 바로 주간도전 화면으로 이동」)
   const left = weekRemaining();
-  return socket('lb-chal', ` data-chal-go aria-label="주간 도전 · ${esc(CHAL.name)} · ${left} 남음"`, icon, '주간 도전', `${left} 남음`);
+  return socket('lb-chal', ` data-chal-go aria-label="${t('주간 도전')} · ${esc(t(CHAL.name))} · ${t('{n} 남음', { n: left })}"`, icon, tc('주간 도전', 'short'), t('{n} 남음', { n: left }));
 }
 /**
  * 상점 (예전 「잡화점」, 2026-10-21 Lim 「잡화점은 상점으로」): 상품 한 쪽. 이름만 (가운데, lobby-menu.css).
@@ -196,7 +197,7 @@ function chalSock(): string {
  * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」). 시즌 패스 (예전 빨간 숫자) · 공훈은 2026-10-20 Lim이 없앰
  */
 function shopPlate(): string {
-  return commerceEmblem('lb-shop', ' data-go="s-shop" data-arg="cash"', 'lobby-shop-emblem-v1', '상점');
+  return commerceEmblem('lb-shop', ' data-go="s-shop" data-arg="cash"', 'lobby-shop-emblem-v1', t('상점'));
 }
 
 /**
@@ -205,7 +206,7 @@ function shopPlate(): string {
  * Lv 10 (MERCHANT.lv) 전엔 팻말을 두지 않는다 (2026-10-24 Lim 「레벨 제한으로 잠긴 팻말은 로비에서 숨기기」, 예전 어두운 팻말 + 「Lv 10부터」)
  */
 function merchantPlate(): string {
-  return merchantOffer(G.save).open ? commerceEmblem('lb-merchant', ' data-go="s-merchant"', 'lobby-merchant-emblem-v1', '행상인') : '';
+  return merchantOffer(G.save).open ? commerceEmblem('lb-merchant', ' data-go="s-merchant"', 'lobby-merchant-emblem-v1', t('행상인')) : '';
 }
 
 /**
@@ -215,25 +216,25 @@ function merchantPlate(): string {
 function restSock(): string {
   const v = staminaView(G.save, gameNow());
   if (v.unlimited || v.n >= STAMINA_COST.dungeon || !v.adsLeft) return '';
-  return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="휴식 충전 · 휴식 ${v.n}/${v.max} · 휴식이 있으면 보너스 ×${REST_BONUS}"`, currencyIcon('rest'), '휴식 충전',
-    `${adsFree(G.save) ? '바로' : '광고'} 최대 충전`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
+  return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="${t('휴식 충전')} · ${t('휴식 {a}/{b}', { a: v.n, b: v.max })} · ${t('휴식이 있으면 보너스 ×{n}', { n: REST_BONUS })}"`, currencyIcon('rest'), tc('휴식 충전', 'short'),
+    adsFree(G.save) ? t('바로 최대 충전') : tc('광고 최대 충전', 'short'), v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
 /**
  * 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (상점 · 행상인, 2026-10-21). 길드는 하단 탭 (2026-10-18).
  * 잠긴 주간 도전 · 행상인은 빠지고 남은 것이 위에서부터 붙는다 (빈 칸을 두지 않음)
  */
-const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
-  <nav class="lb-side lb-right" aria-label="마을 건물">${shopPlate()}${merchantPlate()}</nav>`;
+const menus = () => `<nav class="lb-side lb-left" aria-label="${t('오늘 할 일')}">${missionSock()}${chalSock()}${restSock()}</nav>
+  <nav class="lb-side lb-right" aria-label="${t('마을 건물')}">${shopPlate()}${merchantPlate()}</nav>`;
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). */
 function journey(): string {
   const to = dest(), c = contentOf(to.content);
-  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
+  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="${t('출전')} · ${esc(t(c.name))} ${esc(t(to.diff))}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>${t('출전')}</b><small>${esc(t(c.name))} · ${esc(t(to.diff))}</small></span>${chevron()}</button>`;
   return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}</div></div>`;
 }
 
-const s = screen('s-lobby', '로비', {
+const s = screen('s-lobby', t('로비'), {
   tab: 'lobby',
   enter() { refreshDay(); render(); },
 });
@@ -246,7 +247,7 @@ function render(): void {
         <div class="lb-stage"></div>
         <div class="lb-ui">
           <div class="lb-mid">${tutDone ? menus() : ''}</div>
-          ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열렸습니다. 「출전」을 눌러 시작합니다.</p>' : ''}
+          ${firstDungeonNow() ? `<p class="coachtip lb-coach">${t('첫 던전 {name}가 열렸습니다. 「출전」을 눌러 시작합니다.', { name: `<b>${t('녹슨 요새')}</b>` })}</p>` : ''}
           ${journey()}
         </div>
       </div>
@@ -258,21 +259,21 @@ function render(): void {
 }
 
 s.el.addEventListener('click', e => {
-  const t = e.target as HTMLElement, save = G.save;
-  if (t.closest('#lobbyStart')) { toAdventure(dest()); return; }
-  const gr = t.closest<HTMLElement>('[data-goal]');
+  const el = e.target as HTMLElement, save = G.save;
+  if (el.closest('#lobbyStart')) { toAdventure(dest()); return; }
+  const gr = el.closest<HTMLElement>('[data-goal]');
   if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toAdventure(g.to); return; }
-  if (t.closest('[data-chal-go]')) {
+  if (el.closest('[data-chal-go]')) {
     // 주간 도전 바로 가기: 전투 탭 도전 카드와 같은 길 (content.ts [data-chal])
     Flow.content = chalContent(save); Flow.diff = CHAL.diff; Flow.chal = save.chalOpen;
     go('s-entry'); return;
   }
-  if (t.closest('#lbChal')) {
+  if (el.closest('#lbChal')) {
     // 임무 화면 「열기」와 같게: 상자 걸쇠 소리 + 보상 창 (reward-pop, 2026-10-24 Lim 시안 A), 못 받으면 까닭 알림 창
     const r = claimChalChest(save, Math.random);
     sfx(typeof r === 'string' ? 'deny' : 'chest-open');
     commit(); render();
-    if (typeof r === 'string') void noticeModal('주간 도전 상자', esc(r));
-    else showReward({ title: '주간 도전 상자', gold: r.gold, items: r.items });
+    if (typeof r === 'string') void noticeModal(t('주간 도전 상자'), esc(r));
+    else showReward({ title: t('주간 도전 상자'), gold: r.gold, items: r.items });
   }
 });

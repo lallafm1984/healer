@@ -61,6 +61,10 @@
   letter-spacing: .12em;
   text-shadow: 0 2px 0 #57401e, 0 4px 12px #172b4280;
 }
+/* 영어 · 일본어 제목 (기획 121): 로마자 · 가나가 한글보다 길어 크기 · 자간만 줄임 (한국어 CSS는 그대로) */
+html[lang="en"] #s-title .t-main { font-size: clamp(52px, 17.5vw, 76px); letter-spacing: .02em; }
+html[lang="ja"] #s-title .t-main { font-size: clamp(56px, 18vw, 80px); letter-spacing: .02em; }
+html[lang="en"] #s-title .t-prefix { letter-spacing: .3em; }
 #s-title .t-main {
   padding: 0 .045em .08em .09em;
   color: #f8da8b;

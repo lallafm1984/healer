@@ -65,6 +65,13 @@ const fill = (s: string, p?: Record<string, string | number>): string =>
 export function t(ko: string, p?: Record<string, string | number>): string {
   return fill(cur === 'ko' ? ko : (dict[ko] ?? ko), p);
 }
+/**
+ * 자리 꼬리표가 있는 번역: 같은 한국어가 좁은 자리 (로비 팻말)에서는 더 짧은 말이어야 할 때. 사전 열쇠 '주간 도전@short'를 먼저 보고 없으면 '주간 도전'.
+ * 한국어는 꼬리표와 상관없이 원문 그대로 (화면 글이 바뀌지 않음)
+ */
+export function tc(ko: string, ctx: string, p?: Record<string, string | number>): string {
+  return fill(cur === 'ko' ? ko : (dict[`${ko}@${ctx}`] ?? dict[ko] ?? ko), p);
+}
 
 // ---------- 숫자 ----------
 const compacts = new Map<string, Intl.NumberFormat>();

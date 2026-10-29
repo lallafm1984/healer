@@ -8,6 +8,7 @@
  *   다른 기기가 고르기로 받아 가면 옛 기기는 다음에 서버를 볼 때 안내 → 로그아웃 → 그 기기의 진행을 지움. 다시 깐 앱은 새 설치 번호라 구글 연결 → 고르기로 다시 현재 기기.
  */
 import { App } from '@capacitor/app';
+import { t } from '../i18n';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
 import { chooseProgress, connectGoogle, deleteAccount, deviceStatus, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, type DeviceStatus, type Download, type Me } from '../platform/account';
@@ -65,7 +66,7 @@ export function keepDeviceSettings(next: SaveData, mine: Settings): SaveData {
 }
 
 export const maskEmail = (e: string | null): string => {
-  if (!e) return '구글 계정';
+  if (!e) return t('구글 계정');
   const [id, host] = e.split('@');
   return `${id.slice(0, 3)}${id.length > 3 ? '***' : ''}${host ? `@${host}` : ''}`;
 };
@@ -73,7 +74,7 @@ export const maskEmail = (e: string | null): string => {
 export function kstText(ms: number): string {
   const d = new Date(ms + 9 * 3600e3);
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+  return t('{m}월 {d}일 {hh}:{mm}', { m: d.getUTCMonth() + 1, d: d.getUTCDate(), hh: p(d.getUTCHours()), mm: p(d.getUTCMinutes()) });
 }
 
 const store = globalThis.localStorage as Storage | undefined;
@@ -143,7 +144,7 @@ function applyServer(u: Me, d: Download): void {
  * 진행은 계정 (지금 현재 기기)에 있고, 이 폰에서 다시 구글 연결 → 「계정 진행」으로 받아 올 수 있다 (그러면 저쪽이 옛 기기가 됨)
  */
 async function handleMoved(): Promise<void> {
-  await noticeModal('다른 기기로 옮겨진 계정', '이 계정의 진행을 다른 기기에서 불러왔습니다.<br>이 기기는 로그아웃되고, 이 기기의 진행은 지워집니다.');
+  await noticeModal(t('다른 기기로 옮겨진 계정'), t('이 계정의 진행을 다른 기기에서 불러왔습니다.<br>이 기기는 로그아웃되고, 이 기기의 진행은 지워집니다.'));
   try { await logLogin('sign_out'); } catch { /* 그만 */ }
   await signOut();
   who = null;
@@ -177,22 +178,22 @@ async function reconcile(u: Me): Promise<void> {
   const deviceUp = async (): Promise<void> => {
     const json = JSON.stringify(G.save), id = crypto.randomUUID();
     const r = await chooseProgress('device', d.rev ?? null, G.save, id, now());
-    if (!r.ok) throw new Error(r.reason === 'conflict' ? '그 사이 계정 진행이 바뀜' : '백업 실패');
+    if (!r.ok) throw new Error(r.reason === 'conflict' ? t('그 사이 계정 진행이 바뀜') : t('백업 실패'));
     clearRestore();
     writeState({ uid: u.id, rev: r.rev ?? 0, hash: fnv(json), at: r.now ?? now() });
     markActive();
     changed();
   };
   if (restorePending()) {
-    const back = await askModal('저장 복구', `이 폰의 저장을 읽지 못해 새로 시작했습니다.<br>백업된 진행 Lv ${theirs} (${when})으로 되돌릴 수 있습니다.`, '새로 시작', '되돌리기');
+    const back = await askModal(t('저장 복구'), t('이 폰의 저장을 읽지 못해 새로 시작했습니다.<br>백업된 진행 Lv {lv} ({when})으로 되돌릴 수 있습니다.', { lv: theirs, when }), t('새로 시작'), t('되돌리기'));
     if (back) { await chooseProgress('account', d.rev ?? null, G.save, null, now()); applyServer(u, d); return; }
-    if (await askModal('새로 시작', `백업된 Lv ${theirs} 진행은 사본으로 물러나고 지금 진행이 백업됩니다.`, '취소', '새로 시작')) await deviceUp();
+    if (await askModal(t('새로 시작'), t('백업된 Lv {lv} 진행은 사본으로 물러나고 지금 진행이 백업됩니다.', { lv: theirs }), t('취소'), t('새로 시작'))) await deviceUp();
     return;
   }
   for (;;) {
-    const account = await askModal('진행 고르기', `이 계정에 백업된 진행이 있습니다.<br>이 폰 Lv ${mine} · 계정 Lv ${theirs} (${when})`, `이 폰 Lv ${mine}`, `계정 Lv ${theirs}`);
+    const account = await askModal(t('진행 고르기'), t('이 계정에 백업된 진행이 있습니다.<br>이 폰 Lv {a} · 계정 Lv {b} ({when})', { a: mine, b: theirs, when }), t('이 폰 Lv {n}', { n: mine }), t('계정 Lv {n}', { n: theirs }));
     if (account) { await chooseProgress('account', d.rev ?? null, G.save, null, now()); applyServer(u, d); return; }
-    if (await askModal('이 폰 진행으로', `계정의 Lv ${theirs} 진행은 사본으로 물러나고 이 폰 Lv ${mine} 진행이 백업됩니다.`, '취소', '이 폰 진행 백업')) { await deviceUp(); return; }
+    if (await askModal(t('이 폰 진행으로'), t('계정의 Lv {b} 진행은 사본으로 물러나고 이 폰 Lv {a} 진행이 백업됩니다.', { a: mine, b: theirs }), t('취소'), t('이 폰 진행 백업'))) { await deviceUp(); return; }
   }
 }
 
@@ -224,7 +225,7 @@ async function syncForeground(): Promise<void> {
 
 /** 설정 「구글 계정 연결」 */
 export async function linkGoogle(): Promise<void> {
-  if (!googleReady()) { await noticeModal('구글 계정 연결', '아직 준비 중입니다.'); return; }
+  if (!googleReady()) { await noticeModal(t('구글 계정 연결'), t('아직 준비 중입니다.')); return; }
   if (busy) return;
   busy = true;
   try {
@@ -234,9 +235,9 @@ export async function linkGoogle(): Promise<void> {
     void logLogin(mode); // link = 익명 계정에 연동 (같은 ID) · sign_in = 이미 있던 구글 계정으로
     changed();
     await reconcile(u);
-    notify('구글 계정 연결됨');
+    notify(t('구글 계정 연결됨'));
   } catch (e) {
-    if (err(e) !== '구글 로그인 취소') await noticeModal('구글 계정 연결', `연결하지 못했습니다.<br>${err(e).replace(/[<>&]/g, '')}`);
+    if (err(e) !== '구글 로그인 취소') await noticeModal(t('구글 계정 연결'), t('연결하지 못했습니다.<br>{e}', { e: err(e).replace(/[<>&]/g, '') }));
   } finally { busy = false; changed(); }
 }
 
@@ -254,13 +255,13 @@ async function finalBackup(u: Me): Promise<boolean> {
  * 지우기 전에 마지막 백업 (못 올리면 로그아웃하지 않음). 다시 로그인하면 「계정 진행」으로 받아 올 수 있다
  */
 export async function signOutFlow(): Promise<void> {
-  if (!(await askModal('로그아웃', '로그아웃하면 이 기기의 진행은 지워지고, 계정에 백업된 진행은 그대로 남습니다.<br>다시 로그인하면 불러올 수 있습니다.', '취소', '로그아웃'))) return;
+  if (!(await askModal(t('로그아웃'), t('로그아웃하면 이 기기의 진행은 지워지고, 계정에 백업된 진행은 그대로 남습니다.<br>다시 로그인하면 불러올 수 있습니다.'), t('취소'), t('로그아웃')))) return;
   if (busy) return;
   busy = true;
   try {
     const u = await googleUser();
     if (!u) return;
-    if (!(await finalBackup(u))) { await noticeModal('로그아웃', '마지막 진행을 백업하지 못했습니다.<br>인터넷에 연결된 뒤 다시 할 수 있습니다.'); return; }
+    if (!(await finalBackup(u))) { await noticeModal(t('로그아웃'), t('마지막 진행을 백업하지 못했습니다.<br>인터넷에 연결된 뒤 다시 할 수 있습니다.')); return; }
     await logLogin('sign_out');
     await signOut();
     who = null;
@@ -273,13 +274,13 @@ export async function signOutFlow(): Promise<void> {
 
 /** 설정 「계정 삭제」 (Google Play 정책) */
 export async function deleteFlow(): Promise<void> {
-  if (!(await askModal('계정 삭제', '서버의 백업 · 로그인 기록이 모두 지워지고 되돌릴 수 없습니다. 이 폰의 진행은 그대로 남습니다.', '취소', '삭제'))) return;
-  try { await deleteAccount(); } catch (e) { await noticeModal('계정 삭제', `삭제하지 못했습니다.<br>${err(e).replace(/[<>&]/g, '')}`); return; }
+  if (!(await askModal(t('계정 삭제'), t('서버의 백업 · 로그인 기록이 모두 지워지고 되돌릴 수 없습니다. 이 폰의 진행은 그대로 남습니다.'), t('취소'), t('삭제')))) return;
+  try { await deleteAccount(); } catch (e) { await noticeModal(t('계정 삭제'), t('삭제하지 못했습니다.<br>{e}', { e: err(e).replace(/[<>&]/g, '') })); return; }
   await signOut();
   who = null;
   writeState(null);
   await backToAnonymous();
-  notify('계정을 삭제했습니다');
+  notify(t('계정을 삭제했습니다'));
 }
 
 /** 앱이 켜질 때 (main.ts): 로그인 상태 읽기 (없으면 익명 계정) · 켬 기록 · 맞춤, 내릴 때 자동 백업 · 앞으로 올 때 맞춤 */

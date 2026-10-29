@@ -26,5 +26,14 @@ export function scanKeys(root) {
   return out;
 }
 
+/** index.html의 정적 한국어 글 (i18n/dom.ts translateStatic이 훑는 글 노드 · aria-label · title · placeholder). <title>은 안 봄 */
+export function scanHtmlKeys(file) {
+  const html = readFileSync(file, 'utf8').replace(/<title>[\s\S]*?<\/title>/, '').replace(/<!--[\s\S]*?-->/g, '');
+  const keys = [];
+  for (const m of html.matchAll(/>([^<]*[가-힣][^<]*)</g)) keys.push(m[1].trim());
+  for (const m of html.matchAll(/(?:aria-label|title|placeholder)="([^"]*[가-힣][^"]*)"/g)) keys.push(m[1]);
+  return keys;
+}
+
 /** 자리값 이름 묶음 ({n} · {a}) */
 export const slots = s => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join(',');
