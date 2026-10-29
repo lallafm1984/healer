@@ -1,5 +1,5 @@
 /**
- * 구글 계정 · 자동 백업 (기획 120 9-2 · 3-1, 2026-10-29 Lim 「저장 백업은 구글 로그인 한 사람만 … 앱종료시 자동 저장 및 백업」 · 「구글 계정 연결(사용자 선택)」 · 「설정에만」).
+ * 계정 · 자동 백업 (기획 120 9-2 · 3-1, 처음 켜면 익명 계정 → 설정에서 구글 연동 (2026-10-29 Lim), 2026-10-29 Lim 「저장 백업은 구글 로그인 한 사람만 … 앱종료시 자동 저장 및 백업」 · 「구글 계정 연결(사용자 선택)」 · 「설정에만」).
  * - 설정 「계정」 판에서만 구글 연결 · 로그아웃 · 계정 삭제. 백업 · 불러오기 버튼은 없다.
  * - 앱을 끄거나 내릴 때 (pause) 저장이 바뀌었으면 올림. 같은 내용은 다시 안 올림, 응답을 못 받은 올림은 같은 upload_id로 다시 (서버가 한 번만 처리).
  * - 서버 저장을 받는 때는 둘뿐: 로그인할 때 (진행 고르기)와 저장이 깨졌을 때 (복구 대기, storage.load). 그 전에는 올리지 않는다.
@@ -8,7 +8,7 @@
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
-import { chooseProgress, deleteAccount, downloadSave, googleReady, logLogin, me, signInWithGoogle, signOut, uploadSave, type Download, type Me } from '../platform/account';
+import { chooseProgress, connectGoogle, deleteAccount, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, type Download, type Me } from '../platform/account';
 import { lastBoot, remoteFlag } from '../platform/server';
 import { serverOn } from '../platform/server-config';
 import { migrate, RESTORE_PENDING_KEY, save, type SaveData, type Settings } from '../platform/storage';
@@ -79,8 +79,18 @@ const changed = (): void => { for (const fn of listeners) fn(); };
 export interface AccountView { on: boolean; ready: boolean; user: Me | null; lastAt: number | null }
 /** 설정 「계정」 판이 보일 것 */
 export function accountView(): AccountView {
-  const st = readState();
-  return { on: serverOn(), ready: googleReady(), user: who, lastAt: who && st?.uid === who.id && st.at ? st.at : null };
+  const st = readState(), g = who && !who.anonymous ? who : null;
+  return { on: serverOn(), ready: googleReady(), user: g, lastAt: g && st?.uid === g.id && st.at ? st.at : null };
+}
+
+/** 구글 계정 (익명이 아님)일 때만 백업 */
+const googleUser = async (): Promise<Me | null> => { const u = who ?? (who = await me()); return u && !u.anonymous ? u : null; };
+
+/** 익명 계정으로 돌아감 (로그아웃 · 계정 삭제 뒤): 새 익명 계정 · 첫 익명 기록 */
+async function backToAnonymous(): Promise<void> {
+  who = await startAnonymous();
+  if (who) void logLogin('anon_start');
+  changed();
 }
 
 const err = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -145,7 +155,7 @@ export async function backupOnPause(): Promise<void> {
   if (busy || !serverOn()) return;
   busy = true;
   try {
-    const u = who ?? (who = await me());
+    const u = await googleUser();
     if (!u) return;
     const st = readState();
     const step = backupStep(st, u.id, fnv(JSON.stringify(G.save)), { restorePending: restorePending(), paused: serverPaused() });
@@ -156,7 +166,7 @@ export async function backupOnPause(): Promise<void> {
 /** 앞으로 올 때 · 켤 때: 맞춰야 하면 맞춤 */
 async function syncForeground(): Promise<void> {
   if (busy || !serverOn()) return;
-  const u = who ?? (who = await me());
+  const u = await googleUser();
   if (!u || serverPaused()) return;
   const st = readState();
   if (backupStep(st, u.id, '', { restorePending: restorePending(), paused: false }) !== 'sync') return;
@@ -170,10 +180,10 @@ export async function linkGoogle(): Promise<void> {
   if (busy) return;
   busy = true;
   try {
-    const u = await signInWithGoogle();
+    const { user: u, mode } = await connectGoogle();
     who = u;
     if (readState()?.uid !== u.id) writeState(null); // 다른 계정이면 이전 대기를 버림
-    void logLogin('sign_in');
+    void logLogin(mode); // link = 익명 계정에 연동 (같은 ID) · sign_in = 이미 있던 구글 계정으로
     changed();
     await reconcile(u);
     notify('구글 계정 연결됨');
@@ -189,7 +199,7 @@ export async function signOutFlow(): Promise<void> {
   await signOut();
   who = null;
   writeState(null);
-  changed();
+  await backToAnonymous();
   notify('로그아웃됨');
 }
 
@@ -200,17 +210,19 @@ export async function deleteFlow(): Promise<void> {
   await signOut();
   who = null;
   writeState(null);
-  changed();
+  await backToAnonymous();
   notify('계정을 삭제했습니다');
 }
 
-/** 앱이 켜질 때 (main.ts): 로그인 상태 읽기 · 켬 기록 · 맞춤, 내릴 때 자동 백업 · 앞으로 올 때 맞춤 */
+/** 앱이 켜질 때 (main.ts): 로그인 상태 읽기 (없으면 익명 계정) · 켬 기록 · 맞춤, 내릴 때 자동 백업 · 앞으로 올 때 맞춤 */
 export function mountAccount(): void {
   if (!serverOn()) return;
   void (async () => {
     who = await me();
+    if (!who) { await backToAnonymous(); return; } // 처음 켬: 익명 계정
     changed();
-    if (who) { void logLogin('open'); await syncForeground(); }
+    void logLogin('open');
+    if (!who.anonymous) await syncForeground();
   })();
   if (Capacitor.isNativePlatform()) {
     void App.addListener('pause', () => { void backupOnPause(); });

@@ -9,8 +9,9 @@
 | 자동 백업 (앱을 끄거나 뒤로 보낼 때) | `upload_save(data, base_rev, upload_id, app_version, client_at)` | 구글 로그인 한 사람 |
 | 자기 저장 받기 (로그인 고르기 · 저장 깨짐 때만) | `download_save()` | 구글 로그인 한 사람 |
 | 구글 로그인 때 진행 고르기 | `choose_progress(keep, account_rev, data, upload_id, …)` | 구글 로그인 한 사람 |
-| 계정 삭제 | `delete_account()` | 구글 로그인 한 사람 |
-| 로그인 기록 (구글 로그인 · 로그인한 채로 켬 · 로그아웃, 60일 보관) | `log_login(event, platform, version)` | 구글 로그인 한 사람 |
+| 계정 삭제 | `delete_account()` | 로그인한 사람 (익명 포함) |
+| 로그인 기록 (첫 익명 · 구글 연동 · 구글 로그인 · 켬 · 로그아웃, 60일 보관) | `log_login(event, platform, version)` | 로그인한 사람 (익명 포함) |
+| 오래 안 쓴 익명 계정 정리 (마지막 기록이 `anon_keep_days` 60일보다 오래) | `admin_cleanup_anonymous()` | 대시보드만 |
 | 사본 한 판 되돌리기 | `admin_restore_save(user_id, history_id)` | 대시보드만 |
 
 표: `saves` (사용자마다 지금 판) · `save_history` (사본, `server_settings.history_keep`개) · `purchases` (PR 4 RevenueCat) · `account_merges` · `audit_flags` (조작 의심 기록, 막지 않음) · `app_config` · `notices` · `boot_stats` · `login_logs` (60일 지난 줄은 `log_login`이 지움, `server_settings.login_keep_days`) · `server_settings`.
@@ -22,6 +23,7 @@
 | 날짜 | 프로젝트 | 마이그레이션 | 방법 |
 |---|---|---|---|
 | 2026-10-29 | `pdnffebscgldelfqjdan` 「Healer Project」 (lallafm0001@gmail.com 계정, 서울) | `20261029000000_server_init.sql` | Management API (`/database/query`), 공개 키로 `app_boot` · 권한 거절 확인 |
+| 2026-10-29 | 같음 | `20261029020000_anonymous_login.sql` (익명 로그인 → 구글 연동) | Management API, 새 함수 권한 거절 확인 |
 
 다른 계정의 Lotto · nullplaying 프로젝트에는 적용하지 않는다 (이 마이그레이션은 `public` 스키마의 공개 권한을 거둬서 다른 앱이 깨짐).
 Supabase 보안 점검 (Advisors)의 「RLS는 켜졌는데 정책 없음」 · 「anon/authenticated가 security definer 함수를 부를 수 있음」은 의도한 모양이다 (표는 함수로만, 함수는 `auth.uid()`로만).
@@ -31,7 +33,7 @@ Supabase 보안 점검 (Advisors)의 「RLS는 켜졌는데 정책 없음」 · 
 1. [supabase.com](https://supabase.com) → New project → Free, Region **Northeast Asia (Seoul)**. DB 비밀번호는 따로 보관.
 2. Project Settings → API (또는 Data API): **Project URL**과 **anon public 키**를 Claude에게. (공개 키는 앱에 들어가는 값이라 공개돼도 된다. `service_role` 키는 주지 않는다.)
 3. SQL Editor → New query → `supabase/migrations/` 파일을 번호 순서대로 통째로 붙여 넣고 Run.
-4. Authentication → Sign In / Providers: **Anonymous sign-ins는 끈 채로** (익명 로그인은 쓰지 않음). Google은 앱 PR 3 때 켠다 (Google Cloud OAuth 클라이언트 웹 1 · 안드로이드 1, 앱 서명 SHA-1 — 그때 순서를 따로 안내).
+4. Authentication → Sign In / Providers: **Allow anonymous sign-ins 켬** (처음 켜면 익명 계정, 2026-10-29 Lim) · **Allow manual linking 켬** (구글 연동 `linkIdentity`) · **Email 끔** (구글만) · **Google 켬** (Client IDs = 웹 클라이언트 ID, Client Secret = 웹 보안 비밀).
 5. Table Editor → `app_config`의 `android` 줄이 있는지 확인.
 
 무료 플랜은 1주 동안 아무도 안 쓰면 멈출 수 있다 (데이터는 남음, 대시보드에서 다시 켬). 앱은 서버에 못 닿아도 로컬 저장으로 그대로 돈다.
@@ -60,6 +62,10 @@ select l.created_at, l.user_id, l.event, l.platform, l.app_version from public.l
 select l.created_at, l.event, l.app_version from public.login_logs l where l.user_id = '…' order by l.id desc;
 -- 아무도 로그인하지 않아도 60일을 지키려면 (선택, Database → Extensions에서 pg_cron을 켠 뒤)
 -- select cron.schedule('login-logs-keep', '0 18 * * *', $$delete from public.login_logs where created_at < now() - interval '60 days'$$);
+
+-- 오래 안 쓴 익명 계정 정리 (지운 수). 하루 한 번 돌리려면 (선택, pg_cron):
+select public.admin_cleanup_anonymous();
+-- select cron.schedule('anon-cleanup', '30 18 * * *', $$select public.admin_cleanup_anonymous()$$);
 
 -- 버전별 켠 수 (최근 7일)
 select day, version, n from public.boot_stats where day > current_date - 7 order by day desc, version desc;
