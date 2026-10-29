@@ -47,12 +47,14 @@ import battleNotes from './battle-notes.mjs';
 import raidFiveLook from './raid-five-look.mjs';
 import floatSteady from './float-steady.mjs';
 import skillTipHold from './skill-tip-hold.mjs';
+import i18nKo from './i18n-ko.mjs';
 
 /**
  * [이름, 묶음, CI에서 걸린 초, 조각 수]. 초는 2026-10-11 CI 기록 (모두 합쳐 33분), 몫을 고르게 나누는 데만 씀.
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
+  ['한국어 화면 스냅샷 (121)', i18nKo, 40], // 어림
   ['타이틀 반복 연출·효과 줄이기', titleMotion, 12],
   ['전투 효과음 재생·누락·음소거', combatAudio, 60],
   ['전투 소리 일시정지·결과 옵션 배경음', audioPause, 20],

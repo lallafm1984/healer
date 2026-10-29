@@ -19,6 +19,7 @@ import { topLevel } from '../platform/storage';
 import { TUT } from '../game/tutorial';
 import { go, setTabsHandler, type TabKey } from './kit';
 import { classEmblem, gameIcon, uiIcon } from './art';
+import { t } from '../i18n';
 
 export interface TabDef {
   key: TabKey;
@@ -69,15 +70,15 @@ export function mountTabs(nav: HTMLElement): void {
   let cur: TabKey | undefined;
   const render = () => {
     const glints = nav.querySelectorAll('.xf-glint'); // 화면 전환 탭 금빛 (transition.ts)은 다시 그려도 이어서
-    nav.innerHTML = TABS.map(t => {
-      const locked = !!t.lv && topLevel(G.save) < t.lv && !(t.key === 'guild' && G.save.guild.founded); // 이미 만든 길드는 잠그지 않음 (guildOpen과 같게, 2026-10-29 Lim)
-      const tl = tutLocked(t.key);
-      const baseIcon = iconOf(t.key);
+    nav.innerHTML = TABS.map(tab => {
+      const locked = !!tab.lv && topLevel(G.save) < tab.lv && !(tab.key === 'guild' && G.save.guild.founded); // 이미 만든 길드는 잠그지 않음 (guildOpen과 같게, 2026-10-29 Lim)
+      const tl = tutLocked(tab.key);
+      const baseIcon = iconOf(tab.key);
       // A2 교차검을 모든 탭에서 동일하게 사용한다. 잠금 상태의 자물쇠는 보존한다.
       // 잠금 = 다른 탭과 같은 결의 황동 자물쇠 그림 tab-lock (2026-10-28 Lim 「자물쇠도 아이콘으로 다른아이콘과 비슷한걸로」), 없으면 선 아이콘
-      const icon = locked || tl ? gameIcon('lock', uiIcon('lock'), 'tab') : t.key === 'battle' ? gameIcon('a2-swords', baseIcon) : baseIcon;
+      const icon = locked || tl ? gameIcon('lock', uiIcon('lock'), 'tab') : tab.key === 'battle' ? gameIcon('a2-swords', baseIcon) : baseIcon;
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl ? '<small>잠금</small>' : locked ? `<span class="sr"> Lv ${t.lv}에 열림</span>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
+      return `<button type="button" data-tab="${tab.key}"${tab.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t(tab.name)}</span>${tl ? `<small>${t('잠금')}</small>` : locked ? `<span class="sr"> ${t('Lv {n}에 열림', { n: tab.lv! })}</span>` : ''}${!tl && !locked && dotOf(tab.key) ? `<i class="rdot" aria-label="${t('새 소식')}"></i>` : ''}</button>`;
     }).join('');
     nav.append(...glints);
   };

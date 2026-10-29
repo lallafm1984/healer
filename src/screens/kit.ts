@@ -1,5 +1,6 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import { syncBgm } from '../bgm';
+import { locale, t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -16,7 +17,7 @@ import { staminaCell } from './stamina';
 export const $ = (id: string) => document.getElementById(id)!;
 
 export const esc = (s: unknown) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-export const fmt = (n: number) => Math.round(n).toLocaleString('ko-KR');
+export const fmt = (n: number) => Math.round(n).toLocaleString(locale());
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 /** 받침 있으면 a, 없으면 b */
@@ -64,7 +65,7 @@ export const goingBack = (): boolean => backNav;
 /** <section class="screen"> 하나를 #app에 붙이고 등록 */
 export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}): Screen {
   const el = document.createElement('section');
-  el.id = id; el.className = 'screen ns'; el.hidden = true; el.setAttribute('aria-label', label);
+  el.id = id; el.className = 'screen ns'; el.hidden = true; el.setAttribute('aria-label', t(label));
   $('app').appendChild(el);
   const s = { el, ...def };
   screens.set(id, s);
@@ -110,9 +111,9 @@ const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
   const s = G.save, p = s.player;
-  const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
+  const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="${t('설정')}"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
   if (opts.back) {
-    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>${set}</header>`;
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="${t('뒤로')}">←</button><b class="tb-title">${esc(opts.title || '')}</b>${set}</header>`;
   }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
@@ -120,19 +121,19 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const left = tutDone ? talentsLeft() : 0, fresh = tutDone ? newGearCount() : 0;
   const charOk = tutDone || s.gear.bag.length > 0 || Object.keys(s.gear.equipped).length > 0;
   const hero = HEROES[heroNow()];
-  const note = [left ? `특성 ${left} 남음` : '', fresh ? `새 장비 ${fresh}개` : ''].filter(Boolean).join(' · ');
+  const note = [left ? t('특성 {n} 남음', { n: left }) : '', fresh ? t('새 장비 {n}개', { n: fresh }) : ''].filter(Boolean).join(' · ');
   const pfIn = `<span class="tb-em">${classEmblem(heroNow(), 'lg')}</span>${note ? '<i class="tb-dot"></i>' : ''}`;
   const pf = opts.settings && charOk
-    ? `<button class="tb-pf" type="button" data-go="s-char"${fresh ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
-    : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
+    ? `<button class="tb-pf" type="button" data-go="s-char"${fresh ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="${t('캐릭터')} · ${esc(t(hero.name))} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
+    : `<span class="tb-pf" role="img" aria-label="${esc(t(hero.name))} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
-    <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
-      <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="경험치 ${Math.floor(pct)}%" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
+    <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(t(hero.name))}</b><small class="tb-lv">Lv. ${p.level}</small></span>
+      <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="${t('경험치 {n}%', { n: Math.floor(pct) })}" title="${t('경험치 {a} / {b}', { a: fmt(p.xp), b: isFinite(need) ? fmt(need) : t('최대') })}${apexOf(p.level) > 1 ? ` · ${t('수련 +{n}%', { n: ((apexOf(p.level) - 1) * 100).toFixed(1) })}` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
     ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}${goldCell()}</span>` : ''}
     ${set}</header>`;
 }
 
-const goldLabel = (n: number) => (isFinite(n) ? `골드 ${fmt(n)}` : '골드 무제한');
+const goldLabel = (n: number) => (isFinite(n) ? t('골드 {n}', { n: fmt(n) }) : t('골드 무제한'));
 /** 위 줄 골드 (2026-10-22): 휴식 숫자 아래 줄. 누르는 칸이 아님 (터치는 아래 휴식 칸으로 지나감). 툴팁 · 접근성 이름에는 전체 값 */
 function goldCell(): string {
   const n = resourceBalance(G.save, 'gold'), label = goldLabel(n);

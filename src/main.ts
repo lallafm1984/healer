@@ -93,8 +93,10 @@ import { prepareVillage } from './screens/village';
 import { initClock } from './platform/time';
 import { mountServer } from './screens/server-notice';
 import { mountAccount } from './screens/account';
+import { mountI18n } from './i18n/dom';
 
 applyArtVars();
+mountI18n(); // 정적 글 (전투 · 정비)을 지금 언어로 (기획 121). 사전은 i18n 모듈이 읽힐 때 이미 읽음
 mountTabs(document.getElementById('tabs')!);
 const calmFx = () => !!G.save.settings.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
 mountTapFx(calmFx); // 버튼 터치 연출 (2026-10-20 Lim)

@@ -1,4 +1,5 @@
 import { art } from '../art';
+import { locale, t } from '../i18n';
 import type { ContentKey } from '../data/content';
 import { kindOf, type SlotKey } from '../data/equipment';
 import { artPlaces, CONTENT_PLACE, ENCOUNTER_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
@@ -9,6 +10,8 @@ export const sunSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="no
 
 /** 작은 메뉴 기호는 기존 SVG처럼 벡터로 유지. 그림 자산과 역할을 분리한다. */
 const paths = {
+  /** 언어 (설정, 기획 121): 지구본 */
+  lang: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
   battle: '<path d="m12 3 7 3v6c0 5-7 9-7 9s-7-4-7-9V6z"/><path d="M12 7v9m-4-5h8"/>',
   char: '<path d="m8 3 8 0 2 5-6 3-6-3zM8 11l-4 9h16l-4-9M12 11v9"/>',
   guild: '<path d="M6 21V3h12l-2 4 2 4H6M3 21h6"/><path d="m10 6 2 2 2-2"/>',
@@ -187,16 +190,14 @@ export function currencyIcon(key: CurrencyIconKey): string {
   return `<span class="currency-icon" data-currency="${key}" aria-hidden="true">${gameIcon(key, CURRENCY_ART[key])}</span>`;
 }
 
-const compactAmount = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3, roundingMode: 'trunc' });
-/** 좁은 자리 (위 정보창 골드)의 보유량 글: 1만부터 줄여 씀 (1.23만 · 12.3만 · 1.23억). 버림이라 가진 것보다 크게 보이지 않음 (19,999는 1.99만). 무제한이면 ∞ */
-export const shortAmount = (n: number): string =>
-  (!isFinite(n) ? '∞' : n >= 10000 ? compactAmount.format(Math.floor(n)) : Math.floor(n).toLocaleString('ko-KR'));
+/** 좁은 자리 (위 정보창 골드)의 보유량 글: 1만부터 줄여 씀 (1.23만 · 12.3만 · 1.23억, 영어 12.3K · 일본어 1.23万, 기획 121). 버림이라 가진 것보다 크게 보이지 않음 (19,999는 1.99만). 무제한이면 ∞ */
+export { shortAmount } from '../i18n';
 
 /** 가격·보상·보유량: 공통 아이콘 + 숫자, 재화 이름은 접근성 설명으로 제공한다. */
 export function currencyAmount(key: CurrencyIconKey, value: number | string, opts: { have?: number; prefix?: string } = {}): string {
   const safe = (s: string) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
-  const n = typeof value === 'number' ? value.toLocaleString('ko-KR') : value;
-  const amount = safe(`${opts.prefix ?? ''}${n}`), have = opts.have?.toLocaleString('ko-KR');
-  const label = `${CURRENCY_NAMES[key]} ${amount}${have != null ? ` · 보유 ${have}` : ''}`;
+  const n = typeof value === 'number' ? value.toLocaleString(locale()) : value;
+  const amount = safe(`${opts.prefix ?? ''}${n}`), have = opts.have?.toLocaleString(locale());
+  const label = `${t(CURRENCY_NAMES[key])} ${amount}${have != null ? ` · ${t('보유 {n}', { n: have })}` : ''}`;
   return `<span class="currency-amount" role="img" aria-label="${label}" title="${label}">${currencyIcon(key)}<b aria-hidden="true">${amount}</b>${have != null ? `<small aria-hidden="true">(보유 ${have})</small>` : ''}</span>`;
 }
