@@ -1860,7 +1860,7 @@ export function render(now: number): void {
     // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만). 칸 그림(37 4장 E)이 있으면 이름 대신 그림
     const mt = artTexture(addArtName(m));
     if (mt) decals.put(mt, p.x, p.y - r * 0.18, r * 1.15, r * 1.15);
-    else labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * 0.13);
+    else labels.put(`tot${m.id}`, tr(a.short), { size: typography.nick, fill: 0xf3cfc6, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * 0.13);
     labels.put(`totp${m.id}`, `${Math.ceil((m.hp / m.max) * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: 2.5 }, p.x, p.y + r * 0.6);
     const j = a.job;
     // 남은 초: 폭탄 = 터질 때까지 (부화하는 알 = 깨질 때까지), 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
@@ -1880,7 +1880,7 @@ export function render(now: number): void {
     if (castTarget === u.id) hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 3, color: hex(SEL) });
     const st = artTexture(soulArtName(u));
     if (st) decals.put(st, p.x, p.y - r * 0.18, r * 1.15, r * 1.15, 0.7 + 0.15 * pulse);
-    else labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * 0.13);
+    else labels.put(`soul${u.id}`, tr(u.soul!.short), { size: typography.nick, fill: 0xe6fbff, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * 0.13);
     labels.put(`soulp${u.id}`, `${Math.floor(frac * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: 2.5 }, p.x, p.y + r * 0.6);
     pill(overG, labels, `soult${u.id}`, p.x, p.y - r * 0.8, `${Math.max(0, Math.ceil(u.soul!.until - F.t))}`, 0x8fd8e0, C.dark, fs(0.26, 11));
   }
@@ -2025,7 +2025,7 @@ export function render(now: number): void {
       const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
       // 다른 종류 디버프도 함께 걸려 있으면 배지 글자 끝에 + (종류는 길게 누르기 정보에). 배지 밖에 따로 그리면 작은 칸에서 위 칸 체력 숫자에 닿는다
       const more = u.debuffs.some(d => d !== deb && d.type !== deb.type) ? '+' : '';
-      const badgeText = (short: boolean) => (jail ? `${jail.add!.short} ${Math.ceil((jail.hp / jail.max) * 100)}%` : debuffDisplay(deb, F.hero, short).text) + more;
+      const badgeText = (short: boolean) => (jail ? `${tr(jail.add!.short)} ${Math.ceil((jail.hp / jail.max) * 100)}%` : debuffDisplay(deb, F.hero, short).text) + more;
       const color = deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : deb.debt ? DEBT_HI : hex(DEB[deb.type] || '#E5433D'), fsD = typography.debuff; // 빌린 생명은 보랏빛 「빚」 배지
       // 배지는 직업 아이콘 자리 (윗줄)에 (2026-10-10). 꼭짓점에 두면 위 칸 체력 숫자와 겹친다.
       // 윗변은 위 칸 체력 숫자 아래 (글자 상자의 위아래 여백 2px는 겹쳐도 안 보임)
@@ -2105,7 +2105,7 @@ export function render(now: number): void {
     const low: { key: string; text: string; bg: number; fg: number }[] = [];
     // 판 위 적이 때리는 사람 (부탱커·딜러) · 자폭 쫄이 노리는 사람: 그 적 이름 (35 3-I)
     const add = F.mobs.find(m => m.alive && m.add && m.add.on === u.id && (m.add.dmg > 0 || m.add.job?.p === 'smash' || m.add.job?.p === 'fixate'));
-    if (add) low.push({ key: `add${u.id}`, text: add.add!.short, bg: add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, fg: add.add!.job?.p === 'fixate' ? C.white : C.dark });
+    if (add) low.push({ key: `add${u.id}`, text: tr(add.add!.short), bg: add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, fg: add.add!.job?.p === 'fixate' ? C.white : C.dark });
     if (F.rats && F.rats.includes(u.id)) low.push({ key: `rat${u.id}`, text: tr('쥐떼'), bg: 0xb9a38a, fg: C.dark });
     // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);

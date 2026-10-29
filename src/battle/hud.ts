@@ -1,5 +1,5 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
-import { locale, t, tc } from '../i18n';
+import { lang, locale, t, tc } from '../i18n';
 import { classGaugeState } from './class-gauge-state';
 import { talentCd, waveNeed } from '../engine/talents';
 import { chalTime } from '../engine/affixes';
@@ -433,6 +433,8 @@ const QSHORT: Record<string, string> = {
   '녹물 웅덩이': '웅덩이', '썩은 숨결': '숨결', '역병 파동': '파동', '역병 폭풍': '폭풍',
   '인터미션 끝': '복귀', '고철 폭주': '폭주', '증기 폭주': '폭주', '역병 폭주': '폭주',
 };
+/** 예고 칸 마지막 후보 (두 글자 아이콘 글자, 121 3단계 ①): 한국어는 데이터 글자, 영어는 번역 이름의 머리글자 (Scrap Swing → SS), 일본어는 번역 이름 앞 두 글자 */
+const qGlyph = (icon: string, name: string): string => (lang() === 'ko' || !name ? icon : lang() === 'en' ? t(name).split(/[^A-Za-z0-9]+/).filter(Boolean).slice(0, 3).map(w => w[0].toUpperCase()).join('') : t(name).slice(0, 2));
 /** 이름 후보를 앞에서부터 보통 크기 → 조금 줄인 크기로 넣어 보고 처음 들어가는 것을 씀. 후보가 같으면 다시 재지 않음 */
 function fitQName(nm: HTMLElement, names: string[]): void {
   const key = names.join('|');
@@ -538,8 +540,8 @@ export function updateStage(now: number): void {
       if (el.className !== cls) el.className = cls;
       setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
       // 남은 초를 먼저 넣어 이름의 폭을 잰다. 종류는 읽기 이름과 설명 팝업에만 표시한다.
-      const names = [...new Set([it.name, QSHORT[it.name || ''], it.icon].filter((n): n is string => !!n))];
-      fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names.map(n => t(n)) : [tc('기술', 'battle')]);
+      const names = [...new Set([...[it.name, QSHORT[it.name || '']].filter((n): n is string => !!n).map(n => t(n)), ...(it.icon ? [qGlyph(it.icon, it.name || '')] : [])])];
+      fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names : [tc('기술', 'battle')]);
       const label = `${it.name ? t(it.name) : tc('기술', 'battle')}, ${t(qKind(it.kind).name)}, ${t('{n}초 뒤', { n: Math.ceil(sec) })}${it.casting ? `, ${t('시전 중')}` : ''}. ${t('기술 설명')}`;
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       qGauge(el.querySelector<HTMLElement>('.fill')!, sec / QWIN);
