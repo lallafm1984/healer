@@ -8,7 +8,7 @@ import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { giveAbsorb } from './abilities';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healTop, living } from './core';
+import { cellOf, emit, heal, healTop, living, msg } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn, cdOf } from './talents';
@@ -164,7 +164,7 @@ export function shamanApply(f: Fight, key: SkillKey, u: Unit): void {
     const s = st(f);
     s.rainUntil = f.t + raidSec(f, 'rainTotem', SHAMAN.rain.sec) + sv(f, 'longRain'); s.rainTick = SHAMAN.rain.tick;
     emit(f, { type: 'sound', name: 'hymn' });
-    emit(f, { type: 'msg', text: `비구름 토템: ${Math.round(s.rainUntil - f.t)}초` });
+    msg(f, '비구름 토템: {x}초', { x: Math.round(s.rainUntil - f.t) });
   } else if (key === 'spiritLink') {
     spiritLink(f, u);
   }
@@ -183,7 +183,7 @@ export function shamanCell(f: Fight, key: SkillKey, cell: number): void {
       if (at != null) { placeTotem(f, 'spring', at, springSec(f), { max: on.twinSpring ? TX.twinSpring.n : 1, tick: SHAMAN.spring.tick }); noteCell(f, 'springTotem', at); }
     }
     const u = f.cells[cell]?.unit;
-    emit(f, { type: 'msg', text: u ? `대지 토템: ${u.nick}` : '대지 토템' });
+    u ? msg(f, '대지 토템: {n}', { n: u.nick }) : msg(f, '대지 토템');
   } else return;
   noteCell(f, key, cell);
   emit(f, { type: 'sound', name: 'renew' });
@@ -253,7 +253,7 @@ export function shamanTick(f: Fight, dt: number): void {
   if (on.letFlow && s.letFlowCd <= 0 && me.alive && me.hp < me.max * TX.letFlow.hp) { // 흘려보내기
     s.letFlowCd = TX.letFlow.cd;
     tickNow(f, me, putDrop(f, me));
-    emit(f, { type: 'msg', text: '흘려보내기: 물방울' });
+    msg(f, '흘려보내기: 물방울');
   }
   if (on.alertTotem && f.tels.length) { // 경계하는 토템: 새 광역 예고에 샘 토템이 바로 한 번
     let fresh = false;
@@ -295,7 +295,7 @@ export function shamanLethal(f: Fight, u: Unit): boolean {
   f.totems = f.totems.filter(t => t !== sp);
   emit(f, { type: 'fx', name: 'crumble', cell: sp.cell });
   u.hp = u.max * TX.springSelf.hp;
-  emit(f, { type: 'msg', text: '나를 지키는 샘: 샘 토템이 대신 깨짐' });
+  msg(f, '나를 지키는 샘: 샘 토템이 대신 깨짐');
   return true;
 }
 

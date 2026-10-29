@@ -10,7 +10,7 @@ import { TX } from '../data/talents';
 import { absorbLeft, giveAbsorb, HEALER_SHIELD } from './abilities';
 import { hexDist } from './board';
 import { hurt, near, shun } from './allies';
-import { cellOf, emit, heal, living } from './core';
+import { cellOf, emit, heal, living, msg } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive } from './heroes';
 import { activeOn } from './talents';
@@ -247,7 +247,7 @@ export function warderTick(f: Fight, dt: number): void {
   if (s.lastCd > 0) s.lastCd -= dt;
   if (on.stepIn && s.stepCd <= 0) { // 막아서기
     const v = living(f).find(x => x.hp < x.max * TX.stepIn.hp && !shun(x));
-    if (v) { s.stepCd = TX.stepIn.cd; giveShield(f, v, TX.stepIn.amt, WARDER.barrier.sec); emit(f, { type: 'msg', text: `막아서기: ${v.nick}` }); }
+    if (v) { s.stepCd = TX.stepIn.cd; giveShield(f, v, TX.stepIn.amt, WARDER.barrier.sec); msg(f, '막아서기: {n}', { n: v.nick }); }
   }
   if (on.preWard && f.tels.length) { // 미리 친 결계: 새 광역 예고에 결계 원 재사용이 바로 끝남
     let fresh = false;

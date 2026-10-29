@@ -8,7 +8,7 @@ import { ASTRO } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { adjHurt, near } from './allies';
-import { emit, heal, living, recentDmg } from './core';
+import { emit, heal, living, msg, recentDmg } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
@@ -143,7 +143,7 @@ function fullDone(f: Fight): void {
   if (heroPassive(f, '별의 순환')) f.mana = Math.min(100, f.mana + ASTRO.cycle);
   if (f.tx.on.starPath) s.path = true;
   if (f.sp && sv(f, 'perfectHaste')) s.hasteUntil = f.t + 4;
-  emit(f, { type: 'msg', text: '가득 찬 별자리' });
+  msg(f, '가득 찬 별자리');
 }
 
 /** 별의 기억 (82 · 83 별자리): 별 1개마다 2초 (긴 기억 3초) 더 먼 피해의 50% (탱커의 기억 70%, 나누는 기억 +), 적어도 100 (힐 배율을 거친) */
@@ -181,7 +181,7 @@ export function astroApply(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'starSleep') {
     u.sleep = f.t + guardSec(f, ASTRO.sleep.sec + (f.sp ? sv(f, 'deepSleep') : 0)); // 깊은 잠 (점성 04) · 수호의 깃 (42 보호 07)
     emit(f, { type: 'sound', name: 'renew' });
-    emit(f, { type: 'msg', text: `별의 잠: ${u.nick}` });
+    msg(f, '별의 잠: {n}', { n: u.nick });
   } else if (key === 'starMemory') {
     const o = constellation(f); // 83: 시전이 끝날 때 조각을 모두 씀 (별 1개마다 2초)
     const m = (o.full ? 1 + ASTRO.star.fullHeal : 1) * (1 + st(f).used * (f.sp ? sv(f, 'brightShard') : 0)); // 밝은 조각 (점성 01)
@@ -217,7 +217,7 @@ export function astroLethal(f: Fight, u: Unit, amt: number): boolean {
   s.unfadingUsed = true;
   u.hp = Math.max(1, u.hp + amt);
   u.sleep = f.t + TX.unfading.sec;
-  emit(f, { type: 'msg', text: '지지 않는 별: 별의 잠' });
+  msg(f, '지지 않는 별: 별의 잠');
   return true;
 }
 

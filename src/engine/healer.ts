@@ -2,7 +2,7 @@ import { HEROES } from '../data/heroes';
 import { MONK } from '../data/heroConst';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { affRegen } from './affixes';
-import { DT, cellOf, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { cellOf, DT, emit, heal, living, msg, onDebuffEnd, unitById } from './core';
 import { hexDist } from './board';
 import { relayTick, putRelay } from './relay';
 import { totemsTick } from './totems';
@@ -91,7 +91,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (sk.gcd === 0) { exec(f, key, cellIdx, tg.u); return { ok: true }; } // GCD를 안 쓰는 스킬 (차 한 잔): 시전 · GCD 중에도 바로, 시전을 끊지 않음
   const uid = tg.u ? tg.u.id : null;
   if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
-  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: `${SKILLS[HEROES[f.hero].slots.raid!].name} 끊김` }); }
+  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; msg(f, '{s} 끊김', { s: SKILLS[HEROES[f.hero].slots.raid!].name }); }
   if (f.cast) { f.cast = null; f.stats.cancels++; f.gcd = 0; } // 시전을 취소하고 새 대상으로 바꿀 때는 GCD를 돌려준다 (02 4-2)
   if (f.gcd > 0) { f.queued = sk.target === 'cell' ? { key, uid, cell: cellIdx } : { key, uid }; return { ok: true, queued: true }; }
   exec(f, key, cellIdx, tg.u);
@@ -177,7 +177,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 }
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
-  if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
+  if (u.lift) { msg(f, '닿지 않음: {n}은(는) 하늘에 떠 있음', { n: u.nick }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
   if (key !== 'lightWave' && key !== 'judgment') noteUsed(f, key, u.id); // 빛의 파도 · 심판은 실제로 회복한 사람 칸마다 (heroes 73, warder)
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
@@ -266,7 +266,7 @@ export function healerTick(f: Fight): void {
   if (f.aff) regen *= affRegen(f); // 고갈 (110)
   f.mana = Math.min(100, f.mana + regen * dt);
   if (f.symbol > 0) f.symbol -= dt;
-  if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
+  if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; msg(f, '상징: 5초간 마나 회복 4배'); }
   const cr = f.sp ? crisis(f) : false; // 위기의 직감 (42 쿨기 06): 공대 쿨기 2배 빨리
   for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - (cr && SKILLS[k as SkillKey].slot === 'raid' ? 2 * dt : dt));
   if (f.me.debuffs.length) for (const d of f.me.debuffs) if (d.drain) f.mana = Math.max(0, f.mana - d.drain * dt); // 마나 갈취 표식 (P-DRAIN)
@@ -295,9 +295,9 @@ export function healerTick(f: Fight): void {
       const sk = SKILLS[c.key];
       const u = sk.target === 'none' ? f.me : unitById(f, c.uid); // 대상 없는 시전 (결계사 심판): 나를 기준으로
       const cost = costOf(f, c.key, u);
-      if (sk.target === 'dead') { if (u && !u.alive && f.mana >= cost) { f.mana -= cost; apply(f, c.key, u); } else emit(f, { type: 'msg', text: `${sk.name} 취소` }); }
-      else if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
-      else if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
+      if (sk.target === 'dead') { if (u && !u.alive && f.mana >= cost) { f.mana -= cost; apply(f, c.key, u); } else msg(f, '{s} 취소', { s: sk.name }); }
+      else if (!u || !u.alive) msg(f, '대상이 쓰러져 시전 취소');
+      else if (f.mana < cost) { f.stats.manaFails++; msg(f, '마나 부족'); }
       else { f.mana -= cost; if (sk.cd) f.cd[c.key] = cdOf(f, c.key); apply(f, c.key, u); } // 시전 스킬의 재사용 대기는 시전이 끝날 때 (들꽃 군락)
     }
   }
@@ -305,12 +305,12 @@ export function healerTick(f: Fight): void {
     const q = f.queued; f.queued = null;
     const sk = SKILLS[q.key];
     const tu = q.uid == null ? null : unitById(f, q.uid);
-    if (q.uid != null && (!tu || !tu.alive) && sk.target !== 'dead') { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐 취소' }); }
+    if (q.uid != null && (!tu || !tu.alive) && sk.target !== 'dead') { f.stats.queueLost++; msg(f, '대상이 쓰러져 예약한 힐 취소'); }
     else {
       const idx = q.cell ?? (tu ? tu.cell : 0);
       const tg = canTarget(f, q.key, idx);
       if (tg.ok && !(sk.cd && (f.cd[q.key] ?? 0) > 0) && !f.lock[q.key] && f.mana >= costOf(f, q.key, tg.u)) exec(f, q.key, idx, tg.u);
-      else { f.stats.queueLost++; if (!tg.ok && tg.reason) emit(f, { type: 'msg', text: tg.reason }); }
+      else { f.stats.queueLost++; if (!tg.ok && tg.reason) msg(f, tg.reason); }
     }
   }
   if (f.sp) specTick(f, dt, pohAt);

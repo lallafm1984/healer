@@ -3,7 +3,7 @@
  * 프로토타입 v11 전투 화면을 TypeScript로 옮긴 것. 판 그리기는 board.ts(PixiJS).
  */
 import type { CoachKey } from '../game/tutorial';
-import { lang, t } from '../i18n';
+import { lang, nickOf, t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
@@ -333,4 +333,14 @@ export function show(id: string): void {
   // focus/scrollIntoView가 남긴 상위 offset이 다음 화면을 광고 뒤로 밀지 않게 함.
   $('app').scrollTop = 0; $('app').scrollLeft = 0;
   $('viewport').scrollTop = 0; $('viewport').scrollLeft = 0;
+}
+
+/** 엔진 알림 글 (engine/core.ts msg) 자리값: n · n2 닉네임 → nickOf, ns 닉네임 여럿 (' · ') → 하나씩, s · d · a · a2 · w 이름 · 글 → t() (121 ⑥-2). 화면은 t(ev.k, msgParams(ev.p)) */
+export function msgParams(p?: Record<string, string | number>): Record<string, string | number> | undefined {
+  if (!p) return p;
+  const out: Record<string, string | number> = { ...p };
+  for (const k of ['n', 'n2']) if (typeof out[k] === 'string') out[k] = nickOf(out[k] as string);
+  if (typeof out.ns === 'string') out.ns = out.ns.split(' · ').map(nickOf).join(' · ');
+  for (const k of ['s', 'd', 'a', 'a2', 'w']) if (typeof out[k] === 'string') out[k] = t(out[k] as string);
+  return out;
 }

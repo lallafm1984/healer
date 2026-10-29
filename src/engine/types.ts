@@ -493,7 +493,7 @@ export type FightEvent =
   /** 흡수 보호막을 씌움 (amt = 더해진 양): 화면은 회복 숫자와 같은 자리에 파란 숫자 */
   | { type: 'shield'; id: number; amt: number }
   | { type: 'sound'; name: string }
-  | { type: 'msg'; text: string }
+  | { type: 'msg'; text: string; /** 한국어 틀 · 자리값 (core.ts msg, 121 ⑥-2) */ k?: string; p?: Record<string, string | number> }
   | { type: 'death'; id: number }
   | { type: 'debuff'; id: number; dtype: string }
   | { type: 'phase'; text: string }

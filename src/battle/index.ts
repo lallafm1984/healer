@@ -26,10 +26,7 @@ import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, mobLook, ratsArt } from './art';
 import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAddHit, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfBetween, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
-import {
-  $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
-  swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
-} from './core';
+import { $, applyLayout, ARROW, B, banner, clearToasts, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, msgParams, READ_ORDER, S, show, Snd, swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, type Pointer, type Run, type StartOptions, ui, validLayout, vibe } from './core';
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
@@ -584,7 +581,7 @@ function handleEvents(now: number): void {
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(t('{n} 쓰러짐', { n: nickOf(u.nick) }), 'bad');
         break;
-      case 'msg': toast(ev.text); break;
+      case 'msg': toast(ev.k ? t(ev.k, msgParams(ev.p)) : ev.text); break; // 엔진 알림 글 (121 ⑥-2)
       case 'phase': banner(t(ev.text), { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
       case 'gauge': if (!priest.suppress.has('gauge')) Snd.play('gauge'); toast(t('성언: {w} 준비됨 · 휠에서 장전해 사용', { w: t(ev.which) }), 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, t('봉화 지정'), true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
@@ -1008,3 +1005,4 @@ function frame(now: number): void {
 };
 void initBoard().catch(err => console.error('전투 판 준비 실패', err));
 requestAnimationFrame(frame);
+
