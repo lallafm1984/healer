@@ -65,6 +65,7 @@ export default async function classControls(url,shots){
    for(const full of [false,true]){
     await p.evaluate(full=>{const f=window.__proto.F;f.g.p=full?100:0;f.power3=full?3:0;f.beat=full?(f.tx.on.sevenBeat?7:5):0;f.beatUntil=f.t+9.9;f.shards=full?(f.tx.on.fifthStar?4:3):0;
      f.party.forEach(u=>{u.alive=true;u.hp=u.max;u.dps=0;u.hots=full?[{key:'sprout',name:'새싹',left:99,every:999,tick:999,per:1,i:0,rest:100}]:[];u.seal=full?f.t+99:0;});
+     f.leaves=full?99:0;if(f.warder)f.warder.ward=full?99:0; // 드루이드 잎 · 결계사 결계력 (2026-10-28 #490 · #492): 가득이면 자원 칸 가득
      f.totems=full?[{kind:'spring',cell:0,until:f.t+20,tick:999,at:f.t},{kind:'earth',cell:1,until:f.t+20,tick:999,at:f.t}]:[];f.cd.springTotem=full?24:0;
     },full);await p.clock.runFor(160);
     const state=await p.evaluate(()=>{const g=document.querySelector('.job-gauge'),r=g.getBoundingClientRect(),c=document.querySelector('#controls'),frame=document.querySelector('#controlsFrame');return{ready:g.dataset.ready==='true',value:+g.dataset.value,frameVersion:frame.dataset.panelVersion,
