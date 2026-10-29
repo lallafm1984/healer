@@ -237,7 +237,7 @@ export function products(save: SaveData): ProductInfo[] {
   const own = (id: string) => save.bought.includes(id);
   return [
     { ...NOADS, owned: own(NOADS.id) },
-    ...PAID_HEROES.map(h => ({ id: jobProductId(h), name: HEROES[h].name, price: JOB_PRICE, owned: own(jobProductId(h)) })),
+    ...PAID_HEROES.map(h => ({ id: jobProductId(h), name: t(HEROES[h].name), price: JOB_PRICE, owned: own(jobProductId(h)) })),
   ];
 }
 /** 결제가 끝난 뒤 상품 주기 (화면이 platform/billing purchase 성공 뒤에 부름). 성공 = 빈 문자열 */

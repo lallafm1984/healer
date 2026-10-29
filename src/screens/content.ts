@@ -200,7 +200,7 @@ function chalCell(): string {
   if (G.save.tut < TUT.done) return '';
   const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, rem = weekRemaining(), left = t('{n} 남음', { n: rem });
   const tag = g.ok ? rem : `${LOCK}Lv ${g.lv}`;
-  const sr = ` 「${esc(t(CHAL.name))}」 · ${g.ok ? `${esc(t(contentOf(chalContent(G.save)).name))} · ` : ''}${aff.map(k => t(AFFIXES[k].name)).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}${t('최고 {n}', { n: best ? t('{n}단', { n: best }) : t('없음') })} · ${left}` : t('Lv {n}에 열림', { n: g.lv })}`;
+  const sr = ` 「${esc(t(CHAL.name))}」 · ${g.ok ? `${esc(t(contentOf(chalContent(G.save)).name))} · ` : ''}${aff.map(k => tc(AFFIXES[k].name, 'affix')).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}${t('최고 {n}', { n: best ? t('{n}단', { n: best }) : t('없음') })} · ${left}` : t('Lv {n}에 열림', { n: g.lv })}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
     <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>${t('주간 도전')}</small><span class="b-weekly-arrow" aria-hidden="true">${NEXT}</span><span class="sr">${sr}</span>
   </button>`;

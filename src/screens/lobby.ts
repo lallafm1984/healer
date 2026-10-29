@@ -26,7 +26,7 @@ import { chalContent, chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
-import { esc, go, screen, topBar } from './kit';
+import { esc, go, screen, topBar, milestoneText } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
 import { showReward } from './reward-pop';
@@ -71,7 +71,7 @@ function goals(): Goal[] {
     if (!m) break;
     const live = m.items.filter(x => x.live);
     // 괄호 설명은 빼고 첫 항목만 (목표 칸이 좁음)
-    if (live.length) { out.push({ title: `Lv ${m.level}`, sub: live[0].text.replace(/\s*\(.*\)\s*$/, ''), prog: `${lvNow}/${m.level}` }); break; }
+    if (live.length) { out.push({ title: `Lv ${m.level}`, sub: milestoneText(live[0]).replace(/\s*\(.*\)\s*$/, ''), prog: `${lvNow}/${m.level}` }); break; }
     lv = m.level;
   }
   return out.slice(0, 2);

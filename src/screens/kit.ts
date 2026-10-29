@@ -22,6 +22,8 @@ export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s 
 
 /** 받침 있으면 a, 없으면 b */
 /** 조사 (이/가 · 은/는 · 과/와 · 으로/로): 한국어에서만, 다른 언어는 빈 글 (기획 121) */
+/** 레벨 이정표 글 (data/milestones): 장소 이름이 든 글은 틀 + 이름으로 번역 */
+export const milestoneText = (m: { text: string; tpl?: string; arg?: string }): string => (m.tpl ? t(m.tpl, { n: t(m.arg ?? '') }) : t(m.text));
 export const josa = (w: string, a: string, b: string) => { if (lang() !== 'ko') return ''; const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 
 export const ROLE: Record<string, { name: string; short: string; color: string }> = {

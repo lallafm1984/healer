@@ -3,7 +3,7 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import { deedOf } from '../data/guild';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -102,7 +102,7 @@ function startBattle(guideSec = 0): void {
   if (S.auto) toast(S.autoNovice ? t('자동 힐러 (초보)가 플레이 중') : t('자동 힐러가 플레이 중'));
   else if (R.idx === 0) toast(t('칸을 탭하면 {s}', { s: t(SKILLS[tapKey()].name) }));
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
-  if (S.affixes && !R.idx) toast(t('어픽스 {a}', { a: S.affixes.map(k => t(AFFIXES[k].name)).join(' · ') }));
+  if (S.affixes && !R.idx) toast(t('어픽스 {a}', { a: S.affixes.map(k => tc(AFFIXES[k].name, 'affix')).join(' · ') }));
   // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
   const words = F.hero !== 'priest' || knowsPassive(F, 'words');
   buildGauges(F);

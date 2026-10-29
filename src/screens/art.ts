@@ -152,7 +152,7 @@ const FACTION_PATH: Record<FactionKey, string> = {
 export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
   const img = art(`mark-${f}`);
   const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${FACTION_PATH[f]}</svg>`;
-  return `<span class="fmark fmark-${size}" style="--fc:${FACTIONS[f].color}" role="img" aria-label="${FACTIONS[f].name} 문양">${inner}</span>`;
+  return `<span class="fmark fmark-${size}" style="--fc:${FACTIONS[f].color}" role="img" aria-label="${t('{n} 문양', { n: t(FACTIONS[f].name) })}">${inner}</span>`;
 }
 
 /** 전투 판 바닥 그림 (전투 화면 setPlace와 같은 고르기): 그 전투 장소 → 같은 세력 장소 순서, 없으면 '' */

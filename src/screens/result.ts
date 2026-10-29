@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { setResultWin } from '../bgm';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 import { STAT_NAMES, type StatKey } from '../data/fm';
 import { CLASSES } from '../data/classes';
 import { EXPED, guildLvOf, REQ } from '../data/guild';
@@ -17,7 +17,7 @@ import { Flow, newSeed } from '../game/flow';
 import { nextRun } from '../game/next-run';
 import { meterHtml } from '../game/meter';
 import { G, heroNow } from '../game/state';
-import { scoreOf, specName } from '../game/charinfo';
+import { gearName, scoreOf, specName } from '../game/charinfo';
 import { specKeysOf } from '../data/equipment';
 import { art } from '../art';
 import { TUT } from '../game/tutorial';
@@ -25,7 +25,7 @@ import { AFFIXES } from '../data/affixes';
 import { chalReward } from '../data/challenge';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
-import { esc, fmt, mmss, ROLE, screen, topBar } from './kit';
+import { esc, fmt, mmss, ROLE, screen, topBar, milestoneText } from './kit';
 import { classIcon } from './members';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
@@ -137,7 +137,7 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
   const ch = x.chal, won = r.win && !r.quit;
   const kindName = t({ explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[contentOf(key).kind]);
   const title = r.quit ? t('포기') : !r.win ? t('전멸') : ch ? (ch.inTime ? t('{n}단계 돌파', { n: ch.stage }) : t('시간 초과')) : t('{k} 클리어!', { k: kindName });
-  const afx = r.affixes?.length ? ` · ${r.affixes.map(k => t(AFFIXES[k].name)).join('·')}` : '';
+  const afx = r.affixes?.length ? ` · ${r.affixes.map(k => tc(AFFIXES[k].name, 'affix')).join('·')}` : '';
   const sub = `${esc(t(name))} · ${ch ? t('주간 도전') : esc(t(r.diff))}${esc(afx)}${r.auto ? ` · ${t('자동 힐러')}` : ''}`;
   const badge = x.first ? `<em class="badge">${t('첫 클리어')}</em>` : x.best ? `<em class="badge">${t('최고 기록')}</em>` : '';
   let body: string;
@@ -239,9 +239,9 @@ function itemRow(id: number): string {
   const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
   // 전설 (고유 장비 · 이름 있는 장신구, 88)은 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
   const drop = it.grade === '전설' && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
-  return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${q ? `${t(q)} ` : ''}${esc(t(it.name))} ${t('상세 보기')}" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
+  return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${q ? `${t(q)} ` : ''}${esc(gearName(it))} ${t('상세 보기')}" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       ${beam}${drop}<span class="r-ic${it.grade === '전설' ? ' lg' : ''}">${gearIcon(it)}</span>
-      <span class="r-nm"><b>${q ? `<span class="r-q" data-q="${q}">${t(q)}</span> ` : ''}${esc(t(it.name))}</b><span class="r-gs"><i class="r-gr">${t(it.grade)}</i><span class="r-sc">${t('점수 {n}', { n: sc })}</span><small>${t(slotName(it.slot))} · ${esc(t(kindOf(it).name))}</small></span>${spTxt}</span>
+      <span class="r-nm"><b>${q ? `<span class="r-q" data-q="${q}">${t(q)}</span> ` : ''}${esc(gearName(it))}</b><span class="r-gs"><i class="r-gr">${t(it.grade)}</i><span class="r-sc">${t('점수 {n}', { n: sc })}</span><small>${t(slotName(it.slot))} · ${esc(t(kindOf(it).name))}</small></span>${spTxt}</span>
       ${act}
     </button>`;
 }
@@ -507,7 +507,7 @@ export function showLevelUp(host: HTMLElement, ups: number[], hero: HeroKey = he
       <p class="lvnum" aria-label="${t('Lv {a}에서 {b}로 레벨 업', { a: ups[0] - 1, b: ups[ups.length - 1] })}"><span class="r-level-number"><span>Lv</span><b>${ups[ups.length - 1]}</b></span></p>
     </div>
     <h4 class="r-level-unlock-title">${t('새로 열린 기능')}</h4>
-    <ul class="r-level-unlocks" aria-label="${t('새로 열린 기능')}">${items.map(m => `<li><span class="r-level-unlock-icon" aria-hidden="true">${icon(m.text)}</span><b>${esc(t(m.text))}</b><small>Lv ${m.lv}</small></li>`).join('')}</ul>
+    <ul class="r-level-unlocks" aria-label="${t('새로 열린 기능')}">${items.map(m => `<li><span class="r-level-unlock-icon" aria-hidden="true">${icon(m.text)}</span><b>${esc(milestoneText(m))}</b><small>Lv ${m.lv}</small></li>`).join('')}</ul>
     <button class="btn primary r-level-confirm" type="button">${t('확인')}</button></div>`;
   box.querySelector('button')!.addEventListener('click', () => closeResultPopup(host));
   if (host === st.el) resultModal.beforeRender();

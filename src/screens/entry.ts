@@ -3,7 +3,7 @@
  * 던전·레이드는 2026-10-08부터 입장 화면 없이 전투 탭 「출전」 → 편성 (난이도는 전투 탭에서만, 적 레벨 = 장소 레벨 (61 · 2026-10-21 레이드도), 공략은 편성의 시트).
  */
 import { contentOf } from '../data/content';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 import { clearGold, clearXp, restRun } from '../data/progression';
 import { Flow } from '../game/flow';
 import { chalChestOf } from '../game/economy';
@@ -78,12 +78,12 @@ function render(): void {
   // 이번 주 어픽스 (줄 + 다음 주 알약) · 구간 · 보상 (세 칸 + 보너스 알약 + 월요일 상자 줄)
   // 이번 주 어픽스 셋 (115 나안): 셋째는 CHAL.third단계부터, 그 아래 단계를 고르면 셋째 줄은 흐리게 + 「10단계부터」
   const week = weekAffixes();
-  const afxTip = week.map(k => `<p><b>${t(AFFIXES[k].name)}</b>${esc(t(AFFIXES[k].tip))}</p>`).join('') + `<p>${t('셋째 어픽스는 {n}단계부터 붙습니다. 어픽스는 월요일 오전 9시에 바뀝니다.', { n: CHAL.third })}</p>`;
+  const afxTip = week.map(k => `<p><b>${tc(AFFIXES[k].name, 'affix')}</b>${esc(t(AFFIXES[k].tip))}</p>`).join('') + `<p>${t('셋째 어픽스는 {n}단계부터 붙습니다. 어픽스는 월요일 오전 9시에 바뀝니다.', { n: CHAL.third })}</p>`;
   const afx = `<ul class="g-rows wc-afx">${week.map((k, i) => {
     const later = i >= 2, off = later && !m.affixes.includes(k);
-    return `<li class="g-row${off ? ' wc-later' : ''}"><span class="g-ri">${afxIcon(k)}</span><div class="g-rm"><b>${t(AFFIXES[k].name)}</b><span class="g-sub wrap">${esc(t(AFFIXES[k].desc))}</span></div>${later ? `<span class="g-rs">${pill(t('{n}단계부터', { n: CHAL.third }), off ? '' : 'warn')}</span>` : ''}</li>`;
+    return `<li class="g-row${off ? ' wc-later' : ''}"><span class="g-ri">${afxIcon(k)}</span><div class="g-rm"><b>${tc(AFFIXES[k].name, 'affix')}</b><span class="g-sub wrap">${esc(t(AFFIXES[k].desc))}</span></div>${later ? `<span class="g-rs">${pill(t('{n}단계부터', { n: CHAL.third }), off ? '' : 'warn')}</span>` : ''}</li>`;
   }).join('')}</ul>
-      <p class="wc-next"><span class="cap">${t('다음 주')}</span>${next.map(k => pill(`${afxIcon(k)}${t(AFFIXES[k].name)}`)).join('')}</p>`;
+      <p class="wc-next"><span class="cap">${t('다음 주')}</span>${next.map(k => pill(`${afxIcon(k)}${tc(AFFIXES[k].name, 'affix')}`)).join('')}</p>`;
   const tags = [bonus > 1 ? t('{n}단계 보너스 {p}', { n: st, p: pct(bonus - 1) }) : ''].filter(Boolean);
   const rewardTip = `<p>${t('골드 · 경험치는 보통 던전 한 판의 반에 단계 보너스를 더한 값입니다. 휴식 보너스는 결과에서 더해집니다.')}</p><p>${t('<b>월요일 상자</b>이번 주 최고 단계로 다음 월요일에 받습니다. 5단계 고급 · 10단계 희귀 · 15단계 영웅 · 20단계 영웅 2, 골드는 5단계마다 늘어납니다.')}</p>`;
   // 월요일 상자 줄 = 길드 「주간 목표」 줄 (그림 · 이름 · 다음 등급 · 막대 / 오른쪽 이번 주 최고 / 다음 단계 · 지금 상자 알약)
