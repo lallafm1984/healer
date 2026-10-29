@@ -21,6 +21,8 @@ import enBossParts from './boss-parts-en';
 import jaBossParts from './boss-parts-ja';
 import enGear from './gear-en';
 import jaGear from './gear-ja';
+import enDesc from './desc-en';
+import jaDesc from './desc-ja';
 export type Lang = 'ko' | 'en' | 'ja';
 export interface LangDef { key: Lang; /** 설정 칩 글 (늘 그 말로, 번역하지 않음) */ name: string; locale: string }
 export const LANGS: readonly LangDef[] = [
@@ -49,8 +51,8 @@ let cur: Lang = 'ko';
 let dict: Dict = {};
 const listeners: (() => void)[] = [];
 
-/** UI 사전 + 이름 사전 (데이터 이름 names · 장소 places · 적 enemies · 보스 기술 boss-skills · 보스 부품 boss-parts · 장비 효과 gear, 121 3단계 ①). 사전끼리 열쇠는 겹치지 않는다 (tests/i18n-names.test.ts) */
-const DICTS: Record<Exclude<Lang, 'ko'>, Dict> = { en: { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts, ...enGear, ...en }, ja: { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts, ...jaGear, ...ja } };
+/** UI 사전 + 이름 사전 (데이터 이름 names · 장소 places · 적 enemies · 보스 기술 boss-skills · 보스 부품 boss-parts · 장비 효과 gear · 설명 desc, 121 3단계 ① · ⑤). 사전끼리 열쇠는 겹치지 않는다 (tests/i18n-names.test.ts) */
+const DICTS: Record<Exclude<Lang, 'ko'>, Dict> = { en: { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts, ...enGear, ...enDesc, ...en }, ja: { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts, ...jaGear, ...jaDesc, ...ja } };
 /** 그 언어 사전 (한국어는 빈 것: 열쇠가 곧 글) */
 export const loadDict = (l: Lang): Dict => (l === 'ko' ? {} : DICTS[l]);
 

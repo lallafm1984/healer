@@ -667,7 +667,7 @@ function drawPreview(u: Unit): void {
     const ab = ABILITIES[u.ab.key];
     const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
     const state = ab.cd === 0 && !ab.each ? t('상시') : ab.cd < 0 ? (u.ab.uses ? t('사용함') : t('1회 준비')) : left > 0.05 ? t('{n}초 뒤', { n: Math.ceil(left) }) : t('준비');
-    lines.push(`<div class="cpas ab pv-section"><div class="pv-heading"><b>${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><small class="pv-state">${state}</small></div><div class="d">${ab.desc}</div></div>`);
+    lines.push(`<div class="cpas ab pv-section"><div class="pv-heading"><b>${tc(ab.name, 'ab')}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><small class="pv-state">${state}</small></div><div class="d">${t(ab.desc)}</div></div>`);
   }
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${t(u.pers ?? '')}</b><small class="pv-label">${t('성격')}</small></div><div class="d">${t(u.p.desc ?? '')}</div></div>`);
   const items: string[] = [];

@@ -1104,5 +1104,9 @@ const en: Record<string, string> = {
   '겹치지 않음': 'Does not stack',
   '{n} (고유)': '{n} (Unique)',
   '{n} 문양': '{n} emblem',
+  '{n}초 시전': '{n}s cast',
+  '{n}초 재사용 대기시간': '{n}s cooldown',
+  '마나 없음': 'No mana cost',
+  '레벨 {n} 필요': 'Requires level {n}',
 };
 export default en;

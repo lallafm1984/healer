@@ -171,7 +171,7 @@ function guideSheetHtml(): string {
 function variantNote(c: ContentDef): string {
   const boss = BOSSES[ENCOUNTERS[c.fights('보통').at(-1)!].script as Exclude<ScriptKey, 'trash'>], v = variantOf(G.save.clears[c.key]);
   const order = !Flow.chal && boss?.variants ? `<p class="f-dnote">${t('이번 순서 {v}', { v: VARIANT_NAMES[v] })} · ${esc(t(boss.variants[v]))}</p>` : '';
-  return `${c.tip ? `<p class="f-dnote">${esc(c.tip)}</p>` : ''}${order}`;
+  return `${c.tip ? `<p class="f-dnote">${esc(t(c.tip))}</p>` : ''}${order}`;
 }
 
 /** 공략 시트 구간 탭 바꾸기: 다시 그리지 않고 판만 바꿈 (스크롤이 길 아래면 길 위치로) */

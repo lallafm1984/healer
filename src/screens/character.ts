@@ -545,7 +545,7 @@ function descBox(lay: Record<string, string | null>): string {
       <p class="m c7-sdm">${descHint(k, sel, h)}${lock ? ` ${LOCK}${t('Lv {n}에 배웁니다.', { n: lock })}` : ''}</p></section>`;
 }
 /** 스킬 설명: 회복량은 「지능의 n% (지금 값)」 (34 1-2) */
-const skDesc = (k: SkillKey) => healText(SKILL_INFO[k].desc, statParts().int.total);
+const skDesc = (k: SkillKey) => healText(t(SKILL_INFO[k].desc), statParts().int.total);
 /** 설명 아래 한 줄: 종류 · 쓰는 방향 · 칸 탭 */
 const descHint = (k: SkillKey, d: string, h: HeroKey) => `${tc(SKILL_INFO[k].kind, 'kind')} · ${t('휠에서 {d} 쪽으로 쓸면 씁니다.', { d: battle().layout.ARROW[d] })}${skillAt(h, G.save.settings.tapKey) === k ? ` ${t('칸 탭 기본 힐입니다.')}` : ''}`;
 
