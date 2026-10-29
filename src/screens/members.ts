@@ -1,5 +1,6 @@
 /** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬 + LV) · 능력치 · 성격 (17 11장) */
 import { ABILITIES } from '../data/abilities';
+import { t } from '../i18n';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
 import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_HELP, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
@@ -19,17 +20,17 @@ const SKILL_COLOR = '#E6D3A3';
 export function abHtml(key: string | undefined, star = 0, when = true): string {
   const a = key ? ABILITIES[key] : null;
   if (!a) return '';
-  return `<section class="member-trait pab" style="--trait-color:${SKILL_COLOR}" aria-label="직업 스킬">
-    <div class="trait-heading"><span class="trait-label">스킬</span><b class="trait-title">${esc(a.name)}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}</div>
-    <p class="trait-description">${esc(a.desc)}</p>${when ? `<p class="trait-condition"><span>발동</span><span>${esc(a.when)}</span></p>` : ''}</section>`;
+  return `<section class="member-trait pab" style="--trait-color:${SKILL_COLOR}" aria-label="${t('직업 스킬')}">
+    <div class="trait-heading"><span class="trait-label">${t('스킬')}</span><b class="trait-title">${esc(t(a.name))}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}</div>
+    <p class="trait-description">${esc(t(a.desc))}</p>${when ? `<p class="trait-condition"><span>${t('발동')}</span><span>${esc(t(a.when))}</span></p>` : ''}</section>`;
 }
 
 /** 성격은 이름과 효과 설명만 표시한다. */
 function personalityHtml(name: PersName, desc = true): string {
   const p = PERS[name];
-  return `<section class="member-trait personality" style="--trait-color:${CATS[p.cat]}" aria-label="성격">
-    <div class="trait-heading"><span class="trait-label">성격</span><b class="trait-title">${esc(name)}</b></div>
-    ${desc ? `<p class="trait-description">${esc(p.desc)}</p>` : ''}</section>`;
+  return `<section class="member-trait personality" style="--trait-color:${CATS[p.cat]}" aria-label="${t('성격')}">
+    <div class="trait-heading"><span class="trait-label">${t('성격')}</span><b class="trait-title">${esc(t(name))}</b></div>
+    ${desc ? `<p class="trait-description">${esc(t(p.desc))}</p>` : ''}</section>`;
 }
 
 /**
@@ -40,12 +41,12 @@ export function statsHtml(stats: Stats, role: 'tank' | 'melee' | 'ranged', lastS
   const band = (v: number) => (v >= 16 ? 'b4' : v >= 11 ? 'b3' : v >= 6 ? 'b2' : 'b1');
   const cell = (k: keyof Stats) => {
     const v = stats[k], core = ROLE_CORE[role].includes(k);
-    const txt = String(v), lab = `${STAT_NAMES[k]} ${v}`, shown = v;
-    const up = gains.has(k), growth = up ? ', 직전 레벨업에서 상승' : '';
+    const txt = String(v), lab = `${t(STAT_NAMES[k])} ${v}`, shown = v;
+    const up = gains.has(k), growth = up ? `, ${t('직전 레벨업에서 상승')}` : '';
     const arrow = '<svg class="fm-up" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1L11 10H1Z"/></svg>';
-    return `<li class="${core ? 'core ' : ''}${band(shown)}" aria-label="${lab}${core ? ', 역할 핵심' : ''}${growth}"><span>${STAT_NAMES[k]}</span><b>${gains.size ? `<span class="fm-growth-slot"${up ? ' title="직전 레벨업에서 상승"' : ''}>${up ? arrow : ''}</span>` : ''}${txt}</b></li>`;
+    return `<li class="${core ? 'core ' : ''}${band(shown)}" aria-label="${lab}${core ? `, ${t('역할 핵심')}` : ''}${growth}"><span>${t(STAT_NAMES[k])}</span><b>${gains.size ? `<span class="fm-growth-slot"${up ? ` title="${t('직전 레벨업에서 상승')}"` : ''}>${up ? arrow : ''}</span>` : ''}${txt}</b></li>`;
   };
-  return `<div class="fm-grid">${STAT_GROUPS.map(g => `<section><h5>${g.name}</h5><ul>${g.keys.map(cell).join('')}</ul></section>`).join('')}</div>`;
+  return `<div class="fm-grid">${STAT_GROUPS.map(g => `<section><h5>${t(g.name)}</h5><ul>${g.keys.map(cell).join('')}</ul></section>`).join('')}</div>`;
 }
 
 export interface CardData {
@@ -95,18 +96,18 @@ export function classIcon(cls: ClassKey): string {
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(a.name)}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
+    ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(t(a.name))}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
-    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span>
-    <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
+    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${t(c.name)}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(t(m.pers))}</span></span>
+    <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">${t('능력')} <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
 /** 파티원 상세: 능력 별 · 능력치 · 스킬 · 성격 */
 export function memDetailHtml(m: CardData): string {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const g = m.fm ? growthOf(m.nick, role) : null, gt = g ? GROW_TYPES.find(x => x.type === g.type)! : null; // 성장 결 (103): 크는 모양 한 마디
-  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${gt ? `<small class="pfm-grow" title="${gt.desc}">${gt.type}</small>` : ''}</p>${statsHtml(shownStats(m), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
+  return `<div class="f-det">${m.fm ? `<p class="pfm">${t('능력')} <b>${fmStars(m)}</b>${gt ? `<small class="pfm-grow" title="${t(gt.desc)}">${t(gt.type)}</small>` : ''}</p>${statsHtml(shownStats(m), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
     ${personalityHtml(m.pers)}</div>`;
 }
 
@@ -117,7 +118,7 @@ export const memberCard = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' |
 /** 길드 막대 (경험치 · 할 일, guild-hall.css .g-bar) */
 export const gBar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${label}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
 /** 시트 머리: 닉네임 · 직업 · Lv. help = 길드원 상세만 ⓘ (능력치 설명 팝업) */
-export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="능력치 설명">${uiIcon('info')}</button>` : ''}</h2>`;
+export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="${t('능력치 설명')}">${uiIcon('info')}</button>` : ''}</h2>`;
 /**
  * 길드원 상세 몸: 머리 ⓘ → 레벨 경험치 막대 → 능력치 · 직업 스킬 · 성격. 길드 탭은 이 아래에 골드 지원 · 내보내기.
  * 막대 아래 초록 줄 「직전 레벨업 두 배 · 회피 +1 …」은 없다 (2026-10-28 Lim 「녹색의 직전 레벨업 두배 텍스트 제거」, 오른 칸은 능력치 표 화살표). 다시 넣지 않는다
@@ -127,16 +128,16 @@ export function memberInfoHtml(m: GuildMember): string {
   const d = memberCard(m, true);
   return `${memberSheetHead(d, true)}
     <div class="g-meters">
-      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${gBar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p></div>
+      <p class="g-meter"><span class="k">Lv ${m.lv}</span>${gBar(xpPct, t('경험치 {n}%', { n: Math.floor(xpPct) }))}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : t('최대')}</small></p></div>
     ${memDetailHtml(d)}`;
 }
 /** 길드원 상세 ⓘ → 능력치 12칸 한 줄 설명 (fm.ts STAT_HELP). 세 묶음 = 상세 능력치 칸과 같은 신체 · 기술 · 정신. 닫기 = [data-shut] */
 export function statHelpPopupHtml(): string {
-  const groups = STAT_GROUPS.map(g => `<section class="g-card g-stat-card" aria-label="${g.name}"><h4>${g.name}</h4><ul class="g-rows">${g.keys.map(k => `<li class="g-row g-stat-row"><b>${STAT_NAMES[k]}</b><span>${STAT_HELP[k]}</span></li>`).join('')}</ul></section>`).join('');
-  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="능력치 설명 닫기" tabindex="-1"></button>
+  const groups = STAT_GROUPS.map(g => `<section class="g-card g-stat-card" aria-label="${t(g.name)}"><h4>${t(g.name)}</h4><ul class="g-rows">${g.keys.map(k => `<li class="g-row g-stat-row"><b>${t(STAT_NAMES[k])}</b><span>${t(STAT_HELP[k])}</span></li>`).join('')}</ul></section>`).join('');
+  return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="${t('능력치 설명 닫기')}" tabindex="-1"></button>
     <section class="sheet g-action-confirm g-stat-help" role="dialog" aria-modal="true" aria-labelledby="guildStatTitle">
-      <h3 id="guildStatTitle">능력치</h3>
+      <h3 id="guildStatTitle">${t('능력치')}</h3>
       ${groups}
-      <div class="g-action-buttons g-one"><button type="button" data-shut>닫기</button></div>
+      <div class="g-action-buttons g-one"><button type="button" data-shut>${t('닫기')}</button></div>
     </section>`;
 }

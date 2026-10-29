@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 /** 작은 파티원 지표: 같은 윤곽을 쓰는 금빛 별. */
 const STAR = 'M12 2.3 15 8.5 21.8 9.5 16.9 14.3 18.1 21 12 17.8 5.9 21 7.1 14.3 2.2 9.5 9 8.5Z';
 
@@ -10,5 +11,5 @@ export function ratingStarsHtml(value: number): string {
       <svg width="${half ? 12 : 24}" height="24" viewBox="0 0 ${half ? 12 : 24} 24" overflow="hidden"><path d="${STAR}" fill="#e2b85c"/><path d="M12 2.3 12 12 2.2 9.5 9 8.5Z" fill="#fff0b0"/><path d="M12 12 18.1 21 12 17.8 5.9 21Z" fill="#bd873b"/></svg>
       <path d="${STAR}" fill="none" stroke="#b89b61" stroke-width="1.1" stroke-linejoin="round"/></svg>`;
   }).join('');
-  return `<span class="ability-stars" role="img" aria-label="별 ${n} / 5">${stars}</span>`;
+  return `<span class="ability-stars" role="img" aria-label="${t('별 {n} / 5', { n })}">${stars}</span>`;
 }

@@ -5,6 +5,7 @@
  * 아래 고정: 출발 (바로 전투, 입장 확인 팝업은 2026-10-17 없앰). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
+import { t } from '../i18n';
 import { contentOf, isRaid, variantOf, VARIANT_NAMES, type ContentDef } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { gearStatsOf, specsOf } from '../data/equipment';
@@ -42,7 +43,7 @@ function withNeeded(pick: number[], nick: string | undefined): number[] {
   const at = pick.map(role).lastIndexOf(CLASSES[m.cls].role), i = at >= 0 ? at : pick.length - 1;
   return pick.map((id, k) => (k === i ? m.id : id));
 }
-const s = screen('s-party', '파티 편성', {
+const s = screen('s-party', t('파티 편성'), {
   enter() {
     if (!Flow.party) {
       roll();
@@ -111,12 +112,12 @@ function boardHtml(): string {
     const pos =`left:${pc(c.px - HW * K - x0, W)};top:${pc(c.py - R * K - y0, H)};width:${pc(2 * HW * K, W)};height:${pc(2 * R * K, H)}`;
     if (!u) return `<span class="f-hex empty" style="${pos}"><span class="f-hx"></span></span>`;
     if (u.me) return `<span class="f-hex me" style="${pos}"><span class="f-hx">${classEmblem(hero, 'sm')}</span></span>`;
-    who.push(`${u.cls ? CLASSES[u.cls].name : ROLE[u.role].name} ${u.nick}`);
+    who.push(`${u.cls ? t(CLASSES[u.cls].name) : t(ROLE[u.role].name)} ${u.nick}`);
     return `<span class="f-hex${u.nick === sel ? ' on' : ''}" style="${pos}"><span class="f-hx" style="background:${ROLE[u.role].color}">${u.cls ? classIcon(u.cls) : ROLE_ICON[u.role] || ''}</span></span>`;
   }).join('');
   // 위치판 뒤 = 첫 전투 판과 같은 장소 바닥 그림 (2026-10-16 손질: 맨바닥 위 칸만 떠 있던 것)
   const floor = floorArtOf(segs[0]);
-  return `<figure class="f-board${floor ? ' has-floor' : ''}"${floor ? ` style="--floor:url('${floor}')"` : ''}><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
+  return `<figure class="f-board${floor ? ' has-floor' : ''}"${floor ? ` style="--floor:url('${floor}')"` : ''}><div class="f-hexes${size}" role="img" aria-label="${t('시작 위치 (자동 배치, 옮길 수 없음)')}: ${t('나')}, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
 }
 
 /** 직업 없는 옛 파티 줄 (시뮬·옛 테스트용 파티) */
@@ -137,17 +138,17 @@ function guildPickHtml(): string {
   const picked = Flow.gpick.map(id => ms.find(m => m.id === id)).filter(Boolean);
   const tanks = picked.filter(m => CLASSES[m!.cls].role === 'tank').length;
   const list = ms.slice().sort((a, b) => b.lv - a.lv || a.id - b.id);
-  return `<p class="pickhead"><b>길드원 ${picked.length} / ${seatsOf(firstEnc())}</b><small>탱커 ${tanks} · 딜러 ${picked.length - tanks}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
+  return `<p class="pickhead"><b>${t('길드원 {a} / {b}', { a: picked.length, b: seatsOf(firstEnc()) })}</b><small>${t('탱커 {n}', { n: tanks })} · ${t('딜러 {n}', { n: picked.length - tanks })}</small><button class="btn2" type="button" id="autoPick">${t('추천 편성')}</button></p>
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, grown: true, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, grown: true, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, gold: m.boost ? `${gameIcon('guild-sponsor', `${t('후원')} `)}${m.boost}<span class="sr">${t('판 후원')}</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}</ul></section>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
 const sheetBox = (cls: string, label: string, inner: string) => {
-  const close = '<button class="btn2 f-shut" type="button" data-shut>닫기</button>';
+  const close = `<button class="btn2 f-shut" type="button" data-shut>${t('닫기')}</button>`;
   const body = cls === 'f-gsheet' ? `<div class="f-sheet-body">${inner}</div><footer class="f-sheet-actions">${close}</footer>` : `${inner}${close}`;
   return `<div class="sheet-dim" data-shut></div><section class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>${body}</section>`;
 };
@@ -159,9 +160,9 @@ const sheetBox = (cls: string, label: string, inner: string) => {
 function guideSheetHtml(): string {
   const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow();
   const sel = gseg >= 0 && gseg < segs.length ? gseg : segs.length - 1;
-  return sheetBox('f-gsheet', '공략', `<header class="f-gh"><h2 class="f-gt">${BOOK}<span>공략</span></h2><p class="f-gp"><b>${esc(c.name)}</b><span class="f-gc d">${Flow.diff}</span><span class="f-gc">${c.size(Flow.diff)}인</span></p></header>
-    ${Flow.diff === '악몽' && isRaid(c) ? '<p class="f-dnote">보스마다 악몽 전용 기술</p>' : ''}
-    ${afxRows(m.affixes, Flow.chal ? '이번 주' : Flow.diff)}
+  return sheetBox('f-gsheet', t('공략'), `<header class="f-gh"><h2 class="f-gt">${BOOK}<span>${t('공략')}</span></h2><p class="f-gp"><b>${esc(t(c.name))}</b><span class="f-gc d">${t(Flow.diff)}</span><span class="f-gc">${t('{n}인', { n: c.size(Flow.diff) })}</span></p></header>
+    ${Flow.diff === '악몽' && isRaid(c) ? `<p class="f-dnote">${t('보스마다 악몽 전용 기술')}</p>` : ''}
+    ${afxRows(m.affixes, Flow.chal ? t('이번 주') : t(Flow.diff))}
     ${variantNote(c)}
     ${segs.length > 1 ? segTabs(segs, sel) : ''}
     ${guides(segs, Flow.diff, m.stage, sel, Flow.chal ? 0 : variantOf(G.save.clears[c.key]))}`);
@@ -169,7 +170,7 @@ function guideSheetHtml(): string {
 /** 보충 장소 (113 8장): 한 줄 안내 · 이번 전투 순서 (변주 A · B · C, 최종 보스 데이터의 variants) */
 function variantNote(c: ContentDef): string {
   const boss = BOSSES[ENCOUNTERS[c.fights('보통').at(-1)!].script as Exclude<ScriptKey, 'trash'>], v = variantOf(G.save.clears[c.key]);
-  const order = !Flow.chal && boss?.variants ? `<p class="f-dnote">이번 순서 ${VARIANT_NAMES[v]} · ${esc(boss.variants[v])}</p>` : '';
+  const order = !Flow.chal && boss?.variants ? `<p class="f-dnote">${t('이번 순서 {v}', { v: VARIANT_NAMES[v] })} · ${esc(t(boss.variants[v]))}</p>` : '';
   return `${c.tip ? `<p class="f-dnote">${esc(c.tip)}</p>` : ''}${order}`;
 }
 
@@ -187,7 +188,7 @@ function pickSeg(i: number, focus = false): void {
 /** 길드원 상세 시트 (길드파티 줄의 이름 · 아이콘): 길드 탭과 같은 몸 (ⓘ · 레벨 경험치 막대 · 능력치 · 스킬 · 성격), 골드 지원 · 내보내기는 길드 탭에만 */
 function guildMemSheetHtml(): string {
   const m = memberById(openGid);
-  return m ? sheetBox('f-msheet g-msheet', `${m.nick} 상세`, memberInfoHtml(m)) + (help ? statHelpPopupHtml() : '') : '';
+  return m ? sheetBox('f-msheet g-msheet', t('{n} 상세', { n: m.nick }), memberInfoHtml(m)) + (help ? statHelpPopupHtml() : '') : '';
 }
 
 /** 파티원 상세 시트 (줄을 누르면): 능력 · 자질 · 직업 패시브 · 특성 · 성격 */
@@ -195,7 +196,7 @@ function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
   if (!m?.cls) return '';
   const lastStatGains = m.gid != null ? G.save.guild.members.find(g => g.id === m.gid)?.lastStatGains : undefined;
-  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, member: m.gid != null, lastStatGains })}`);
+  return sheetBox('f-msheet', t('{n} 상세', { n: m.nick }), `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, member: m.gid != null, lastStatGains })}`);
 }
 
 function render(keepScroll = true): void {
@@ -203,25 +204,26 @@ function render(keepScroll = true): void {
   const scroll = keepScroll ? s.el.querySelector<HTMLElement>('.ns-body')?.scrollTop || 0 : 0;
   const c = contentOf(Flow.content);
   const go2 = guildOpen(G.save);
-  const guildTab = !go2.ok ? ` ${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? ' · 길드원 없음' : '';
+  // 잠긴 길드 탭 꼬리: 「Lv 30에 열림」은 「Lv 30」만, 「튜토리얼을 마치면 열림」은 번역
+  const guildTab = !go2.ok ? ` ${LOCK}${/^Lv \d+에 열림$/.test(go2.why) ? go2.why.replace('에 열림', '') : t(go2.why)}` : !G.save.guild.members.length ? ` · ${t('길드원 없음')}` : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
-  const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
+  const sub = Flow.chal ? t('주간 도전 {n}단계', { n: Flow.chal }) : `${t(Flow.diff)}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
-  const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
+  const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>${t('공략')}</span></button>`;
   const rows = Flow.party!.map((p, i) => (p.cls
     ? memRowHtml({ ...p, cls: p.cls }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
     : plainRow(p))).join('');
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
-    ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
+    ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="${t('파티 모집')}"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">${t('공개모집')}</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>${t('길드파티')}${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
-      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」을 누릅니다.</p>' : ''}
+      ${c.key === 'rustfort' && firstDungeonNow() ? `<p class="coachtip">${t('보스 기술은 「공략」에서 확인한 뒤 「출발」을 누릅니다.')}</p>` : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml() : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
     </div>
     <footer class="ns-foot f-foot2">
       <div class="f-btns">
-        <button class="g-cta" type="button" id="depart"><span class="g-mk" aria-hidden="true">${classEmblem(heroNow(), 'sm')}</span><span class="g-ct"><b>출발</b></span>${departureArrow()}</button>
+        <button class="g-cta" type="button" id="depart"><span class="g-mk" aria-hidden="true">${classEmblem(heroNow(), 'sm')}</span><span class="g-ct"><b>${t('출발')}</b></span>${departureArrow()}</button>
       </div>
     </footer>
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : sheet === 'gmem' ? guildMemSheetHtml() : ''}`;
@@ -268,8 +270,8 @@ s.el.addEventListener('click', e => {
 /** 편성 「출발」: 길드파티는 길드원 1명 이상, 탱커가 없으면 확인 창 (2026-10-28 Lim 「탱커가 없을경우 경고 확인창」) */
 async function departAsk(): Promise<void> {
   if (Flow.mode === 'guild' && guildReady()) {
-    if (!Flow.party!.length) { sfx('deny'); void noticeModal('길드원 없음', '길드원을 1명 이상 고르면 출발할 수 있습니다.'); return; }
-    if (!Flow.party!.some(e => e.role === 'tank') && !(await askModal('탱커 없음', '탱커 없이 출발하면 보스가 다른 파티원을 공격합니다.<br>그래도 출발하시겠습니까?', '취소', '출발'))) return;
+    if (!Flow.party!.length) { sfx('deny'); void noticeModal(t('길드원 없음'), t('길드원을 1명 이상 고르면 출발할 수 있습니다.')); return; }
+    if (!Flow.party!.some(e => e.role === 'tank') && !(await askModal(t('탱커 없음'), t('탱커 없이 출발하면 보스가 다른 파티원을 공격합니다.<br>그래도 출발하시겠습니까?'), t('취소'), t('출발')))) return;
   }
   depart();
 }
@@ -298,7 +300,7 @@ export function depart(): string {
   Flow.running = true;
   sfx('depart');
   battle().start({
-    content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
+    content: c.key, name: Flow.chal ? t('도전 {n}단계', { n: Flow.chal }) : t(c.name), segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
     // 「길드 첫 킬!」 대사: 정산의 첫 처치와 같은 조건 (낮은 장소 · 주간 도전은 아님, 105 QA)
     guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !Flow.chal && !c.anchor && m.stage >= G.save.player.level - FAME_LOW_GAP && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
