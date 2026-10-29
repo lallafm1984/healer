@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { setResultWin } from '../bgm';
-import { t, tc } from '../i18n';
+import { nickOf, t, tc } from '../i18n';
 import { STAT_NAMES, type StatKey } from '../data/fm';
 import { CLASSES } from '../data/classes';
 import { EXPED, guildLvOf, REQ } from '../data/guild';
@@ -328,7 +328,7 @@ function guildUpHtml(m: NonNullable<Settlement['guild']>['members'][number]): st
   const why = m.stats.find(s => s.why)?.why;
   const chips = [...got].map(([k, v]) => `<span class="r-gm-st">${STAT_NAMES[k]} <b>${v.to}</b><small>+${v.n}</small></span>`).join('');
   const ic = mem ? `<span class="r-gm-ic" style="background:${ROLE[CLASSES[mem.cls].role].color}">${classIcon(mem.cls)}</span>` : '';
-  return `<li>${ic}<div class="r-gm-b"><p class="r-gm-l1"><b class="r-gm-nick">${esc(m.nick)}</b><span class="r-gm-lv">Lv ${from} → <b>${to}</b></span></p>${chips || why ? `<p class="r-gm-sts">${chips}${why ? `<small class="r-gm-why">${esc(why)}</small>` : ''}</p>` : ''}</div></li>`;
+  return `<li>${ic}<div class="r-gm-b"><p class="r-gm-l1"><b class="r-gm-nick">${esc(nickOf(m.nick))}</b><span class="r-gm-lv">Lv ${from} → <b>${to}</b></span></p>${chips || why ? `<p class="r-gm-sts">${chips}${why ? `<small class="r-gm-why">${esc(why)}</small>` : ''}</p>` : ''}</div></li>`;
 }
 
 /**
@@ -349,7 +349,7 @@ function notesHtml(x: Settlement): string {
     const rows = gd.members.filter(m => m.ups.length).map(guildUpHtml);
     if (rows.length) out.push(`<section class="r-note r-gm" aria-label="${t('길드원 레벨 업')}"><p class="r-gm-h">${gameIcon('guild-members', uiIcon('guild'))}<b>${t('길드원 레벨 업')}</b></p><ul>${rows.join('')}</ul></section>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람 (경험치 숫자 없이 남은 판만)
-    if (gd.boosted.length) out.push(`<div class="r-note">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>${t('후원')} · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${t('{n}판 남음', { n: b.left })}`).join(' · ')}${gd.boosted.length > 2 ? ` ${t('외 {n}명', { n: gd.boosted.length - 2 })}` : ''}</span></div>`);
+    if (gd.boosted.length) out.push(`<div class="r-note">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>${t('후원')} · ${gd.boosted.slice(0, 2).map(b => `${esc(nickOf(b.nick))} ${t('{n}판 남음', { n: b.left })}`).join(' · ')}${gd.boosted.length > 2 ? ` ${t('외 {n}명', { n: gd.boosted.length - 2 })}` : ''}</span></div>`);
   }
   if (x.missions.length) out.push(`<div class="r-note">${gameIcon('mission', uiIcon('quest'))}<span>${t('임무 완료')} <b>${x.missions.length}</b></span></div>`);
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';

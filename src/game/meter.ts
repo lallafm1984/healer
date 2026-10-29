@@ -3,7 +3,7 @@
  * 파티원 이름으로 모음: 던전 구간마다 전투를 새로 만들어도 같은 파티라 이름이 같음
  */
 import { ABILITIES } from '../data/abilities';
-import { t as tr } from '../i18n';
+import { nickOf, t as tr } from '../i18n';
 import { CLASSES, type ClassKey } from '../data/classes';
 import type { Role } from '../engine/types';
 
@@ -47,7 +47,7 @@ export function meterHtml(rows: MeterRow[], sec: number, o: { title?: string; he
     const ab = r.ab && ABILITIES[r.ab];
     const sub = `${tr(r.cls ? CLASSES[r.cls].name : ROLE_NAME[r.role])}${ab && r.abN && !o.compact ? ` · ${esc(tr(ab.name))} ${tr('{n}회', { n: r.abN })}` : ''}`;
     const pct = `${Math.round((r.dmg / total) * 100)}%`;
-    return `<li style="--w:${((r.dmg / top) * 100).toFixed(1)}%;--c:${ROLE_COLOR[r.role]}"><i class="rk">${i + 1}</i><b>${esc(r.nick)}</b><small>${sub}</small><span class="v">${num(r.dmg)}<small>${o.compact ? pct : `${num(r.dmg / t)}${tr('/초')} · ${pct}`}</small></span></li>`;
+    return `<li style="--w:${((r.dmg / top) * 100).toFixed(1)}%;--c:${ROLE_COLOR[r.role]}"><i class="rk">${i + 1}</i><b>${esc(nickOf(r.nick))}</b><small>${sub}</small><span class="v">${num(r.dmg)}<small>${o.compact ? pct : `${num(r.dmg / t)}${tr('/초')} · ${pct}`}</small></span></li>`;
   }).join('');
   const heal = o.heal != null ? `<p class="mheal"><b>${tr('내 치유')}</b><span>${num(o.heal)}<small>${num(o.heal / t)}${tr('/초')}</small></span></p>` : '';
   if (o.compact) {

@@ -3,7 +3,7 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import { deedOf } from '../data/guild';
-import { t, tc } from '../i18n';
+import { nickOf, t, tc } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -582,7 +582,7 @@ function handleEvents(now: number): void {
       case 'stagger': if (u) fxNote(u, ev.steady ? t('버팀') : t('휘청'), ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);
-        if (u && !u.me) toast(t('{n} 쓰러짐', { n: u.nick }), 'bad');
+        if (u && !u.me) toast(t('{n} 쓰러짐', { n: nickOf(u.nick) }), 'bad');
         break;
       case 'msg': toast(ev.text); break;
       case 'phase': banner(t(ev.text), { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;

@@ -8,7 +8,7 @@
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
-import { lang, onLangChange, t as tr } from '../i18n';
+import { lang, nickOf, onLangChange, t as tr } from '../i18n';
 import { art } from '../art';
 import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
@@ -2400,7 +2400,8 @@ function nick(u: Unit, x: number, y: number, r: number): { x: number; y: number;
   // 전체 이름은 길게 누르기 정보에도 남는다. 밝은 칸 (사제 「나」 · 하늘색 · 청록)에서도 읽히게 테두리를 체력 숫자만큼 굵게
   const maxW = r * 1.45;
   const size = cellTypography(L.s).nick;
-  const text = measure(u.nick, size) <= maxW ? u.nick : fitPartyName(u.nick, maxW / NICK_MIN_SX, text => measure(text, size));
+  const name = nickOf(u.nick); // 영어 · 일본어 이름 (121 ⑥)
+  const text = measure(name, size) <= maxW ? name : fitPartyName(name, maxW / NICK_MIN_SX, text => measure(text, size));
   const label = labels.put(`nk${u.id}`, text, { size, fill: C.ink, strokeW: size < 11 ? 2.25 : 3 }, x, y);
   const w = measure(text, size);
   if (w > maxW) label.scale.x = maxW / w;

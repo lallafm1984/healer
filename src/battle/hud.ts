@@ -1,5 +1,5 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
-import { locale, t, tc } from '../i18n';
+import { locale, nickOf, t, tc } from '../i18n';
 import { classGaugeState } from './class-gauge-state';
 import { talentCd, waveNeed } from '../engine/talents';
 import { chalTime } from '../engine/affixes';
@@ -290,7 +290,7 @@ export function updateCastbar(): void {
   let label: string, detail = '', p = 0, left = '';
   if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
-    label = `${t(SKILLS[F.cast.key].short)} → ${u ? u.nick : ''}`;
+    label = `${t(SKILLS[F.cast.key].short)} → ${u ? nickOf(u.nick) : ''}`;
     if (F.hero === 'astrologer' && CONSTELLATION.has(F.cast.key)) label += ` · ${t('별 {n}', { n: starsNow(F) })}${starsNow(F) >= starMax(F) ? ` · ${t('가득')}` : ''}`; // 83: 별자리 시전 = 지금 조각으로 터질 별 수
     p = 1 - F.cast.left / F.cast.total;
     left = Math.max(0, F.cast.left).toFixed(1);
@@ -318,8 +318,8 @@ export function updateCastbar(): void {
     if (selected) {
       const hp = `${Math.ceil(selected.hp)}/${Math.ceil(selected.max)} (${Math.ceil(selected.hp / selected.max * 100)}%)`;
       const types = [...new Set(selected.debuffs.map(d => d.type))];
-      label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : t('쓰러짐')}${types.length ? ` · ${types.map(x => t(x)).join('/')}` : ''}`;
-      detail = `${selected.nick}, ${selected.alive ? t('체력 {n}', { n: hp }) : t('쓰러짐')}. ${selected.debuffs.length ? selected.debuffs.map(d => `${t(d.name)}${dispellable(d) ? ` (${t(d.type)})` : ''}, ${t('{n}초', { n: Math.ceil(d.left) })}${d.stack ? `, ${t('{n}중첩', { n: d.stack })}` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : t('디버프 없음')}`;
+      label = `${nickOf(selected.nick)} · ${selected.alive ? `HP ${hp}` : t('쓰러짐')}${types.length ? ` · ${types.map(x => t(x)).join('/')}` : ''}`;
+      detail = `${nickOf(selected.nick)}, ${selected.alive ? t('체력 {n}', { n: hp }) : t('쓰러짐')}. ${selected.debuffs.length ? selected.debuffs.map(d => `${t(d.name)}${dispellable(d) ? ` (${t(d.type)})` : ''}, ${t('{n}초', { n: Math.ceil(d.left) })}${d.stack ? `, ${t('{n}중첩', { n: d.stack })}` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : t('디버프 없음')}`;
     } else label = t('칸을 탭하면 {s}', { s: t(SKILLS[tapKey()].name) });
   }
   const casting = !!F.cast || F.channel > 0;
@@ -510,7 +510,7 @@ export function updateStage(now: number): void {
   $('timer').classList.toggle('enraged', F.enraged || noTank != null);
   // 탱커 앞줄 이탈 (위치 규칙, 2026-10-13 Lim): 적이 아무나 때리는 동안 메시지 자리에 붉은 경고 + 지금 맞는 사람
   const lo = !F.over && F.loose ? F.party.find(u => u.id === F.loose!.id && u.alive) : undefined;
-  alarm(lo ? { title: t('탱커가 맨 앞줄을 벗어남'), text: t('적이 아무나 공격 · 지금 {n}', { n: lo.me ? t('나') : lo.nick }) } : null);
+  alarm(lo ? { title: t('탱커가 맨 앞줄을 벗어남'), text: t('적이 아무나 공격 · 지금 {n}', { n: lo.me ? t('나') : nickOf(lo.nick) }) } : null);
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     // art = 기술 아이콘 그림 이름 (37 1장 · 4장, 없으면 '' → 종류 SVG)
@@ -661,7 +661,7 @@ function drawPreview(u: Unit): void {
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
   const job = t(u.me ? HEROES[F.hero].name : cls?.name ?? '');
-  lines.push(`<div class="ph"><div class="pnm"><b>${u.nick}</b><span class="pmeta">${job ? `${t(job)} · ` : ''}${t(ROLE[u.role].name)}</span></div><div class="php"><span class="pmeta">${t('체력')}</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString(locale())} <small>/ ${Math.round(u.max).toLocaleString(locale())}</small></strong>` : `<strong class="pdown">${t('쓰러짐')}</strong>`}</div></div>`);
+  lines.push(`<div class="ph"><div class="pnm"><b>${nickOf(u.nick)}</b><span class="pmeta">${job ? `${t(job)} · ` : ''}${t(ROLE[u.role].name)}</span></div><div class="php"><span class="pmeta">${t('체력')}</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString(locale())} <small>/ ${Math.round(u.max).toLocaleString(locale())}</small></strong>` : `<strong class="pdown">${t('쓰러짐')}</strong>`}</div></div>`);
   if (u.max < u.base) lines.push(`<div class="pmax">${t('최대 체력 -{n}%', { n: Math.round((1 - u.max / u.base) * 100) })}</div>`);
   if (u.ab) {
     const ab = ABILITIES[u.ab.key];

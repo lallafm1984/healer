@@ -130,7 +130,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
     ? `<button class="tb-pf" type="button" data-go="s-char"${fresh ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="${t('캐릭터')} · ${esc(t(hero.name))} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
     : `<span class="tb-pf" role="img" aria-label="${esc(t(hero.name))} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
-    <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(t(hero.name))}</b><small class="tb-lv">Lv. ${p.level}</small></span>
+    <span class="tb-nm"><span class="tb-id"><b class="tb-cls${t(hero.name).length >= 10 ? ' long' : ''}">${esc(t(hero.name))}</b><small class="tb-lv">Lv. ${p.level}</small></span>
       <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="${t('경험치 {n}%', { n: Math.floor(pct) })}" title="${t('경험치 {a} / {b}', { a: fmt(p.xp), b: isFinite(need) ? fmt(need) : t('최대') })}${apexOf(p.level) > 1 ? ` · ${t('수련 +{n}%', { n: ((apexOf(p.level) - 1) * 100).toFixed(1) })}` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
     ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}${goldCell()}</span>` : ''}
     ${set}</header>`;
