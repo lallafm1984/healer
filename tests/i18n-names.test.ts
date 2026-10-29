@@ -7,6 +7,14 @@ import en from '../src/i18n/en';
 import ja from '../src/i18n/ja';
 import enNames from '../src/i18n/names-en';
 import jaNames from '../src/i18n/names-ja';
+import enPlaces from '../src/i18n/places-en';
+import jaPlaces from '../src/i18n/places-ja';
+import enEnemies from '../src/i18n/enemies-en';
+import jaEnemies from '../src/i18n/enemies-ja';
+import { FACTIONS, PLACES } from '../src/data/places';
+import { CONTENT } from '../src/data/content';
+import { ADVENTURE_REGIONS } from '../src/data/adventure-regions';
+import { MOB_LOOKS } from '../src/data/mob-looks';
 import { SKILL_INFO, SKILLS } from '../src/data/skills';
 import { TALENT_TREES } from '../src/data/talents';
 import { HEROES } from '../src/data/heroes';
@@ -43,7 +51,11 @@ function dataNames(): [string, string | undefined][] {
   for (const n of Object.keys(PERS)) add(n, 'pers'); for (const c of Object.keys(CATS)) add(c);
   for (const a of Object.values(AFFIXES)) add(a.name, 'affix');
   for (const m of [...DAILY, ...WEEKLY]) add(m.text);
-  for (const e of Object.values(ENCOUNTERS)) add(e.tier);
+  for (const e of Object.values(ENCOUNTERS)) { add(e.tier); add(e.name); for (const m of e.mobs ?? []) add(m.name); }
+  for (const f of Object.values(FACTIONS)) add(f.name); for (const p of Object.values(PLACES)) add(p.name);
+  for (const r of ADVENTURE_REGIONS) { add(r.name); add(r.shortName); }
+  for (const c of CONTENT) { add(c.name); add(c.place); for (const b of c.bosses ?? []) add(b); }
+  for (const [k, looks] of Object.entries(MOB_LOOKS)) { add(k); for (const l of looks) add(l.name); }
   for (const g of Object.values(SPEC_GROUPS)) add(g.name, 'spec');
   for (const w of Object.values(DEED_WHY)) add(w);
   for (const list of Object.values(MILESTONES)) for (const m of list) add(m.tpl ?? m.text); // arg (장소 이름) 는 다음 묶음
@@ -54,13 +66,16 @@ function dataNames(): [string, string | undefined][] {
 describe('이름 사전 (121 3단계 ①)', () => {
   const list = dataNames();
   it('데이터 이름이 300개 넘게 모인다', () => { expect(list.length).toBeGreaterThan(300); });
-  for (const [lang, ui, names] of [['en', en, enNames], ['ja', ja, jaNames]] as const) {
-    it(`${lang}: 모든 데이터 이름에 번역이 있다 (장소 · 적 · 보스 · 특수능력은 다음 묶음)`, () => {
+  const enAll = { ...enNames, ...enPlaces, ...enEnemies }, jaAll = { ...jaNames, ...jaPlaces, ...jaEnemies };
+  for (const [lang, ui, names, parts] of [['en', en, enAll, [enNames, enPlaces, enEnemies]], ['ja', ja, jaAll, [jaNames, jaPlaces, jaEnemies]]] as const) {
+    it(`${lang}: 모든 데이터 이름에 번역이 있다 (보스 기술 · 특수능력은 다음 묶음)`, () => {
       const miss = [...new Set(list.filter(([k, c]) => !has(ui, names, k, c)).map(([k, c]) => (c ? `${k} (@${c})` : k)))];
       expect(miss).toEqual([]);
     });
-    it(`${lang}: 이름 사전과 UI 사전의 열쇠가 겹치지 않는다`, () => {
+    it(`${lang}: 이름 사전끼리 · UI 사전과 열쇠가 겹치지 않는다`, () => {
       expect(Object.keys(names).filter(k => k in ui)).toEqual([]);
+      const seen = new Map<string, number>();
+      parts.forEach((d, i) => { for (const k of Object.keys(d)) { if (seen.has(k)) expect.fail(`${k}: 사전 ${seen.get(k)}과 ${i}에 둘 다 있음`); seen.set(k, i); } });
     });
     it(`${lang}: 이름 사전 값에 한국어가 남지 않고 자리값이 열쇠와 같다`, () => {
       const bad = Object.entries(names).filter(([k, v]) => /[가-힣]/.test(v) || (k.match(/\{\w+\}/g) ?? []).sort().join() !== (v.match(/\{\w+\}/g) ?? []).sort().join());
@@ -68,7 +83,7 @@ describe('이름 사전 (121 3단계 ①)', () => {
     });
   }
   it('이름 사전 열쇠는 영어 · 일본어가 같다', () => {
-    expect(Object.keys(enNames).filter(k => !(k in jaNames))).toEqual([]);
-    expect(Object.keys(jaNames).filter(k => !(k in enNames))).toEqual([]);
+    expect(Object.keys(enAll).filter(k => !(k in jaAll))).toEqual([]);
+    expect(Object.keys(jaAll).filter(k => !(k in enAll))).toEqual([]);
   });
 });
