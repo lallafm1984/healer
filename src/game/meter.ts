@@ -3,6 +3,7 @@
  * 파티원 이름으로 모음: 던전 구간마다 전투를 새로 만들어도 같은 파티라 이름이 같음
  */
 import { ABILITIES } from '../data/abilities';
+import { t as tr } from '../i18n';
 import { CLASSES, type ClassKey } from '../data/classes';
 import type { Role } from '../engine/types';
 
@@ -48,10 +49,10 @@ export function meterHtml(rows: MeterRow[], sec: number, o: { title?: string; he
     const pct = `${Math.round((r.dmg / total) * 100)}%`;
     return `<li style="--w:${((r.dmg / top) * 100).toFixed(1)}%;--c:${ROLE_COLOR[r.role]}"><i class="rk">${i + 1}</i><b>${esc(r.nick)}</b><small>${sub}</small><span class="v">${num(r.dmg)}<small>${o.compact ? pct : `${num(r.dmg / t)}/초 · ${pct}`}</small></span></li>`;
   }).join('');
-  const heal = o.heal != null ? `<p class="mheal"><b>내 치유</b><span>${num(o.heal)}<small>${num(o.heal / t)}/초</small></span></p>` : '';
+  const heal = o.heal != null ? `<p class="mheal"><b>${tr('내 치유')}</b><span>${num(o.heal)}<small>${num(o.heal / t)}${tr('/초')}</small></span></p>` : '';
   if (o.compact) {
     const more = list.length > 5 ? `<button type="button" class="m-all">전체 ${list.length}명</button>` : '';
     return `<section class="meter compact"><h3>${o.title || '피해량'}</h3>${heal}<ol>${li}</ol>${more}</section>`;
   }
-  return `<section class="meter"><h3>${o.title || '딜미터기'}<small>피해량 · 초당 · 비율</small></h3><ol>${li}</ol>${heal}</section>`;
+  return `<section class="meter"><h3>${o.title || tr('딜미터기')}<small>${tr('피해량 · 초당 · 비율')}</small></h3><ol>${li}</ol>${heal}</section>`;
 }

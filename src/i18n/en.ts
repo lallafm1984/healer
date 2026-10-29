@@ -1094,5 +1094,8 @@ const en: Record<string, string> = {
   '쓰러짐': 'Down',
   '보호막': 'Shield',
   '기술@battle': 'Ability',
+  '내 치유': 'My healing',
+  '/초': '/s',
+  '피해량 · 초당 · 비율': 'Damage · per sec · share',
 };
 export default en;

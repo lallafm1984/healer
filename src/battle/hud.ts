@@ -49,7 +49,7 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
   const pack = trashPack(F), order = m && pack.length > 1 ? `<span class="vh">, ${t('{a}마리 중 {b}번째', { a: pack.length, b: pack.filter(x => !x.alive).length + 1 })}</span>` : '';
-  return m ? `<span class="boss-title-text">${mobLook(F, m).name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>${order}` : `<span class="boss-title-text">${F.enc.name}</span>`;
+  return m ? `<span class="boss-title-text">${t(mobLook(F, m).name)}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m) === '일반' ? tc('일반', 'seg') : t(mobGrade(m))}</small>${order}` : `<span class="boss-title-text">${t(F.enc.name)}</span>`;
 }
 
 /**
