@@ -10,9 +10,10 @@
 | 자기 저장 받기 (로그인 고르기 · 저장 깨짐 때만) | `download_save()` | 구글 로그인 한 사람 |
 | 구글 로그인 때 진행 고르기 | `choose_progress(keep, account_rev, data, upload_id, …)` | 구글 로그인 한 사람 |
 | 계정 삭제 | `delete_account()` | 구글 로그인 한 사람 |
+| 로그인 기록 (구글 로그인 · 로그인한 채로 켬 · 로그아웃, 60일 보관) | `log_login(event, platform, version)` | 구글 로그인 한 사람 |
 | 사본 한 판 되돌리기 | `admin_restore_save(user_id, history_id)` | 대시보드만 |
 
-표: `saves` (사용자마다 지금 판) · `save_history` (사본, `server_settings.history_keep`개) · `purchases` (PR 4 RevenueCat) · `account_merges` · `audit_flags` (조작 의심 기록, 막지 않음) · `app_config` · `notices` · `boot_stats` · `server_settings`.
+표: `saves` (사용자마다 지금 판) · `save_history` (사본, `server_settings.history_keep`개) · `purchases` (PR 4 RevenueCat) · `account_merges` · `audit_flags` (조작 의심 기록, 막지 않음) · `app_config` · `notices` · `boot_stats` · `login_logs` (60일 지난 줄은 `log_login`이 지움, `server_settings.login_keep_days`) · `server_settings`.
 
 보안: 모든 표 RLS, 앱 키로는 자기 `saves` · `purchases` 읽기만. 쓰기는 `security definer` RPC만 (`auth.uid()`로만 사용자를 정함, `search_path = ''`), 실행 권한은 위 표의 역할에만. **service_role 키는 앱 · 이 저장소 (공개)에 절대 넣지 않는다.**
 
@@ -45,6 +46,12 @@ update public.app_config set maintenance = false, flags = '{"backup": false}' wh
 select f.id, f.created_at, f.user_id, f.rule, f.severity, f.detail from public.audit_flags f where f.reviewed_at is null order by f.id desc limit 100;
 update public.audit_flags set reviewed_at = now(), note = '장비 판매, 정상' where id = 123;
 
+-- 로그인 기록 (최근 것 · 한 사람)
+select l.created_at, l.user_id, l.event, l.platform, l.app_version from public.login_logs l order by l.id desc limit 100;
+select l.created_at, l.event, l.app_version from public.login_logs l where l.user_id = '…' order by l.id desc;
+-- 아무도 로그인하지 않아도 60일을 지키려면 (선택, Database → Extensions에서 pg_cron을 켠 뒤)
+-- select cron.schedule('login-logs-keep', '0 18 * * *', $$delete from public.login_logs where created_at < now() - interval '60 days'$$);
+
 -- 버전별 켠 수 (최근 7일)
 select day, version, n from public.boot_stats where day > current_date - 7 order by day desc, version desc;
 
@@ -59,4 +66,4 @@ update public.server_settings set value = '3' where key = 'history_keep';
 
 ## 테스트
 
-`npx vitest run tests/server-db.test.ts`: PGlite (WASM Postgres)로 마이그레이션을 그대로 돌리고, Supabase의 역할 · `auth` 스키마는 `tests/fixtures/supabase-stub.sql`이 흉내 낸다. 권한 (게스트 · 남의 저장 · 직접 쓰기), 덮어쓰기 막는 절차 (`upload_id` 재시도 · `base_rev` 거절 · 사본 수), 탐지 기록, 진행 고르기, 계정 삭제를 본다. 마이그레이션을 고치면 이 테스트도 맞춘다. 실제 Supabase에 처음 적용한 뒤에는 `delete_account`가 `auth.users`를 지우는지 한 번 확인한다 (테스트는 흉내 낸 `auth`).
+`npx vitest run tests/server-db.test.ts`: PGlite (WASM Postgres)로 마이그레이션을 그대로 돌리고, Supabase의 역할 · `auth` 스키마는 `tests/fixtures/supabase-stub.sql`이 흉내 낸다. 권한 (게스트 · 남의 저장 · 직접 쓰기), 덮어쓰기 막는 절차 (`upload_id` 재시도 · `base_rev` 거절 · 사본 수), 탐지 기록, 진행 고르기, 로그인 기록 60일, 계정 삭제를 본다. 마이그레이션을 고치면 이 테스트도 맞춘다. 실제 Supabase에 처음 적용한 뒤에는 `delete_account`가 `auth.users`를 지우는지 한 번 확인한다 (테스트는 흉내 낸 `auth`).

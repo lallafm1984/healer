@@ -21,7 +21,8 @@ insert into public.server_settings (key, value, note) values
   ('audit_gold_per_win', '20000', '이긴 판 하나에 늘 수 있다고 보는 골드 (넉넉히, 탐지 기록 기준)'),
   ('audit_gold_slack', '200000', '판 수와 상관없이 봐주는 골드 증가 (장비 판매 · 임무 · 상자)'),
   ('audit_level_slack', '5', '이긴 판 수보다 더 오를 수 있다고 보는 레벨'),
-  ('audit_big_bytes', '262144', '이보다 큰 저장은 info로 적음');
+  ('audit_big_bytes', '262144', '이보다 큰 저장은 info로 적음'),
+  ('login_keep_days', '60', '로그인 기록 보관 일 수 (2026-10-29 Lim 「60일 유지」)');
 
 -- ---------- 저장 ----------
 create table public.saves (
@@ -95,6 +96,20 @@ create table public.audit_flags (
 create index audit_flags_open on public.audit_flags (created_at desc) where reviewed_at is null;
 comment on table public.audit_flags is '조작 의심 기록. 게임은 막지 않음. 검토하면 reviewed_at · note를 적음';
 
+-- ---------- 로그인 기록 (2026-10-29 Lim 「로그인 기록도 따로 테이블로 남겨두자. (60일 유지)」) ----------
+-- event: sign_in = 구글 로그인 · open = 로그인한 채로 앱을 켬 · sign_out = 로그아웃. 계정을 지우면 함께 지워짐
+create table public.login_logs (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  event text not null check (event in ('sign_in', 'open', 'sign_out')),
+  platform text,
+  app_version integer,
+  created_at timestamptz not null default now()
+);
+create index login_logs_user on public.login_logs (user_id, created_at desc);
+create index login_logs_time on public.login_logs (created_at);
+comment on table public.login_logs is '로그인 기록. server_settings.login_keep_days (60)일 지난 줄은 log_login이 지움';
+
 -- ---------- 강제 업데이트 · 점검 · 원격 스위치 (Lim 추가 지시) ----------
 create table public.app_config (
   platform text primary key,
@@ -151,6 +166,7 @@ alter table public.audit_flags enable row level security;
 alter table public.app_config enable row level security;
 alter table public.notices enable row level security;
 alter table public.boot_stats enable row level security;
+alter table public.login_logs enable row level security;
 
 revoke all on all tables in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
@@ -409,6 +425,21 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- 로그인 기록 한 줄 (앱: 구글 로그인 · 로그인한 채로 켬 · 로그아웃). 보관 일 수 지난 줄은 여기서 지움 (한 번에 1000줄까지)
+create function public.log_login(p_event text, p_platform text default null, p_version integer default null) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  uid uuid := public._me();
+  keep bigint := public._setting_int('login_keep_days', 60);
+begin
+  if p_event not in ('sign_in', 'open', 'sign_out') then raise exception 'unknown login event' using errcode = '22023'; end if;
+  insert into public.login_logs (user_id, event, platform, app_version)
+    values (uid, p_event, left(p_platform, 16), greatest(0, least(coalesce(p_version, 0), 1000000000)));
+  delete from public.login_logs l where l.id in (
+    select x.id from public.login_logs x where x.created_at < now() - make_interval(days => keep::integer) order by x.id limit 1000);
+  return jsonb_build_object('ok', true, 'now', public._epoch_ms(now()));
+end $$;
+
 -- ---------- 관리자 전용 (대시보드 SQL 편집기 · 서비스 키만, 앱은 못 부름) ----------
 -- 사본 한 판을 지금 판으로 되돌림. 지금 판은 사본으로 물러남. 앱은 다음 백업 때 conflict를 받고 고르기로 받음
 create function public.admin_restore_save(p_user uuid, p_history_id bigint) returns jsonb
@@ -430,4 +461,5 @@ grant execute on function public.upload_save(jsonb, integer, uuid, integer, bigi
 grant execute on function public.download_save() to authenticated;
 grant execute on function public.choose_progress(text, integer, jsonb, uuid, integer, bigint) to authenticated;
 grant execute on function public.delete_account() to authenticated;
+grant execute on function public.log_login(text, text, integer) to authenticated;
 -- 도우미 (_로 시작)와 admin_restore_save는 아무에게도 주지 않음 (definer 함수 안에서만 불림)

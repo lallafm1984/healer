@@ -245,6 +245,27 @@ describe('구글 로그인 때 진행 고르기', () => {
   });
 });
 
+describe('로그인 기록 (Lim 「로그인 기록도 따로 테이블로 남겨두자. (60일 유지)」)', () => {
+  it('구글 로그인 · 켬 · 로그아웃을 적고, 60일 지난 줄은 지움. 앱은 표를 못 읽고 게스트는 못 적음', async () => {
+    await as(B);
+    for (const ev of ['sign_in', 'open', 'sign_out']) expect(await rpc('log_login', [ev, 'android', 101])).toMatchObject({ ok: true });
+    await expect(db.query(`select public.log_login('hack')`)).rejects.toThrow(/unknown login event/);
+    await expect(db.query('select * from public.login_logs')).rejects.toThrow(/permission denied/);
+    await as(null);
+    await expect(db.query(`select public.log_login('open')`)).rejects.toThrow(/permission denied/);
+    await as('admin');
+    expect((await db.query(`select event, platform, app_version from public.login_logs where user_id = $1 order by id`, [B])).rows)
+      .toEqual([{ event: 'sign_in', platform: 'android', app_version: 101 }, { event: 'open', platform: 'android', app_version: 101 }, { event: 'sign_out', platform: 'android', app_version: 101 }]);
+    await db.query(`update public.login_logs set created_at = now() - interval '61 days' where user_id = $1 and event = 'sign_in'`, [B]);
+    await db.query(`update public.login_logs set created_at = now() - interval '59 days' where user_id = $1 and event = 'open'`, [B]);
+    await as(B);
+    await rpc('log_login', ['open', 'android', 102]);
+    await as('admin');
+    expect((await db.query<{ event: string }>(`select event from public.login_logs where user_id = $1 order by id`, [B])).rows.map(r => r.event))
+      .toEqual(['open', 'sign_out', 'open']);
+  });
+});
+
 describe('관리자 · 계정 삭제', () => {
   it('admin_restore_save: 사본 한 판을 지금 판으로, 앱의 다음 올림은 conflict', async () => {
     await as(C);
@@ -258,11 +279,12 @@ describe('관리자 · 계정 삭제', () => {
     expect(await upload(save({ level: 13 }), 3)).toMatchObject({ ok: false, reason: 'conflict', rev: 4, level: 11 });
   });
 
-  it('delete_account: Auth 사용자와 저장 · 사본 · 기록이 함께 지워짐', async () => {
+  it('delete_account: Auth 사용자와 저장 · 사본 · 기록 · 로그인 기록이 함께 지워짐', async () => {
+    await as(A); await rpc('log_login', ['open']);
     await as(A);
     expect(await rpc('delete_account')).toEqual({ ok: true });
     await as('admin');
-    for (const t of ['auth.users where id', 'public.saves where user_id', 'public.save_history where user_id', 'public.audit_flags where user_id']) {
+    for (const t of ['auth.users where id', 'public.saves where user_id', 'public.save_history where user_id', 'public.audit_flags where user_id', 'public.login_logs where user_id']) {
       expect(Number((await one<{ n: string }>(`select count(*) as n from ${t} = $1`, [A])).n)).toBe(0);
     }
   });
