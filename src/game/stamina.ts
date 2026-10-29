@@ -7,6 +7,7 @@
  * 기기 시계 기준이라 시계를 앞당겼다 되돌리면 그 시각이 다시 올 때까지 차지 않음. 화면과 분리된 순수 계산 (시각은 받아서 씀)
  */
 import { raidSize, type ContentDef } from '../data/content';
+import { t } from '../i18n';
 import { NOADS, REST_CUT, STAMINA, STAMINA_COST } from '../data/economy';
 import type { SaveData } from '../platform/storage';
 import { dayKey } from './clock';
@@ -95,8 +96,8 @@ export const restGain = (n: number, share: number): number => restBase(n) + Math
 export function adCharge(save: SaveData, now: number): string {
   syncStamina(save, now);
   const s = save.stamina, max = staminaMax(save);
-  if (s.n >= max) return '휴식이 가득 찼습니다.';
-  if (s.ads >= STAMINA.adDaily) return `오늘 광고 충전 ${STAMINA.adDaily}번을 다 씀`;
+  if (s.n >= max) return t('휴식이 가득 찼습니다.');
+  if (s.ads >= STAMINA.adDaily) return t('오늘 광고 충전 {n}번을 다 씀', { n: STAMINA.adDaily });
   s.ads++;
   s.n = max;
   s.at = Math.max(s.at, now);

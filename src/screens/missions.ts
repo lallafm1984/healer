@@ -6,6 +6,7 @@
  * 2026-10-24 Lim 「교체 버튼 제거, 설명 버튼 제거, … 새 임무 항목도 제거」: 임무 교체 · 판 ⓘ · 머리 「새 임무」 알약은 없다
  */
 import { AD_LIMIT } from '../data/economy';
+import { t } from '../i18n';
 import { adsFree } from '../game/stamina';
 import { CHEST_REWARD, GUILD_GOAL, WEEKLY_LV } from '../data/missions';
 import { FEATURES } from '../data/features';
@@ -22,7 +23,7 @@ import './missions.css';
 import { sfx } from '../sfx';
 
 const st = { tab: 'daily' as 'daily' | 'weekly' };
-const s = screen('s-missions', '임무', { enter() { refreshDay(); st.tab = 'daily'; render(); } });
+const s = screen('s-missions', t('임무'), { enter() { refreshDay(); st.tab = 'daily'; render(); } });
 
 /** 임무 그림 (2026-10-22 Lim 임무 시안): 있는 그림을 빌려 씀. 이름 · 보상 · 진행은 그림이 아니라 실제 임무 값 */
 const MISSION_ART: Record<string, string> = {
@@ -43,22 +44,22 @@ const pill = (html: string, cls = '') => `<span class="g-pill${cls ? ` ${cls}` :
 const okPill = (t: string) => pill(`✓ ${t}`, 'ok');
 const bar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${esc(label)}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
 const img = (src: string) => `<img class="g-ic" src="${src}" alt="" decoding="async">`;
-const gradeTxt = (gs: string[]) => [...new Set(gs)].map(g => `${g}${gs.filter(x => x === g).length > 1 ? ` ${gs.filter(x => x === g).length}` : ''}`).join(' · ');
+const gradeTxt = (gs: string[]) => [...new Set(gs)].map(g => `${t(g)}${gs.filter(x => x === g).length > 1 ? ` ${gs.filter(x => x === g).length}` : ''}`).join(' · ');
 
 /** 임무 줄 = 길드 줄: 그림 · 이름 + 막대 · 숫자 / 오른쪽 골드 알약 위, 받기 · 받음 아래 */
 function row(kind: 'daily' | 'weekly', i: number): string {
   const m = (kind === 'daily' ? G.save.daily : G.save.weekly).missions[i], d = missionDef(m.key);
   const value = Math.min(m.n, d.need), ready = missionReady(m) && !m.got;
-  const act = m.got ? okPill('받음')
-    : ready ? `<button class="btn mini primary" type="button" data-claim="${kind}" data-i="${i}" aria-label="${esc(d.text)} 보상 받기">받기</button>` : '';
+  const act = m.got ? okPill(t('받음'))
+    : ready ? `<button class="btn mini primary" type="button" data-claim="${kind}" data-i="${i}" aria-label="${esc(t(d.text))} ${t('보상 받기')}">${t('받기')}</button>` : '';
   return `<li class="g-row mrow${m.got ? ' got' : ''}${ready ? ' ready' : ''}"><span class="g-ri">${img(missionImage(m.key))}</span>
-    <div class="g-rm"><b>${esc(d.text)}</b><span class="m-prog">${bar((value / d.need) * 100, `${d.text} ${value} / ${d.need}`)}<small>${value} / ${d.need}</small></span></div>
+    <div class="g-rm"><b>${esc(t(d.text))}</b><span class="m-prog">${bar((value / d.need) * 100, `${t(d.text)} ${value} / ${d.need}`)}<small>${value} / ${d.need}</small></span></div>
     <span class="g-rs m-rs"><span class="mission-reward g-pill fame">${currencyAmount('gold', missionGold(G.save, kind))}</span>${act}</span></li>`;
 }
 
 /** 그림 머리 (상점 · 행상인 머리와 같은 .art-hero): 작은 글 「임무 게시판」 · 제목 */
 function hero(title: string): string {
-  return `<header class="art-hero m-hero"><div class="ah-copy"><p class="eyebrow">임무 게시판</p><h2>${title}</h2></div></header>`;
+  return `<header class="art-hero m-hero"><div class="ah-copy"><p class="eyebrow">${t('임무 게시판')}</p><h2>${title}</h2></div></header>`;
 }
 
 function render(): void {
@@ -68,27 +69,27 @@ function render(): void {
   const adLeft = AD_LIMIT.chest - d.ads.chest, mem = adsFree(save), weeklyOn = lv >= WEEKLY_LV;
 
   // ---------- 일일: 완료 상자 판 · 오늘의 임무 판 ----------
-  const chestBtns = `${ch.today || ch.banked ? `<button class="btn mini primary" type="button" id="chest">${ch.today ? '열기' : '놓친 날 열기'}</button>` : d.chest ? okPill('받음') : ''}${d.chest && !d.chest2 ? `<button class="btn mini" type="button" id="chest2"${adLeft > 0 || mem ? '' : ' disabled'}>${mem ? '한 번 더' : '광고 한 번 더'}</button>` : ''}`;
+  const chestBtns = `${ch.today || ch.banked ? `<button class="btn mini primary" type="button" id="chest">${ch.today ? t('열기') : t('놓친 날 열기')}</button>` : d.chest ? okPill(t('받음')) : ''}${d.chest && !d.chest2 ? `<button class="btn mini" type="button" id="chest2"${adLeft > 0 || mem ? '' : ' disabled'}>${mem ? t('한 번 더') : t('광고 한 번 더')}</button>` : ''}`;
   // 제목 · 받은 수는 판 머리에, 줄에는 보상 알약 · 막대 · 버튼만
-  const chestRow = `<li class="g-row m-chest"><span class="g-ri">${gameIcon('chest', '')}</span><div class="g-rm"><span class="g-rewards">${pill(currencyAmount('gold', run * CHEST_REWARD.runs), 'fame')}${pill(`${img(art('item-chest-vestment'))}장비 1`)}</span>${bar((gotN / d.missions.length) * 100, `보상 받은 임무 ${gotN} / ${d.missions.length}`)}${ch.banked ? `<span class="g-sub">놓친 날 상자 ${ch.banked}개</span>` : ''}</div>
+  const chestRow = `<li class="g-row m-chest"><span class="g-ri">${gameIcon('chest', '')}</span><div class="g-rm"><span class="g-rewards">${pill(currencyAmount('gold', run * CHEST_REWARD.runs), 'fame')}${pill(`${img(art('item-chest-vestment'))}${t('장비 1')}`)}</span>${bar((gotN / d.missions.length) * 100, t('보상 받은 임무 {a} / {b}', { a: gotN, b: d.missions.length }))}${ch.banked ? `<span class="g-sub">${t('놓친 날 상자 {n}개', { n: ch.banked })}</span>` : ''}</div>
       ${chestBtns ? `<span class="g-rs m-rs">${chestBtns}</span>` : ''}</li>`;
-  const daily = `${hero('오늘의 임무')}
-    ${card({ key: 'chest', icon: gameIcon('chest', ''), title: '완료 상자', meta: `${gotN}<small> / ${d.missions.length}</small>`, body: `<ul class="g-rows">${chestRow}</ul>` })}
-    ${card({ key: 'day', icon: gameIcon('mission', ''), title: '오늘의 임무', body: `<ul class="g-rows mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>` })}`;
+  const daily = `${hero(t('오늘의 임무'))}
+    ${card({ key: 'chest', icon: gameIcon('chest', ''), title: t('완료 상자'), meta: `${gotN}<small> / ${d.missions.length}</small>`, body: `<ul class="g-rows">${chestRow}</ul>` })}
+    ${card({ key: 'day', icon: gameIcon('mission', ''), title: t('오늘의 임무'), body: `<ul class="g-rows mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>` })}`;
 
   // ---------- 주간: 주간 임무 판 · 이번 주 보상 판 (길드 주간 목표 · 주간 도전 상자) ----------
-  const guildRow = FEATURES.guild && (lv >= GUILD_LEVEL || G.save.guild.founded) ? `<li class="g-row m-goal"><span class="g-ri">${gameIcon('guild-goal', '')}</span><div class="g-rm"><b>길드 주간 목표</b><span class="g-sub">길드파티로 클리어</span>${bar((g.n / GUILD_GOAL.need) * 100, `길드파티 클리어 ${g.n} / ${GUILD_GOAL.need}`)}</div>
-      <span class="g-rs m-rs"><b class="g-num">${Math.min(g.n, GUILD_GOAL.need)}<small> / ${GUILD_GOAL.need}</small></b>${g.got ? okPill('받음') : g.n >= GUILD_GOAL.need ? '<button class="btn mini primary" type="button" id="guildGoal">받기</button>' : pill(`${gameIcon('guild-fame', '')}+${GUILD_GOAL.fame}`, 'fame')}</span></li>` : '';
-  const chalRow = chal ? `<li class="g-row m-chal"><span class="g-ri">${gameIcon('challenge', '')}</span><div class="g-rm"><b>주간 도전 상자</b><span class="g-sub">지난주 최고 ${save.chalChest}단계</span><span class="g-rewards">${chal.grades.length ? pill(gradeTxt(chal.grades)) : ''}${pill(currencyAmount('gold', chal.gold), 'fame')}</span></div>
-      <span class="g-rs m-rs"><button class="btn mini primary" type="button" id="chalChest">열기</button></span></li>` : '';
-  const weekly = `${hero('이번 주 임무')}
-    ${card({ key: 'week', icon: gameIcon('mission', ''), title: '주간 임무', meta: weeklyOn ? `${weeklyN}<small> / ${w.missions.length}</small>` : '',
-      body: weeklyOn ? `<ul class="g-rows mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="g-empty0">주간 임무는 Lv ${WEEKLY_LV}부터</p>` })}
-    ${guildRow || chalRow ? card({ key: 'box', icon: gameIcon('expedition-chest', ''), title: '이번 주 보상', body: `<ul class="g-rows">${guildRow}${chalRow}</ul>` }) : ''}`;
+  const guildRow = FEATURES.guild && (lv >= GUILD_LEVEL || G.save.guild.founded) ? `<li class="g-row m-goal"><span class="g-ri">${gameIcon('guild-goal', '')}</span><div class="g-rm"><b>${t('길드 주간 목표')}</b><span class="g-sub">${t('길드파티로 클리어')}</span>${bar((g.n / GUILD_GOAL.need) * 100, t('길드파티 클리어 {a} / {b}', { a: g.n, b: GUILD_GOAL.need }))}</div>
+      <span class="g-rs m-rs"><b class="g-num">${Math.min(g.n, GUILD_GOAL.need)}<small> / ${GUILD_GOAL.need}</small></b>${g.got ? okPill(t('받음')) : g.n >= GUILD_GOAL.need ? `<button class="btn mini primary" type="button" id="guildGoal">${t('받기')}</button>` : pill(`${gameIcon('guild-fame', '')}+${GUILD_GOAL.fame}`, 'fame')}</span></li>` : '';
+  const chalRow = chal ? `<li class="g-row m-chal"><span class="g-ri">${gameIcon('challenge', '')}</span><div class="g-rm"><b>${t('주간 도전 상자')}</b><span class="g-sub">${t('지난주 최고 {n}단계', { n: save.chalChest })}</span><span class="g-rewards">${chal.grades.length ? pill(gradeTxt(chal.grades)) : ''}${pill(currencyAmount('gold', chal.gold), 'fame')}</span></div>
+      <span class="g-rs m-rs"><button class="btn mini primary" type="button" id="chalChest">${t('열기')}</button></span></li>` : '';
+  const weekly = `${hero(t('이번 주 임무'))}
+    ${card({ key: 'week', icon: gameIcon('mission', ''), title: t('주간 임무'), meta: weeklyOn ? `${weeklyN}<small> / ${w.missions.length}</small>` : '',
+      body: weeklyOn ? `<ul class="g-rows mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="g-empty0">${t('주간 임무는 Lv {n}부터', { n: WEEKLY_LV })}</p>` })}
+    ${guildRow || chalRow ? card({ key: 'box', icon: gameIcon('expedition-chest', ''), title: t('이번 주 보상'), body: `<ul class="g-rows">${guildRow}${chalRow}</ul>` }) : ''}`;
 
   const panel = (tab: 'daily' | 'weekly', html: string) => `<div id="mission-${tab}" class="m-panel" role="tabpanel" aria-labelledby="mission-tab-${tab}"${st.tab === tab ? '' : ' hidden'}>${html}</div>`;
-  s.el.innerHTML = `${topBar({ back: 's-lobby', title: '임무' })}
-    <nav class="subtabs" role="tablist" aria-label="임무 기간">${(['daily', 'weekly'] as const).map(tab => `<button type="button" role="tab" id="mission-tab-${tab}" data-mission-tab="${tab}" aria-selected="${st.tab === tab}" aria-controls="mission-${tab}" tabindex="${st.tab === tab ? 0 : -1}">${tab === 'daily' ? '일일' : '주간'}</button>`).join('')}</nav>
+  s.el.innerHTML = `${topBar({ back: 's-lobby', title: t('임무') })}
+    <nav class="subtabs" role="tablist" aria-label="${t('임무 기간')}">${(['daily', 'weekly'] as const).map(tab => `<button type="button" role="tab" id="mission-tab-${tab}" data-mission-tab="${tab}" aria-selected="${st.tab === tab}" aria-controls="mission-${tab}" tabindex="${st.tab === tab ? 0 : -1}">${tab === 'daily' ? t('일일') : t('주간')}</button>`).join('')}</nav>
     <div class="ns-body missions">${panel('daily', daily)}${panel('weekly', weekly)}</div>`;
 }
 
@@ -108,30 +109,30 @@ const got = (r: unknown, name: string) => sfx(typeof r === 'string' ? 'deny' : n
  */
 function award(r: Gain | string, title: string): void {
   commit(); render();
-  if (typeof r === 'string') void noticeModal(title, esc(r));
+  if (typeof r === 'string') void noticeModal(title, esc(t(r)));
   else showReward({ title, gold: r.gold, items: r.items });
 }
 
 s.el.addEventListener('click', async e => {
-  const t = e.target as HTMLElement, save = G.save;
-  const tab = t.closest<HTMLElement>('[data-mission-tab]');
+  const el = e.target as HTMLElement, save = G.save;
+  const tab = el.closest<HTMLElement>('[data-mission-tab]');
   if (tab) { st.tab = tab.dataset.missionTab as 'daily' | 'weekly'; render(); s.el.querySelector<HTMLElement>(`#mission-tab-${st.tab}`)?.focus(); return; }
-  const c = t.closest<HTMLElement>('[data-claim]');
-  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); award(r, '임무 보상'); return; }
-  if (t.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); award(r, '완료 상자'); return; }
-  if (t.closest('#chest2')) {
+  const c = el.closest<HTMLElement>('[data-claim]');
+  if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); award(r, t('임무 보상')); return; }
+  if (el.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); award(r, t('완료 상자')); return; }
+  if (el.closest('#chest2')) {
     const mem = adsFree(save);
     if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
-    if (!(await showRewarded('완료 상자 한 번 더', mem))) return;
+    if (!(await showRewarded(t('완료 상자 한 번 더'), mem))) return;
     if (!mem) save.daily.ads.chest++;
     const r = claimChest(save, Math.random, true);
     got(r, 'chest-open');
-    award(r, '완료 상자 · 한 번 더'); return;
+    award(r, t('완료 상자 · 한 번 더')); return;
   }
-  if (t.closest('#guildGoal')) {
+  if (el.closest('#guildGoal')) {
     const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); commit(); render();
-    if (err) void noticeModal('길드 주간 목표', esc(err)); else showReward({ title: '길드 주간 목표', fame: GUILD_GOAL.fame });
+    if (err) void noticeModal(t('길드 주간 목표'), esc(t(err))); else showReward({ title: t('길드 주간 목표'), fame: GUILD_GOAL.fame });
     return;
   }
-  if (t.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); award(r, '주간 도전 상자'); }
+  if (el.closest('#chalChest')) { const r = claimChalChest(save, Math.random); got(r, 'chest-open'); award(r, t('주간 도전 상자')); }
 });

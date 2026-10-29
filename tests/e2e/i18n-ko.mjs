@@ -14,6 +14,8 @@ const FILE = fileURLToPath(new URL('./snapshots/ko-ui.json', import.meta.url));
 function tidy(html) {
   return html
     .replace(/https?:\/\/127\.0\.0\.1:\d+\//g, '/') // 미리보기 서버 포트 (E2E_PORT)가 그림 주소에 들어감
+    .replace(/<div class="lb-village[^"]*"[^>]*>/g, '<div class="lb-village">') // 로비 마을 Pixi 캔버스: WebGL이 늦게 뜨면 live · data-* · canvas가 빠짐 (기기가 바쁠 때)
+    .replace(/<canvas[^>]*lb-village-canvas[^>]*><\/canvas>/g, '')
     .replace(/ ?\bxf-[a-z0-9-]+/g, '')
     .replace(/<div id="tapfx"[^>]*>.*?<\/div>/gs, '')
     .replace(/ class=""/g, '');
