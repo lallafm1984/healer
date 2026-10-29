@@ -1,4 +1,5 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
+import { locale, t, tc } from '../i18n';
 import { classGaugeState } from './class-gauge-state';
 import { talentCd, waveNeed } from '../engine/talents';
 import { chalTime } from '../engine/affixes';
@@ -47,7 +48,7 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 /** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
-  const pack = trashPack(F), order = m && pack.length > 1 ? `<span class="vh">, ${pack.length}마리 중 ${pack.filter(x => !x.alive).length + 1}번째</span>` : '';
+  const pack = trashPack(F), order = m && pack.length > 1 ? `<span class="vh">, ${t('{a}마리 중 {b}번째', { a: pack.length, b: pack.filter(x => !x.alive).length + 1 })}</span>` : '';
   return m ? `<span class="boss-title-text">${mobLook(F, m).name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>${order}` : `<span class="boss-title-text">${F.enc.name}</span>`;
 }
 
@@ -119,18 +120,18 @@ export function buildWheel(D: number): void {
   // 시안 5인: 칸 68 · 가운데 72 (휠 폭 216 기준)
   const step = D / 3, b = step * 0.965, core = step * 0.98;
   w.style.setProperty('--slot', `${b}px`);
-  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>마나 %</small></div></div><div class="mana-meter" role="meter" aria-label="마나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></div></div>`;
+  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>${t('마나 %')}</small></div></div><div class="mana-meter" role="meter" aria-label="${t('마나')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></div></div>`;
   DIRS.forEach((it, i) => {
     if (!it) return;
     const pos = `left:${(i % 3) * step + (step - b) / 2}px;top:${Math.floor(i / 3) * step + (step - b) / 2}px;width:${b}px;height:${b}px`;
     if (!it.key) {
-      html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="ct">빈 칸</span></div>`;
+      html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="ct">${t('빈 칸')}</span></div>`;
       return;
     }
     // 아직 안 배운 스킬: 흐린 원화·이름·잠금·배우는 레벨 (누르면 안내). it.key = 휠 칸 → 지금 직업의 스킬
     const k = F ? slotKey(F, it.key) : (it.key as SkillKey);
     if (F && !knows(F, k)) {
-      html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, 잠김, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="nm">${SKILLS[k].short}</span><span class="ct">Lv ${SKILL_LEVEL[k]}</span></span></button>`;
+      html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${t(SKILLS[k].name)}, ${t('잠김')}, ${t('Lv {n}에 배움', { n: SKILL_LEVEL[k] })}"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="nm">${t(SKILLS[k].short)}</span><span class="ct">Lv ${SKILL_LEVEL[k]}</span></span></button>`;
       return;
     }
     const wru = it.key === 'heal' || it.key === 'poh' ? art('fx-word-ready') : ''; // 성언 준비 별빛 고리 (그림이 있으면, 그림 요청 53)
@@ -160,7 +161,7 @@ function watchText(F: Fight): string {
   if (v) return ` · ${v.name} ${Math.min(99, Math.floor((v.fill / v.need) * 100))}% ${Math.ceil(v.until - F.t)}`;
   const w = F.watch;
   if (!w) return ''; // 내 위협 (96)은 안 보임 (2026-10-19 Lim 「어그로 게이지는 보이지않게」, 엔진 셈은 그대로)
-  return F.t < w.until ? ` · 주시 중 ${Math.ceil(w.until - F.t)}` : ` · 주시 ${Math.min(99, Math.floor((w.fill / w.max) * 100))}%`;
+  return F.t < w.until ? ` · ${t('주시 중 {n}', { n: Math.ceil(w.until - F.t) })}` : ` · ${t('주시 {n}%', { n: Math.min(99, Math.floor((w.fill / w.max) * 100)) })}`;
 }
 
 /** 보스 체력바 아래 게이지: 무력화 = 파랑 · 빛 그릇 = 연두 (못 채우면 깨지며 전원 피해), 주시 = 호박색 (차면 나를 노림). 내 위협 (96)은 안 보임 */
@@ -191,16 +192,16 @@ export function updateWheel(): void {
     const lk = F.lock[key], cdv = sk.cd ? F.cd[key] || 0 : 0, cd = Math.max(cdv, lk?.left ?? 0), cost = costOf(F, key); // 진동 잠김도 재사용 대기처럼
     const powerNeed=key==='lightWave'?waveNeed(F):sk.power;
     const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : powerNeed!);
-    const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : powerNeed}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
+    const resource = sk.power ? t('힘 {n}', { n: sk.powerAll ? '1~3' : String(powerNeed) }) : cost ? t('마나 {n}%', { n: Math.round(cost * 10) / 10 }) : t('마나 0');
     setText(el.querySelector('.nm')!, sk.short);
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
-    const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${powerNeed}`) : `${Math.round(cost * 10) / 10}%`;
+    const visibleCost = sk.power ? (sk.powerAll ? t('힘1+') : t('힘{n}', { n: String(powerNeed) })) : `${Math.round(cost * 10) / 10}%`;
     setText(el.querySelector('.ct')!, spent ? '' : visibleCost);
     // 공통 재사용 대기: 자기 재사용 대기보다 길면 연한 부채꼴로 (시전 중에는 누르면 시전을 끊고 바로 나가므로 안 그림)
     const gcd = !spent && !F.cast && F.gcd > cd ? F.gcd / F.gcdBase : 0;
     el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 && !gcd ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : gcd > 0 ? `${Math.min(1, gcd) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, spent ? '사용 완료' : cd > 0 ? `${Math.ceil(cd)}초` : '');
-    const label = `${sk.name}, ${spent ? '사용 완료, 전투당 사용 횟수 소진' : lk ? `진동으로 잠김 ${Math.ceil(cd)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
+    setText(el.querySelector('.cds')!, spent ? t('사용 완료') : cd > 0 ? t('{n}초', { n: Math.ceil(cd) }) : '');
+    const label = `${t(sk.name)}, ${spent ? t('사용 완료, 전투당 사용 횟수 소진') : lk ? t('진동으로 잠김 {n}초', { n: Math.ceil(cd) }) : cd > 0 ? t('재사용 대기 {n}초', { n: Math.ceil(cd) }) : resource}${lowMana ? `, ${t('마나 부족')}` : lowPower ? `, ${t('신성한 힘 부족')}` : ''}${B.armed === slot ? `, ${t('선택됨. 대상 선택 또는 다시 눌러 취소')}` : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
     el.setAttribute('aria-pressed', String(B.armed === slot));
     el.setAttribute('aria-disabled', String(spent));
@@ -216,7 +217,7 @@ export function updateWheel(): void {
   // 휠 가운데 = 마나 링 (시안). 마나가 모자라면 링·숫자가 빨강 (27 3-4: 위기 신호를 마나 테두리로)
   const mn = $('manaNum'), core = $('core'), mana = manaMeter(F.mana);
   setText(mn.firstChild as Element, String(mana.percent));
-  setText(mn.querySelector('small')!, '마나 %');
+  setText(mn.querySelector('small')!, t('마나 %'));
   if (core.style.getPropertyValue('--m') !== mana.fill) core.style.setProperty('--m', mana.fill);
   core.classList.toggle('low', mana.low);
   core.classList.toggle('mana-empty', mana.percent === 0);
@@ -264,9 +265,9 @@ export function updateAux(): void {
     const on = activeOn(F, k), spent = talentUsesSpent(F, k), cd = !spent && !on ? a.cd : 0;
     if (spent && ui.talArmed === k) ui.talArmed = null;
     el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 ? `${Math.min(1, cd / talentCd(F, k)) * 100}%` : '0%');
-    setText(el.querySelector('.ct')!, on ? `${Math.ceil(a.left)}초` : '');
-    setText(el.querySelector('.cds')!, spent ? '사용 완료' : cd > 0 ? `${Math.ceil(cd)}초` : '');
-    const label = `${TALENT_DEF[k].name}, ${spent ? '사용 완료, 전투당 사용 횟수 소진' : on ? `효과 중 ${Math.ceil(a.left)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : '사용 가능'}${ui.talArmed === k ? ', 선택됨. 칸 선택 또는 다시 눌러 취소' : ''}`;
+    setText(el.querySelector('.ct')!, on ? t('{n}초', { n: Math.ceil(a.left) }) : '');
+    setText(el.querySelector('.cds')!, spent ? t('사용 완료') : cd > 0 ? t('{n}초', { n: Math.ceil(cd) }) : '');
+    const label = `${t(TALENT_DEF[k].name)}, ${spent ? t('사용 완료, 전투당 사용 횟수 소진') : on ? t('효과 중 {n}초', { n: Math.ceil(a.left) }) : cd > 0 ? t('재사용 대기 {n}초', { n: Math.ceil(cd) }) : t('사용 가능')}${ui.talArmed === k ? `, ${t('선택됨. 칸 선택 또는 다시 눌러 취소')}` : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
     el.setAttribute('aria-pressed', String(ui.talArmed === k));
     el.setAttribute('aria-disabled', String(spent));
@@ -278,9 +279,9 @@ export function updateAux(): void {
 }
 export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const d = TALENT_DEF[k], a = d.active!;
-  const row = a.once ? '전투당 1회' : `${a.dur}초 · 재사용 대기 ${a.cd}초`;
+  const row = a.once ? t('전투당 1회') : t('{a}초 · 재사용 대기 {b}초', { a: a.dur, b: a.cd });
   const F = fight();
-  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, { tal: k, held: true });
+  popTip(tipHtml({ name: t(d.name), kind: t('특성'), rows: [[t('즉시'), row]], desc: healText(t(d.desc), INT_BASE * F.power * F.gear.heal), note: a.cell ? t('누른 뒤 빈 칸을 탭') : t('GCD·마나 없이 바로') }), el, { tal: k, held: true });
 }
 
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
@@ -290,26 +291,26 @@ export function updateCastbar(): void {
   if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
     label = `${SKILLS[F.cast.key].short} → ${u ? u.nick : ''}`;
-    if (F.hero === 'astrologer' && CONSTELLATION.has(F.cast.key)) label += ` · 별 ${starsNow(F)}${starsNow(F) >= starMax(F) ? ' · 가득' : ''}`; // 83: 별자리 시전 = 지금 조각으로 터질 별 수
+    if (F.hero === 'astrologer' && CONSTELLATION.has(F.cast.key)) label += ` · ${t('별 {n}', { n: starsNow(F) })}${starsNow(F) >= starMax(F) ? ` · ${t('가득')}` : ''}`; // 83: 별자리 시전 = 지금 조각으로 터질 별 수
     p = 1 - F.cast.left / F.cast.total;
     left = Math.max(0, F.cast.left).toFixed(1);
   } else if (F.channel > 0) {
     const raid = SKILLS[HEROES[F.hero].slots.raid!];
-    label = `${raid.short} · 칸을 누르면 끊김`;
+    label = `${t(raid.short)} · ${t('칸을 누르면 끊김')}`;
     p = 1 - F.channel / (raid.channel || 4);
     left = Math.max(0, F.channel).toFixed(1);
   } else if (B.beacon) {
-    label = '봉화: 지킬 파티원 칸 선택';
+    label = t('봉화: 지킬 파티원 칸 선택');
   } else if (B.armed) {
     const k = slotKey(F, B.armed);
-    label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : SKILLS[k].target === 'cell' ? '세울 칸 선택 (빈 칸도)' : '대상 칸 선택'}`;
+    label = t('{s} 장전: {how}', { s: t(SKILLS[k].name), how: SKILLS[k].target === 'area' ? t('누른 채 범위를 보고 떼기') : SKILLS[k].target === 'cell' ? t('세울 칸 선택 (빈 칸도)') : t('대상 칸 선택') });
   } else if (F.queued) {
-    label = `다음: ${SKILLS[F.queued.key].name}`;
+    label = t('다음: {s}', { s: t(SKILLS[F.queued.key].name) });
     p = F.gcd > 0 ? F.gcd / F.gcdBase : 0;
     left = F.gcd > 0 ? F.gcd.toFixed(1) : '';
   } else if (F.gcd > 0) {
     // 공통 재사용 대기 (2026-10-10 Lim: 소생 같은 즉시 스킬 뒤에 안 보였음): 시전 막대 자리에 줄어드는 막대 + 남은 초
-    label = '공통 재사용 대기';
+    label = t('공통 재사용 대기');
     p = F.gcd / F.gcdBase;
     left = F.gcd.toFixed(1);
   } else {
@@ -317,9 +318,9 @@ export function updateCastbar(): void {
     if (selected) {
       const hp = `${Math.ceil(selected.hp)}/${Math.ceil(selected.max)} (${Math.ceil(selected.hp / selected.max * 100)}%)`;
       const types = [...new Set(selected.debuffs.map(d => d.type))];
-      label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : '쓰러짐'}${types.length ? ` · ${types.join('/')}` : ''}`;
-      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name}${dispellable(d) ? ` (${d.type})` : ''}, ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : '디버프 없음'}`;
-    } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
+      label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : t('쓰러짐')}${types.length ? ` · ${types.map(x => t(x)).join('/')}` : ''}`;
+      detail = `${selected.nick}, ${selected.alive ? t('체력 {n}', { n: hp }) : t('쓰러짐')}. ${selected.debuffs.length ? selected.debuffs.map(d => `${t(d.name)}${dispellable(d) ? ` (${t(d.type)})` : ''}, ${t('{n}초', { n: Math.ceil(d.left) })}${d.stack ? `, ${t('{n}중첩', { n: d.stack })}` : ''}${debuffBrief(d) ? `, ${debuffBrief(d)}` : ''}`).join('. ') : t('디버프 없음')}`;
+    } else label = t('칸을 탭하면 {s}', { s: t(SKILLS[tapKey()].name) });
   }
   const casting = !!F.cast || F.channel > 0;
   setText($('castLabel'), label);
@@ -366,7 +367,7 @@ export function missNum(u: Unit | undefined): void {
   if (S.reducedEffects) return;
   if (!dmg.els.length) resetDmgNums();
   const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
-  el.textContent = '빗나감';
+  el.textContent = t('빗나감');
   el.className = `miss${u ? ` ${u.role}` : ''}`;
   el.style.setProperty('--jx', `${Math.round(Math.random() * 12 - 6)}px`);
   void el.offsetWidth;
@@ -475,7 +476,7 @@ export function buildStage(): void {
   const dots = $('segDots'), n = R.segs.length;
   dots.hidden = n < 2;
   dots.setAttribute('role', 'img');
-  dots.setAttribute('aria-label', `던전 구간 ${R.idx + 1}/${n}`);
+  dots.setAttribute('aria-label', t('던전 구간 {a}/{b}', { a: R.idx + 1, b: n }));
   dots.innerHTML = n < 2 ? '' : R.segs.map((_, i) => `<i class="${i < R.idx ? 'done' : i === R.idx ? 'cur' : ''}"></i>`).join('');
 }
 
@@ -488,12 +489,12 @@ export function updateStage(now: number): void {
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
   bossAura(F);
-  if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), '처치');
-  else setText($('bossHpText'), `${Math.ceil(hpNow).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · ${F.weak.cut < 0 ? '성남' : '약해짐'} ${Math.ceil(F.weak.until - F.t)}` : ''}${F.expose && F.expose.vuln < 1 ? ` · 단단해짐 ${Math.ceil(F.expose.until - F.t)}` : ''}${watchText(F)}`);
+  if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), t('처치'));
+  else setText($('bossHpText'), `${Math.ceil(hpNow).toLocaleString(locale())} · ${Math.ceil(pct * 100)}%${F.invuln ? ` · ${t('무적')}` : F.daze ? ` · ${t(F.daze.name ?? '멍함')} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ` · ${t('보호막')}` : ''}${F.empower ? ` · ${t('강해짐 +{n}%', { n: Math.round(F.empower * 100) })}` : ''}${F.weak ? ` · ${F.weak.cut < 0 ? t('성남') : t('약해짐')} ${Math.ceil(F.weak.until - F.t)}` : ''}${F.expose && F.expose.vuln < 1 ? ` · ${t('단단해짐 {n}', { n: Math.ceil(F.expose.until - F.t) })}` : ''}${watchText(F)}`);
   bossGauge(F);
   // 위치 줄 (2026-10-16 Lim 「전체적으로 통일되게 장소명과 난이도만, 잘리지 않게」): 모든 전투 「장소 · 난이도」, 주간 도전은 「장소 · 도전 n단계」.
   // 구간 진행은 시간 줄 점, 페이즈는 큰 알림, 적 이름은 이름 줄이 보여 줌
-  setText($('phase'), `${contentOf(R.content as ContentKey)?.name ?? R.name} · ${S.chal ? `도전 ${S.chal}단계` : F.cfg.diff}`);
+  setText($('phase'), `${t(contentOf(R.content as ContentKey)?.name ?? R.name)} · ${S.chal ? t('도전 {n}단계', { n: S.chal }) : t(F.cfg.diff)}`);
   const adds = $('bossAdds'), ratsOn = F.rats.length > 0 && adds.hasAttribute('src');
   if (adds.hidden === ratsOn) adds.hidden = !ratsOn;
   // 시간 줄 (시안 「0:42 · 광폭까지 3:48」). 탱커 공백 (35 6-4)이면 광폭까지 남은 초를 빨갛게
@@ -501,13 +502,13 @@ export function updateStage(now: number): void {
   if (S.limit) {
     // 주간 도전 (13 3-2): 던전 전체 제한시간 (휴식 뺀 전투 시간 합)
     const used = R.time + chalTime(F); // 도전자의 위기 (115): 쓰러질 때마다 더한 초
-    setText($('timer'), `${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ' · 광폭화!' : noTank != null ? ` · 탱커 없음 ${noTank}` : ''}`);
+    setText($('timer'), `${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ` · ${t('광폭화!')}` : noTank != null ? ` · ${t('탱커 없음 {t}', { t: noTank })}` : ''}`);
     $('timer').classList.toggle('over', used > S.limit);
-  } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : noTank != null ? `${mmss(F.t)} · 탱커 없음 · 광폭까지 ${mmss(noTank)}` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · 광폭까지 ${mmss(Math.ceil(F.enc.enrage - F.t))}` : mmss(F.t));
+  } else setText($('timer'), F.enraged ? `${mmss(F.t)} · ${t('광폭화!')}` : noTank != null ? `${mmss(F.t)} · ${t('탱커 없음 · 광폭까지 {t}', { t: mmss(noTank) })}` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · ${t('광폭까지 {t}', { t: mmss(Math.ceil(F.enc.enrage - F.t)) })}` : mmss(F.t));
   $('timer').classList.toggle('enraged', F.enraged || noTank != null);
   // 탱커 앞줄 이탈 (위치 규칙, 2026-10-13 Lim): 적이 아무나 때리는 동안 메시지 자리에 붉은 경고 + 지금 맞는 사람
   const lo = !F.over && F.loose ? F.party.find(u => u.id === F.loose!.id && u.alive) : undefined;
-  alarm(lo ? { title: '탱커가 맨 앞줄을 벗어남', text: `적이 아무나 공격 · 지금 ${lo.me ? '나' : lo.nick}` } : null);
+  alarm(lo ? { title: t('탱커가 맨 앞줄을 벗어남'), text: t('적이 아무나 공격 · 지금 {n}', { n: lo.me ? t('나') : lo.nick }) } : null);
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     // art = 기술 아이콘 그림 이름 (37 1장 · 4장, 없으면 '' → 종류 SVG)
@@ -523,7 +524,7 @@ export function updateStage(now: number): void {
     if (changed) {
       const focused = document.activeElement instanceof HTMLElement && queueEl.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
       // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸. 칸 안 기술 아이콘은 뺌 (2026-10-13 Lim, 누르면 나오는 설명 팝업에는 있음)
-      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span><span class="tx"><span class="nm"></span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
+      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span><span class="tx"><span class="nm"></span></span><span class="sec"><b class="sec-num"></b><small>${t('초')}</small></span></button>`).join('')
         + '<span class="q-empty" aria-hidden="true"></span>'.repeat(3 - q.length);
       cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
       // 순서가 바뀌었을 때만, 여전히 예고 중인 같은 기술로 포커스를 이어 준다.
@@ -538,8 +539,8 @@ export function updateStage(now: number): void {
       setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
       // 남은 초를 먼저 넣어 이름의 폭을 잰다. 종류는 읽기 이름과 설명 팝업에만 표시한다.
       const names = [...new Set([it.name, QSHORT[it.name || ''], it.icon].filter((n): n is string => !!n))];
-      fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names : ['기술']);
-      const label = `${it.name || '기술'}, ${qKind(it.kind).name}, ${Math.ceil(sec)}초 뒤${it.casting ? ', 시전 중' : ''}. 기술 설명`;
+      fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names.map(n => t(n)) : [tc('기술', 'battle')]);
+      const label = `${it.name ? t(it.name) : tc('기술', 'battle')}, ${t(qKind(it.kind).name)}, ${t('{n}초 뒤', { n: Math.ceil(sec) })}${it.casting ? `, ${t('시전 중')}` : ''}. ${t('기술 설명')}`;
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       qGauge(el.querySelector<HTMLElement>('.fill')!, sec / QWIN);
     });
@@ -557,8 +558,8 @@ export function updateStage(now: number): void {
       const tgt = F.party.find(u => firstBuster.units.includes(u.id));
       const amt = tgt ? telDmg(F, firstBuster, tgt) : firstBuster.skill.dmg! * F.dmgMult;
       // 권하는 생존기는 그 직업의 외부 생존기 칸 (사제 수호 영혼 · 드루이드 나무껍질 …), 아직 안 배웠으면 미리 채우기만
-      const ext = slotKey(F, 'guardian'), tip = knows(F, ext) ? `미리 채우거나 ${SKILLS[ext].name}` : '미리 채워 두기';
-      ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.ceil(amt - 1e-6)} 피해. ${tip}`);
+      const ext = slotKey(F, 'guardian'), tip = knows(F, ext) ? t('미리 채우거나 {s}', { s: t(SKILLS[ext]?.name ?? '') }) : t('미리 채워 두기');
+      ui.busterHint = true; toast(t('{s}: 탱커에게 {n} 피해. {tip}', { s: t(String(firstBuster.skill.name)), n: Math.ceil(amt - 1e-6), tip }));
     }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
@@ -595,7 +596,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(tipHtml({ icon: qIc(ic, qEl.dataset.kind, qEl.dataset.art || '', 'ic qk'), name: s.name, kind: F.enc.script === 'trash' ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: qIc(ic, qEl.dataset.kind, qEl.dataset.art || '', 'ic qk'), name: t(s.name), kind: F.enc.script === 'trash' ? t('적 기술') : t('보스 기술'), rows: [[t(s.every)]], desc: t(what) }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }
@@ -658,40 +659,40 @@ function drawPreview(u: Unit): void {
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
   const job = u.me ? HEROES[F.hero].name : cls?.name;
-  lines.push(`<div class="ph"><div class="pnm"><b>${u.nick}</b><span class="pmeta">${job ? `${job} · ` : ''}${ROLE[u.role].name}</span></div><div class="php"><span class="pmeta">체력</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString('ko-KR')} <small>/ ${Math.round(u.max).toLocaleString('ko-KR')}</small></strong>` : '<strong class="pdown">쓰러짐</strong>'}</div></div>`);
-  if (u.max < u.base) lines.push(`<div class="pmax">최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%</div>`);
+  lines.push(`<div class="ph"><div class="pnm"><b>${u.nick}</b><span class="pmeta">${job ? `${t(job)} · ` : ''}${t(ROLE[u.role].name)}</span></div><div class="php"><span class="pmeta">${t('체력')}</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString(locale())} <small>/ ${Math.round(u.max).toLocaleString(locale())}</small></strong>` : `<strong class="pdown">${t('쓰러짐')}</strong>`}</div></div>`);
+  if (u.max < u.base) lines.push(`<div class="pmax">${t('최대 체력 -{n}%', { n: Math.round((1 - u.max / u.base) * 100) })}</div>`);
   if (u.ab) {
     const ab = ABILITIES[u.ab.key];
     const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
-    const state = ab.cd === 0 && !ab.each ? '상시' : ab.cd < 0 ? (u.ab.uses ? '사용함' : '1회 준비') : left > 0.05 ? `${Math.ceil(left)}초 뒤` : '준비';
+    const state = ab.cd === 0 && !ab.each ? t('상시') : ab.cd < 0 ? (u.ab.uses ? t('사용함') : t('1회 준비')) : left > 0.05 ? t('{n}초 뒤', { n: Math.ceil(left) }) : t('준비');
     lines.push(`<div class="cpas ab pv-section"><div class="pv-heading"><b>${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><small class="pv-state">${state}</small></div><div class="d">${ab.desc}</div></div>`);
   }
-  if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${u.pers}</b><small class="pv-label">성격</small></div><div class="d">${u.p.desc}</div></div>`);
+  if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${t(u.pers ?? '')}</b><small class="pv-label">${t('성격')}</small></div><div class="d">${t(u.p.desc ?? '')}</div></div>`);
   const items: string[] = [];
   // 디버프마다 하는 일을 짧게 (debuffBrief). 직업별 해제 가능 · 불가 글은 쓰지 않는다 (2026-10-27 Lim 「"드루이드 해제 불가" 텍스트를 제거하고 간략하게 … 효과를 설명」)
   for (const d of u.debuffs) {
     // 종류 이름은 지울 수 있을 때만 (물리 · 해제 안 됨은 종류가 아무 뜻이 없음, 2026-10-28 Lim 「물리가 무슨 뜻인지 모른다」)
-    const b = debuffBrief(d), kind = [dispellable(d) ? d.type : '', d.stack ? `${d.stack}중첩` : ''].filter(Boolean).join(' ');
-    const paren = [kind, Number.isFinite(d.left) ? `${Math.ceil(d.left)}초` : ''].filter(Boolean).join(', '); // 끝없는 깊은 상처 (어픽스)는 초 없이
+    const b = debuffBrief(d), kind = [dispellable(d) ? t(d.type) : '', d.stack ? t('{n}중첩', { n: d.stack }) : ''].filter(Boolean).join(' ');
+    const paren = [kind, Number.isFinite(d.left) ? t('{n}초', { n: Math.ceil(d.left) }) : ''].filter(Boolean).join(', '); // 끝없는 깊은 상처 (어픽스)는 초 없이
     items.push(`${d.name}${paren ? ` (${paren})` : ''}${b ? ` · ${b}` : ''}`);
   }
-  if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
-  for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
-  { const sh = shieldTimerOf(u, F.t); if (sh) items.push(`보호막 ${Math.ceil(sh.left)}초 (남은 흡수 ${Math.round(sh.amt).toLocaleString('ko-KR')})`); }
-  if (F.beacon === u.id) items.push(`봉화: 다른 사람에게 한 빛의 손길의 ${Math.round(beaconShare(F) * 100)}%가 함께 들어감`);
-  if (u.redu > 0 && !u.immune) items.push(`받는 피해 -${Math.round(u.reduCut * 100)}% ${Math.ceil(u.redu)}초`);
-  if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);
-  if (u.immune > 0) items.push(`보호의 손 ${Math.ceil(u.immune)}초 (물리 피해 무시, 딜 멈춤)`);
-  if (u.guardian > 0) items.push(`수호 영혼 ${Math.ceil(u.guardian)}초`);
-  for (const d of F.relays) if (d.id === u.id) items.push(`빛의 전이 ${Math.max(0, Math.ceil(d.until - F.t))}초 (피해를 받으면 회복하고 옆 사람에게, 남은 회복 ${d.left}번)`);
-  for (const z of F.zones) if (z.tide && z.cells.has(u.cell)) items.push(`어둠물에 잠김 ${Math.ceil(z.end - F.t)}초 (받는 치유 −50%)`); // 어둠물 밀물 (59 5장)
-  for (const d of u.debuffs) if ((d.debtLeft ?? 0) > 0) items.push(`남은 빚 ${Math.round(d.debtLeft!)} (넘친 치유가 갚음, ${Math.ceil(d.left)}초 뒤 남은 빚만큼 피해)`); // 빌린 생명
-  for (const d of u.debuffs) if (d.staunchLeft != null) items.push(`남은 봉합 ${Math.max(0, Math.round(d.staunchLeft))} (실제로 회복할수록 출혈이 줄어듦, ${Math.ceil(d.left)}초)`); // 봉합 상처 (113 6.2)
-  for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
-  if (u.shield > 0) items.push(`보호 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
-  for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
-  if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
-  if (items.length) lines.push(`<div class="pv-effects pv-section"><span class="pv-label">현재 효과</span><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></div>`);
+  if (u.hot > 0) items.push(t('소생 {n}초', { n: Math.ceil(u.hot) }));
+  for (const h of u.hots) items.push(t('{s} {n}초 (남은 회복 {r})', { s: t(h.name), n: Math.ceil(h.left), r: Math.round(h.rest) }));
+  { const sh = shieldTimerOf(u, F.t); if (sh) items.push(t('보호막 {n}초 (남은 흡수 {a})', { n: Math.ceil(sh.left), a: Math.round(sh.amt).toLocaleString(locale()) })); }
+  if (F.beacon === u.id) items.push(t('봉화: 다른 사람에게 한 빛의 손길의 {p}%가 함께 들어감', { p: Math.round(beaconShare(F) * 100) }));
+  if (u.redu > 0 && !u.immune) items.push(t('받는 피해 -{p}% {n}초', { p: Math.round(u.reduCut * 100), n: Math.ceil(u.redu) }));
+  if (u.sacr > 0) items.push(t('희생 {n}초 (받는 피해 30%를 내가 대신)', { n: Math.ceil(u.sacr) }));
+  if (u.immune > 0) items.push(t('보호의 손 {n}초 (물리 피해 무시, 딜 멈춤)', { n: Math.ceil(u.immune) }));
+  if (u.guardian > 0) items.push(t('수호 영혼 {n}초', { n: Math.ceil(u.guardian) }));
+  for (const d of F.relays) if (d.id === u.id) items.push(t('빛의 전이 {n}초 (피해를 받으면 회복하고 옆 사람에게, 남은 회복 {k}번)', { n: Math.max(0, Math.ceil(d.until - F.t)), k: d.left }));
+  for (const z of F.zones) if (z.tide && z.cells.has(u.cell)) items.push(t('어둠물에 잠김 {n}초 (받는 치유 −50%)', { n: Math.ceil(z.end - F.t) })); // 어둠물 밀물 (59 5장)
+  for (const d of u.debuffs) if ((d.debtLeft ?? 0) > 0) items.push(t('남은 빚 {d} (넘친 치유가 갚음, {n}초 뒤 남은 빚만큼 피해)', { d: Math.round(d.debtLeft!), n: Math.ceil(d.left) })); // 빌린 생명
+  for (const d of u.debuffs) if (d.staunchLeft != null) items.push(t('남은 봉합 {s} (실제로 회복할수록 출혈이 줄어듦, {n}초)', { s: Math.max(0, Math.round(d.staunchLeft)), n: Math.ceil(d.left) })); // 봉합 상처 (113 6.2)
+  for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(t('{ring} 안 {n}초 ({grow})', { ring: t(z.ring.name), n: Math.ceil(z.end - F.t), grow: z.ring.n < z.ring.max ? t('치유를 받으면 한 겹 자람, {a}/{b}겹', { a: z.ring.n, b: z.ring.max }) : t('다 자람 {b}겹', { b: z.ring.max }) })); // 요정 고리 (48 5장)
+  if (u.shield > 0) items.push(t('보호 {n}초 (받는 피해 -40%)', { n: Math.ceil(u.shield) }));
+  for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(t('{g} {n}초 뒤 체력 {p}%로 돌아감 (금빛 선)', { g: t(g.name), n: Math.ceil(g.until - F.t), p: Math.round(g0 * 100) })); } // 모래시계 (54 5장)
+  if (F.melt && F.t < F.melt.until && u.alive) items.push(t('{m} {n}초: 보호막 · 외부 생존기가 빨리 녹음', { m: t(F.melt.name), n: Math.ceil(F.melt.until - F.t) })); // 녹는 보호막 (51 5장)
+  if (items.length) lines.push(`<div class="pv-effects pv-section"><span class="pv-label">${t('현재 효과')}</span><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></div>`);
   const html = lines.join('');
   if ($('preview').innerHTML !== html) $('preview').innerHTML = html;
 }
@@ -719,14 +720,14 @@ const lowest = (f: Fight) => f.party.filter(u => u.alive).reduce((a, b) => (b.hp
 const firstTel = (f: Fight, kind: string) => f.tels.find(t => t.kind === kind && f.t - t.start < 0.5);
 const COACH: Record<string, CoachStep[]> = {
   duo: [
-    { when: f => { const u = tankOf(f); return f.t >= 6 || (!!u && u.hp / u.max < 0.92); }, text: '탱커가 공격받고 있습니다. <b>탱커 칸을 탭</b>하면 치유를 시작합니다.', at: tankOf, need: 'heal' },
-    { when: f => (f.stats.casts.heal || 0) >= 1 && f.t >= 5, freeze: false, text: '아래 시전 막대가 차면 치유가 들어갑니다. 체력이 줄어들 때마다 다시 탭합니다.' },
+    { when: f => { const u = tankOf(f); return f.t >= 6 || (!!u && u.hp / u.max < 0.92); }, text: () => t('탱커가 공격받고 있습니다. <b>탱커 칸을 탭</b>하면 치유를 시작합니다.'), at: tankOf, need: 'heal' },
+    { when: f => (f.stats.casts.heal || 0) >= 1 && f.t >= 5, freeze: false, text: () => t('아래 시전 막대가 차면 치유가 들어갑니다. 체력이 줄어들 때마다 다시 탭합니다.') },
   ],
   explore: [
-    { when: f => f.t >= 1 && knows(f, 'renew'), text: () => `새로 배운 <b>소생</b>입니다. <b>탱커 칸을 누른 채 ${arrowOf('renew')} 쪽으로 쓸어 사용합니다.</b> 휠의 소생과 같은 방향입니다.`, at: tankOf, slot: 'renew', need: 'swipe:renew', swipe: 'renew' },
-    { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: () => `체력이 크게 줄었습니다. <b>순간 치유</b>는 칸에서 ${arrowOf('flash')} 쪽으로 쓸거나, 휠에서 선택한 뒤 칸을 탭해 사용합니다. 마나 소모가 큽니다.`, at: lowest, slot: 'flash', need: 'flash', swipe: 'flash' },
-    { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위의 시전 막대가 끝나면 탱커가 큰 피해를 받습니다. 체력을 미리 채웁니다.' },
-    { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 파티원 모두가 피해를 받습니다. 공격 후 체력이 가장 낮은 파티원부터 치유합니다.' },
+    { when: f => f.t >= 1 && knows(f, 'renew'), text: () => t('새로 배운 <b>소생</b>입니다. <b>탱커 칸을 누른 채 {d} 쪽으로 쓸어 사용합니다.</b> 휠의 소생과 같은 방향입니다.', { d: arrowOf('renew') }), at: tankOf, slot: 'renew', need: 'swipe:renew', swipe: 'renew' },
+    { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: () => t('체력이 크게 줄었습니다. <b>순간 치유</b>는 칸에서 {d} 쪽으로 쓸거나, 휠에서 선택한 뒤 칸을 탭해 사용합니다. 마나 소모가 큽니다.', { d: arrowOf('flash') }), at: lowest, slot: 'flash', need: 'flash', swipe: 'flash' },
+    { when: f => !!firstTel(f, 'buster'), text: () => t('<b>강타 예고</b>: 위의 시전 막대가 끝나면 탱커가 큰 피해를 받습니다. 체력을 미리 채웁니다.') },
+    { when: f => !!firstTel(f, 'aoe'), text: () => t('<b>광역 예고</b>: 파티원 모두가 피해를 받습니다. 공격 후 체력이 가장 낮은 파티원부터 치유합니다.') },
   ],
 };
 const swipeEl = document.createElement('div');
@@ -756,7 +757,7 @@ export function coachCheck(): void {
   ui.coach = { uid: u ? u.id : null, freeze: st.freeze !== false, until: st.freeze === false ? performance.now() + 4000 : 0, need: st.need, slot: st.slot, swipe: st.swipe };
   const text = typeof st.text === 'function' ? st.text(F) : st.text;
   const hint = st.swipe && u ? swipeArrowHtml(u, st.swipe) : ''; // 쓸기 안내: 짚은 칸에서 쓸 방향으로 화살표
-  coachEl.innerHTML = `<p>${text}</p>${st.need || st.freeze === false ? '' : '<button class="btn primary" type="button" data-coach-ok>확인</button>'}`;
+  coachEl.innerHTML = `<p>${text}</p>${st.need || st.freeze === false ? '' : `<button class="btn primary" type="button" data-coach-ok>${t('확인')}</button>`}`;
   swipeEl.innerHTML = hint; swipeEl.hidden = !hint;
   coachEl.hidden = false;
   placeCoach(F, u);
