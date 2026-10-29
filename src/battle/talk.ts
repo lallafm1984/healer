@@ -290,7 +290,8 @@ export function createTalk(rand: () => number = Math.random) {
       if (!u || out.some(b => b.id === u.id)) continue;
       if (ev.sit && SOFT_BARKS.includes(ev.sit)) { soft.push({ sit: ev.sit, u }); continue; }
       const text = ev.sit ? lineFor({ sit: ev.sit, ally: ev.ally != null ? byId(ev.ally) : undefined }, u) : null;
-      say(out, u, text || ev.text, ev.sit ?? null, now);
+      // 상황 줄이 없으면 엔진의 성격 한마디 (personalities.ts barks) — 영어 · 일본어는 talk 사전 (121 ⑥-3c)
+      say(out, u, text || talkOf(ev.text), ev.sit ?? null, now);
     }
 
     // 예약된 말 (시작 인사 · 끝 인사)
