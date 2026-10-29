@@ -9,6 +9,7 @@
  * 시각 효과 줄이기 · 기기 동작 줄이기면 움직임 없이 결과만. Playwright (navigator.webdriver)는 안 띄움 (다른 화면 검사가 창에 막히지 않게), 검사는 window.__rewardPopTest = true
  */
 import { GRADE_STYLE, kindOf, qualityOf, slotName, type GearItem, type ItemGrade } from '../data/equipment';
+import { t } from '../i18n';
 import { scoreOf } from '../game/charinfo';
 import { G } from '../game/state';
 import { art } from '../art';
@@ -56,10 +57,10 @@ function itemsHtml(items: GearItem[]): string {
 function infoHtml(items: GearItem[]): string {
   if (items.length === 1) {
     const it = items[0], q = qualityOf(it);
-    return `<div class="rw-info" style="${gv(it)};${d(AT.info)}"><p class="rw-grade"><i>${it.grade}</i>${q ? ` <span class="rw-q" data-q="${q}">${q}</span>` : ''}</p>
-      <h4 class="rw-name">${esc(it.name)}</h4><p class="rw-sub">점수 ${scoreOf(it)} · ${esc(slotName(it.slot))} · ${esc(kindOf(it).name)}${it.lv ? ` · Lv ${it.lv}` : ''}</p></div>`;
+    return `<div class="rw-info" style="${gv(it)};${d(AT.info)}"><p class="rw-grade"><i>${t(it.grade)}</i>${q ? ` <span class="rw-q" data-q="${q}">${t(q)}</span>` : ''}</p>
+      <h4 class="rw-name">${esc(t(it.name))}</h4><p class="rw-sub">${t('점수 {n}', { n: scoreOf(it) })} · ${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))}${it.lv ? ` · Lv ${it.lv}` : ''}</p></div>`;
   }
-  return `<ul class="rw-info rw-names" style="${d(AT.info)}">${items.map(it => `<li style="${gv(it)}"><i>${it.grade}</i><b>${esc(it.name)}</b></li>`).join('')}</ul>`;
+  return `<ul class="rw-info rw-names" style="${d(AT.info)}">${items.map(it => `<li style="${gv(it)}"><i>${t(it.grade)}</i><b>${esc(t(it.name))}</b></li>`).join('')}</ul>`;
 }
 
 /** 숫자 칸: 0부터 올라감 (data-to · data-at) */
@@ -70,20 +71,20 @@ function html(r: Reward): string {
   const goldIc = currencyIcon('gold'), fameIc = gameIcon('guild-fame', '');
   let body: string;
   if (gear) {
-    const pills = [gold ? `<span class="rw-pill" aria-label="골드 ${fmt(gold)}">${goldIc}${num(gold, AT.gold)}</span>` : '', fame ? `<span class="rw-pill fame" aria-label="명성 ${fmt(fame)}">${fameIc}${num(fame, AT.gold)}</span>` : ''].join('');
+    const pills = [gold ? `<span class="rw-pill" aria-label="${t('골드 {n}', { n: fmt(gold) })}">${goldIc}${num(gold, AT.gold)}</span>` : '', fame ? `<span class="rw-pill fame" aria-label="${t('명성 {n}', { n: fmt(fame) })}">${fameIc}${num(fame, AT.gold)}</span>` : ''].join('');
     body = `${itemsHtml(items)}${infoHtml(items)}${pills ? `<p class="rw-pills" style="${d(AT.gold)}">${pills}</p>` : ''}`;
   } else {
     // 골드 · 명성만: 큰 그림 하나 (골드가 있으면 골드), 숫자 줄은 둘 다
     const ic = gold ? goldIc : fameIc;
     const line = (n: number, label: string) => `<p class="rw-num" aria-label="${label} ${fmt(n)}">${num(n, AT.coin)}<span>${label}</span></p>`;
     body = `<div class="rw-box"><span class="rw-rays" style="${d(0)}"></span><span class="rw-big" style="${d(0)}">${ic}</span>${coins(0.08, ic)}</div>
-      <div class="rw-info" style="${d(0.2)}">${gold ? line(gold, '골드') : ''}${fame ? line(fame, '명성') : ''}</div>`;
+      <div class="rw-info" style="${d(0.2)}">${gold ? line(gold, t('골드')) : ''}${fame ? line(fame, t('명성')) : ''}</div>`;
   }
   return `<div class="rw-dim"></div>
     <div class="rw-card" role="dialog" aria-modal="true" aria-labelledby="rwTitle" tabindex="-1">
       <h3 class="rw-ribbon" id="rwTitle">${esc(r.title)}</h3>
       ${body}
-      <button class="btn primary rw-ok" type="button" style="${d(gear ? AT.ok : 0.5)}">확인</button>
+      <button class="btn primary rw-ok" type="button" style="${d(gear ? AT.ok : 0.5)}">${t('확인')}</button>
       ${gear ? '' : `<span class="rw-auto" aria-hidden="true"><i style="animation-duration:${AUTO_CLOSE}s"></i></span>`}
     </div>`;
 }

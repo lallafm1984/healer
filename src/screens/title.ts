@@ -1,5 +1,6 @@
 /** S01 타이틀: 게임 이름 · 하단 시작 버튼. 시작 입력은 버튼만 받는다. */
 import './title.css';
+import { t } from '../i18n';
 import './title-motion.css';
 import { G } from '../game/state';
 import { battle, screen } from './kit';
@@ -15,7 +16,7 @@ const motes = [
   [74, 81, -18, 12], [7, 46, 17, 13], [80, 28, -12, 16],
 ];
 
-const s = screen('s-title', '타이틀', {
+const s = screen('s-title', t('타이틀'), {
   enter() {
     stopMotion();
     prepareTitleBloom();
@@ -24,9 +25,9 @@ const s = screen('s-title', '타이틀', {
     <div class="t-wrap">
       <div class="t-brand">
         <div class="t-plate-fx" aria-hidden="true"><i class="t-sheen"><i></i></i><i class="t-glint"></i></div>
-        <h1 class="t-name" aria-label="나혼자 힐러"><span class="t-prefix" aria-hidden="true">${glyphs('나혼자')}</span> <span class="t-main" aria-hidden="true">${glyphs('힐러', 3)}</span></h1>
+        <h1 class="t-name" aria-label="${t('나혼자 힐러')}"><span class="t-prefix" aria-hidden="true">${glyphs(t('나혼자'))}</span> <span class="t-main" aria-hidden="true">${glyphs(t('힐러'), [...t('나혼자')].length)}</span></h1>
       </div>
-    </div><button type="button" id="titleStart"><span class="t-start-label">시작하기</span></button>`;
+    </div><button type="button" id="titleStart"><span class="t-start-label">${t('시작하기')}</span></button>`;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => {
       const automated = navigator.webdriver && !(window as unknown as { __screenFx?: boolean }).__screenFx;

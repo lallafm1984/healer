@@ -4,6 +4,7 @@
  * 전면 (90): 클리어한 판의 결과 화면에서 나갈 때, 마지막 광고 뒤 앱이 화면에 떠 있던 시간이 10분을 넘었으면 한 번 (screens/result.ts).
  */
 import { INTERSTITIAL } from '../data/economy';
+import { t } from '../i18n';
 
 export const ADS_READY = false;
 
@@ -58,8 +59,8 @@ function adBox(cls: string, html: string): Promise<string> {
 /** 보상형 광고: 다 보면 true (그때 광고 시계를 새로). 지금은 시험 창 */
 export async function showRewarded(label: string, adsFree: boolean): Promise<boolean> {
   if (adsFree) return true;
-  const ok = (await adBox('', `<div class="panel"><h3>광고 자리</h3><p class="note">AdMob 연결 전 · 시험용. 닫으면 보상</p><p>${label}</p>
-      <div class="row2"><button class="btn" type="button" data-ad="no">취소</button><button class="btn primary" type="button" data-ad="ok">광고 끝 · 보상 받기</button></div></div>`)) === 'ok';
+  const ok = (await adBox('', `<div class="panel"><h3>${t('광고 자리')}</h3><p class="note">${t('AdMob 연결 전 · 시험용. 닫으면 보상')}</p><p>${label}</p>
+      <div class="row2"><button class="btn" type="button" data-ad="no">${t('취소')}</button><button class="btn primary" type="button" data-ad="ok">${t('광고 끝 · 보상 받기')}</button></div></div>`)) === 'ok';
   if (ok) resetAdClock();
   return ok;
 }
@@ -69,8 +70,8 @@ export async function showRewarded(label: string, adsFree: boolean): Promise<boo
  * AdMob 연결 전 (ADS_READY false)이라 시험 창
  */
 export async function showInterstitial(): Promise<boolean> {
-  await adBox('ad-inter', `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="adInterTitle"><h3 id="adInterTitle">전면 광고 자리 (시험)</h3><p class="note">AdMob 연결 전 · 시험용</p>
-      <div class="row1"><button class="btn primary" type="button" data-ad="close">닫기</button></div></div>`);
+  await adBox('ad-inter', `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="adInterTitle"><h3 id="adInterTitle">${t('전면 광고 자리 (시험)')}</h3><p class="note">${t('AdMob 연결 전 · 시험용')}</p>
+      <div class="row1"><button class="btn primary" type="button" data-ad="close">${t('닫기')}</button></div></div>`);
   resetAdClock();
   return true;
 }
@@ -96,7 +97,7 @@ export function askModal(title: string, bodyHtml: string, no: string, ok: string
  * 알림 창 (고르기 창과 같은 모양 · 버튼 하나): 구매 · 받기 · 영입이 안 된 까닭 (2026-10-28 Lim 「저렇게 가운데 생기는 ui는 최대한 자제」,
  * 예전 목록 위 알림 줄). 확인 · 뒤로가기로 닫힘
  */
-export function noticeModal(title: string, bodyHtml: string, ok = '확인'): Promise<void> {
+export function noticeModal(title: string, bodyHtml: string, ok = t('확인')): Promise<void> {
   return new Promise(resolve => {
     const box = document.createElement('div');
     box.className = 'admodal ask notice';

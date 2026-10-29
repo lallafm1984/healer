@@ -4,6 +4,7 @@
  * 서버에 못 닿으면 아무 창도 없이 그대로. 설정 「공지」 줄은 noticesHtml
  */
 import { App } from '@capacitor/app';
+import { t } from '../i18n';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
 import { appBoot, appVersion, type Boot, type Notice } from '../platform/server';
@@ -59,8 +60,8 @@ function openStore(url: string | null): void {
 function blockModal(text: string, storeUrl: string | null): void {
   const box = document.createElement('div');
   box.className = 'admodal ask notice block';
-  box.innerHTML = `<div class="panel" role="alertdialog" aria-modal="true" aria-label="업데이트 필요"><h3>업데이트 필요</h3><p>${noticeBody(text)}</p>
-    <div class="row2"><button class="btn" type="button" data-upd="exit">종료</button><button class="btn primary" type="button" data-upd="store">업데이트</button></div></div>`;
+  box.innerHTML = `<div class="panel" role="alertdialog" aria-modal="true" aria-label="${t('업데이트 필요')}"><h3>${t('업데이트 필요')}</h3><p>${noticeBody(text)}</p>
+    <div class="row2"><button class="btn" type="button" data-upd="exit">${t('종료')}</button><button class="btn primary" type="button" data-upd="store">${t('업데이트')}</button></div></div>`;
   box.addEventListener('click', e => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-upd]');
     if (!b) return;
@@ -78,11 +79,11 @@ export async function showBoot(b: Boot, version: number): Promise<void> {
   const seen = readJson<number[]>(SEEN_KEY, []);
   const a = bootActions(b, version, seen, readJson<number>(UPDATE_KEY, 0));
   const c = b.config;
-  if (a.block) { blockModal(c?.update_message?.trim() || BLOCK_TEXT, c?.store_url ?? null); return; }
-  if (a.maintenance && !maintShown) { maintShown = true; await noticeModal('서버 점검', noticeBody(a.maintenance)); }
+  if (a.block) { blockModal(c?.update_message?.trim() || t(BLOCK_TEXT), c?.store_url ?? null); return; }
+  if (a.maintenance && !maintShown) { maintShown = true; await noticeModal(t('서버 점검'), noticeBody(t(a.maintenance))); }
   if (a.update && c) {
     writeJson(UPDATE_KEY, c.latest_version);
-    if (await askModal('새 버전', noticeBody(c.update_message?.trim() || UPDATE_TEXT), '나중에', '업데이트')) openStore(c.store_url);
+    if (await askModal(t('새 버전'), noticeBody(c.update_message?.trim() || t(UPDATE_TEXT)), t('나중에'), t('업데이트'))) openStore(c.store_url);
   }
   for (const n of a.popups) {
     writeJson(SEEN_KEY, [...readJson<number[]>(SEEN_KEY, []), n.id].slice(-200));
@@ -92,7 +93,7 @@ export async function showBoot(b: Boot, version: number): Promise<void> {
 
 /** 설정 「공지」 목록 창 */
 export function noticesHtml(list: readonly Notice[]): string {
-  if (!list.length) return '<span class="st-notice-empty">지금 공지가 없습니다.</span>';
+  if (!list.length) return `<span class="st-notice-empty">${t('지금 공지가 없습니다.')}</span>`;
   return `<span class="st-notices">${list.map(n => `<span class="st-notice"><b>${esc(n.title)}</b>${n.body ? `<span>${noticeBody(n.body)}</span>` : ''}</span>`).join('')}</span>`;
 }
 

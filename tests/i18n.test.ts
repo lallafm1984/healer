@@ -4,13 +4,13 @@
  */
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { scanKeys, slots } from '../scripts/i18n/scan.mjs';
-import { fmtInt, lang, LANGS, loadDict, setLang, shortAmount, t } from '../src/i18n';
+import { scanHtmlKeys, scanKeys, slots } from '../scripts/i18n/scan.mjs';
+import { fmtInt, lang, LANGS, loadDict, setLang, shortAmount, t, tc } from '../src/i18n';
 import en from '../src/i18n/en';
 import ja from '../src/i18n/ja';
 
 const found = scanKeys(fileURLToPath(new URL('../src', import.meta.url)));
-const keys = [...new Set(found.map(k => k.key))];
+const keys = [...new Set([...found.map(k => k.key), ...scanHtmlKeys(fileURLToPath(new URL('../index.html', import.meta.url)))])];
 
 describe('i18n', () => {
   it('단위 테스트 · 시뮬은 한국어', () => { expect(lang()).toBe('ko'); expect(LANGS.map(l => l.key)).toEqual(['ko', 'en', 'ja']); });
@@ -25,11 +25,14 @@ describe('i18n', () => {
     expect(keys.filter(k => !(k in en))).toEqual([]);
     expect(keys.filter(k => !(k in ja))).toEqual([]);
   });
-  it('번역의 자리값은 열쇠와 같고 빈 번역은 없음', () => {
+  it('번역의 자리값은 열쇠와 같고 빈 번역은 없음 · 꼬리표 열쇠 (@short)는 바탕 열쇠가 있어야 함', () => {
     for (const d of [en, ja]) for (const [k, v] of Object.entries(d)) {
       expect(v, k).not.toBe('');
       expect(slots(v), `${k} → ${v}`).toBe(slots(k));
+      const at = k.indexOf('@');
+      if (at > 0) expect(k.slice(0, at) in d, k).toBe(true);
     }
+    expect(tc('주간 도전', 'short')).toBe('주간 도전');
   });
   it('영어 · 일본어: 사전에 있으면 번역, 없으면 한국어, 자리값', async () => {
     const enD = await loadDict('en');
@@ -38,6 +41,8 @@ describe('i18n', () => {
     expect(t('설정')).toBe('Settings');
     expect(t('Lv {n}에 열림', { n: 30 })).toBe('Unlocks at Lv 30');
     expect(t('사전에 없는 말')).toBe('사전에 없는 말');
+    expect(tc('주간 도전', 'short')).toBe('Weekly');
+    expect(tc('주간 도전', '없는꼬리표')).toBe('Weekly Challenge');
     await setLang('ja');
     expect(t('설정')).toBe('設定');
     expect(t('특성 {n} 남음', { n: 2 })).toBe('特性 残り2');
