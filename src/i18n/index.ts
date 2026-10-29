@@ -25,6 +25,8 @@ import enDesc from './desc-en';
 import jaDesc from './desc-ja';
 import enNicks from './nicks-en';
 import jaNicks from './nicks-ja';
+import enTalk from './talk-en';
+import jaTalk from './talk-ja';
 export type Lang = 'ko' | 'en' | 'ja';
 export interface LangDef { key: Lang; /** 설정 칩 글 (늘 그 말로, 번역하지 않음) */ name: string; locale: string }
 export const LANGS: readonly LangDef[] = [
@@ -125,3 +127,10 @@ export function nickOf(nick: string): string {
 }
 
 apply(detectLang());
+
+// ---------- 파티원 대사 (121 3단계 ⑥-3) ----------
+const TALK: Partial<Record<Lang, Record<string, string>>> = { en: enTalk, ja: jaTalk };
+/** 이 한국어 대사에 지금 언어의 번역이 있는가 (한국어는 늘 참). battle/talk.ts가 영어 · 일본어에서 번역 없는 대사를 고르지 않게 */
+export const hasTalk = (ko: string): boolean => cur === 'ko' || !!TALK[cur]?.[ko];
+/** 대사 번역 (UI · 이름 사전과 따로, 자리표시 {ally} 등은 그대로). 없으면 한국어 */
+export const talkOf = (ko: string): string => (cur === 'ko' ? ko : TALK[cur]?.[ko] ?? ko);
