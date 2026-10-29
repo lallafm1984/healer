@@ -57,4 +57,4 @@ npm run art:optimize  # src/art 그림 크기·용량 줄이기 (-- --dry 는 �
 
 ## Android 시험용 APK
 `main`에 푸시하면 GitHub Actions의 **Android APK**가 디버그 APK를 만든다. Actions 탭 → 실행 결과 → Artifacts → `healer-debug-apk`를 내려받아 폰에 설치한다 (알 수 없는 앱 설치 허용 필요).
-앱 ID `com.lallafm.healer`와 앱 이름은 임시다. 구글 플레이에 올리기 전에 확정한다 (올린 뒤엔 앱 ID를 못 바꾼다).
+앱 ID는 `com.solohealer.game` (2026-10-29 Lim, 영문 제목 Solo Healer, 예전 `com.lallafm.healer`). 구글 플레이에 올린 뒤엔 바꿀 수 없다. 아이폰 번들 ID도 같게 한다. 앱 이름은 아직 임시다.

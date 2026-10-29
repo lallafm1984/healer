@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.lallafm.healer"
+    namespace = "com.solohealer.game"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.lallafm.healer"
+        applicationId "com.solohealer.game"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // 시험용 APK는 Actions 실행 번호를 버전으로 씀 (폰 설정 > 앱 정보에서 몇 번째 빌드인지 보임)
