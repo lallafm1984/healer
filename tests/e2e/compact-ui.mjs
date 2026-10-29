@@ -810,7 +810,7 @@ async function heroVariants(page, ok, shots) {
     const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout, normalArt, compactArt };
     out.push(g);
     const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeLabel)
-      : c.hero === 'druid' ? /새싹/.test(compact.gaugeLabel)
+      : c.hero === 'druid' ? /잎/.test(compact.gaugeLabel) // 2026-10-28 드루이드 자원 = 잎 (새싹으로 모으고 들꽃이 씀, #492)
         : /신성한 힘/.test(compact.gaugeLabel) && /봉화/.test(compact.gaugeLabel));
     const directControls = [compact, left, down].every(v => v.visibleAux === normal.visibleAux && !v.toolsVisible);
     ok(compact.controls.h <= normal.controls.h && usableControls(normal) && usableControls(compact)

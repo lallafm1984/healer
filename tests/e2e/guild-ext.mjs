@@ -25,6 +25,8 @@ export default async function guildExt(url, shots) {
   await patch(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.player.level = 50; s.player.gold = 500000;
+    // 난이도는 장소마다 차례로 (2026-10-27 #475): 원정 (보통 이상) 후보가 되려면 그 던전 쉬움을 깼어야 함
+    for (const k of ['rustfort', 'crypt', 'swamp']) s.clears[k] = { 쉬움: { stars: 1, grade: 'C', best: 300, n: 1 } };
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
