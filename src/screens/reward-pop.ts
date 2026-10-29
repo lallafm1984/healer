@@ -10,7 +10,7 @@
  */
 import { GRADE_STYLE, kindOf, qualityOf, slotName, type GearItem, type ItemGrade } from '../data/equipment';
 import { t } from '../i18n';
-import { scoreOf } from '../game/charinfo';
+import { gearName, scoreOf } from '../game/charinfo';
 import { G } from '../game/state';
 import { art } from '../art';
 import { sfx } from '../sfx';
@@ -58,9 +58,9 @@ function infoHtml(items: GearItem[]): string {
   if (items.length === 1) {
     const it = items[0], q = qualityOf(it);
     return `<div class="rw-info" style="${gv(it)};${d(AT.info)}"><p class="rw-grade"><i>${t(it.grade)}</i>${q ? ` <span class="rw-q" data-q="${q}">${t(q)}</span>` : ''}</p>
-      <h4 class="rw-name">${esc(t(it.name))}</h4><p class="rw-sub">${t('점수 {n}', { n: scoreOf(it) })} · ${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))}${it.lv ? ` · Lv ${it.lv}` : ''}</p></div>`;
+      <h4 class="rw-name">${esc(gearName(it))}</h4><p class="rw-sub">${t('점수 {n}', { n: scoreOf(it) })} · ${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))}${it.lv ? ` · Lv ${it.lv}` : ''}</p></div>`;
   }
-  return `<ul class="rw-info rw-names" style="${d(AT.info)}">${items.map(it => `<li style="${gv(it)}"><i>${t(it.grade)}</i><b>${esc(t(it.name))}</b></li>`).join('')}</ul>`;
+  return `<ul class="rw-info rw-names" style="${d(AT.info)}">${items.map(it => `<li style="${gv(it)}"><i>${t(it.grade)}</i><b>${esc(gearName(it))}</b></li>`).join('')}</ul>`;
 }
 
 /** 숫자 칸: 0부터 올라감 (data-to · data-at) */

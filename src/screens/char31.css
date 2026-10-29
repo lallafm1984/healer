@@ -455,3 +455,7 @@
 
 /* 직업 전환: 공통 성장 안내와 직업별 장비 수집. 기존 양피지·금테 색상을 계승 */
 #s-char .c7-spt b small { display: inline-block; font-size: 11px; color: var(--gold-hi); }
+/* 일본어 휠 짧은 이름 (リニュー 4자, 121 3단계 ①): 14px이면 칸을 1px 넘침 */
+html[lang="ja"] #s-char .c7-wh b { font-size: 12.5px; letter-spacing: -.02em; }
+/* 일본어 탭 스킬 고르기 (フラッシュヒール 8자) */
+html[lang="ja"] #s-char .c7-taps > button { font-size: 12px; letter-spacing: -.03em; padding-inline: 4px; }

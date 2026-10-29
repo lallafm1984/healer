@@ -193,7 +193,7 @@ export function updateWheel(): void {
     const powerNeed=key==='lightWave'?waveNeed(F):sk.power;
     const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : powerNeed!);
     const resource = sk.power ? t('힘 {n}', { n: sk.powerAll ? '1~3' : String(powerNeed) }) : cost ? t('마나 {n}%', { n: Math.round(cost * 10) / 10 }) : t('마나 0');
-    setText(el.querySelector('.nm')!, sk.short);
+    setText(el.querySelector('.nm')!, t(sk.short));
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
     const visibleCost = sk.power ? (sk.powerAll ? t('힘1+') : t('힘{n}', { n: String(powerNeed) })) : `${Math.round(cost * 10) / 10}%`;
     setText(el.querySelector('.ct')!, spent ? '' : visibleCost);
@@ -253,7 +253,7 @@ export function buildAux(): void {
   $('controls').classList.toggle('hasaux', keys.length > 0);
   aux.innerHTML = keys.map(k => {
     const pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
-    return `<button class="slot tal" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="cd"></span><span class="in">${pic ? `<img class="sic" src="${pic}" alt="" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="ct"></span><span class="cds"></span></span></button>`;
+    return `<button class="slot tal" type="button" data-tal="${k}" aria-label="${tc(TALENT_DEF[k].name, 'talent')}"><span class="cd"></span><span class="in">${pic ? `<img class="sic" src="${pic}" alt="" decoding="async" draggable="false">` : ''}<span class="nm">${tc(TALENT_DEF[k].active!.short, 'talent')}</span><span class="ct"></span><span class="cds"></span></span></button>`;
   }).join('');
 }
 /** 휠 스킬과 같은 표시: 재사용 대기 = 어두운 그림 + 부채꼴 + 남은 초, 효과 중 = 금빛 테 + 남은 초, 횟수 소진 = 사용 완료 */
@@ -267,7 +267,7 @@ export function updateAux(): void {
     el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 ? `${Math.min(1, cd / talentCd(F, k)) * 100}%` : '0%');
     setText(el.querySelector('.ct')!, on ? t('{n}초', { n: Math.ceil(a.left) }) : '');
     setText(el.querySelector('.cds')!, spent ? t('사용 완료') : cd > 0 ? t('{n}초', { n: Math.ceil(cd) }) : '');
-    const label = `${t(TALENT_DEF[k].name)}, ${spent ? t('사용 완료, 전투당 사용 횟수 소진') : on ? t('효과 중 {n}초', { n: Math.ceil(a.left) }) : cd > 0 ? t('재사용 대기 {n}초', { n: Math.ceil(cd) }) : t('사용 가능')}${ui.talArmed === k ? `, ${t('선택됨. 칸 선택 또는 다시 눌러 취소')}` : ''}`;
+    const label = `${tc(TALENT_DEF[k].name, 'talent')}, ${spent ? t('사용 완료, 전투당 사용 횟수 소진') : on ? t('효과 중 {n}초', { n: Math.ceil(a.left) }) : cd > 0 ? t('재사용 대기 {n}초', { n: Math.ceil(cd) }) : t('사용 가능')}${ui.talArmed === k ? `, ${t('선택됨. 칸 선택 또는 다시 눌러 취소')}` : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
     el.setAttribute('aria-pressed', String(ui.talArmed === k));
     el.setAttribute('aria-disabled', String(spent));
@@ -281,7 +281,7 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const d = TALENT_DEF[k], a = d.active!;
   const row = a.once ? t('전투당 1회') : t('{a}초 · 재사용 대기 {b}초', { a: a.dur, b: a.cd });
   const F = fight();
-  popTip(tipHtml({ name: t(d.name), kind: t('특성'), rows: [[t('즉시'), row]], desc: healText(t(d.desc), INT_BASE * F.power * F.gear.heal), note: a.cell ? t('누른 뒤 빈 칸을 탭') : t('GCD·마나 없이 바로') }), el, { tal: k, held: true });
+  popTip(tipHtml({ name: tc(d.name, 'talent'), kind: t('특성'), rows: [[t('즉시'), row]], desc: healText(t(d.desc), INT_BASE * F.power * F.gear.heal), note: a.cell ? t('누른 뒤 빈 칸을 탭') : t('GCD·마나 없이 바로') }), el, { tal: k, held: true });
 }
 
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
@@ -290,7 +290,7 @@ export function updateCastbar(): void {
   let label: string, detail = '', p = 0, left = '';
   if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
-    label = `${SKILLS[F.cast.key].short} → ${u ? u.nick : ''}`;
+    label = `${t(SKILLS[F.cast.key].short)} → ${u ? u.nick : ''}`;
     if (F.hero === 'astrologer' && CONSTELLATION.has(F.cast.key)) label += ` · ${t('별 {n}', { n: starsNow(F) })}${starsNow(F) >= starMax(F) ? ` · ${t('가득')}` : ''}`; // 83: 별자리 시전 = 지금 조각으로 터질 별 수
     p = 1 - F.cast.left / F.cast.total;
     left = Math.max(0, F.cast.left).toFixed(1);
@@ -658,7 +658,7 @@ function drawPreview(u: Unit): void {
   const F = fight();
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
-  const job = u.me ? HEROES[F.hero].name : cls?.name;
+  const job = t(u.me ? HEROES[F.hero].name : cls?.name ?? '');
   lines.push(`<div class="ph"><div class="pnm"><b>${u.nick}</b><span class="pmeta">${job ? `${t(job)} · ` : ''}${t(ROLE[u.role].name)}</span></div><div class="php"><span class="pmeta">${t('체력')}</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString(locale())} <small>/ ${Math.round(u.max).toLocaleString(locale())}</small></strong>` : `<strong class="pdown">${t('쓰러짐')}</strong>`}</div></div>`);
   if (u.max < u.base) lines.push(`<div class="pmax">${t('최대 체력 -{n}%', { n: Math.round((1 - u.max / u.base) * 100) })}</div>`);
   if (u.ab) {

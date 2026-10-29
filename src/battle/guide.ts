@@ -2,6 +2,7 @@
  * 보스 공략 (전투 전 화면 · 일시정지 · 전투 중 기술 팝업 · 휴식이 모두 이 한 곳의 데이터를 씀).
  * 프로토타입 v11 화면에서 옮김.
  */
+import { t } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, enrageOf, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
@@ -48,7 +49,7 @@ function probe(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: 
 const GUIDE_SLOT: Partial<Record<string, Record<string, string>>> = { druid: { renew: 'heal', heal: 'flash' } };
 function act(key: string, p?: [string, string]) {
   const slot = GUIDE_SLOT[S.hero]?.[key] || key;
-  const nm = SKILLS[heroSkill(slot)].name, d = READ_ORDER.find(x => S.layout[x] === slot);
+  const nm = t(SKILLS[heroSkill(slot)].name), d = READ_ORDER.find(x => S.layout[x] === slot);
   return `${nm}${d ? `(${ARROW[d]} 쓸기)` : ''}${p ? josa(nm, p[0], p[1]) : ''}`;
 }
 const EUL: [string, string] = ['을', '를'], RO: [string, string] = ['으로', '로'];
@@ -472,7 +473,7 @@ export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: numbe
   const m = P.m, n = (x: number) => Math.round(x * m);
   const B = bossNums(enc.script);
   const g = (GUIDE[enc.script] ?? dataGuide)({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B, hpMult: P.bossMax / enc.hp, variant });
-  return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B }, g);
+  return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: t(enc.tier).replace(' · ', ' '), B }, g);
 }
 // 지금 돌고 있는 기술인지 (일시정지에서 '지금' 표시): 엔진 기술 상태 그대로 읽음
 export function skillLive(F: Fight, ic: string): boolean {
@@ -504,7 +505,7 @@ export function guideHtml(g: GuideModel, F: Fight | null): string {
   const trash = g.enc.script === 'trash';
   const head = `<div class="gd-top"><div class="gd-art">${bossSvg(g.enc.script, g.enc.key)}</div><div class="gd-id">
     <b class="gd-name">${g.enc.name}</b>
-    <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
+    <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">${t('광폭화')} ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
   // 진행: 번호 점을 세로 줄로 이음 (잡몹 구간은 잡는 순서)
   const phases = `<section class="gd-sec"><h4 class="gd-h">${trash ? '잡는 순서' : '진행'}</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><p class="gd-ph"><b>${p.name}</b><small>${p.at}</small></p><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol></section>`;
   // 기술: 아이콘 · 이름 · 주기 / 대상 칩 + 짧은 설명 (피해 숫자 굵게). 대처(how)는 시트에 안 보임 (Lim 2026-10-12 「대처 줄 모두 빼기」)

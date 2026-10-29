@@ -17,7 +17,7 @@ import { openTiers, TALENT_TREES, type TalentKey } from '../data/talents';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
-import { specRows, statParts, talentsLeft } from '../game/charinfo';
+import { gearName, specRows, statParts, talentsLeft } from '../game/charinfo';
 import { SPEC_GROUPS, SPECS, type SpecGroup } from '../data/specials';
 import {
   commit, equip, findItem, G, healerLevel, heroNow, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickTalent, sell,
@@ -250,7 +250,7 @@ function slotHtml(key: SlotKey): string {
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${t(name)} ${t('빈칸')}${n ? ` · ${t('가방에 {n}개', { n })}` : ''}">
         <span class="c7-sq">${itemIc(key)}</span><b>${t(name)}</b></button>`;
   }
-  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${t(name)} · ${esc(qualityTxt(it) + t(it.name))} · ${t(it.grade)}${specLabel(it)}${it.lock ? ` · ${t('잠김')}` : ''}">
+  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${t(name)} · ${esc(qualityTxt(it) + gearName(it))} · ${t(it.grade)}${specLabel(it)}${it.lock ? ` · ${t('잠김')}` : ''}">
       <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${newFx(it, 's')}${specDots(it)}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
@@ -282,7 +282,7 @@ function gearHtml(): string {
 /** 가방 칸: 장비 그림 + 등급 색 + 새 점. 지금 장비와의 ▲▼ 비교 배지는 없음 (2026-10-17 Lim 「인벤토리에서 아이템 강함 아이콘을 모두 제거」, 비교는 상세 시트 옵션 줄에서) */
 function bagCell(it: GearItem): string {
   const nw = isNewGear(it);
-  const label = `${t(it.grade)} ${t(slotName(it.slot))} · ${qualityTxt(it)}${t(it.name)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ` · ${t('새것')}` : ''}${it.lock ? ` · ${t('잠김')}` : ''}`;
+  const label = `${t(it.grade)} ${t(slotName(it.slot))} · ${qualityTxt(it)}${gearName(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ` · ${t('새것')}` : ''}${it.lock ? ` · ${t('잠김')}` : ''}`;
   // 고르는 중: 고른 칸 = 체크, 잠긴 칸 = 흐리게 (판매 불가)
   const picked = !!picks?.has(it.id);
   const pickAttr = !picks ? '' : it.lock ? ' aria-disabled="true"' : ` aria-pressed="${picked}"`;
@@ -374,7 +374,7 @@ function itemSheet(id: number): string {
   return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" style="${gvars(it)}">
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">${t('장비 상세')}</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="${t('장비 상세 닫기')}">${t('닫기')}</button></div>
       <div class="c7-ghead"><span class="c7-gic">${itemIc(it)}</span>
-        <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span></span></div>
+        <span class="c7-gname"><b>${qualityTag(it)}${esc(gearName(it))}</b><span class="cap">${sub2}</span></span></div>
       <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">${t('능력치')}<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${own}${lostHtml}</div>
       ${spec}
       ${readOnly ? '' : `<div class="c7-sbtns">
@@ -402,7 +402,7 @@ function confirmBox(title: string, items: string, gold: number): string {
     </section>`;
 }
 export function sellConfirmHtml(it: GearItem): string {
-  return confirmBox(t('장비 판매'), `<div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(t(it.name))}</b></div>`, sellGold(it));
+  return confirmBox(t('장비 판매'), `<div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(gearName(it))}</b></div>`, sellGold(it));
 }
 const CONFIRM_TILES = 21;
 /** 여러 개 판매 확인 (2026-10-28 Lim): 제목에 개수, 고른 장비 그림 (등급 높은 것부터), 받는 골드 합계 */
@@ -410,7 +410,7 @@ function sellManyHtml(): string {
   const items = pickedItems().sort((a, b) => gradeIdx(b) - gradeIdx(a) || SORTS[bagSort].cmp(a, b));
   // 그림은 한 줄 7칸 · 세 줄까지 (21개까지 다 보임, 넘으면 20개 + 「+N」 칸, 2026-10-28 Lim 「20개를 판매해도 보기에 이상하지 않게」)
   const shown = items.length > CONFIRM_TILES ? items.slice(0, CONFIRM_TILES - 1) : items, more = items.length - shown.length;
-  const icons = shown.map(it => `<span class="c7-confirm-icon" style="${gvars(it)}" role="img" aria-label="${esc(`${t(it.grade)} ${qualityTxt(it)}${t(it.name)}`)}">${itemIc(it)}</span>`).join('')
+  const icons = shown.map(it => `<span class="c7-confirm-icon" style="${gvars(it)}" role="img" aria-label="${esc(`${t(it.grade)} ${qualityTxt(it)}${gearName(it)}`)}">${itemIc(it)}</span>`).join('')
     + (more ? `<span class="c7-confirm-more" role="img" aria-label="${t('그 밖에 {n}개', { n: more })}">+${more}</span>` : '');
   return confirmBox(t('장비 {n}개 판매', { n: items.length }), `<div class="c7-confirm-item c7-confirm-many">${icons}</div>`, goldOf(items));
 }
@@ -547,7 +547,7 @@ function descBox(lay: Record<string, string | null>): string {
 /** 스킬 설명: 회복량은 「지능의 n% (지금 값)」 (34 1-2) */
 const skDesc = (k: SkillKey) => healText(SKILL_INFO[k].desc, statParts().int.total);
 /** 설명 아래 한 줄: 종류 · 쓰는 방향 · 칸 탭 */
-const descHint = (k: SkillKey, d: string, h: HeroKey) => `${t(SKILL_INFO[k].kind)} · ${t('휠에서 {d} 쪽으로 쓸면 씁니다.', { d: battle().layout.ARROW[d] })}${skillAt(h, G.save.settings.tapKey) === k ? ` ${t('칸 탭 기본 힐입니다.')}` : ''}`;
+const descHint = (k: SkillKey, d: string, h: HeroKey) => `${tc(SKILL_INFO[k].kind, 'kind')} · ${t('휠에서 {d} 쪽으로 쓸면 씁니다.', { d: battle().layout.ARROW[d] })}${skillAt(h, G.save.settings.tapKey) === k ? ` ${t('칸 탭 기본 힐입니다.')}` : ''}`;
 
 let measure: CanvasRenderingContext2D | null = null;
 /**
@@ -580,7 +580,7 @@ function skillRows(lay: Record<string, string | null>): string {
   const L = battle().layout, h = hero(), lv = healerLevel();
   const rows = heroSkills(h).filter(k => k !== 'serenity').map(k => {
     const lock = lockLv(k), d = dirOf(k, lay), open = skOpen === k, sk = SKILLS[k];
-    const meta = [t(SKILL_INFO[k].kind), castShort(k), costShort(k), sk.cd ? t('{n}초', { n: sk.cd }) : ''].filter(Boolean).join(' · ');
+    const meta = [tc(SKILL_INFO[k].kind, 'kind'), castShort(k), costShort(k), sk.cd ? t('{n}초', { n: sk.cd }) : ''].filter(Boolean).join(' · ');
     return `<button type="button" class="c7-sk${lock ? ' locked' : ''}${d && sel === d && !swapping ? ' on' : ''}" data-skill="${k}" aria-expanded="${open}">
         <span class="c7-ski">${skillIc(k)}</span><span class="c7-skn"><b>${t(sk.name)}</b><span>${lock ? `${LOCK}${t('Lv {n}에 배움', { n: lock })} · ` : ''}${meta}</span></span><span class="c7-dir">${d ? L.ARROW[d] : ''}</span></button>
       ${open ? `<p class="c7-skd">${esc(skDesc(k))}</p>` : ''}`;
@@ -709,7 +709,7 @@ function talentHtml(): string {
       const selected = cur === j;
       const icon = `<span class="c7-tn${p.active ? ' active' : ''}" data-rank="${selected ? '1' : '0'}/1">${talentIcon(p.key)}${locked ? `<i class="c7-tlock">${uiIcon('lock')}</i>` : selected ? '<i class="c7-tck">✓</i>' : ''}</span><small>${t(p.name)}</small>`;
       return locked
-        ? `<span class="c7-pk off" aria-label="${t(p.name)} · ${t('Lv {n}에 열림', { n: tier.lv })}">${icon}</span>`
+        ? `<span class="c7-pk off" aria-label="${tc(p.name, 'talent')} · ${t('Lv {n}에 열림', { n: tier.lv })}">${icon}</span>`
         : `<button type="button" class="c7-pk${focus && focus.i === i && focus.j === j ? ' focus' : ''}" data-tcell="${i}:${j}" aria-pressed="${selected}" aria-label="${t(p.name)}${selected ? ` · ${t('선택됨')}` : ''}">${icon}</button>`;
     }).join('');
     return `<div class="c7-tier${locked ? ' locked' : pending ? ' pending' : ' done'}" data-tier="${i}"><span class="c7-tl"><b>Lv ${tier.lv}</b><em>${locked ? t('잠김') : pending ? t('하나 선택') : t('선택 완료')}</em></span><span class="c7-tnodes">${nodes}</span></div>`;
@@ -729,7 +729,7 @@ function talentSheet(i: number, j: number): string {
   const chosen = (heroSave(h).talents || [])[i] === j;
   return `${dim}<section class="sheet c7-tsheet" role="dialog" aria-label="${t('특성 설명')}">
       <header class="c7-tp-head"><span class="c7-tp-ic${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
-        <span class="c7-tp-tt"><b>${t(p.name)}</b><span class="c7-tp-tags"><i>Lv ${tier.lv}</i><i>${p.active ? t('사용 효과') : t('지속 효과')}</i>${chosen ? `<i class="on">${t('선택 중')}</i>` : ''}</span></span></header>
+        <span class="c7-tp-tt"><b>${tc(p.name, 'talent')}</b><span class="c7-tp-tags"><i>Lv ${tier.lv}</i><i>${p.active ? t('사용 효과') : t('지속 효과')}</i>${chosen ? `<i class="on">${t('선택 중')}</i>` : ''}</span></span></header>
       <p class="c7-tp-desc">${esc(healText(t(p.desc), statParts().int.total))}</p>
       ${p.active ? `<p class="c7-tp-note">${t('전투 화면 아래 특성 버튼으로 나옵니다.')}</p>` : ''}
       <footer class="c7-tp-btns"><button type="button" class="c7-tp-btn c7-tclose" data-sheetx aria-label="${t('특성 설명 닫기')}">${t('닫기')}</button>

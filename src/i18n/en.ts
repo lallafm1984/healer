@@ -1100,5 +1100,9 @@ const en: Record<string, string> = {
   '피해량 · 초당 · 비율': 'Damage · per sec · share',
   '{n}회': '×{n}',
   '전체 {n}명': 'All {n}',
+  '고유': 'Unique',
+  '겹치지 않음': 'Does not stack',
+  '{n} (고유)': '{n} (Unique)',
+  '{n} 문양': '{n} emblem',
 };
 export default en;

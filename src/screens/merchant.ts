@@ -10,7 +10,7 @@
 import { art } from '../art';
 import { t } from '../i18n';
 import { GRADE_STYLE, kindOf, qualityOf, sellGold, slotName, SLOTS, type ItemGrade, type SlotKey } from '../data/equipment';
-import { specName } from '../game/charinfo';
+import { gearName, specName } from '../game/charinfo';
 import { buyUnknown, merchantOffer } from '../game/merchant';
 import { resourceBalance } from '../game/resources';
 import { commit, findItem, G, refreshDay, sell } from '../game/state';
@@ -81,7 +81,7 @@ function revealHtml(id: number): string {
       <div class="mc-stage" aria-hidden="true">${beam}${anim ? `<span class="mc-bundle">${gameIcon('merchant', uiIcon('shop'))}</span>` : ''}<span class="mc-item">${gearIcon(it)}</span></div>
       <div class="mc-card">
         <p class="mc-grade"><i>${t(it.grade)}</i>${q ? ` <span class="r-q" data-q="${q}">${t(q)}</span>` : ''}</p>
-        <h4 class="mc-name">${esc(t(it.name))}</h4>
+        <h4 class="mc-name">${esc(gearName(it))}</h4>
         <p class="mc-sub">${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))} · Lv ${it.lv ?? o.lv}</p>
         ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(t(specName(k)))).join(' · ')}</p>` : ''}
       </div>

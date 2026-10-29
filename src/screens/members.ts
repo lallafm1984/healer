@@ -1,6 +1,6 @@
 /** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬 + LV) · 능력치 · 성격 (17 11장) */
 import { ABILITIES } from '../data/abilities';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
 import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_HELP, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
@@ -21,7 +21,7 @@ export function abHtml(key: string | undefined, star = 0, when = true): string {
   const a = key ? ABILITIES[key] : null;
   if (!a) return '';
   return `<section class="member-trait pab" style="--trait-color:${SKILL_COLOR}" aria-label="${t('직업 스킬')}">
-    <div class="trait-heading"><span class="trait-label">${t('스킬')}</span><b class="trait-title">${esc(t(a.name))}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}</div>
+    <div class="trait-heading"><span class="trait-label">${t('스킬')}</span><b class="trait-title">${esc(tc(a.name, 'ab'))}</b>${star ? `<span class="skill-level">LV ${star}</span>` : ''}</div>
     <p class="trait-description">${esc(t(a.desc))}</p>${when ? `<p class="trait-condition"><span>${t('발동')}</span><span>${esc(t(a.when))}</span></p>` : ''}</section>`;
 }
 
@@ -29,7 +29,7 @@ export function abHtml(key: string | undefined, star = 0, when = true): string {
 function personalityHtml(name: PersName, desc = true): string {
   const p = PERS[name];
   return `<section class="member-trait personality" style="--trait-color:${CATS[p.cat]}" aria-label="${t('성격')}">
-    <div class="trait-heading"><span class="trait-label">${t('성격')}</span><b class="trait-title">${esc(t(name))}</b></div>
+    <div class="trait-heading"><span class="trait-label">${t('성격')}</span><b class="trait-title">${esc(tc(name, 'pers'))}</b></div>
     ${desc ? `<p class="trait-description">${esc(t(p.desc))}</p>` : ''}</section>`;
 }
 
@@ -85,7 +85,7 @@ export const ROLE_ICON: Record<string, string> = {
  * 2026-10-12 Lim 「직업 아이콘이 이상하다」로 8직업 같은 모양 → 2026-10-13 Lim 「인게임에서도 동일하게, 인게임 디자인 모양으로」 다시 그림.
  */
 export function classIcon(cls: ClassKey): string {
-  return `<span class="f-class-icon" data-class-icon="${cls}" role="img" aria-label="${CLASSES[cls].name}">${classGlyphSvg(cls)}</span>`;
+  return `<span class="f-class-icon" data-class-icon="${cls}" role="img" aria-label="${t(CLASSES[cls].name)}">${classGlyphSvg(cls)}</span>`;
 }
 
 /**
@@ -96,7 +96,7 @@ export function classIcon(cls: ClassKey): string {
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(t(a.name))}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
+    ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(tc(a.name, 'ab'))}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
     <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${t(c.name)}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(t(m.pers))}</span></span>

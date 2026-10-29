@@ -55,7 +55,7 @@ export function afxRows(keys: AffixKey[], label = ''): string {
   if (!keys.length) return '';
   return `<div class="afxlist">${keys.map(k => {
     const a = AFFIXES[k];
-    return `<div class="f-afr">${afxIcon(k)}<span class="f-afx">${t(a.name)}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(t(a.desc))}<small>${esc(t(a.tip))}</small></span></div>`;
+    return `<div class="f-afr">${afxIcon(k)}<span class="f-afx">${tc(a.name, 'affix')}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(t(a.desc))}<small>${esc(t(a.tip))}</small></span></div>`;
   }).join('')}</div>`;
 }
 
@@ -66,4 +66,4 @@ export function afxIcon(k: AffixKey): string {
 }
 
 /** 어픽스 이름 칸만 (관문·편성 머리) */
-export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx">${t(AFFIXES[k].name)}</span>`).join('');
+export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx">${tc(AFFIXES[k].name, 'affix')}</span>`).join('');

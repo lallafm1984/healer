@@ -8,7 +8,8 @@ import { SKILLS } from './skills';
  * 레벨업 팝업에 보여 줄 "새로 열림" (18 2-2). live = 이 빌드에서 실제로 바뀌는 것.
  * 아직 안 만든 것은 live: false로 두고 레벨업 팝업에서 제외한다. (안 만든 공개모집 직업 +6종 · 직업 칭호 · 직업 색 힐 이펙트 줄은 2026-10-27 Lim 「지워」로 뺌)
  */
-export interface Milestone { text: string; live: boolean; hero?: HeroKey }
+/** tpl · arg: 장소 이름이 든 글 (「첫 던전 「{n}」」). 화면은 milestoneText (screens/kit) 로 번역 */
+export interface Milestone { text: string; live: boolean; hero?: HeroKey; tpl?: string; arg?: string }
 const BASE: Record<number, Milestone[]> = {
   5: [{ text: '특성 1단', live: true }],
   10: [{ text: '특성 2단', live: true }, { text: '주간 임무', live: true }],
@@ -36,13 +37,13 @@ addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: 
 // 88: 영웅은 10인 레이드가 열리는 Lv 45부터 드물게 (레벨이 오를수록 늘어남), 전설 (노란색)은 Lv 100부터 레이드 어려움 · 악몽에서 (10인은 20인의 절반, 2026-10-22) (equipment HERO_FROM · LEGEND_LEVEL)
 addFirst(MAX_LEVEL, { text: '전설 장비 (노란색, 레이드 어려움 · 악몽)', live: true });
 addFirst(raid10.unlockLv, { text: '영웅 장비 (드물게, 레벨이 오를수록 늘어남)', live: true });
-addFirst(raid20.unlockLv, { text: `20인 레이드 「가라앉은 대성당」`, live: true });
+addFirst(raid20.unlockLv, { text: '20인 레이드 「가라앉은 대성당」', live: true, tpl: '20인 레이드 「{n}」', arg: '가라앉은 대성당' });
 addFirst(raid10.diffUnlock!['악몽']!, { text: '10인 레이드 악몽', live: true });
 addFirst(raid10.unlockLv, { text: '10인 레이드 「심연의 탑」', live: true });
 for (const c of CONTENT) {
   if (c.hidden || c.kind === 'raid' || c.unlockLv <= 1) continue;
-  const text = c.key === 'rustfort' ? `첫 던전 「${c.name}」` : `${c.kind === 'explore' ? '탐험' : '던전'} 「${c.name}」`;
-  addFirst(c.unlockLv, { text, live: c.ready });
+  const tpl = c.key === 'rustfort' ? '첫 던전 「{n}」' : c.kind === 'explore' ? '탐험 「{n}」' : '던전 「{n}」';
+  addFirst(c.unlockLv, { text: tpl.replace('{n}', c.name), live: c.ready, tpl, arg: c.name });
 }
 
 /** 공통 콘텐츠와 현재 직업의 실제 스킬 · 패시브 · 고유 시스템만 안내한다. */

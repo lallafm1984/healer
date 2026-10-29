@@ -5,7 +5,7 @@
  * 아래 고정: 출발 (바로 전투, 입장 확인 팝업은 2026-10-17 없앰). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
-import { t } from '../i18n';
+import { t, tc } from '../i18n';
 import { contentOf, isRaid, variantOf, VARIANT_NAMES, type ContentDef } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { gearStatsOf, specsOf } from '../data/equipment';
@@ -123,7 +123,7 @@ function boardHtml(): string {
 /** 직업 없는 옛 파티 줄 (시뮬·옛 테스트용 파티) */
 function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): string {
   const p = PERS[m.pers];
-  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${ROLE[m.role].name}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span></div></li>`;
+  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${t(ROLE[m.role].name)}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(tc(m.pers, 'pers'))}</span></span></div></li>`;
 }
 
 const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);

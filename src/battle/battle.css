@@ -331,3 +331,5 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 #bossGauge.vessel { height: 5px; }
 #bossGauge.vessel::after { background: #8FE3A0; }
 
+/* 일본어 스킬 짧은 이름 (リニュー · フラッシュ, 121 3단계 ①) */
+html[lang="ja"] .slot .nm { font-size: 13px; letter-spacing: -.02em; }

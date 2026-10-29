@@ -2,7 +2,8 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { gearStatsOf, itemScore, itemSpecs, specLineValue, SLOTS, type GearItem } from '../data/equipment';
+import { gearStatsOf, GRADE_STYLE, itemScore, itemSpecs, kindOf, LOOK_WORD, specLineValue, SLOTS, type GearItem } from '../data/equipment';
+import { lang, t, tc } from '../i18n';
 import { uniqueOf, uniqueValue } from '../data/uniques';
 import { HEROES } from '../data/heroes';
 import { namedOf, SPEC_GROUPS, SPECS, specText, type SpecGroup } from '../data/specials';
@@ -37,17 +38,17 @@ export function specRows(it: GearItem): SpecRow[] {
     const e = eq[s.key];
     if (e) for (const o of itemSpecs(e)) if (single(o.key) && (!best[o.key] || o.v > best[o.key].v)) best[o.key] = { id: e.id, v: o.v };
   }
-  const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? '겹치지 않음' : '');
+  const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? t('겹치지 않음') : '');
   const out: SpecRow[] = [];
   const nm = namedOf(it.named);
-  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), off: dup(nm.key) });
+  if (nm) out.push({ key: nm.key, name: t(nm.name), group: 'named', badge: t('고유'), text: specText(nm, nm.val), off: dup(nm.key) });
   const un = uniqueOf(it.unique), ud = un && SPECS[un.spec];
-  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), off: dup(ud.key) });
+  if (un && ud) out.push({ key: ud.key, name: t('{n} (고유)', { n: t(ud.name) }), group: ud.group, badge: t('고유'), text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), off: dup(ud.key) });
   for (const l of it.specs ?? []) {
     const d = SPECS[l.key];
     if (!d) continue;
-    const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
-    out.push({ key: d.key, name: l.legend ? `${d.name} (고유)` : d.name, group: d.group, badge: l.legend ? '고유' : SPEC_GROUPS[d.group].name, text: specText(d, specLineValue(it, l)), off });
+    const off = d.hero && d.hero !== hero ? t('{h} 전용', { h: t(HEROES[d.hero].name) }) : dup(d.key);
+    out.push({ key: d.key, name: l.legend ? t('{n} (고유)', { n: t(d.name) }) : t(d.name), group: d.group, badge: l.legend ? t('고유') : tc(SPEC_GROUPS[d.group].name, 'spec'), text: specText(d, specLineValue(it, l)), off });
   }
   return out;
 }
@@ -92,3 +93,14 @@ export function statParts() {
   };
 }
 
+/**
+ * 장비 이름 (121 3단계 ①): 한국어는 저장된 이름 그대로. 다른 언어는 고유 · 이름 있는 장비는 이름 사전, 조합 이름 (등급 말 + 세력 말 + 종류, equipment.ts itemName)은 낱말마다 사전 ('@grade' · '@look').
+ * 일본어는 띄어쓰기 없이 붙인다 (祝福された歯車の杖). 장비 이름을 보여 주는 곳은 모두 이것 (it.name을 바로 쓰지 않음).
+ */
+export function gearName(it: Pick<GearItem, 'slot' | 'kind' | 'grade' | 'name'> & { named?: string; unique?: string; look?: GearItem['look'] }): string {
+  if (lang() === 'ko') return it.name;
+  const nm = namedOf(it.named)?.name ?? uniqueOf(it.unique)?.name;
+  if (nm) return t(nm);
+  const parts = [tc(GRADE_STYLE[it.grade].word, 'grade'), it.look ? tc(LOOK_WORD[it.look], 'look') : '', t(kindOf(it).name)].filter(Boolean);
+  return parts.join(lang() === 'ja' ? '' : ' ');
+}
