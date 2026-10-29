@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#2B1B0F</color>
+    <color name="ic_launcher_background">#008857</color>
     <!-- 앱을 켤 때 시작 화면 바탕 (게임 첫 화면과 같은 짙은 색, 2026-10-17 Lim 「앱 시작 시 다른 이미지가 살짝 보임」) -->
     <color name="splash_background">#15120E</color>
 </resources>
