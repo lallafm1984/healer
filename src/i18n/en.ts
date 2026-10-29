@@ -1097,5 +1097,7 @@ const en: Record<string, string> = {
   '내 치유': 'My healing',
   '/초': '/s',
   '피해량 · 초당 · 비율': 'Damage · per sec · share',
+  '{n}회': '×{n}',
+  '전체 {n}명': 'All {n}',
 };
 export default en;
