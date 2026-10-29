@@ -3,7 +3,7 @@
  * 프로토타입 v11 전투 화면을 TypeScript로 옮긴 것. 판 그리기는 board.ts(PixiJS).
  */
 import type { CoachKey } from '../game/tutorial';
-import { t } from '../i18n';
+import { lang, t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
@@ -174,8 +174,10 @@ export function tapKey(): SkillKey {
 // ---------- 글자 ----------
 export const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
 export const secT = (x: number) => t('{n}초', { n: +x.toFixed(1) });
+/** 글자 아이콘 (두 글자 한국어 아이콘 id) 의 보이는 글: 한국어는 그대로, 영어는 (번역된) 이름 머리글자 3자까지, 일본어는 이름 앞 2자 (121 3단계 ⑤-b) */
+export const glyphOf = (icon: string, name: string): string => (lang() === 'ko' || !name ? icon : lang() === 'en' ? name.split(/[^A-Za-z0-9]+/).filter(Boolean).slice(0, 3).map(w => w[0].toUpperCase()).join('') : name.slice(0, 2));
 /** 받침 있으면 a(이), 없으면 b(가) */
-export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
+export const josa = (w: string, a: string, b: string) => { if (lang() !== 'ko') return ''; const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; }; // 영어 · 일본어는 조사 없음 (kit.ts josa와 같음)
 export const iga = (w: string) => w + josa(w, '이', '가');
 
 // ---------- 소리 (아트·사운드 가이드 16 7장, 효과음 107) ----------

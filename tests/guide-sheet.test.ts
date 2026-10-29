@@ -1,19 +1,26 @@
 // 공략 한눈에 (2026-10-12): 기술 대상 칩 · 피해 없이 디버프만 거는 잡몹 기술 · 새 공략 카드 모양
 import { describe, expect, it } from 'vitest';
-import { guideHtml, guideModel, skillWho } from '../src/battle/guide';
+import { guideHtml, guideModel } from '../src/battle/guide';
 import { secT } from '../src/battle/core';
 import { CONTENT } from '../src/data/content';
 import { pacePeriod } from '../src/data/pace';
 
 describe('공략 대상 칩', () => {
-  it('기술 글 첫머리에서 대상을 읽음', () => {
-    expect(skillWho('탱커에게 <b>481</b> 피해')).toEqual({ k: 'tank', t: '탱커' });
-    expect(skillWho('파티 전원에게 <b>209</b> 피해')).toEqual({ k: 'all', t: '전원' });
-    expect(skillWho('탱커 아닌 1명에게 <b>51~76</b> 피해')).toEqual({ k: 'some', t: '1명' });
-    expect(skillWho('무작위 2명에게 독: 12초 동안 초당 <b>99</b>')).toEqual({ k: 'some', t: '2명' });
-    expect(skillWho('판 바깥 1열 (왼쪽·오른쪽 번갈아)에 7.5초 장판. 안에 있으면 초당 <b>265</b>')).toEqual({ k: 'zone', t: '장판' });
-    expect(skillWho('뒷줄에 선 사람 모두 <b>300</b> (피할 수 없음)')).toEqual({ k: 'zone', t: '뒷줄' });
-    expect(skillWho('보스 피해 +20% (끝까지 쌓임)')).toBeNull();
+  // 기술마다 정해 둔 대상 (예전엔 한국어 기술 글 첫머리를 읽었음, 3단계 ⑤-b). 감옥은 탱커 · 나 아닌 N명 (예전 「탱커」 칩은 글 첫머리 「탱커 · 나 아닌」을 잘못 읽은 것)
+  const who = (key: Parameters<typeof guideModel>[0], diff: Parameters<typeof guideModel>[1], name: string) => guideModel(key, diff, 30, 30).skills.find(s => s.name === name)!.who;
+  it('강타 = 탱커 · 광역 = 전원 · N명 · 장판 · 줄', () => {
+    expect(who('warden', '보통', '내려찍기')).toEqual({ k: 'tank', t: '탱커' });
+    expect(who('warden', '보통', '증기 분출')).toEqual({ k: 'all', t: '전원' });
+    expect(who('warden', '보통', '녹물 웅덩이')).toEqual({ k: 'zone', t: '장판' });
+    expect(guideModel('gate', '보통', 30, 30).skills.some(s => s.who?.k === 'some' && s.who.t === '1명')).toBe(true); // 잔해 투척병 (탱커 아닌 1명)
+    expect(who('plague', '악몽', '독침')).toEqual({ k: 'some', t: '2명' });
+    expect(who('plague', '악몽', '역병 폭풍')).toEqual({ k: 'zone', t: '장판' });
+    expect(who('octo', '보통', '꼭 껴안기')).toEqual({ k: 'some', t: '1명' });
+    expect(who('octo', '악몽', '꼭 껴안기')).toEqual({ k: 'some', t: '2명' });
+  });
+  it('대상이 없는 기술은 칩 없음', () => {
+    for (const s of guideModel('warden', '보통', 30, 30).skills) if (s.enr) expect(s.who).toEqual({ k: 'enr', t: '전원' });
+    expect(guideModel('hydra', '보통', 30, 30).skills.some(s => s.who == null)).toBe(true);
   });
 });
 

@@ -131,7 +131,6 @@ const names: Record<string, string> = {
   '별의 순환': 'Star Cycle',
   '깨진 막의 빛': 'Light of the Broken Veil',
   '인장의 대가': 'Seal Master',
-  '처음부터': 'From the start',
   '캐릭터 Lv 20 달성': 'Reach character Lv 20',
   '캐릭터 Lv 30 달성': 'Reach character Lv 30',
   '상점 구매': 'Shop purchase',

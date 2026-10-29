@@ -158,6 +158,7 @@ export const EXCEPT = {
   '치유의 빛이 모험길로 이어지는, 인물 없는 신전 풍경': '타이틀 그림 설명, 癒しの光 (시적 표현)',
   '스토어 연결 전 (Play Console·RevenueCat 설정 뒤)': '개발 빌드 글, 설정 = setup',
   '아직 준비 중입니다.': '편성 준비 (Not ready), 장소 준비 중@content와 다른 뜻',
+  '💓 심장이 크게 뜀: 시전 · 집중 중인 힐이 끊기고 시전 스킬이 {s} 잠김': '집중 = 채널링 (channel), 능력치 집중 (Focus) 아님',
 };
 
 const hasEn = (text, forms) => forms.some(f => text.toLowerCase().includes(f.toLowerCase()));

@@ -104,9 +104,16 @@ export default async function i18nKo(url, shots) {
   await departGo(page);
   await page.clock.runFor(1500);
   await snap('battle');
+  // 일시정지 공략 시트 (battle/guide.ts): 문장 틀을 t()로 옮겨도 한국어 글이 그대로인지 (3단계 ⑤-b)
+  await click('#pauseBtn', 300);
+  await snap('pause-guide');
+  await click('#resumeBtn', 300);
   // 구간마다 적 체력을 0으로 → 정비 (첫 번만 스냅샷) → 「계속」 → … → 결과. 정비 → 전투 사이에는 __proto.F가 아직 없을 수 있어 있을 때만
   for (let i = 0; i < 30 && !(await page.isVisible('#s-settle')); i++) {
-    if (await page.isVisible('#rest')) { if (!got.rest) await snap('rest'); await click('#restGo', 3500); continue; }
+    if (await page.isVisible('#rest')) {
+      if (!got.rest) { await snap('rest'); await click('#restGuideOpen', 300); await snap('rest-guide'); await click('#restGuideClose', 300); } // 정비 「공략 보기」 시트도
+      await click('#restGo', 3500); continue;
+    }
     if (await page.evaluate(() => !!window.__proto?.F)) await killEnemies(page);
     await page.clock.runFor(1500);
   }

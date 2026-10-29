@@ -230,3 +230,5 @@ html[lang="ja"] {
   --font-display: "Noto Serif JP", "Hahmlet", "Noto Serif KR", serif;
   --font-body: "Noto Sans JP", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
 }
+/* 일본어는 띄어쓰기가 없어 keep-all이면 한 덩어리로 넘침 (121 3단계 ⑤): 글자 사이에서 줄바꿈 */
+html[lang="ja"] * { word-break: normal !important; }
