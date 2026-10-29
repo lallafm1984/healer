@@ -58,7 +58,8 @@ export async function connectGoogle(): Promise<{ user: Me; mode: 'link' | 'sign_
   await socialInit;
   const raw = crypto.randomUUID();
   const hashed = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)));
-  const res = await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'], nonce: hashed } });
+  // scopes를 넘기지 않음: 기본 (openid · email · profile)으로 ID 토큰에 충분하고, 넘기면 안드로이드에서 MainActivity를 고치라며 거절함
+  const res = await SocialLogin.login({ provider: 'google', options: { nonce: hashed } });
   const token = (res.result as { idToken?: string | null }).idToken;
   if (!token) throw new Error('구글 로그인 취소');
   const cur = (await c.auth.getSession()).data.session?.user;
