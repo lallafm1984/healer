@@ -3,6 +3,7 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import { deedOf } from '../data/guild';
+import { t } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -98,17 +99,17 @@ function startBattle(guideSec = 0): void {
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
   show('battle');
-  if (S.auto) toast(`자동 힐러${S.autoNovice ? ' (초보)' : ''}가 플레이 중`);
-  else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
+  if (S.auto) toast(S.autoNovice ? t('자동 힐러 (초보)가 플레이 중') : t('자동 힐러가 플레이 중'));
+  else if (R.idx === 0) toast(t('칸을 탭하면 {s}', { s: t(SKILLS[tapKey()].name) }));
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
-  if (S.affixes && !R.idx) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
+  if (S.affixes && !R.idx) toast(t('어픽스 {a}', { a: S.affixes.map(k => t(AFFIXES[k].name)).join(' · ') }));
   // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
   const words = F.hero !== 'priest' || knowsPassive(F, 'words');
   buildGauges(F);
   $('gauges').classList.toggle('locked', !words);
   $('controls').classList.toggle('nowords', !words);
   // 레벨이 모자라 잠긴 자원 그림도 어둡게 보이고 자물쇠 + 배우는 레벨 (2026-10-16 Lim, 휠의 잠긴 칸과 같은 표시)
-  if (!words) $('gauges').insertAdjacentHTML('beforeend', `<span class="gauge-lock" role="img" aria-label="${PASSIVE_NAME.words} 잠김, Lv ${PASSIVE_LEVEL.words}에 배움"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><b>Lv ${PASSIVE_LEVEL.words}</b></span>`);
+  if (!words) $('gauges').insertAdjacentHTML('beforeend', `<span class="gauge-lock" role="img" aria-label="${t(PASSIVE_NAME.words)} ${t('잠김')}, ${t('Lv {n}에 배움', { n: PASSIVE_LEVEL.words })}"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><b>Lv ${PASSIVE_LEVEL.words}</b></span>`);
   $('controls').classList.toggle('paladin', F.hero === 'paladin');
   // 최종 고유 게이지와 잠금 상태가 정해진 뒤 한 번만 크기·터치 영역을 측정한다.
   layoutBattle();
@@ -152,7 +153,7 @@ function layoutBattle(): void {
   const resourceShift = Math.max(0, Math.min(10.1, (W - 320) * 10.1 / 40)) + Math.max(0, Math.min(13.9, (W - 360) * 13.9 / 30));
   controls.style.setProperty('--resource-inset', `${27.6 + resourceShift}px`);
   controls.style.setProperty('--wheel-inset', `${17 + Math.max(0, Math.min(12, (W - 360) * .4))}px`);
-  $('wheel').setAttribute('aria-label', '치유 스킬 휠');
+  $('wheel').setAttribute('aria-label', t('치유 스킬 휠'));
   controls.style.setProperty('--controls-scale', '1');
   $('controls').style.height = ch + 'px';
   // 사제 B안 휠 크기를 모든 직업과 보조 특성 조합에 공통 적용한다.
@@ -165,7 +166,7 @@ function layoutBattle(): void {
   setPauseInert(!$('pause').hidden);
   if (F.hero === 'paladin') {
     $('core').setAttribute('role', 'button'); $('core').tabIndex = 0;
-    $('core').setAttribute('aria-label', '마나 · 봉화 지정');
+    $('core').setAttribute('aria-label', t('마나 · 봉화 지정'));
   }
   scaleControls();
   // 휠을 다시 만든 직후에도 장전·비활성 상태와 접근성 표시를 유지한다.
@@ -244,7 +245,7 @@ function endSlot(cancelled: boolean, e?: PointerEvent): void {
   if (P.lp) releaseTip();
   if (P.lp || cancelled || !live()) return;
   if (P.core) { pressCore(); return; }
-  if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('deny'); return; }
+  if (P.lock) { toast(t('{s}: Lv {n}에 배움', { s: t(SKILLS[P.lock].name), n: SKILL_LEVEL[P.lock] })); Snd.play('deny'); return; }
   pressSlot(P.slot!);
 }
 $('wheel').addEventListener('pointermove', e => { if (slotPress && ownsPress(slotPress, e) && outsidePress(slotPress, e)) endSlot(true, e); });
@@ -261,10 +262,10 @@ function pressCore(): void {
   if (!F || !live() || ui.pullLeft > 0) return;
   if (F.hero !== 'paladin') return;
   const lv = HEROES.paladin.system.lv;
-  if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('deny'); return; }
-  if (F.beaconCd > 0) { toast(`봉화 바꾸기 대기 ${Math.ceil(F.beaconCd)}초`); Snd.play('deny'); return; }
+  if (F.level < lv) { toast(t('봉화: Lv {n}에 배움', { n: lv })); Snd.play('deny'); return; }
+  if (F.beaconCd > 0) { toast(t('봉화 바꾸기 대기 {n}초', { n: Math.ceil(F.beaconCd) })); Snd.play('deny'); return; }
   B.beacon = !B.beacon; B.armed = null; ui.talArmed = null;
-  if (B.beacon) toast('봉화: 지킬 파티원 칸 선택');
+  if (B.beacon) toast(t('봉화: 지킬 파티원 칸 선택'));
   vibe(8);
 }
 
@@ -316,7 +317,7 @@ $('wheel').addEventListener('click', e => {
   const el = (e.target as Element).closest<HTMLElement>('[data-slot],[data-lock],#core');
   if (!el) return;
   if (el.id === 'core') { pressCore(); return; }
-  if (el.dataset.lock) { const k = el.dataset.lock as SkillKey; toast(`${SKILLS[k].name}: Lv ${SKILL_LEVEL[k]}에 배움`); return; }
+  if (el.dataset.lock) { const k = el.dataset.lock as SkillKey; toast(t('{s}: Lv {n}에 배움', { s: t(SKILLS[k].name), n: SKILL_LEVEL[k] })); return; }
   if (el.dataset.slot) pressSlot(el.dataset.slot);
 });
 $('wheel').addEventListener('keydown', e => {
@@ -335,7 +336,7 @@ function pressAux(key: TalentKey): void {
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('deny'); return; }
     ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false;
     if (S.sound) sfx(ui.talArmed ? 'ui-arm' : 'ui-disarm');
-    if (ui.talArmed) toast(`${def.name}: 빈 칸 선택`);
+    if (ui.talArmed) toast(t('{s}: 빈 칸 선택', { s: t(def.name) }));
     vibe(8); return;
   }
   const res = useTalent(F, key);
@@ -443,7 +444,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
     const d = swipeDir(dx, dy), it = d ? dirSlot(d) : null;
     if (!d) { ui.swipeCancel++; return; } // 쓸다가 제자리로 돌아오면 취소
     if (P.idx < 0 || !aimable(F, P.idx, dirKey(F, d))) { F.stats.missTaps++; return; }
-    if (!it || !it.key) { toast('이 방향은 비어 있음'); ui.swipeEmpty++; return; }
+    if (!it || !it.key) { toast(t('이 방향은 비어 있음')); ui.swipeEmpty++; return; }
     ui.swipes[d] = (ui.swipes[d] || 0) + 1;
     const sk = slotKey(F, it.key);
     if (doUse(sk, P.idx)) { vibe(8); coachUsed('swipe:' + sk); }
@@ -554,7 +555,7 @@ function handleEvents(now: number): void {
         if (!ev.trap && !ev.ally) vibe([12, 60, 12]);
         break;
       case 'cure': if (u) fxCure(u, ev.name, now); break; // 체력을 채워 쇠약·완치 표식이 사라짐 (얼음 갑옷은 녹음, 63 E)
-      case 'revive': if (u) fxRevive(u, now, '부활', plain.has(ev.id)); Snd.play('revive'); break;
+      case 'revive': if (u) fxRevive(u, now, t('부활'), plain.has(ev.id)); Snd.play('revive'); break;
       case 'debuff': {
         const nm = ({ '질병': 'debuff-disease', '독': 'debuff-poison', '마법': 'debuff-magic', '저주': 'debuff-curse', '물리': 'debuff-physical' } as Record<string, string>)[ev.dtype];
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
@@ -571,25 +572,25 @@ function handleEvents(now: number): void {
         if (v?.cls && (!atk || w > atk.w)) atk = { cls: v.cls, w, crit: !!ev.crit };
         break;
       }
-      case 'miss': if (ev.add != null) fxAddHit(ev.add, '빗나감', now, false, true); else missNum(F.party.find(x => x.id === ev.uid)); break;
-      case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
-      case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
-      case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
-      case 'clump': if (u) fxNote(u, '붙어 섬', 0xd9b38c, now); break; // 99 위치 잡기
-      case 'alone': if (u) fxNote(u, '혼자 놂', 0xb7b1c9, now); break; // 99 협동
-      case 'regroup': if (u) fxNote(u, '정신 차림', 0x9ad1b0, now); break; // Codex 검토 반영 4: 수습 틈
-      case 'stagger': if (u) fxNote(u, ev.steady ? '버팀' : '휘청', ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
+      case 'miss': if (ev.add != null) fxAddHit(ev.add, t('빗나감'), now, false, true); else missNum(F.party.find(x => x.id === ev.uid)); break;
+      case 'parry': if (u) fxNote(u, t('막음'), 0xcfd8e3, now); break; // 99 라
+      case 'daze': if (u) fxNote(u, t('멍'), 0xb7b1c9, now); break; // 99 집중
+      case 'offGuard': if (u) fxNote(u, t('자세 놓침'), 0xd9a0a0, now); break; // 99 방어
+      case 'clump': if (u) fxNote(u, t('붙어 섬'), 0xd9b38c, now); break; // 99 위치 잡기
+      case 'alone': if (u) fxNote(u, t('혼자 놂'), 0xb7b1c9, now); break; // 99 협동
+      case 'regroup': if (u) fxNote(u, t('정신 차림'), 0x9ad1b0, now); break; // Codex 검토 반영 4: 수습 틈
+      case 'stagger': if (u) fxNote(u, ev.steady ? t('버팀') : t('휘청'), ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);
-        if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
+        if (u && !u.me) toast(t('{n} 쓰러짐', { n: u.nick }), 'bad');
         break;
       case 'msg': toast(ev.text); break;
-      case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
-      case 'gauge': if (!priest.suppress.has('gauge')) Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
-      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정', true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
+      case 'phase': banner(t(ev.text), { tone: ev.text === '광폭화' ? 'danger' : undefined }); Snd.play(ev.text === '광폭화' ? 'boss-enrage' : 'boss-phase'); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
+      case 'gauge': if (!priest.suppress.has('gauge')) Snd.play('gauge'); toast(t('성언: {w} 준비됨 · 휠에서 장전해 사용', { w: t(ev.which) }), 'good'); break;
+      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, t('봉화 지정'), true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
       case 'mobDown': {
         const down = F.mobs.find(m => m.id === ev.id);
-        toast(`${down ? mobLook(F, down).name : ev.name} 쓰러짐`, 'good'); updateBossTitle(); Snd.play('mob-down');
+        toast(t('{n} 쓰러짐', { n: t(down ? mobLook(F, down).name : ev.name) }), 'good'); updateBossTitle(); Snd.play('mob-down');
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
         const a = down?.add;
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
@@ -597,8 +598,8 @@ function handleEvents(now: number): void {
       }
       case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
         if (!u) break;
-        if (ev.fumble) { fxNote(u, `${ev.name} 헛씀`, 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
-        if (ev.weak) fxNote(u, `${ev.name} ${ev.weak}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
+        if (ev.fumble) { fxNote(u, t('{s} 헛씀', { s: t(ev.name) }), 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
+        if (ev.weak) fxNote(u, `${t(ev.name)} ${t(ev.weak)}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
         fxAbility(u, ev.name, now);
         const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
         if (fx) fxPxf(u, fx, now);
@@ -657,7 +658,7 @@ function setPause(v: boolean): void {
   closeTip();
   const g = guideOf(F);
   const ph = g.phases.find(p => p.id === g.cur(F));
-  $('pauseSub').textContent = `${mmss(F.t)} · ${ph ? ph.name : ''} · 보스 체력 ${Math.ceil((F.bossHp / F.bossMax) * 100)}%`;
+  $('pauseSub').textContent = `${mmss(F.t)} · ${ph ? t(ph.name) : ''} · ${t('보스 체력 {p}%', { p: Math.ceil((F.bossHp / F.bossMax) * 100) })}`;
   $('pauseGuide').innerHTML = guideHtml(g, F);
   $('pauseGuide').scrollTop = 0;
   ($('pauseAuto') as HTMLInputElement).checked = S.auto;
@@ -714,14 +715,14 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
   const acc = tapAccuracy(), min = Math.max(1 / 60, f.t / 60);
   if (how !== 'end') { R.time += chalTime(f); R.deaths += st.deaths; addStats(R, f, st); } // 도전자의 위기 (115)로 더한 초까지 (주간 도전 제한시간)
   const detail: [string, string][] = [
-    ['마지막 전투', `${f.enc.name} ${mmss(f.t)}`],
+    [t('마지막 전투'), `${t(f.enc.name)} ${mmss(f.t)}`],
   ];
   const dev: [string, string][] = [
-    ['탭', `${st.taps}번 (분당 ${Math.round(st.taps / min)})`],
-    ['칸 중심에서 벗어남', acc.n ? `평균 칸 크기의 ${acc.avg}%` : '-'],
-    ['옆 칸 재지정 (오탭 추정)', `${ui.retarget}번 · 빈 칸 ${st.emptyTaps}번`],
-    ['시전 취소 · 마나 부족', `${st.cancels}번 · ${st.manaFails}번`],
-    ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
+    [t('탭'), t('{n}번 (분당 {m})', { n: st.taps, m: Math.round(st.taps / min) })],
+    [t('칸 중심에서 벗어남'), acc.n ? t('평균 칸 크기의 {n}%', { n: String(acc.avg) }) : '-'],
+    [t('옆 칸 재지정 (오탭 추정)'), t('{n}번 · 빈 칸 {m}번', { n: ui.retarget, m: st.emptyTaps })],
+    [t('시전 취소 · 마나 부족'), t('{a}번 · {b}번', { a: st.cancels, b: st.manaFails })],
+    [t('쓸기 스킬'), t('{n}번 · 취소 {c} · 빈 방향 {e}', { n: Object.values(ui.swipes).reduce((a, b) => a + b, 0), c: ui.swipeCancel, e: ui.swipeEmpty })],
   ];
   const left = win ? undefined : { pct: Math.ceil((f.bossHp / f.bossMax) * 100), mobs: f.bodyHp };
   const result = {
@@ -797,9 +798,9 @@ function endSegment(): void {
   R.time += chalTime(F); R.deaths += F.stats.deaths; addStats(R, F, F.stats);
   const next = F.over === 'win' && R.idx < R.segs.length - 1;
   // 화면이 넘어가기 전 판에 결과 띠: 구간 처치 · 마지막 승리 · 전멸 (이유는 아래 줄). 지면 판을 잿빛으로
-  if (F.over === 'win') banner(next ? '처치' : '승리', { tone: 'win', sub: next ? F.enc.name : R.name });
+  if (F.over === 'win') banner(next ? t('처치') : t('승리'), { tone: 'win', sub: t(next ? F.enc.name : R.name) });
   if (F.over === 'win' && S.sound) sfx('boss-down'); // 보스가 쓰러지는 순간 (2026-10-22 Lim: 중간 보스 「처치」 띠에 소리가 없었음)
-  else banner('전멸', { tone: 'lose', sub: F.reason });
+  else banner(t('전멸'), { tone: 'lose', sub: t(F.reason) });
   $('battle').classList.add(F.over === 'win' ? 'over-win' : 'over-lose');
   // 실패는 전투 상태를 2초 보여 준 뒤 정산. 이전 판의 타이머가 새 판을 종료하지 않게 한다.
   setTimeout(() => { if (B.F === F && F.over) { if (next) showRest(); else finish('end'); } }, F.over === 'lose' ? 2000 : 1200);
@@ -808,17 +809,17 @@ function showRest(): void {
   const R = S.run!, F = B.F!, segs = R.segs;
   closeTip();
   ui.restAt = performance.now(); ui.restMana = null;
-  $('restSub').textContent = `${R.name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
+  $('restSub').textContent = `${t(R.name)} · ${t('{e} 끝 ({t})', { e: t(F.enc.name), t: mmss(F.t) })}`;
   // 구간 길: 점 (✓ 깸 · 번호) 아래 구간 이름, 다음 구간은 금빛
-  $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}"><i aria-hidden="true">${i <= R.idx ? '✓' : i + 1}</i><span>${i <= R.idx ? '<span class="sr">끝: </span>' : ''}${ENCOUNTERS[k as EncounterKey].name}</span></li>`).join('');
-  $('restMeter').innerHTML = meterHtml(addMeter([], F.party), F.t, { title: `딜미터기 · ${F.enc.name}`, heal: F.stats.healed });
+  $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}"><i aria-hidden="true">${i <= R.idx ? '✓' : i + 1}</i><span>${i <= R.idx ? `<span class="sr">${t('끝:')} </span>` : ''}${t(ENCOUNTERS[k as EncounterKey].name)}</span></li>`).join('');
+  $('restMeter').innerHTML = meterHtml(addMeter([], F.party), F.t, { title: `${t('딜미터기')} · ${t(F.enc.name)}`, heal: F.stats.healed });
   // 공략은 한 화면에 같이 두지 않고 「공략 보기」 시트로 (2026-10-13 Lim). 회복 안내 글도 뺌
   const g = guideOf(F, segs[R.idx + 1] as EncounterKey);
-  g.tier = `다음 ${R.idx + 2}/${segs.length}`;
-  $('restNext').innerHTML = `<h2 class="rest-h">다음 상대</h2>
+  g.tier = t('다음 {a}/{b}', { a: R.idx + 2, b: segs.length });
+  $('restNext').innerHTML = `<h2 class="rest-h">${t('다음 상대')}</h2>
     <div class="rest-foe"><span class="rest-art">${bossSvg(g.enc.script, g.enc.key)}</span>
-      <span class="rest-id"><b>${g.enc.name}</b><span class="rest-tags"><i>${g.tier}</i><i class="diff">${g.diff}</i>${isFinite(g.enc.enrage) ? `<i class="enr">광폭화 ${mmss(g.enc.enrage)}</i>` : ''}</span></span>
-      <button class="btn rest-gbtn" id="restGuideOpen" type="button" aria-haspopup="dialog">${REST_BOOK}<span>공략 보기</span></button></div>`;
+      <span class="rest-id"><b>${t(g.enc.name)}</b><span class="rest-tags"><i>${g.tier}</i><i class="diff">${t(g.diff)}</i>${isFinite(g.enc.enrage) ? `<i class="enr">${t('광폭화 {t}', { t: mmss(g.enc.enrage) })}</i>` : ''}</span></span>
+      <button class="btn rest-gbtn" id="restGuideOpen" type="button" aria-haspopup="dialog">${REST_BOOK}<span>${t('공략 보기')}</span></button></div>`;
   $('restGuide').innerHTML = guideHtml(g, null);
   restSheet(false);
   // 머리 뒤에 이번 장소 풍경 (전투 무대와 같은 그림)
@@ -875,7 +876,7 @@ function updatePull(dt: number): void {
     const el = $('pullNum'); el.textContent = String(n); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
     if (n > 0) Snd.play('tick');
   }
-  if (ui.pullLeft <= 0) { $('pull').hidden = true; acc = 0; Snd.play('battle-start'); banner('전투 시작!'); }
+  if (ui.pullLeft <= 0) { $('pull').hidden = true; acc = 0; Snd.play('battle-start'); banner(t('전투 시작!')); }
 }
 /**
  * 시전음 (2026-10-21 Lim): 시전 시간이 있는 주문을 시전하는 동안 반복 (즉시 발동엔 F.cast가 없어 안 남).

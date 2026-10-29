@@ -1,5 +1,6 @@
 /** 전투용 native dialog. 확인 창을 읽는 동안 멈추고, 닫으면 열기 전 pause 상태로 돌아간다. */
 import type { Fight } from '../engine';
+import { t } from '../i18n';
 
 export type BattleConfirmKind = 'restart' | 'quit' | 'giveUp';
 export interface BattleDialogCallbacks {
@@ -18,16 +19,16 @@ export interface BattleDialogs {
 
 export function battleConfirmation(kind: BattleConfirmKind): { title: string; message: string; action: string; detail?: string } {
   if (kind === 'restart') return {
-    title: '처음부터 다시 시작', action: '전체 구간 다시 시작',
-    message: '이번 도전의 모든 구간 진행과 전투 기록을 초기화하고, 같은 파티로 첫 구간부터 다시 시작합니다.',
+    title: t('처음부터 다시 시작'), action: t('전체 구간 다시 시작'),
+    message: t('이번 도전의 모든 구간 진행과 전투 기록을 초기화하고, 같은 파티로 첫 구간부터 다시 시작합니다.'),
   };
   if (kind === 'quit') return {
-    title: '보상 없이 나가기', action: '보상 없이 나가기',
-    message: '이번 도전을 종료하고 보상 없이 나갑니다.',
+    title: t('보상 없이 나가기'), action: t('보상 없이 나가기'),
+    message: t('이번 도전을 종료하고 보상 없이 나갑니다.'),
   };
   return {
-    title: '현재 전투를 포기하시겠습니까?', action: '포기하기',
-    message: '현재 전투를 종료하고\n전멸과 같은 실패로 정산합니다.',
+    title: t('현재 전투를 포기하시겠습니까?'), action: t('포기하기'),
+    message: t('현재 전투를 종료하고\n전멸과 같은 실패로 정산합니다.'),
   };
 }
 
@@ -103,7 +104,7 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     confirmDetail.hidden = !text.detail;
     confirmDialog.dataset.kind = kind;
     confirmDialog.setAttribute('aria-describedby', text.detail ? 'confirmMessage confirmDetail' : 'confirmMessage');
-    cancel.textContent = kind === 'giveUp' ? '계속 전투' : '취소';
+    cancel.textContent = kind === 'giveUp' ? t('계속 전투') : t('취소');
     apply.textContent = text.action;
     apply.disabled = false;
     show(session, cancel); // 기본 선택은 항상 취소다.

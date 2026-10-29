@@ -1,5 +1,6 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, DISPEL_TYPES, dispellable, type HeroKey } from '../data/heroes';
+import { t, tc } from '../i18n';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import type { Debuff, Mod, Totem, Unit } from '../engine/types';
 
@@ -134,25 +135,25 @@ export type DispelState = 'available' | 'unavailable' | 'dangerous';
 export function debuffTag(d: Debuff): { long: string; short: string } {
   const one = (w: string) => ({ long: w, short: w });
   const e = d.end;
-  if (d.untilBossLoss != null) return one('갇힘');
-  if (d.charm) return one('매혹');
-  if (d.cureAt != null) return { long: '채우기', short: '채움' };
-  if (d.absorb || d.absorbLeft || d.shell) return { long: '치유 흡수', short: '흡수' }; // 넘침 (주간 도전 어픽스)은 남은 막만
-  if (d.invert) return { long: '치유 반전', short: '반전' };
-  if (d.cap != null) return { long: '치유 상한', short: '상한' };
-  if (d.over) return one('넘침');
+  if (d.untilBossLoss != null) return one(t('갇힘'));
+  if (d.charm) return one(t('매혹'));
+  if (d.cureAt != null) return { long: t('채우기'), short: t('채움') };
+  if (d.absorb || d.absorbLeft || d.shell) return { long: t('치유 흡수'), short: t('흡수') }; // 넘침 (주간 도전 어픽스)은 남은 막만
+  if (d.invert) return { long: t('치유 반전'), short: t('반전') };
+  if (d.cap != null) return { long: t('치유 상한'), short: t('상한') };
+  if (d.over) return one(t('넘침'));
   if (d.noDps) return one(d.noMove ? '기절' : '침묵');
-  if (d.noMove) return one('묶임');
-  if (d.vuln) return one('피해↑');
-  if (d.healCut) return one('치유↓');
-  if (d.maxCut || e?.p === 'restoreMax') return one('체력↓');
-  if (d.dpsCut) return one('딜↓');
-  if (d.drain) return one('마나↓');
-  if (d.feed) return one('흡혈');
-  if (d.dot) return d.type === '물리' ? one('출혈') : d.type === '독' ? one('중독') : { long: '지속 피해', short: '피해' };
-  if (e?.p === 'spread') return one('번짐');
-  if (e?.p === 'jump') return { long: '옮겨붙음', short: '옮김' };
-  if (d.trap || e) return one('폭발');
+  if (d.noMove) return one(t('묶임'));
+  if (d.vuln) return one(t('피해↑'));
+  if (d.healCut) return one(t('치유↓'));
+  if (d.maxCut || e?.p === 'restoreMax') return one(t('체력↓'));
+  if (d.dpsCut) return one(t('딜↓'));
+  if (d.drain) return one(t('마나↓'));
+  if (d.feed) return one(t('흡혈'));
+  if (d.dot) return d.type === '물리' ? one(t('출혈')) : d.type === '독' ? one(t('중독')) : { long: t('지속 피해'), short: t('피해') };
+  if (e?.p === 'spread') return one(t('번짐'));
+  if (e?.p === 'jump') return { long: t('옮겨붙음'), short: t('옮김') };
+  if (d.trap || e) return one(t('폭발'));
   return one(d.name);
 }
 
@@ -164,27 +165,27 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 글에도 직업별 해제 가능 · 불가는 쓰지 않습니다 (2026-10-27 Lim)
   // 지울 수 있으면 종류 이름 (질병 · 독 · 마법 · 저주, 좁으면 띄어쓰기만 뺌), 못 지우면 하는 일 (2026-10-28 Lim, 예전 「물리 10」 · 좁은 칸 「?10」 · 「질10」 · 「마10」)
-  const tag = dispellable(debuff) ? { long: debuff.type, short: debuff.type } : debuffTag(debuff);
+  const tag = dispellable(debuff) ? { long: t(debuff.type), short: t(debuff.type) } : debuffTag(debuff);
   const kind = short ? tag.short : tag.long;
-  const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
+  const stack = (debuff.stack ?? 0) > 1 ? `, ${t('{n}중첩', { n: debuff.stack! })}` : '';
   const brief = debuffBrief(debuff);
   // 끝없는 디버프 (깊은 상처 어픽스, left = Infinity)는 초 없이
   const timed = Number.isFinite(seconds), sec = timed ? `${short ? '' : ' '}${seconds}` : '';
-  const detail = [debuff.name, dispellable(debuff) ? debuff.type : '', timed ? `${seconds}초${stack}` : stack.slice(2)].filter(Boolean).join(' · ') + (brief ? ` · ${brief}` : '');
+  const detail = [t(debuff.name), dispellable(debuff) ? t(debuff.type) : '', timed ? `${t('{n}초', { n: seconds })}${stack}` : stack.slice(2)].filter(Boolean).join(' · ') + (brief ? ` · ${brief}` : '');
   // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
-  if (debuff.count) return { text: `${short ? '' : '역류 '}${debuff.stack ?? 0}중`, detail, state, seconds };
-  if (debuff.link) return { text: `${short ? '사슬' : debuff.name} ${seconds}`, detail, state, seconds }; // 생명 사슬 (P-LINK)
+  if (debuff.count) return { text: `${short ? '' : `${t('역류')} `}${t('{n}중', { n: debuff.stack ?? 0 })}`, detail, state, seconds };
+  if (debuff.link) return { text: `${short ? t('사슬') : t(debuff.name)} ${seconds}`, detail, state, seconds }; // 생명 사슬 (P-LINK)
   // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수
-  if (debuff.swell) return { text: `${short ? '' : '거품 '}${debuff.stack ?? 1}중`, detail, state, seconds };
+  if (debuff.swell) return { text: `${short ? '' : `${t('거품')} `}${t('{n}중', { n: debuff.stack ?? 1 })}`, detail, state, seconds };
   // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
-  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집힘 '}${seconds}`, detail, state, seconds };
+  if (debuff.end?.p === 'flip') return { text: `${short ? '' : `${t('뒤집힘')} `}${seconds}`, detail, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
-  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail, state, seconds }; }
+  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `${t('빚')} ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail, state, seconds }; }
   // 봉합 상처 (113 6.2): 배지에 남은 봉합 %
-  if (debuff.staunch) return { text: `${short ? '' : '봉합 '}${Math.ceil(((debuff.staunchLeft ?? 0) / Math.max(1, debuff.staunchNeed ?? 1)) * 100)}%`, detail, state, seconds };
+  if (debuff.staunch) return { text: `${short ? '' : `${t('봉합')} `}${Math.ceil(((debuff.staunchLeft ?? 0) / Math.max(1, debuff.staunchNeed ?? 1)) * 100)}%`, detail, state, seconds };
   // 충전 (P-CHARGE, 111 4-4): 배지에 중첩 / 방전 수
-  if (debuff.charge) return { text: `${short ? '' : '충전 '}${debuff.stack ?? 0}/${debuff.charge.max}`, detail, state, seconds };
-  if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · ${brief}`, state, seconds: 0 };
+  if (debuff.charge) return { text: `${short ? '' : `${tc('충전', 'debuff')} `}${debuff.stack ?? 0}/${debuff.charge.max}`, detail, state, seconds };
+  if (debuff.jail) return { text: `${short ? t('감옥') : t(debuff.name)}`, detail: `${t(debuff.name)} · ${brief}`, state, seconds: 0 };
   return { text: `${kind}${sec}`, detail, state, seconds };
 }
 
@@ -197,40 +198,40 @@ const pctT = (x: number) => `${Math.round(x * 100)}%`;
 export function debuffBrief(d: Debuff): string {
   const n = d.stack ?? 1, e = d.end;
   const out: string[] = [];
-  if (d.link) out.push(d.link.kind === 'share' ? '이어진 둘이 피해 · 치유를 반씩 나눔' : '이어진 둘의 체력 차이가 벌어지면 끊어지며 둘 다 피해');
-  if (d.jail) out.push('갇혀 딜 0 · 못 움직임, 딜러가 감옥을 깨면 풀림');
-  if (d.debt) out.push('채워 준 체력이 빚, 초마다 불어남'); // 갚기 · 끝 피해는 상세창의 「남은 빚」 줄
-  if (d.staunch) out.push('실제로 회복할수록 출혈이 줄어듦'); // 남은 봉합량은 상세창 줄 (113 6.2)
-  if (d.count) out.push('스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해');
-  if (d.swell) out.push('점점 부풀어 끝나면 나와 옆 칸이 터짐 (지우면 옆 칸만)');
-  if (d.charge) out.push(`직접 힐 ${d.charge.max}번째에 방전, 나와 옆 칸 피해`);
-  if (d.shell) out.push('큰 직접 힐만 껍질을 깎음, 끝나면 남은 껍질만큼 피해');
-  else if (d.absorb || d.absorbLeft) out.push(e?.p === 'pass' ? '받는 치유가 막을 먼저 깎음, 지우면 다른 사람에게 넘어감' : '받는 치유가 막을 먼저 깎음');
-  if (d.charm) out.push('딜을 멈추고 옆 사람을 때림, 힐하면 길어짐');
-  if (d.untilBossLoss != null) out.push(`보스 체력을 ${pctT(d.untilBossLoss)} 깎으면 풀림`);
-  if (d.cureAt != null) out.push(d.grow ? `체력 ${pctT(d.cureAt)} 아래면 점점 아파짐, 채우면 떨어짐` : `체력 ${pctT(d.cureAt)} 채우면 떨어짐`);
-  if (d.trap && (!e || e.p === 'spread')) out.push('끝나거나 지우면 옆 칸에 번짐');
-  else if (e?.p === 'spread') out.push('끝나면 옆 칸에 번짐');
-  else if (e?.p === 'blast') out.push('끝나거나 지우면 옆 칸이 터짐');
-  else if (e?.p === 'trapHit') out.push('두면 끝날 때 피해, 지우면 옆 칸이 터짐');
-  else if (e?.p === 'trapLoan') out.push('두면 끝날 때 피해, 지우면 옆 칸에 빚');
-  else if (e?.p === 'colDmg') out.push('끝나면 선 줄 전체 피해');
-  else if (e?.p === 'hit' && !d.absorb) out.push('두면 끝날 때 피해');
-  else if (e?.p === 'hit') out.push('남은 막이 있으면 끝날 때 피해');
-  else if (e?.p === 'jump') out.push(e.on === 'quake' ? '진동이 울리면 옆 칸으로 옮겨붙음' : `지우면 옆 사람에게 옮겨붙음${e.boost ? ', 두면 보스가 강해짐' : ''}`);
-  else if (e?.p === 'flip') out.push('끝나면 체력 비율이 뒤집힘');
-  if (d.invert) out.push('받는 치유가 피해로');
-  if (d.over) out.push('넘친 치유만큼 옆 칸 피해');
-  if (d.cap != null) out.push(`치유로는 체력 ${pctT(d.cap)}까지만 참`);
-  if (d.healCut) out.push(`받는 치유 −${pctT(d.healCut * n)}`);
-  if (d.vuln) out.push(`받는 피해 +${pctT(d.vuln * n)}${d.swap ? `, ${d.swap}중첩이면 탱커 교대` : ''}`);
-  if (d.maxCut || e?.p === 'restoreMax') out.push(`${d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '최대 체력 줄어듦'}, 끝나면 돌아옴`);
-  if (d.noDps && !d.jail && !d.charm) out.push(d.noMove ? '딜 0 · 못 움직임' : '딜 0');
-  else if (d.noMove && !d.jail) out.push('못 움직임');
-  if (d.dpsCut) out.push(`딜 −${pctT(d.dpsCut)}`);
-  if (d.drain) out.push('내 마나가 줄어듦');
-  if (d.feed) out.push('빨린 체력만큼 보스 회복');
-  if (d.dot && !d.count && !d.grow) out.push(d.stackMax ? '지속 피해, 겹칠수록 아픔' : '지속 피해');
+  if (d.link) out.push(d.link.kind === 'share' ? t('이어진 둘이 피해 · 치유를 반씩 나눔') : t('이어진 둘의 체력 차이가 벌어지면 끊어지며 둘 다 피해'));
+  if (d.jail) out.push(t('갇혀 딜 0 · 못 움직임, 딜러가 감옥을 깨면 풀림'));
+  if (d.debt) out.push(t('채워 준 체력이 빚, 초마다 불어남')); // 갚기 · 끝 피해는 상세창의 「남은 빚」 줄
+  if (d.staunch) out.push(t('실제로 회복할수록 출혈이 줄어듦')); // 남은 봉합량은 상세창 줄 (113 6.2)
+  if (d.count) out.push(t('스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해'));
+  if (d.swell) out.push(t('점점 부풀어 끝나면 나와 옆 칸이 터짐 (지우면 옆 칸만)'));
+  if (d.charge) out.push(t('직접 힐 {n}번째에 방전, 나와 옆 칸 피해', { n: d.charge.max }));
+  if (d.shell) out.push(t('큰 직접 힐만 껍질을 깎음, 끝나면 남은 껍질만큼 피해'));
+  else if (d.absorb || d.absorbLeft) out.push(e?.p === 'pass' ? t('받는 치유가 막을 먼저 깎음, 지우면 다른 사람에게 넘어감') : t('받는 치유가 막을 먼저 깎음'));
+  if (d.charm) out.push(t('딜을 멈추고 옆 사람을 때림, 힐하면 길어짐'));
+  if (d.untilBossLoss != null) out.push(t('보스 체력을 {p} 깎으면 풀림', { p: pctT(d.untilBossLoss) }));
+  if (d.cureAt != null) out.push(d.grow ? t('체력 {p} 아래면 점점 아파짐, 채우면 떨어짐', { p: pctT(d.cureAt) }) : t('체력 {p} 채우면 떨어짐', { p: pctT(d.cureAt) }));
+  if (d.trap && (!e || e.p === 'spread')) out.push(t('끝나거나 지우면 옆 칸에 번짐'));
+  else if (e?.p === 'spread') out.push(t('끝나면 옆 칸에 번짐'));
+  else if (e?.p === 'blast') out.push(t('끝나거나 지우면 옆 칸이 터짐'));
+  else if (e?.p === 'trapHit') out.push(t('두면 끝날 때 피해, 지우면 옆 칸이 터짐'));
+  else if (e?.p === 'trapLoan') out.push(t('두면 끝날 때 피해, 지우면 옆 칸에 빚'));
+  else if (e?.p === 'colDmg') out.push(t('끝나면 선 줄 전체 피해'));
+  else if (e?.p === 'hit' && !d.absorb) out.push(t('두면 끝날 때 피해'));
+  else if (e?.p === 'hit') out.push(t('남은 막이 있으면 끝날 때 피해'));
+  else if (e?.p === 'jump') out.push(e.on === 'quake' ? t('진동이 울리면 옆 칸으로 옮겨붙음') : `${t('지우면 옆 사람에게 옮겨붙음')}${e.boost ? `, ${t('두면 보스가 강해짐')}` : ''}`);
+  else if (e?.p === 'flip') out.push(t('끝나면 체력 비율이 뒤집힘'));
+  if (d.invert) out.push(t('받는 치유가 피해로'));
+  if (d.over) out.push(t('넘친 치유만큼 옆 칸 피해'));
+  if (d.cap != null) out.push(t('치유로는 체력 {p}까지만 참', { p: pctT(d.cap) }));
+  if (d.healCut) out.push(t('받는 치유 −{p}', { p: pctT(d.healCut * n) }));
+  if (d.vuln) out.push(`${t('받는 피해 +{p}', { p: pctT(d.vuln * n) })}${d.swap ? `, ${t('{n}중첩이면 탱커 교대', { n: d.swap })}` : ''}`);
+  if (d.maxCut || e?.p === 'restoreMax') out.push(`${d.maxCut ? t('최대 체력 −{p}', { p: pctT(d.maxCut) }) : t('최대 체력 줄어듦')}, ${t('끝나면 돌아옴')}`);
+  if (d.noDps && !d.jail && !d.charm) out.push(d.noMove ? t('딜 0 · 못 움직임') : t('딜 0'));
+  else if (d.noMove && !d.jail) out.push(t('못 움직임'));
+  if (d.dpsCut) out.push(t('딜 −{p}', { p: pctT(d.dpsCut) }));
+  if (d.drain) out.push(t('내 마나가 줄어듦'));
+  if (d.feed) out.push(t('빨린 체력만큼 보스 회복'));
+  if (d.dot && !d.count && !d.grow) out.push(d.stackMax ? t('지속 피해, 겹칠수록 아픔') : t('지속 피해'));
   return out.slice(0, 2).join(' · ');
 }
 

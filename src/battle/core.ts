@@ -3,6 +3,7 @@
  * 프로토타입 v11 전투 화면을 TypeScript로 옮긴 것. 판 그리기는 board.ts(PixiJS).
  */
 import type { CoachKey } from '../game/tutorial';
+import { t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
@@ -48,7 +49,7 @@ export function validLayout(v: unknown): v is Layout {
   const keys = READ_ORDER.map(d => (o[d] as string) || null);
   return LAYOUT_SKILLS.every(k => keys.filter(x => x === k).length === 1) && keys.every(k => k === null || (LAYOUT_SKILLS as string[]).includes(k));
 }
-export const layoutLabel = (k: string) => (k === 'heal' ? '치유/평온' : SKILLS[k as SkillKey].name);
+export const layoutLabel = (k: string) => (k === 'heal' ? t('치유/평온') : t(SKILLS[k as SkillKey].name));
 export const layoutText = (l: Record<string, string | null>) => READ_ORDER.filter(d => l[d]).map(d => `${ARROW[d]} ${layoutLabel(l[d]!)}`).join(' · ');
 export const layoutCode = (l: Layout) => READ_ORDER.map(d => `${d}:${l[d] || '-'}`).join(',');
 
@@ -172,7 +173,7 @@ export function tapKey(): SkillKey {
 
 // ---------- 글자 ----------
 export const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
-export const secT = (x: number) => `${+x.toFixed(1)}초`;
+export const secT = (x: number) => t('{n}초', { n: +x.toFixed(1) });
 /** 받침 있으면 a(이), 없으면 b(가) */
 export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 export const iga = (w: string) => w + josa(w, '이', '가');

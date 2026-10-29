@@ -1,4 +1,5 @@
 import { art, cssUrl } from '../art';
+import { t } from '../i18n';
 import type { HeroKey } from '../data/heroes';
 import { gaugeConfig, auraGeometry } from './class-gauge-geometry';
 import type { ClassGaugeState } from './class-gauge-state';
@@ -231,7 +232,7 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
     el.dataset.waveReady=String(s.paladinWaveReady);
     el.querySelector<HTMLElement>('.paladin-wave-aura')!.hidden=!s.paladinWaveReady;
     const name=host.querySelector<HTMLElement>('.paladin-beacon-name')!;
-    name.textContent=beaconLabel(s.beaconName);name.title=s.beaconName || '봉화 대상 없음';
+    name.textContent=beaconLabel(s.beaconName);name.title=s.beaconName || t('봉화 대상 없음');
     name.classList.toggle('is-unassigned',!s.beaconName);
   }
   resourceVariant(el,job,s.max);

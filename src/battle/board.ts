@@ -8,6 +8,7 @@
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
+import { t as tr } from '../i18n';
 import { art } from '../art';
 import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
@@ -1011,7 +1012,7 @@ export function fxDebuff(u: Unit, dtype: string, now: number): void {
 export function fxCure(u: Unit, name: string, now: number): void {
   const melt = B.F && !S.reducedEffects ? debuffFxArt(B.F.enc.script, 'cure', name) : '';
   if (melt) fxGim(melt.slice(3), now, { id: u.id });
-  else fxDispel(u, now, false, `${name} 사라짐`);
+  else fxDispel(u, now, false, tr('{s} 사라짐', { s: tr(name) }));
 }
 /** 특수능력 묶음 색 (42 2장, 캐릭터 화면 char31.css와 같음) */
 const SPEC_TINT: Record<SpecGroup | 'named', number> = {
@@ -1126,7 +1127,7 @@ function commonFx(u: Unit, k: CommonFx, now: number, o: { color?: number; tag?: 
 /** 부활 · 봉화 지정 글자: 연한 금빛 (능력 이름처럼 사건 글자, 치명타 치유 숫자와 다른 색) */
 const REVIVE_TEXT = 0xffe08a;
 /** plain = 이 칸에 스킬 PXF 이펙트 (환생)가 나와서 부활 빛은 안 그림 (글자는 그대로) */
-export function fxRevive(u: Unit, now: number, label = '부활', plain = false): void {
+export function fxRevive(u: Unit, now: number, label = tr('부활'), plain = false): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, label, now); return; }
   B2.floats.push({ dx: 0, dy: -0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id, fill: REVIVE_TEXT });
@@ -1190,12 +1191,12 @@ export function fxNote(u: Unit, text: string, fill: number, now: number): void {
 }
 /** plain = 이 칸에 해제 스킬 PXF 이펙트가 나와서 공통 해제 빛은 안 그림 */
 export function fxDispel(u: Unit, now: number, trap = false, label?: string, plain = false): void {
-  if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? '전염 폭발' : '해제'), now); return; }
+  if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? tr('전염 폭발') : tr('해제')), now); return; }
   if (!plain && !commonFx(u, 'dispel', now)) B2.fx.push({ kind: 'dispel', id: u.id, t0: now });
 }
 export function fxDeath(u: Unit, now: number): void {
   if (!L.ok) return;
-  if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
+  if (S.reducedEffects) { addBubble(u.id, tr('쓰러짐'), now); return; }
   const p = unitPos(u), color = hex(ROLE[u.role].color);
   if (!commonFx(u, 'death', now, { color, x: p.x, y: p.y })) B2.fx.push({ kind: 'death', id: u.id, t0: now, color, x: p.x, y: p.y });
 }
@@ -2102,7 +2103,7 @@ export function render(now: number): void {
     // 판 위 적이 때리는 사람 (부탱커·딜러) · 자폭 쫄이 노리는 사람: 그 적 이름 (35 3-I)
     const add = F.mobs.find(m => m.alive && m.add && m.add.on === u.id && (m.add.dmg > 0 || m.add.job?.p === 'smash' || m.add.job?.p === 'fixate'));
     if (add) low.push({ key: `add${u.id}`, text: add.add!.short, bg: add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, fg: add.add!.job?.p === 'fixate' ? C.white : C.dark });
-    if (F.rats && F.rats.includes(u.id)) low.push({ key: `rat${u.id}`, text: '쥐떼', bg: 0xb9a38a, fg: C.dark });
+    if (F.rats && F.rats.includes(u.id)) low.push({ key: `rat${u.id}`, text: tr('쥐떼'), bg: 0xb9a38a, fg: C.dark });
     // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
     if (jail) {
@@ -2120,7 +2121,7 @@ export function render(now: number): void {
     if (bo) {
       const dmg = Math.ceil(bo.dmg - 1e-6), lethal = bo.dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0), greed = bo.tel.skill.greed != null; // 체력 글자처럼 올림 (보이는 숫자보다 더 깎이지 않게)
       // 강타 예고 숫자는 이름·체력 글자보다 위 (배지 층, 2026-10-11 Lim): 숫자 뒤 바탕이 이름에 덮여 안 읽혔음
-      pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${greed ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : greed ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
+      pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${greed ? `${tr('금화')} ` : ''}-${dmg}`, lethal ? C.danger : greed ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
     }
     // 띄워 올리기 · 연쇄 번개 예고 (56 5장 화면): 칸 아래 회오리 · 위 번개 구름 + 남은 초
     const lc = F.tels.find(tl => (tl.skill.lift || tl.skill.chain) && !tl.fake && tl.units.includes(u.id));
@@ -2131,7 +2132,7 @@ export function render(now: number): void {
       else if (lc.skill.lift) dashCircle(overG, x, y + r * 0.5, r * 0.5, 5, 4, Math.max(2, s * 0.06), col, 0.6 + 0.4 * pulse);
       else overG.ellipse(x, y - r * 0.8, r * 0.42, r * 0.18).fill({ color: 0x4a4e66, alpha: 0.85 }).stroke({ width: 2, color: col, alpha: 0.6 + 0.4 * pulse });
       // 남은 초도 강타 예고와 같은 자리 · 같은 층 (이름·체력 글자 위)
-      pill(badgeG, badgeLabels, `lc${u.id}`, x, y + r * 0.2, `${lc.skill.lift ? '돌풍' : '번개'} ${left}`, col, C.dark, fs(0.26, 11));
+      pill(badgeG, badgeLabels, `lc${u.id}`, x, y + r * 0.2, `${lc.skill.lift ? tr('돌풍') : tr('번개')} ${left}`, col, C.dark, fs(0.26, 11));
     }
     if (busterIds.has(u.id)) {
       // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.
@@ -2169,8 +2170,8 @@ export function render(now: number): void {
     // 결계사 인장 · 점성술사 별자리 표식은 그림 대신 왼쪽 열 원 + 남은 초 (sealTimerOf · starMarkTimerOf, 2026-10-19 Lim)
     if ((F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) || (u.lostUntil != null && F.t < u.lostUntil)) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11)); // 99 나: 탱커가 자리를 못 찾는 동안
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
-    const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const)
-      : u.ps?.panicUntil != null && F.t < u.ps.panicUntil ? (['당황', '#D68FA6'] as const) : u.ps?.rageUntil != null && F.t < u.ps.rageUntil ? (['분노', '#E0705A'] as const) : null; // 소심이 · 다혈질 (75)
+    const st = u.lift ? ([tr('하늘 {n}', { n: Math.max(0, Math.ceil(u.lift.until - F.t)) }), '#9FD8F5'] as const) : u.pulled ? ([tr('끌림 {n}', { n: Math.ceil(u.pulled.until - F.t) }), '#C98B5A'] as const) : u.fleeing ? ([tr('도망'), '#DB9B57'] as const) : u.sulking ? ([tr('삐짐'), '#D68FA6'] as const)
+      : u.ps?.panicUntil != null && F.t < u.ps.panicUntil ? ([tr('당황'), '#D68FA6'] as const) : u.ps?.rageUntil != null && F.t < u.ps.rageUntil ? ([tr('분노'), '#E0705A'] as const) : null; // 소심이 · 다혈질 (75)
     if (st && s >= 40) low.unshift({ key: `st${u.id}`, text: st[0], bg: hex(st[1]), fg: C.dark });
     else if (st) hexPoly(overG, x, y, ringRadius(`status${u.id}`, 'hex', x, y, r * 0.95, 3)).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
     lowPills(low, x, y + r * 0.95, fs(0.18, 9));
@@ -2304,7 +2305,7 @@ export function render(now: number): void {
     topG.circle(ex, ey, 5).fill({ color: hex(SEL) });
     recordBound('swipe-line', 'swipe', 'line', (c.x + ex) / 2, (c.y + ey) / 2, Math.abs(ex - c.x) + 4, Math.abs(ey - c.y) + 4);
     recordBound('swipe-dot', 'swipe', 'circle', ex, ey, 10, 10);
-    const label = it && it.key ? SKILLS[slotKey(F, it.key)].name : '비어 있음';
+    const label = it && it.key ? tr(SKILLS[slotKey(F, it.key)].name) : tr('비어 있음');
     pill(topG, tops, 'swipe', ex, ey - s * 0.45, label, it && it.key ? C.ink : 0x5a5b70, C.dark, fs(0.28, 12));
   }
   // 말풍선 (동시에 최대 3개, 04 10장). 그림 (43 5장): 틀 9조각 ui-bubble-<종류> · 꼬리 ui-bubble-tail-<종류> · 왼쪽 감정 아이콘 · 이펙트 띠.
