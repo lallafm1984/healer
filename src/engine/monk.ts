@@ -9,7 +9,7 @@ import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
 import { adjHurt, hurt, near, shun } from './allies';
-import { cellOf, emit, heal, healFlow, living, onDebuffEnd } from './core';
+import { cellOf, emit, heal, healFlow, living, msg, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { dispellable, doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
@@ -202,7 +202,7 @@ export function monkApply(f: Fight, key: SkillKey, u: Unit): void {
     f.mana = Math.min(100, f.mana + MONK.tea.mana + (f.sp ? sv(f, 'strongTea') : 0)); // 진한 차 (수도 07)
     addBeat(f, MONK.tea.beat);
     emit(f, { type: 'sound', name: 'chime' });
-    emit(f, { type: 'msg', text: `차 한 잔: 리듬 ${f.beat}` });
+    msg(f, '차 한 잔: 리듬 {x}', { x: f.beat });
   }
 }
 
@@ -238,7 +238,7 @@ export function monkLethal(f: Fight, u: Unit): boolean {
   if (s.againUsed) return false;
   s.againUsed = true;
   u.hp = u.max * TX.windAgain.hp;
-  emit(f, { type: 'msg', text: '다시 부는 바람' });
+  msg(f, '다시 부는 바람');
   return true;
 }
 /** 파티원이 쓰러짐 (흩어지는 안개): 그 칸과 붙어 있는 아군 3명에게 9초 안개 */
@@ -263,7 +263,7 @@ export function monkTick(f: Fight, dt: number): void {
   }
   if (!s.calmUsed && heroPassive(f, '고요한 호흡') && f.mana < MONK.calm.mana * 100) { // 고요한 호흡 (Lv 10)
     s.calmUsed = true; s.calmUntil = f.t + MONK.calm.sec;
-    emit(f, { type: 'msg', text: `고요한 호흡: ${MONK.calm.sec}초` });
+    msg(f, '고요한 호흡: {x}초', { x: MONK.calm.sec });
   }
   if (s.mistBodyCd > 0) s.mistBodyCd -= dt;
   if (s.crisisCd > 0) s.crisisCd -= dt;
@@ -273,12 +273,12 @@ export function monkTick(f: Fight, dt: number): void {
     if (!hasMist(me)) putMist(f, me);
     me.mods = me.mods.filter(m => m.src !== 'mistBody');
     me.mods.push({ k: 'cut', v: TX.mistBody.cut, until: f.t + TX.mistBody.sec, src: 'mistBody' });
-    emit(f, { type: 'msg', text: `안개 몸: ${TX.mistBody.sec}초` });
+    msg(f, '안개 몸: {x}초', { x: TX.mistBody.sec });
   }
   if (on.crisisBreath && f.tels.length) { // 위기의 숨결: 새 광역 예고에 안개 숨결 재사용이 바로 끝남
     let fresh = false;
     for (const t of f.tels) if (t.id > s.telSeen) { if (t.kind === 'aoe') fresh = true; s.telSeen = t.id; }
-    if (fresh && s.crisisCd <= 0 && (f.cd.mistBreath ?? 0) > 0) { s.crisisCd = TX.crisisBreath.cd; f.cd.mistBreath = 0; emit(f, { type: 'msg', text: '위기의 숨결' }); }
+    if (fresh && s.crisisCd <= 0 && (f.cd.mistBreath ?? 0) > 0) { s.crisisCd = TX.crisisBreath.cd; f.cd.mistBreath = 0; msg(f, '위기의 숨결'); }
   }
 }
 

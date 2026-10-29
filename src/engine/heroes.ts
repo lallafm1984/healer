@@ -11,7 +11,7 @@ import { astroApply, astroLethal, astroTaken, astroTick, astroTotemGone, readMul
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healFlow, healTop, living, onDebuffEnd } from './core';
+import { cellOf, emit, heal, healFlow, healTop, living, msg, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { reviveUnit } from './revive';
 import { activeOn, adjLow, areaRadius, rescueLater, sanctuaryReach, waveMax, wildAt } from './talents';
@@ -102,7 +102,7 @@ export function setBeacon(f: Fight, u: Unit): boolean {
   f.beacon = u.id;
   f.beaconCd = BEACON.cd;
   emit(f, { type: 'beacon', id: u.id });
-  emit(f, { type: 'msg', text: `봉화: ${u.nick}` });
+  msg(f, '봉화: {n}', { n: u.nick });
   return true;
 }
 
@@ -221,10 +221,10 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'hymn' }); // 큰 기술 소리 hymn-druid (108 2장 연결 보완)
   } else if (key === 'rebirth') {
     const hp = (f.tx.rebirths ? TX.secondSpring.hp : REBIRTH.hp) + sv(f, 'quickRebirth'); // 두 번째 봄 (77): 두 번째는 25%
-    if (u.alive || !reviveUnit(f, u, hp)) { emit(f, { type: 'msg', text: '환생 실패: 되살릴 빈 칸 없음' }); return; } // 빠른 환생 (42 드루 08)
+    if (u.alive || !reviveUnit(f, u, hp)) { msg(f, '환생 실패: 되살릴 빈 칸 없음'); return; } // 빠른 환생 (42 드루 08)
     f.tx.rebirths++;
     f.rebirthUsed = f.tx.rebirths >= (on.secondSpring ? 2 : 1);
-    emit(f, { type: 'msg', text: `환생: ${u.nick}` });
+    msg(f, '환생: {n}', { n: u.nick });
   }
 }
 
@@ -234,7 +234,7 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
   if (key === 'beacon') { // 봉화 (84: 가운데 버튼 대신 빠른 힐 칸 스킬, 재사용 = 바꾸기 대기): 지정 + 즉시 회복 + 받는 피해 − (신성한 힘은 안 줌, Lim 「너무 좋다」)
     f.beacon = u.id; f.beaconCd = BEACON.cd;
     emit(f, { type: 'beacon', id: u.id });
-    emit(f, { type: 'msg', text: `봉화: ${u.nick}` });
+    msg(f, '봉화: {n}', { n: u.nick });
     heroHeal(f, u, sk.amt!);
     u.mods = u.mods.filter(m => m.src !== 'beacon');
     u.mods.push({ k: 'cut', v: BEACON.guard.cut, until: f.t + BEACON.guard.sec, src: 'beacon' });
@@ -294,12 +294,12 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
     const sec = raidSec(f, 'sanctuary', SANCTUARY.sec); // 길어진 노래 · 긴 성역 (42)
     f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= reach.r).map(x => x.i)), end: f.t + sec, hps: SANCTUARY.hps * reach.hps, cell: c.i, at: f.t };
     emit(f, { type: 'sound', name: 'hymn' }); // 큰 기술 소리 hymn-paladin (108 2장 연결 보완, 예전엔 공통 chime)
-    emit(f, { type: 'msg', text: `빛의 성역: ${sec}초` });
+    msg(f, '빛의 성역: {x}초', { x: sec });
   } else if (key === 'handGuard') {
     u.immune = HAND_GUARD.sec;
     rescueLater(f, u); // 구원의 손 (77)
     emit(f, { type: 'sound', name: 'chime' });
-    emit(f, { type: 'msg', text: `보호의 손: ${u.nick}` });
+    msg(f, '보호의 손: {n}', { n: u.nick });
   }
 }
 

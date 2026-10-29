@@ -4,7 +4,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { scanHtmlKeys, scanKeys, slots } from '../scripts/i18n/scan.mjs';
+import { scanHtmlKeys, scanKeys, slots, walk } from '../scripts/i18n/scan.mjs';
 import { checkTerms, EXCEPT, TERMS } from '../scripts/i18n/terms.mjs';
 import { fmtInt, lang, LANGS, loadDict, setLang, shortAmount, t, tc } from '../src/i18n';
 import en from '../src/i18n/en';
@@ -21,10 +21,20 @@ describe('i18n', () => {
     expect(t('{a} / {b}', { a: 1, b: '둘' })).toBe('1 / 둘');
     expect(t('없는 자리값 {x}', { n: 1 })).toBe('없는 자리값 {x}');
   });
+  it('엔진 알림 글은 모두 msg(f, 틀) (121 ⑥-2): 한국어 글을 바로 emit하는 곳이 없다', () => {
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    const raw: string[] = []; // scanKeys가 msg(f, '…') 열쇠도 모으므로 여기서는 남은 원문 emit만 봄
+    for (const f of walk(fileURLToPath(new URL('../src/engine', import.meta.url)))) {
+      const src = readFileSync(f, 'utf8');
+      if (/\btype: 'msg', text: (`|')/.test(src) && !/\/(core|types)\.ts$/.test(f)) raw.push(f);
+    }
+    expect(raw).toEqual([]);
+  });
   it('코드의 t() 열쇠는 모두 en · ja 사전에 (감싼 글은 그 PR에서 번역)', () => {
     expect(found.filter(k => k.bad).map(k => `${k.file}:${k.line}`)).toEqual([]);
-    expect(keys.filter(k => !(k in en))).toEqual([]);
-    expect(keys.filter(k => !(k in ja))).toEqual([]);
+    // 엔진 알림 글 msg(f, '대지 토템') 처럼 데이터 이름 그대로인 열쇠는 이름 사전에 (121 ⑥-2)
+    expect(keys.filter(k => !(k in loadDict('en')))).toEqual([]);
+    expect(keys.filter(k => !(k in loadDict('ja')))).toEqual([]);
   });
   it('번역의 자리값은 열쇠와 같고 빈 번역은 없음 · 꼬리표 열쇠 (@short)는 바탕 열쇠가 있어야 함', () => {
     for (const d of [en, ja]) for (const [k, v] of Object.entries(d)) {

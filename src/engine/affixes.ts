@@ -6,7 +6,7 @@ import { U, UNIT } from '../data/bosses';
 import { addMod } from './abilities';
 import { hexDist } from './board';
 import { fromDef } from './bosses';
-import { addDebuff, cellOf, damage, emit, living, randomTargets } from './core';
+import { addDebuff, cellOf, damage, emit, living, msg, randomTargets } from './core';
 import type { Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 const RAGE = { at: 0.3, mult: 1.3 };
@@ -139,7 +139,7 @@ export function affOverflow(f: Fight, u: Unit, over: number): void {
 export function affDeath(f: Fight, u: Unit): void {
   if (!f.aff?.on.peril || u.me) return;
   f.aff.lost += AFX.peril;
-  emit(f, { type: 'msg', text: `도전자의 위기: ${u.nick} 쓰러짐, 제한시간 −${AFX.peril}초` });
+  msg(f, '도전자의 위기: {n} 쓰러짐, 제한시간 −{x}초', { n: u.nick, x: AFX.peril });
 }
 
 /** 괴저: 보스 평타가 탱커에게 맞을 때 (bossParts autoHit) */
@@ -161,7 +161,7 @@ export function affMobDown(f: Fight, down: Mob): void {
     if (d) { d.stack = Math.min(s.max, (d.stack ?? 1) + 1); d.left = s.sec; continue; }
     addDebuff(f, u, { name: '복수심', type: '저주', left: s.sec, lock: true, dot: baseHp(u) * s.dot, stack: 1, stackMax: s.max });
   }
-  emit(f, { type: 'msg', text: '복수심: 파티 전체 지속 피해' });
+  msg(f, '복수심: 파티 전체 지속 피해');
 }
 
 /** 결속 (115): 살아 있는 보스 아닌 적 체력 (남은 비율 그대로) · 피해 +per. 일반 구간은 적 체력 합 (보스 막대)도 */
@@ -177,7 +177,7 @@ function bolster(f: Fight, down: Mob): void {
     if (m.add) m.add.dmg *= k;
   }
   if (f.bodyHp) f.bossHp = f.mobs.reduce((s, q) => s + (q.add ? 0 : q.hp), 0);
-  emit(f, { type: 'msg', text: `결속: 남은 적 체력 · 피해 +${Math.round(per * 100)}%` });
+  msg(f, '결속: 남은 적 체력 · 피해 +{x}%', { x: Math.round(per * 100) });
 }
 
 /** 매 틱 */
@@ -208,7 +208,7 @@ export function affixTick(f: Fight): void {
   }
   if (a.on.pulse && f.t >= a.pulseAt) {
     a.pulseAt += AFX.pulse.every;
-    emit(f, { type: 'msg', text: '파동: 파티 전체 피해' });
+    msg(f, '파동: 파티 전체 피해');
     for (const u of living(f)) damage(f, u, baseHp(u) * AFX.pulse.dmg, true, 'fixed');
   }
   if (a.on.quake && f.t >= a.quakeAt) {
@@ -234,7 +234,7 @@ export function affixTick(f: Fight): void {
       if (!u.alive || u.me || u.hp > u.max * 0.3 || (a.panicReady[u.id] || 0) > f.t) continue;
       a.panicReady[u.id] = f.t + 15;
       addMod(u, { k: 'nodps', v: 1, until: f.t + 3, src: 'panic' });
-      emit(f, { type: 'msg', text: `동요: ${u.nick} 패닉` });
+      msg(f, '동요: {n} 패닉', { n: u.nick });
     }
   }
 }
@@ -242,7 +242,7 @@ export function affixTick(f: Fight): void {
 /** 디버프가 끝날 때 (지움 = dispelled). 불안정 함정·메아리 · 지진 */
 export function affDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (d.name === '지진') {
-    emit(f, { type: 'msg', text: `지진: ${u.nick} 주변 피해` });
+    msg(f, '지진: {n} 주변 피해', { n: u.nick });
     const c = cellOf(f, u);
     damage(f, u, baseHp(u) * AFX.quake.self, true, 'fixed');
     for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) <= 1) damage(f, v, baseHp(v) * AFX.quake.near, true, 'fixed');
@@ -250,7 +250,7 @@ export function affDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): 
   }
   if (d.name === '불안정') {
     if (dispelled) {
-      emit(f, { type: 'msg', text: `불안정 폭발: ${u.nick} 주변 피해` });
+      msg(f, '불안정 폭발: {n} 주변 피해', { n: u.nick });
       const c = cellOf(f, u);
       for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) <= 1) damage(f, v, 150, true);
     } else damage(f, u, 250, true);
@@ -259,7 +259,7 @@ export function affDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): 
   if (dispelled && f.aff?.on.echo && !d.trap && f.rng() < 0.1) {
     const c = cellOf(f, u);
     const v = living(f).find(x => x !== u && hexDist(cellOf(f, x), c) === 1 && !x.debuffs.some(e => e.name === d.name));
-    if (v) { addDebuff(f, v, { name: d.name, type: d.type, left: d.left > 1 ? d.left : 6, dot: d.dot, stack: d.stack }); emit(f, { type: 'msg', text: `메아리: ${d.name}이(가) ${v.nick}에게 옮겨감` }); }
+    if (v) { addDebuff(f, v, { name: d.name, type: d.type, left: d.left > 1 ? d.left : 6, dot: d.dot, stack: d.stack }); msg(f, '메아리: {d}이(가) {n}에게 옮겨감', { d: d.name, n: v.nick }); }
   }
 }
 

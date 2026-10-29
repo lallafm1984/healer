@@ -33,6 +33,13 @@ export const unitById = (f: Fight, id: number): Unit | undefined => f.party.find
 export function emit(f: Fight, ev: FightEvent): void {
   f.events.push(ev);
 }
+/**
+ * 전투 알림 글 (화면 토스트, 121 3단계 ⑥-2): k = 한국어 틀 (UI 사전 열쇠), p = 자리값. text는 한국어로 채운 글 (시뮬 · 테스트 · 한국어 화면), 영어 · 일본어 화면은 t(k, p).
+ * 자리값 이름 약속 (battle/index.ts msgParams): n · n2 = 닉네임 (nickOf), ns = 닉네임 여럿 (' · '), s · d · a · a2 · w = 기술 · 디버프 · 쫄 · 글 (t()), x · y = 숫자 · 그대로
+ */
+export function msg(f: Fight, k: string, p?: Record<string, string | number>): void {
+  emit(f, { type: 'msg', text: p ? k.replace(/\{(\w+)\}/g, (m0, key: string) => (key in p ? String(p[key]) : m0)) : k, k, p });
+}
 
 /**
  * 파티원 말풍선. force가 아니면 4초 간격 + 60% 확률.
@@ -139,7 +146,7 @@ function stitch(f: Fight, u: Unit, eff: number): void {
     if (d.staunchLeft > 1e-6) continue;
     u.debuffs = u.debuffs.filter(x => x !== d);
     emit(f, { type: 'cure', id: u.id, name: d.name });
-    emit(f, { type: 'msg', text: `${d.name} 봉합: 출혈이 멎음` });
+    msg(f, '{d} 봉합: 출혈이 멎음', { d: d.name });
     return;
   }
 }
@@ -185,7 +192,7 @@ function ringFeed(f: Fight, u: Unit): void {
     const c0 = f.cells[r.center];
     z.cells = new Set(f.cells.filter(c => c.block !== 'hole' && hexDist(c, c0) <= r.n).map(c => c.i));
     emit(f, { type: 'fx', name: 'ring-grow', cell: r.center });
-    emit(f, { type: 'msg', text: `${r.name}: ${u.nick}이(가) 안에서 치유를 받아 한 겹 자람 (${r.n}겹)` });
+    msg(f, '{s}: {n}이(가) 안에서 치유를 받아 한 겹 자람 ({x}겹)', { s: r.name, n: u.nick, x: r.n });
   }
 }
 
@@ -216,7 +223,7 @@ function payDebt(f: Fight, u: Unit, over: number, direct: boolean): number {
   if (d.debtLeft! <= 1e-6) {
     u.debuffs = u.debuffs.filter(x => x !== d);
     emit(f, { type: 'cure', id: u.id, name: d.name });
-    emit(f, { type: 'msg', text: `${d.name}: ${u.nick}의 빚을 다 갚음` });
+    msg(f, '{d}: {n}의 빚을 다 갚음', { d: d.name, n: u.nick });
     if (f.sp) specDebtPaid(f, u); // 마지막 그림자의 저울
   }
   return over - pay / mult;
@@ -228,7 +235,7 @@ export function collectDebt(f: Fight, u: Unit, d: Debuff): void {
   d.debtLeft = 0;
   if (left <= 1e-6 || !u.alive) return;
   emit(f, { type: 'fx', name: 'debt-collect', on: u.id });
-  emit(f, { type: 'msg', text: `${d.name}: ${u.nick}에게서 남은 빚 ${Math.round(left)}을 거둬 감` });
+  msg(f, '{d}: {n}에게서 남은 빚 {x}을 거둬 감', { d: d.name, n: u.nick, x: Math.round(left) });
   damage(f, u, left / f.dmgMult, false, 'fixed');
 }
 
@@ -286,7 +293,7 @@ function discharge(f: Fight, u: Unit, d: Debuff): void {
   const c = cellOf(f, u), ch = d.charge!;
   d.stack = 0;
   emit(f, { type: 'sound', name: 'burst' });
-  emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 방전` });
+  msg(f, '{d}: {n} 방전', { d: d.name, n: u.nick });
   damage(f, u, ch.self, true);
   for (const v of living(f)) if (v !== u && !v.lift && hexDist(cellOf(f, v), c) === 1) damage(f, v, ch.near, true);
 }
@@ -383,7 +390,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => healingShareScore(b.role, b.got, total, f.party.length) - healingShareScore(a.role, a.got, total, f.party.length) || b.hp / b.max - a.hp / a.max)[0];
     if (v) {
       f.tx.repayUsed = true;
-      emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });
+      msg(f, '은혜 갚기: {n}이(가) 대신 맞음', { n: v.nick });
       damage(f, v, amt / f.dmgMult, magic, 'fixed');
       return;
     }
@@ -408,7 +415,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
       u.guardian = 0;
       u.hp = u.max * 0.4;
       emit(f, { type: 'sound', name: f.cfg.proto ? 'chime' : 'priest-rescue' });
-      emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
+      msg(f, '수호 영혼이 {n}을(를) 살림', { n: u.nick });
       if (sv(f, 'wakeGuard')) heal(f, u, intAmt(f, sv(f, 'wakeGuard')), true, true); // 깨어 있는 수호 (42 사제 06)
       return;
     }
@@ -527,12 +534,12 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
 }
 
 /** 보스가 주는 피해 +boost (걸어오는 쫄 흡수 · 옮겨붙음 시간 끝). 겹치면 더함 (+10% · +20% …), 체력바에 「강해짐」 */
-export function empowerBoss(f: Fight, boost: number, why: string): void {
+export function empowerBoss(f: Fight, boost: number): number {
   f.dmgMult *= (1 + f.empower + boost) / (1 + f.empower);
   f.empower += boost;
   emit(f, { type: 'sound', name: 'aoe' });
   emit(f, { type: 'fx', name: 'rage' });
-  emit(f, { type: 'msg', text: `${why}: 보스 피해 +${Math.round(f.empower * 100)}%` });
+  return Math.round(f.empower * 100); // 알림 글은 부르는 쪽이 까닭과 함께 (msg, 121 ⑥-2)
 }
 
 /** 디버프 끝 부품 (data/bosses.ts DebuffEnd) */
@@ -546,53 +553,53 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       if (dispelled) return;
       const col = cellOf(f, u).col;
       for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, e.dmg, true);
-      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 줄 전체 피해` });
+      msg(f, '{d}: {n} 줄 전체 피해', { d: d.name, n: u.nick });
       return;
     }
     case 'hit':
       if (dispelled) return;
       damage(f, u, e.dmg, true);
-      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` });
+      msg(f, '{d}: {n} 시간 끝', { d: d.name, n: u.nick });
       return;
     case 'blast': {
       // 불안정한 마력 · 서리 표식 (P-TRAP): 두든 지우든 이웃 칸이 터짐. 지우면 바로
       const c = cellOf(f, u);
       emit(f, { type: 'sound', name: 'burst' });
       for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, e.dmg, true);
-      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 이웃 칸이 터짐` });
+      msg(f, '{d}: {n} 이웃 칸이 터짐', { d: d.name, n: u.nick });
       return;
     }
     case 'trapHit': {
       // 가문의 반지 (P-TRAP, 35 4-3): 두면 그 사람만, 지우면 이웃 칸이 터짐
-      if (!dispelled) { damage(f, u, e.dmg, true); emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` }); return; }
+      if (!dispelled) { damage(f, u, e.dmg, true); msg(f, '{d}: {n} 시간 끝', { d: d.name, n: u.nick }); return; }
       const c = cellOf(f, u);
       emit(f, { type: 'sound', name: 'burst' });
       for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, e.burst, true);
-      emit(f, { type: 'msg', text: `${d.name}: 지워서 이웃 칸이 터짐` });
+      msg(f, '{d}: 지워서 이웃 칸이 터짐', { d: d.name });
       return;
     }
     case 'trapLoan': {
       // 그림자 덫 (59 3-2 마지막 그림자): 두면 그 사람만, 지우면 터지는 대신 이웃 칸 아군 n명에게 빌린 생명
-      if (!dispelled) { damage(f, u, e.dmg, true); emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` }); return; }
+      if (!dispelled) { damage(f, u, e.dmg, true); msg(f, '{d}: {n} 시간 끝', { d: d.name, n: u.nick }); return; }
       const c = cellOf(f, u), near = living(f).filter(v => v !== u && !v.lift && hexDist(cellOf(f, v), c) === 1);
       for (let i = near.length - 1; i > 0; i--) { const j = Math.floor(f.rng() * (i + 1)); [near[i], near[j]] = [near[j], near[i]]; }
       const got = near.slice(0, e.n);
       for (const v of got) { const x = addDebuff(f, v, { ...e.loan }); if (v.debuffs.includes(x)) lend(f, v, x); }
-      emit(f, { type: 'msg', text: got.length ? `${d.name}: 지워서 ${got.map(v => v.nick).join(' · ')}에게 빚` : `${d.name}: 지움 (옆에 아무도 없음)` });
+      got.length ? msg(f, '{d}: 지워서 {ns}에게 빚', { d: d.name, ns: got.map(v => v.nick).join(' · ') }) : msg(f, '{d}: 지움 (옆에 아무도 없음)', { d: d.name });
       return;
     }
     case 'jump': {
       // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐. 약한 판 (진동에 옮김)은 그냥 사라짐
       if (e.on === 'quake') return;
-      if (!dispelled) { if (e.boost) empowerBoss(f, e.boost, `${d.name} 시간 끝`); return; } // boost 0 = 버티면 그냥 사라짐 (거울 저주)
+      if (!dispelled) { if (e.boost) msg(f, '{d} 시간 끝: 보스 피해 +{x}%', { d: d.name, x: empowerBoss(f, e.boost) }); return; } // boost 0 = 버티면 그냥 사라짐 (거울 저주)
       const c = cellOf(f, u);
       const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
-      if (!near.length) { emit(f, { type: 'msg', text: `${d.name}: 옆에 아무도 없어 사라짐` }); return; }
+      if (!near.length) { msg(f, '{d}: 옆에 아무도 없어 사라짐', { d: d.name }); return; }
       const v = near[Math.floor(f.rng() * near.length)];
       const { id: _id, ...rest } = d;
       addDebuff(f, v, { ...rest, left: e.sec, dot: (d.dot ?? 0) * e.mult });
       emit(f, { type: 'fx', name: 'fireball-green', on: u.id, to: v.id });
-      emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 옮겨붙음` });
+      msg(f, '{d}이(가) {n}에게 옮겨붙음', { d: d.name, n: v.nick });
       if (f.sp) specJump(f, v); // 녹슨 수문 열쇠
       return;
     }
@@ -604,7 +611,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       emit(f, { type: 'fx', name: dispelled ? 'swell-pop' : 'explode', on: u.id }); // 지우면 퐁 (37 G), 두면 펑 (37 F)
       for (const v of near) damage(f, v, (dispelled ? e.pop : e.near) * n, true);
       if (!dispelled) damage(f, u, e.self * n, true);
-      emit(f, { type: 'msg', text: dispelled ? `${d.name} ${n}중첩: 지워서 이웃 칸이 터짐` : `${d.name} ${n}중첩: ${u.nick} 터짐` });
+      dispelled ? msg(f, '{d} {x}중첩: 지워서 이웃 칸이 터짐', { d: d.name, x: n }) : msg(f, '{d} {x}중첩: {n} 터짐', { d: d.name, x: n, n: u.nick });
       return;
     }
     case 'flip': {
@@ -613,14 +620,14 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       const r = Math.max(e.min ?? 0.05, 1 - u.hp / u.max);
       u.hp = u.max * r;
       emit(f, { type: 'fx', name: 'coin-flip', on: u.id });
-      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 체력 ${Math.round(r * 100)}%로 뒤집힘` });
+      msg(f, '{d}: {n} 체력 {x}%로 뒤집힘', { d: d.name, n: u.nick, x: Math.round(r * 100) });
       return;
     }
     case 'crack': {
       // 단단한 껍질 (P-SHELL, 111 4-4): 두면 남은 막만큼 피해, 지우면 그냥 사라짐
       const left = d.shellLeft ?? 0;
       if (dispelled || left <= 1e-6) return;
-      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝, 남은 막만큼 피해` });
+      msg(f, '{d}: {n} 시간 끝, 남은 막만큼 피해', { d: d.name, n: u.nick });
       damage(f, u, left / f.dmgMult, true);
       return;
     }
@@ -630,16 +637,16 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       if (left <= 1e-6) return;
       if (!dispelled) {
         emit(f, { type: 'fx', name: 'splash', on: u.id });
-        emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝, 남은 막만큼 피해` });
+        msg(f, '{d}: {n} 시간 끝, 남은 막만큼 피해', { d: d.name, n: u.nick });
         damage(f, u, left / f.dmgMult, true);
         return;
       }
       const v = living(f).filter(x => x !== u && !x.debuffs.some(y => y.name === d.name)).sort((a, b) => b.hp / b.max - a.hp / a.max)[0];
-      if (!v) { emit(f, { type: 'msg', text: `${d.name}: 넘어갈 사람이 없어 사라짐` }); return; }
+      if (!v) { msg(f, '{d}: 넘어갈 사람이 없어 사라짐', { d: d.name }); return; }
       const { id: _id, ...rest } = d;
       addDebuff(f, v, { ...rest, left: e.sec, absorbLeft: left });
       emit(f, { type: 'fx', name: 'spore-pass', on: u.id, to: v.id });
-      emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 넘어감` });
+      msg(f, '{d}이(가) {n}에게 넘어감', { d: d.name, n: v.nick });
       return;
     }
     case 'stackHit': {
@@ -649,7 +656,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       damage(f, u, e.dmg * n, true);
       emit(f, { type: 'sound', name: 'burst' });
       emit(f, { type: 'fx', name: 'recoil', on: u.id });
-      emit(f, { type: 'msg', text: `${d.name} ${n}중첩 터짐` });
+      msg(f, '{d} {x}중첩 터짐', { d: d.name, x: n });
       return;
     }
   }

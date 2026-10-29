@@ -10,7 +10,7 @@ import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
 import { persCast, persZoneImpact } from './persona';
 import { affChaos } from './affixes';
 import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, offGuardRoll, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
-import { damage, emit, living, randomTargets, unitById } from './core';
+import { damage, emit, living, msg, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -75,7 +75,7 @@ function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
   if (f.enraged || (f.t < f.enc.enrage && !noTank)) return;
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
   const tankless = f.t < f.enc.enrage;
-  if (tankless) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
+  if (tankless) msg(f, '탱커가 없어 보스가 광폭화');
   // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4)
   let n = 0;
   skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { const m = tankless ? 1 + NO_TANK_RAMP * n++ : 1; for (const u of living(f)) damage(f, u, dmg * m, true); } });

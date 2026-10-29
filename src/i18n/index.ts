@@ -115,6 +115,7 @@ const NICKS: Partial<Record<Lang, Record<string, string>>> = { en: enNicks, ja: 
  */
 export function nickOf(nick: string): string {
   if (cur === 'ko') return nick;
+  if (nick === '나') return dict['나'] ?? nick; // 내 칸 (전투판 · 알림 글)
   const d = NICKS[cur];
   if (!d) return nick;
   const hit = d[nick];

@@ -7,7 +7,7 @@ import { TALENT_DEF, TALENT_TREES, talentKeys, TX, type TalentKey } from '../dat
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { affCast, affCd } from './affixes';
-import { cellOf, emit, heal, healFlow, living } from './core';
+import { cellOf, emit, heal, healFlow, living, msg } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
@@ -256,7 +256,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (key === 'citadel') citadel(f, cellIdx!); // 성채 (79 5-7)
   emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'talent', key, ...(def.active!.cell ? { cell: cellIdx! } : {}), ...(fxId != null ? { uid: fxId } : {}) }); // 발동 이펙트 (battle/index.ts)
-  emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
+  def.active!.dur ? msg(f, '{s}: {x}초', { s: def.name, x: def.active!.dur }) : msg(f, def.name);
   return { ok: true };
 }
 
@@ -319,7 +319,7 @@ function heroTalentTick(f: Fight, dt: number): void {
   if (on.treeBody && tx.treeCd <= 0 && me.alive && me.hp < me.max * TX.treeBody.hp) {
     tx.treeCd = TX.treeBody.cd;
     me.redu = Math.max(me.redu, TX.treeBody.sec); me.reduCut = barkCut(f);
-    emit(f, { type: 'msg', text: `나무의 몸: ${TX.treeBody.sec}초` });
+    msg(f, '나무의 몸: {x}초', { x: TX.treeBody.sec });
   }
   // 경계의 싹: 새 광역 예고가 뜨면 새싹이 없는 낮은 사람 몇 명에게 절반 새싹 (신기루 가짜는 걷힌 뒤에야 알 수 있으니 진짜 · 가짜 모두)
   if (on.watchSprout && f.tels.length) {

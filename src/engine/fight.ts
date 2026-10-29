@@ -18,7 +18,7 @@ import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, affMobDown, initAffixes } from './affixes';
-import { bark, damage, damageMob, DT, emit, regrouping } from './core';
+import { bark, damage, damageMob, DT, emit, msg, regrouping } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
@@ -281,12 +281,12 @@ function tankWatch(f: Fight): void {
   // 대타 (95): 딜러가 보스를 붙잡은 동안은 탱커 없음 광폭화를 세지 않음 (끝나면 그때부터)
   if (f.standIn && f.t < f.standIn.until && f.party.some(u => u.id === f.standIn!.id && u.alive)) { f.noTankAt = null; return; }
   if (f.party.some(u => u.role === 'tank' && u.alive)) {
-    if (f.noTankAt != null) { f.noTankAt = null; if (!f.enraged) emit(f, { type: 'msg', text: '탱커가 일어남: 광폭화 카운트다운 멈춤' }); }
+    if (f.noTankAt != null) { f.noTankAt = null; if (!f.enraged) msg(f, '탱커가 일어남: 광폭화 카운트다운 멈춤'); }
     return;
   }
   if (f.armor && f.noTankAt == null && !f.enraged && f.enc.script !== 'trash' && f.party.length >= NO_TANK_MIN_PARTY && f.party.some(u => u.role === 'tank')) {
     f.noTankAt = f.t;
-    emit(f, { type: 'msg', text: `탱커 없음: ${NO_TANK_SEC}초 뒤 보스 광폭화` });
+    msg(f, '탱커 없음: {x}초 뒤 보스 광폭화', { x: NO_TANK_SEC });
   }
 }
 

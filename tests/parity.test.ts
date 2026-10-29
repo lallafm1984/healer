@@ -73,7 +73,8 @@ describe('사람 입력(탭·휠)을 섞어도 틱마다 같음', () => {
             P.autoHealer(a); E.autoHealer(b);
           }
           P.step(a); E.step(b);
-          expect(JSON.stringify(b.events), `events t=${a.t}`).toBe(JSON.stringify(a.events));
+          // 알림 글의 틀 · 자리값 (k · p, 121 ⑥-2) 은 화면용이라 프로토타입 비교에서 뺌
+          expect(JSON.stringify(b.events.map(e => (e.type === 'msg' ? { type: 'msg', text: e.text } : e))), `events t=${a.t}`).toBe(JSON.stringify(a.events));
           a.events.length = 0; b.events.length = 0;
           if (a.k % 20 === 0 || a.over) expect(snapTs(b), `${enc} ${diff} seed ${seed} t=${a.t}`).toEqual(snap(a));
         }

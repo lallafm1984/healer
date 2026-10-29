@@ -5,7 +5,7 @@
  */
 import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd, regrouping, slip } from './core';
+import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, msg, onDebuffEnd, regrouping, slip } from './core';
 import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
@@ -456,7 +456,7 @@ export function cutRetryTick(f: Fight): BossSkill | null {
   const a = DEF(v);
   if (a.fx.e !== 'interrupt' || !ready(f, v, a, 0) || !tryCut(f, v, a, r.skill)) return null;
   f.tels = f.tels.filter(t => t !== tel);
-  emit(f, { type: 'msg', text: `끊기 실패 뒤 ${v.nick}이(가) 차단` });
+  msg(f, '끊기 실패 뒤 {n}이(가) 차단', { n: v.nick });
   bark(f, v, null, true, 'coverCut');
   if (v.did) v.did.help++;
   return r.skill;
@@ -468,7 +468,7 @@ function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
   const p = Math.min(1, (a.fx as { v: number }).v * st.eff * (u.p.hoard ? u.p.hoard.boost : 1) + (u.ab!.star >= 5 ? 0.15 : 0) + (u.p.cutter?.up ?? 0) + (u.fm?.cut ?? 0)); // 쿨 아끼미 (위기에만 씀) · 끊기 욕심 (95) · 기술 숙련 (97 FM)
   const ok = p >= 1 || f.rng() < p;
   use(f, u, a, {});
-  emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
+  ok ? msg(f, '{n} {a}: {s} 끊음', { n: u.nick, a: a.name, s: s.name || '기술' }) : msg(f, '{n} {a}: {s} 끊기 실패', { n: u.nick, a: a.name, s: s.name || '기술' });
   if (ok && u.did) u.did.cut++;
   return ok;
 }
@@ -487,7 +487,7 @@ export function abDecoy(f: Fight, s: BossSkill, fake: boolean, reveal: boolean):
     if (!fake) return tryCut(f, u, a, s);
     use(f, u, a, {});
     emit(f, { type: 'fx', name: 'mirage-shimmer', on: u.id });
-    emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '틈'}은 신기루였음, 끊기를 써 버림` });
+    msg(f, '{n} {a}: {s}은 신기루였음, 끊기를 써 버림', { n: u.nick, a: a.name, s: s.name || '틈' });
     const stun = f.mythic ? s.decoy?.stunMythic : undefined;
     if (stun) { addDebuff(f, u, { name: '별빛 어지럼', type: '물리', left: stun, noDps: true, noMove: true, lock: true }); emit(f, { type: 'fx', name: 'dizzy', on: u.id }); }
     return false;
@@ -684,7 +684,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
     case 'iceBlock': {
       const until = f.t + fx.sec;
       for (const k of ['imm', 'nodps', 'noheal', 'stop'] as const) addMod(u, { k, v: 1, until, src });
-      emit(f, { type: 'msg', text: `${u.nick} ${a.name}: 죽을 피해를 막음` });
+      msg(f, '{n} {a}: 죽을 피해를 막음', { n: u.nick, a: a.name });
       break;
     }
     case 'dps': {
@@ -758,7 +758,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       break;
     case 'nofear': addMod(u, { k: 'nofear', v: 1, until: f.t + fx.sec * e, src }); break;
     case 'unzone':
-      if (ctx.tel) { f.tels = f.tels.filter(t => t !== ctx.tel); emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${ctx.tel.skill.name || '장판'} 없앰` }); }
+      if (ctx.tel) { f.tels = f.tels.filter(t => t !== ctx.tel); msg(f, '{n} {a}: {s} 없앰', { n: u.nick, a: a.name, s: ctx.tel.skill.name || '장판' }); }
       break;
     default: break; // interrupt(abCut), 상시 능력(passive)
   }
