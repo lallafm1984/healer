@@ -77,7 +77,7 @@ function render(): void {
     ${card({ key: 'day', icon: gameIcon('mission', ''), title: '오늘의 임무', body: `<ul class="g-rows mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>` })}`;
 
   // ---------- 주간: 주간 임무 판 · 이번 주 보상 판 (길드 주간 목표 · 주간 도전 상자) ----------
-  const guildRow = FEATURES.guild && lv >= GUILD_LEVEL ? `<li class="g-row m-goal"><span class="g-ri">${gameIcon('guild-goal', '')}</span><div class="g-rm"><b>길드 주간 목표</b><span class="g-sub">길드파티로 클리어</span>${bar((g.n / GUILD_GOAL.need) * 100, `길드파티 클리어 ${g.n} / ${GUILD_GOAL.need}`)}</div>
+  const guildRow = FEATURES.guild && (lv >= GUILD_LEVEL || G.save.guild.founded) ? `<li class="g-row m-goal"><span class="g-ri">${gameIcon('guild-goal', '')}</span><div class="g-rm"><b>길드 주간 목표</b><span class="g-sub">길드파티로 클리어</span>${bar((g.n / GUILD_GOAL.need) * 100, `길드파티 클리어 ${g.n} / ${GUILD_GOAL.need}`)}</div>
       <span class="g-rs m-rs"><b class="g-num">${Math.min(g.n, GUILD_GOAL.need)}<small> / ${GUILD_GOAL.need}</small></b>${g.got ? okPill('받음') : g.n >= GUILD_GOAL.need ? '<button class="btn mini primary" type="button" id="guildGoal">받기</button>' : pill(`${gameIcon('guild-fame', '')}+${GUILD_GOAL.fame}`, 'fame')}</span></li>` : '';
   const chalRow = chal ? `<li class="g-row m-chal"><span class="g-ri">${gameIcon('challenge', '')}</span><div class="g-rm"><b>주간 도전 상자</b><span class="g-sub">지난주 최고 ${save.chalChest}단계</span><span class="g-rewards">${chal.grades.length ? pill(gradeTxt(chal.grades)) : ''}${pill(currencyAmount('gold', chal.gold), 'fame')}</span></div>
       <span class="g-rs m-rs"><button class="btn mini primary" type="button" id="chalChest">열기</button></span></li>` : '';

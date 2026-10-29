@@ -70,7 +70,7 @@ export function mountTabs(nav: HTMLElement): void {
   const render = () => {
     const glints = nav.querySelectorAll('.xf-glint'); // 화면 전환 탭 금빛 (transition.ts)은 다시 그려도 이어서
     nav.innerHTML = TABS.map(t => {
-      const locked = !!t.lv && topLevel(G.save) < t.lv;
+      const locked = !!t.lv && topLevel(G.save) < t.lv && !(t.key === 'guild' && G.save.guild.founded); // 이미 만든 길드는 잠그지 않음 (guildOpen과 같게, 2026-10-29 Lim)
       const tl = tutLocked(t.key);
       const baseIcon = iconOf(t.key);
       // A2 교차검을 모든 탭에서 동일하게 사용한다. 잠금 상태의 자물쇠는 보존한다.

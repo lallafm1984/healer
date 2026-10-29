@@ -119,6 +119,11 @@ describe('열림 · 길드 Lv · 정원 (93 6-2)', () => {
     const t = save(40); t.tut = 1;
     expect(Gd.guildOpen(t).ok).toBe(false);
   });
+  it('이미 만든 길드는 Lv 30 밑이어도 열림 (2026-10-29 Lim 「A」: 예전 Lv 15에 만든 길드)', () => {
+    const s = save(18); s.guild.founded = true;
+    expect(Gd.guildOpen(s)).toMatchObject({ ok: true, dev: false });
+    expect(Gd.guildOpen(save(18)).ok).toBe(false);
+  });
   it('명성 = 길드 경험치 (103): 길드 Lv 1~30, 레벨마다 필요량 (줄지 않음), 정원 = Lv + 1 (2 → 31), 지원자 Lv 2~9 1명 · 10~19 2명 · 20~30 3명', () => {
     expect(GUILD_MAX).toBe(30);
     expect(GUILD_NEED).toHaveLength(29);
