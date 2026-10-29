@@ -8,6 +8,15 @@ import { PERS, PERS_NAMES } from '../src/data/personalities';
 import * as E from '../src/engine';
 import { makeCandidates } from '../src/game/guild';
 import { newSave } from '../src/platform/storage';
+import enNicks from '../src/i18n/nicks-en';
+import jaNicks from '../src/i18n/nicks-ja';
+import enNames from '../src/i18n/names-en';
+import jaNames from '../src/i18n/names-ja';
+import enEnemies from '../src/i18n/enemies-en';
+import jaEnemies from '../src/i18n/enemies-ja';
+import enUi from '../src/i18n/en';
+import jaUi from '../src/i18n/ja';
+import { nickOf, setLang } from '../src/i18n';
 
 const ALL = Object.values(CLASS_NICKS).flat();
 const classOf = (nick: string) => (Object.keys(CLASS_NICKS) as ClassKey[]).find(k => CLASS_NICKS[k].includes(nick));
@@ -133,5 +142,37 @@ describe('공개모집 · 길드 지원자', () => {
       expect(s.guild.members.some(m => m.nick === c.nick)).toBe(false);
       if (s.guild.members.length < 60) s.guild.members.push({ ...c, id: s.guild.nextId++ });
     }
+  });
+});
+
+// 영어 · 일본어 이름 (121 3단계 ⑥, 2026-10-30): 한국어 닉네임마다 새 이름 하나, 규칙은 한국어와 같게 (숫자로 안 끝남 · 모두 다름 · 직업 · 성격 · 능력 · 보스 이름과 안 겹침)
+describe('닉네임 영어 · 일본어', () => {
+  type Dict = Record<string, string>;
+  const look = (dicts: readonly Dict[], k: string) => { for (const d of dicts) { if (k in d) return d[k]; for (const c of ['class', 'pers', 'ab']) if (`${k}@${c}` in d) return d[`${k}@${c}`]; } return undefined; };
+  const cases: [string, Dict, readonly Dict[], RegExp, number][] = [['en', enNicks, [enNames, enEnemies, enUi], /^[A-Za-z]{3,12}$/, 12], ['ja', jaNicks, [jaNames, jaEnemies, jaUi], /^[^\s가-힣]{2,7}$/u, 7]];
+  for (const [lang, nicks, dicts, re, max] of cases) {
+    it(`${lang}: 1000명 모두 이름이 있고, ${max}자까지 · 숫자로 끝나지 않음 · 모두 다름`, () => {
+      expect(Object.keys(nicks).sort()).toEqual([...ALL].sort());
+      for (const [k, v] of Object.entries(nicks)) { expect(v, k).toMatch(re); expect(v, k).not.toMatch(/\d$/); }
+      expect(new Set(Object.values(nicks).map(v => v.toLowerCase())).size).toBe(ALL.length);
+    });
+    it(`${lang}: 직업 · 성격 · 보스 · 능력 이름과 겹치지 않음`, () => {
+      const taken = new Set<string>();
+      for (const c of Object.values(CLASSES)) { const v = look(dicts, c.name); if (v) taken.add(v.toLowerCase()); }
+      for (const p of PERS_NAMES) { const v = look(dicts, p); if (v) taken.add(v.toLowerCase()); }
+      for (const a of Object.values(ABILITIES)) { const v = look(dicts, a.name); if (v) taken.add(v.replace(/\s+/g, '').toLowerCase()); }
+      for (const e of Object.values(ENCOUNTERS)) { const v = look(dicts, e.name); if (v) for (const w of v.split(/\s+/)) taken.add(w.toLowerCase()); }
+      expect(Object.values(nicks).filter(n => taken.has(n.toLowerCase()))).toEqual([]);
+    });
+  }
+  it('nickOf: 한국어는 그대로, 영어 · 일본어는 새 이름, 번호 꼬리도 그대로', async () => {
+    expect(nickOf('방패든양')).toBe('방패든양');
+    await setLang('en');
+    expect(nickOf('방패든양')).toBe('Shieldsheep');
+    expect(nickOf('방패든양2')).toBe('Shieldsheep2');
+    expect(nickOf('없는이름')).toBe('없는이름');
+    await setLang('ja');
+    expect(nickOf('방패든양')).toBe('たてひつじ');
+    await setLang('ko');
   });
 });

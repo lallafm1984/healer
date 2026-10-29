@@ -122,3 +122,7 @@
   .ns .topbar:not(.tb-mmo) .tb-title, .ns .topbar.f-hd .f-ttl { font-size: 17px; }
   .ns .topbar.f-hd .f-hcap { font-size: 10px; line-height: 1.2; }
 }
+
+/* 영어 · 일본어 직업 이름 (Astrologian · プリースト) 은 S25 크기 18px로 고정: 높은 화면 (Z 플립 880) 의 21px에서는 「プリー…」로 줄었음. 한국어 (드루이드 4자) 는 그대로 (2026-10-30 Lim 「폰트를 줄여서 처리하자」, 121 3단계 ⑥) */
+html[lang="en"] .ns, html[lang="ja"] .ns { --a2-header-name-size: 18px; }
+.ns .tb-mmo .tb-cls.long { font-size: 15px; } /* 열 글자 넘는 영어 직업 이름 (Astrologian): Z 플립 (이름 칸 126px) 에서도 말줄임 없이 */

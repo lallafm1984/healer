@@ -5,7 +5,7 @@
  * 아래 고정: 출발 (바로 전투, 입장 확인 팝업은 2026-10-17 없앰). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
-import { t, tc } from '../i18n';
+import { nickOf, t, tc } from '../i18n';
 import { contentOf, isRaid, variantOf, VARIANT_NAMES, type ContentDef } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { gearStatsOf, specsOf } from '../data/equipment';
@@ -112,7 +112,7 @@ function boardHtml(): string {
     const pos =`left:${pc(c.px - HW * K - x0, W)};top:${pc(c.py - R * K - y0, H)};width:${pc(2 * HW * K, W)};height:${pc(2 * R * K, H)}`;
     if (!u) return `<span class="f-hex empty" style="${pos}"><span class="f-hx"></span></span>`;
     if (u.me) return `<span class="f-hex me" style="${pos}"><span class="f-hx">${classEmblem(hero, 'sm')}</span></span>`;
-    who.push(`${u.cls ? t(CLASSES[u.cls].name) : t(ROLE[u.role].name)} ${u.nick}`);
+    who.push(`${u.cls ? t(CLASSES[u.cls].name) : t(ROLE[u.role].name)} ${nickOf(u.nick)}`);
     return `<span class="f-hex${u.nick === sel ? ' on' : ''}" style="${pos}"><span class="f-hx" style="background:${ROLE[u.role].color}">${u.cls ? classIcon(u.cls) : ROLE_ICON[u.role] || ''}</span></span>`;
   }).join('');
   // 위치판 뒤 = 첫 전투 판과 같은 장소 바닥 그림 (2026-10-16 손질: 맨바닥 위 칸만 떠 있던 것)
@@ -123,7 +123,7 @@ function boardHtml(): string {
 /** 직업 없는 옛 파티 줄 (시뮬·옛 테스트용 파티) */
 function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): string {
   const p = PERS[m.pers];
-  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${t(ROLE[m.role].name)}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(tc(m.pers, 'pers'))}</span></span></div></li>`;
+  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(nickOf(m.nick))}</b><span class="cap">${t(ROLE[m.role].name)}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(tc(m.pers, 'pers'))}</span></span></div></li>`;
 }
 
 const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);
@@ -188,7 +188,7 @@ function pickSeg(i: number, focus = false): void {
 /** 길드원 상세 시트 (길드파티 줄의 이름 · 아이콘): 길드 탭과 같은 몸 (ⓘ · 레벨 경험치 막대 · 능력치 · 스킬 · 성격), 골드 지원 · 내보내기는 길드 탭에만 */
 function guildMemSheetHtml(): string {
   const m = memberById(openGid);
-  return m ? sheetBox('f-msheet g-msheet', t('{n} 상세', { n: m.nick }), memberInfoHtml(m)) + (help ? statHelpPopupHtml() : '') : '';
+  return m ? sheetBox('f-msheet g-msheet', t('{n} 상세', { n: nickOf(m.nick) }), memberInfoHtml(m)) + (help ? statHelpPopupHtml() : '') : '';
 }
 
 /** 파티원 상세 시트 (줄을 누르면): 능력 · 자질 · 직업 패시브 · 특성 · 성격 */
@@ -196,7 +196,7 @@ function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
   if (!m?.cls) return '';
   const lastStatGains = m.gid != null ? G.save.guild.members.find(g => g.id === m.gid)?.lastStatGains : undefined;
-  return sheetBox('f-msheet', t('{n} 상세', { n: m.nick }), `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, member: m.gid != null, lastStatGains })}`);
+  return sheetBox('f-msheet', t('{n} 상세', { n: nickOf(m.nick) }), `<h2 class="h-rule">${esc(nickOf(m.nick))}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, member: m.gid != null, lastStatGains })}`);
 }
 
 function render(keepScroll = true): void {
@@ -214,7 +214,7 @@ function render(keepScroll = true): void {
   const rows = Flow.party!.map((p, i) => (p.cls
     ? memRowHtml({ ...p, cls: p.cls }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
     : plainRow(p))).join('');
-  s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
+  s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? t(CHAL.name) : t(c.name), sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="${t('파티 모집')}"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">${t('공개모집')}</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>${t('길드파티')}${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? `<p class="coachtip">${t('보스 기술은 「공략」에서 확인한 뒤 「출발」을 누릅니다.')}</p>` : ''}

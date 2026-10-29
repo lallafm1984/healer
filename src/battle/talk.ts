@@ -3,6 +3,7 @@
  * 엔진 상태는 읽기만 하고 고치지 않는다 (전투 결과·전투 난수에 영향 없음). 난수는 화면 쪽 것을 씀.
  * 말 빈도는 절제 (아래 PACE·PER_MIN): 우선순위 위기 > 기믹·실수 신호 > 반응·잡담 (04 10장), 판에 동시에 3개까지.
  */
+import { nickOf } from '../i18n';
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
@@ -238,7 +239,7 @@ export function createTalk(rand: () => number = Math.random) {
     const t = pickLine(c.sit, spk(u), rand, used, ok);
     if (!t) return null;
     used.add(t);
-    return t.replace(/\{ally\}/g, c.ally?.nick ?? '').replace(/\{tank\}/g, tank?.nick ?? '').replace(/\{boss\}/g, boss);
+    return t.replace(/\{ally\}/g, c.ally ? nickOf(c.ally.nick) : '').replace(/\{tank\}/g, tank ? nickOf(tank.nick) : '').replace(/\{boss\}/g, boss);
   }
 
   function say(out: TalkBubble[], u: Unit, text: string, sit: TalkSit | null, now: number): void {

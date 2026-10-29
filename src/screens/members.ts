@@ -1,6 +1,6 @@
 /** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬 + LV) · 능력치 · 성격 (17 11장) */
 import { ABILITIES } from '../data/abilities';
-import { t, tc } from '../i18n';
+import { nickOf, t, tc } from '../i18n';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
 import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_HELP, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
@@ -99,7 +99,7 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
     ? `<span class="skill-name"><b style="color:${SKILL_COLOR}">${esc(tc(a.name, 'ab'))}</b></span>${m.star ? `<span class="skill-level">LV ${m.star}</span>` : ''}`
     : '';
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
-    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${t(c.name)}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(t(m.pers))}</span></span>
+    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(nickOf(m.nick))}</b><span class="cap">${t(c.name)}${m.lv ? ` <b class="f-lv">Lv ${m.lv}</b>` : ''}</span><span class="f-sp"></span><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(t(m.pers))}</span></span>
     <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">${t('능력')} <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
@@ -118,7 +118,7 @@ export const memberCard = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' |
 /** 길드 막대 (경험치 · 할 일, guild-hall.css .g-bar) */
 export const gBar = (pct: number, label: string) => `<span class="g-bar" role="img" aria-label="${label}"><i style="width:${Math.max(0, Math.min(100, pct)).toFixed(0)}%"></i></span>`;
 /** 시트 머리: 닉네임 · 직업 · Lv. help = 길드원 상세만 ⓘ (능력치 설명 팝업) */
-export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="${t('능력치 설명')}">${uiIcon('info')}</button>` : ''}</h2>`;
+export const memberSheetHead = (m: CardData, help = false) => `<h2 class="h-rule">${esc(nickOf(m.nick))}<span class="rule"></span><span class="cap">${t(CLASSES[m.cls].name)}${m.lv ? ` · Lv ${m.lv}` : ''}</span>${help ? `<button type="button" class="g-info" data-stathelp aria-haspopup="dialog" aria-label="${t('능력치 설명')}">${uiIcon('info')}</button>` : ''}</h2>`;
 /**
  * 길드원 상세 몸: 머리 ⓘ → 레벨 경험치 막대 → 능력치 · 직업 스킬 · 성격. 길드 탭은 이 아래에 골드 지원 · 내보내기.
  * 막대 아래 초록 줄 「직전 레벨업 두 배 · 회피 +1 …」은 없다 (2026-10-28 Lim 「녹색의 직전 레벨업 두배 텍스트 제거」, 오른 칸은 능력치 표 화살표). 다시 넣지 않는다

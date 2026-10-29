@@ -23,6 +23,8 @@ import enGear from './gear-en';
 import jaGear from './gear-ja';
 import enDesc from './desc-en';
 import jaDesc from './desc-ja';
+import enNicks from './nicks-en';
+import jaNicks from './nicks-ja';
 export type Lang = 'ko' | 'en' | 'ja';
 export interface LangDef { key: Lang; /** 설정 칩 글 (늘 그 말로, 번역하지 않음) */ name: string; locale: string }
 export const LANGS: readonly LangDef[] = [
@@ -104,5 +106,21 @@ export function shortAmount(n: number): string {
 }
 /** 자릿수 쉼표 (반올림) */
 export const fmtInt = (n: number): string => Math.round(n).toLocaleString(locale());
+
+// ---------- 파티원 닉네임 (121 3단계 ⑥) ----------
+const NICKS: Partial<Record<Lang, Record<string, string>>> = { en: enNicks, ja: jaNicks };
+/**
+ * 파티원 닉네임 (한국어 열쇠, 저장 · 엔진 · 길드원 id는 한국어 그대로) 의 보이는 이름: 한국어는 그대로, 영어 · 일본어는 nicks-*.ts의 새 이름.
+ * 다 쓰면 붙는 번호 (「방패든양2」) 는 번역 이름 뒤에 그대로 (「Shieldsheep2」). 사전에 없는 이름은 그대로
+ */
+export function nickOf(nick: string): string {
+  if (cur === 'ko') return nick;
+  const d = NICKS[cur];
+  if (!d) return nick;
+  const hit = d[nick];
+  if (hit) return hit;
+  const m = nick.match(/^(.*?)(\d+)$/);
+  return m && d[m[1]] ? d[m[1]] + m[2] : nick;
+}
 
 apply(detectLang());
