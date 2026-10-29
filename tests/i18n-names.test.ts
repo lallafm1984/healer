@@ -15,6 +15,9 @@ import enBossSkills from '../src/i18n/boss-skills-en';
 import jaBossSkills from '../src/i18n/boss-skills-ja';
 import enBossParts from '../src/i18n/boss-parts-en';
 import jaBossParts from '../src/i18n/boss-parts-ja';
+import enGear from '../src/i18n/gear-en';
+import jaGear from '../src/i18n/gear-ja';
+import { UNIQUES } from '../src/data/uniques';
 import { BOSSES } from '../src/data/bosses';
 import { FACTIONS, PLACES } from '../src/data/places';
 import { CONTENT } from '../src/data/content';
@@ -30,7 +33,7 @@ import { CATS, PERS } from '../src/data/personalities';
 import { AFFIXES } from '../src/data/affixes';
 import { DAILY, WEEKLY } from '../src/data/missions';
 import { ENCOUNTERS } from '../src/data/encounters';
-import { SPEC_GROUPS } from '../src/data/specials';
+import { NAMED, SPEC_GROUPS, SPECS } from '../src/data/specials';
 import { DEED_WHY } from '../src/data/guild';
 import { MILESTONES } from '../src/data/milestones';
 import { GROW_TYPES, STAT_HELP, STAT_NAMES } from '../src/data/fm';
@@ -69,6 +72,9 @@ function dataNames(): [string, string | undefined][] {
   };
   for (const b of Object.values(BOSSES)) walk(b, 'boss');
   for (const g of Object.values(SPEC_GROUPS)) add(g.name, 'spec');
+  for (const s of Object.values(SPECS)) { add(s.name); add(s.text); }
+  for (const n of NAMED) { add(n.name); add(n.text); add(n.placeName); }
+  for (const u of UNIQUES) { add(u.name); add(u.placeName); }
   for (const w of Object.values(DEED_WHY)) add(w);
   for (const list of Object.values(MILESTONES)) for (const m of list) add(m.tpl ?? m.text); // arg (장소 이름) 는 다음 묶음
   for (const v of Object.values(STAT_NAMES)) add(v); for (const v of Object.values(STAT_HELP)) add(v);
@@ -78,9 +84,9 @@ function dataNames(): [string, string | undefined][] {
 describe('이름 사전 (121 3단계 ①)', () => {
   const list = dataNames();
   it('데이터 이름이 300개 넘게 모인다', () => { expect(list.length).toBeGreaterThan(300); });
-  const enAll = { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts }, jaAll = { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts };
-  for (const [lang, ui, names, parts] of [['en', en, enAll, [enNames, enPlaces, enEnemies, enBossSkills, enBossParts]], ['ja', ja, jaAll, [jaNames, jaPlaces, jaEnemies, jaBossSkills, jaBossParts]]] as const) {
-    it(`${lang}: 모든 데이터 이름에 번역이 있다 (특수능력 · 고유 장비는 다음 묶음)`, () => {
+  const enAll = { ...enNames, ...enPlaces, ...enEnemies, ...enBossSkills, ...enBossParts, ...enGear }, jaAll = { ...jaNames, ...jaPlaces, ...jaEnemies, ...jaBossSkills, ...jaBossParts, ...jaGear };
+  for (const [lang, ui, names, parts] of [['en', en, enAll, [enNames, enPlaces, enEnemies, enBossSkills, enBossParts, enGear]], ['ja', ja, jaAll, [jaNames, jaPlaces, jaEnemies, jaBossSkills, jaBossParts, jaGear]]] as const) {
+    it(`${lang}: 모든 데이터 이름 · 효과 글에 번역이 있다`, () => {
       const miss = [...new Set(list.filter(([k, c]) => !has(ui, names, k, c)).map(([k, c]) => (c ? `${k} (@${c})` : k)))];
       expect(miss).toEqual([]);
     });

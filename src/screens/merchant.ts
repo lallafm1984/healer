@@ -83,7 +83,7 @@ function revealHtml(id: number): string {
         <p class="mc-grade"><i>${t(it.grade)}</i>${q ? ` <span class="r-q" data-q="${q}">${t(q)}</span>` : ''}</p>
         <h4 class="mc-name">${esc(gearName(it))}</h4>
         <p class="mc-sub">${esc(t(slotName(it.slot)))} · ${esc(t(kindOf(it).name))} · Lv ${it.lv ?? o.lv}</p>
-        ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(t(specName(k)))).join(' · ')}</p>` : ''}
+        ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(specName(k))).join(' · ')}</p>` : ''}
       </div>
       <div class="mc-acts">
         <button type="button" class="btn" data-mc-detail="${it.id}">${t('상세')}</button>
