@@ -11,13 +11,14 @@ import { dayKey, weekKey } from './clock';
 import { guildPartyFits, isGuildParty } from './guild';
 import { ENCOUNTERS } from '../data/encounters';
 import type { RosterEntry } from '../engine/types';
+import { now as gameNow } from '../platform/time';
 
 
 /**
  * 부탁 쪽지: 날이 바뀌면 길드원 2명이 새로. 장소는 그 길드원 레벨에 맞는 칸 (2026-10-29 Lim): 열린 탐험 · 던전 칸 (악몽 빼고) 가운데
  * 권장 레벨 (recLevel)이 길드원 레벨 ±1인 칸에서 하나, 없으면 가장 가까운 칸에서 하나 (예전 내 레벨 길잡이 추천 앞 3곳이라 낮은 길드원은 높은 칸을 받았음)
  */
-export function refreshReqs(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, r: () => number, now = Date.now()): void {
+export function refreshReqs(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, r: () => number, now = gameNow()): void {
   const g = save.guild, day = dayKey(now);
   if (!g.founded || g.reqs.day >= day) return; // 더 늦은 날만 (103)
   if (!g.members.length) { g.reqs = { day: '', list: [] }; return; } // 길드원이 없으면 그날을 쓰지 않음: 첫 영입 뒤 바로 부탁 (Lim 10-21 자동 영입 없앰)
@@ -35,7 +36,7 @@ export function refreshReqs(save: SaveData, open: (c: ContentDef, d: DiffName) =
 }
 
 /** 주간 원정: 주가 바뀌면 내 레벨에 맞는 3곳 (5인 던전 · 10인 · 20인 레이드, 안 열렸으면 던전), 보통 이상 */
-export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, now = Date.now()): void {
+export function refreshExped(save: SaveData, open: (c: ContentDef, d: DiffName) => boolean, now = gameNow()): void {
   const g = save.guild, week = weekKey(now);
   if (!g.founded || g.exped.week > week) return; // 시계를 뒤로 돌린 주는 그대로 (103)
   if (g.exped.week < week && expedReady(save)) return; // 다 끝냈는데 못 받은 원정 상자는 주가 바뀌어도 받게 둠 (받은 뒤 새 주 목록, 105 QA 2)
@@ -72,7 +73,7 @@ export interface JobsDone {
 }
 
 /** 판 뒤 (이긴 판): 부탁 = 그 사람을 넣고 그 장소를 그 난이도 이상으로 · 원정 = 길드파티로 그 장소 보통 이상. 부탁 대상은 길드 정산에서 경험치 2배, 원정은 명성을 바로 줌 */
-export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; content: string; diff: DiffName; roster: RosterEntry[] }, now = Date.now()): JobsDone {
+export function jobsAfter(save: SaveData, o: { win: boolean; quit: boolean; content: string; diff: DiffName; roster: RosterEntry[] }, now = gameNow()): JobsDone {
   const out: JobsDone = { reqs: [], exped: [], expedAll: false, fame: 0 };
   const g = save.guild;
   if (!g.founded || !o.win || o.quit) return out;

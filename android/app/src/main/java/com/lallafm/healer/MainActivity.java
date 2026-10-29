@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(ElapsedClockPlugin.class); // 경과 시계 (기획 120 9-3, 게임 시각 = 서버 시각 + 부팅 뒤 흐른 시간)
         super.onCreate(savedInstanceState);
         enterFullscreen();
         requestRefreshRate();

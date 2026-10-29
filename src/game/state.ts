@@ -11,6 +11,7 @@ import { onAct, rollover, type Rollover } from './economy';
 import { adsFree } from './stamina';
 import { Flow } from './flow';
 import { jobProductId } from '../data/economy';
+import { now as gameNow } from '../platform/time';
 
 export const G: { save: SaveData } = { save: load() };
 
@@ -45,7 +46,7 @@ export function syncAds(): void {
 }
 
 /** 날·주가 바뀌었는지 보고 일일·주간을 새로 (13 1장). 접속·로비·임무·상점 화면에서 부름 */
-export function refreshDay(now = Date.now()): Rollover {
+export function refreshDay(now = gameNow()): Rollover {
   const r = rollover(G.save, now, Math.random);
   if (r.day || r.week || r.banked || r.fixed) commit();
   syncAds();
@@ -225,7 +226,7 @@ function heroEarned(h: HeroKey): boolean {
  * v12: 같은 캐릭터에서 직업 · 스킬 설정 · 특성만 전환. 보상 · 성장 · 장비는 공유.
  * v33 (2026-10-28 Lim): 장착 장비도 한 벌을 그대로 (직업마다 착용 조합 없음). 다른 직업 전용 특수능력은 능력치는 그대로 두고 그 효과만 꺼짐 (specTotals)
  */
-export function switchHero(h: HeroKey, now = Date.now()): boolean {
+export function switchHero(h: HeroKey, now = gameNow()): boolean {
   if (!HEROES[h] || h === G.save.hero || !switchOpen().ok || heroStatus(h).state !== 'open') return false;
   const d = G.save, old = heroSaveOf(d, d.hero), next = heroSaveOf(d, h);
   old.layout = d.settings.layout ? { ...d.settings.layout } : null;

@@ -18,7 +18,7 @@ import { newSave, type SaveData } from '../src/platform/storage';
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-const T0 = new Date(2026, 9, 7, 12).getTime();
+const T0 = Date.UTC(2026, 9, 7, 12);
 
 function save(level = 30): SaveData {
   const s = newSave(1);
@@ -466,11 +466,11 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
       }
     }
     // 바꾸는 주 (2026-10-26 주): 예전 축제 + 폭군 → 폭군이 첫째 (1 ~ 9단계도 폭군 그대로)
-    expect(weekAffixes(new Date(2026, 9, 28, 12).getTime())[0]).toBe('tyrant');
+    expect(weekAffixes(Date.UTC(2026, 9, 28, 12))[0]).toBe('tyrant');
     expect(weekAffixes(T0)).toEqual(CHAL_ROTA[0]);
-    expect(weekAffixes(new Date(2026, 9, 12, 5).getTime())).toEqual(CHAL_ROTA[0]);
-    expect(weekAffixes(new Date(2026, 9, 12, 6).getTime())).toEqual(CHAL_ROTA[1]);
-    expect(weekAffixes(new Date(2026, 9, 5 + 7 * 24, 12).getTime())).toEqual(CHAL_ROTA[0]);
+    expect(weekAffixes(Date.UTC(2026, 9, 11, 23, 59))).toEqual(CHAL_ROTA[0]); // 월요일 UTC 0시 (한국 오전 9시)에 바뀜 (기획 120 9-3)
+    expect(weekAffixes(Date.UTC(2026, 9, 12, 0))).toEqual(CHAL_ROTA[1]);
+    expect(weekAffixes(Date.UTC(2026, 9, 5 + 7 * 24, 12))).toEqual(CHAL_ROTA[0]);
     expect(nextWeekAffixes(T0)).toEqual(CHAL_ROTA[1]);
   });
 
@@ -534,7 +534,7 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
     expect(chalPool(30)).toContain(k);
     s.player.level = 100;
     expect(chalContent(s, T0)).toBe(k);
-    rollover(s, new Date(2026, 9, 12, 7).getTime(), rng);
+    rollover(s, Date.UTC(2026, 9, 12, 7), rng);
     expect(s.weekly.chal).not.toBe(k);
     expect(chalPool(100)).toContain(s.weekly.chal);
     // 110 전 저장 (그 주 던전이 없음): 주 번호로 고정해 고르고 적어 둠
@@ -566,7 +566,7 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
   it('최고 단계는 월요일에 상자로, 열린 단계는 그대로', () => {
     const s = save();
     settle(s, result({ chal: 1, limit: chalLimit(1, 'rustfort'), time: chalLimit(1, 'rustfort') - 1 }), rng, [], T0);
-    rollover(s, new Date(2026, 9, 12, 7).getTime(), rng);
+    rollover(s, Date.UTC(2026, 9, 12, 7), rng);
     expect(s.chalChest).toBe(1);
     expect(s.weekly.chalBest).toBe(0);
     expect(s.chalOpen).toBe(2);

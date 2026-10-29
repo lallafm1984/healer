@@ -13,7 +13,7 @@ import { migrate, newSave, type SaveData } from '../src/platform/storage';
 
 const M = 60e3, H = 60 * M;
 /** 2026-10-15 (목) 정오 */
-const T0 = new Date(2026, 9, 15, 12).getTime();
+const T0 = Date.UTC(2026, 9, 15, 12);
 const fresh = (): SaveData => { const s = newSave(T0); s.tut = 3; return s; };
 
 describe('휴식 회복 (90)', () => {
@@ -150,13 +150,13 @@ describe('휴식 광고 충전 (90)', () => {
     expect(adCharge(s, T0)).toMatch(/가득/);
     expect([s.stamina.n, s.stamina.ads]).toEqual([n, 0]);
   });
-  it('하루 3번, 오전 6시에 다시 3번', () => {
+  it('하루 3번, UTC 0시 (한국 오전 9시)에 다시 3번', () => {
     const s = fresh();
     for (let i = 0; i < 3; i++) { s.stamina.n = 0; expect(adCharge(s, T0)).toBe(''); }
     s.stamina.n = 0;
     expect(adCharge(s, T0)).toMatch(/3번/);
     expect(staminaView(s, T0).adsLeft).toBe(0);
-    const nextDay5 = new Date(2026, 9, 16, 5, 59).getTime(), nextDay6 = new Date(2026, 9, 16, 6).getTime();
+    const nextDay5 = Date.UTC(2026, 9, 15, 23, 59), nextDay6 = Date.UTC(2026, 9, 16, 0);
     expect(adCharge(s, nextDay5)).toMatch(/3번/);
     expect(adCharge(s, nextDay6)).toBe('');
     expect(staminaView(s, nextDay6).adsLeft).toBe(2);

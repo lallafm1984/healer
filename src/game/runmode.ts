@@ -14,14 +14,15 @@ import type { DiffName } from '../data/difficulty';
 import type { SaveData } from '../platform/storage';
 import { daysBetween, weekKey } from './clock';
 import { TUT } from './tutorial';
+import { now as gameNow } from '../platform/time';
 
 /** 이번 주 도전 어픽스 셋 (월요일 오전 6시에 바뀜). 1 ~ 9단계는 앞 둘만 (chalAffixes, 115 나안) */
-export function weekAffixes(now = Date.now()): AffixKey[] {
+export function weekAffixes(now = gameNow()): AffixKey[] {
   const n = CHAL_ROTA.length, w = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7);
   return CHAL_ROTA[((w % n) + n) % n].slice();
 }
 /** 다음 주 어픽스 (주간 도전 화면 「다음 주」) */
-export const nextWeekAffixes = (now = Date.now()): AffixKey[] => weekAffixes(now + 7 * 864e5);
+export const nextWeekAffixes = (now = gameNow()): AffixKey[] => weekAffixes(now + 7 * 864e5);
 
 /**
  * 주간 도전 던전 후보 (110 2차, 2026-10-22 Lim 「기존의 던전들을 재활용하여 레벨에 맞춰서 재활용하자 (단 현재 캐릭터 레벨보다 상위 던전은 나오지 않게)」):
@@ -38,7 +39,7 @@ export function pickChalContent(lv: number, r: () => number, last?: ContentKey):
  * 이번 주 주간 도전 던전: 주가 바뀔 때 (economy rollover) 고른 것 (save.weekly.chal), 한 주 동안 그대로 (중간에 레벨이 올라도).
  * 없으면 (110 전 저장 · 주 시작 전) 주 번호로 고정해 고르고 적어 둠
  */
-export function chalContent(save: SaveData, now = Date.now()): ContentKey {
+export function chalContent(save: SaveData, now = gameNow()): ContentKey {
   const w = save.weekly;
   if (w.chal && CHAL_DUN[w.chal]) return w.chal;
   const n = Math.floor(daysBetween(CHAL_ROTA_START, weekKey(now)) / 7), pool = chalPool(save.player.level);
@@ -62,7 +63,7 @@ export interface RunMode {
  * 힐러 세기 = max(내 레벨, 적 레벨) (engine create: 레벨이 모자라면 스킬 · 특성만 덜 열림, 높으면 힐러만 셈).
  * 어픽스는 던전만, 적 레벨 기준 (레이드는 악몽 전용 기술, 탐험은 없음). 튜토리얼이 끝나기 전엔 콘텐츠 기본 레벨 · 어픽스 없음
  */
-export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number }, now = Date.now()): RunMode {
+export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number }, now = gameNow()): RunMode {
   if (o.chal) {
     const st = Math.max(1, Math.min(CHAL.max, o.chal));
     const lv = Math.max(CHAL.lv, save.player.level), key = c.key as ContentKey;

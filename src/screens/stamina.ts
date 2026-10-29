@@ -11,8 +11,9 @@ import { currencyIcon } from './art';
 import { fmt, go } from './kit';
 import { notify } from './toast';
 import { sfx } from '../sfx';
+import { now as gameNow } from '../platform/time';
 
-const view = () => staminaView(G.save, Date.now());
+const view = () => staminaView(G.save, gameNow());
 const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
 
 /**
@@ -87,7 +88,7 @@ async function charge(): Promise<boolean> {
   charging = true;
   try {
     if (!(await showRewarded('휴식 최대 충전', adsFree(G.save)))) return false;
-    const err = adCharge(G.save, Date.now());
+    const err = adCharge(G.save, gameNow());
     if (err) return false;
     sfx('rest-charge');
     commit();
