@@ -9,3 +9,10 @@
 @font-face { font-family: "Noto Sans KR"; font-weight: 500; font-style: normal; font-display: block; src: url("./noto-sans-kr-500.woff2") format("woff2"); }
 @font-face { font-family: "Noto Sans KR"; font-weight: 700; font-style: normal; font-display: block; src: url("./noto-sans-kr-700.woff2") format("woff2"); }
 @font-face { font-family: "Noto Sans KR"; font-weight: 900; font-style: normal; font-display: block; src: url("./noto-sans-kr-900.woff2") format("woff2"); }
+/* 일본어 (2026-10-29 Lim 「일본어 글꼴을 받아」, 기획 121 7장): html[lang="ja"]일 때만 쓰임 (src/theme.css). 가나 전부 + 게임에 쓰인 한자만 (subset.py --only=ja). 라이선스 OFL-NotoSansJP.txt · OFL-NotoSerifJP.txt */
+@font-face { font-family: "Noto Serif JP"; font-weight: 700; font-style: normal; font-display: block; src: url("./noto-serif-jp-700.woff2") format("woff2"); }
+@font-face { font-family: "Noto Serif JP"; font-weight: 800; font-style: normal; font-display: block; src: url("./noto-serif-jp-800.woff2") format("woff2"); }
+@font-face { font-family: "Noto Sans JP"; font-weight: 400; font-style: normal; font-display: block; src: url("./noto-sans-jp-400.woff2") format("woff2"); }
+@font-face { font-family: "Noto Sans JP"; font-weight: 500; font-style: normal; font-display: block; src: url("./noto-sans-jp-500.woff2") format("woff2"); }
+@font-face { font-family: "Noto Sans JP"; font-weight: 700; font-style: normal; font-display: block; src: url("./noto-sans-jp-700.woff2") format("woff2"); }
+@font-face { font-family: "Noto Sans JP"; font-weight: 900; font-style: normal; font-display: block; src: url("./noto-sans-jp-900.woff2") format("woff2"); }

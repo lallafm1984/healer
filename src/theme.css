@@ -224,3 +224,9 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 #tip::after, #battle #preview::after { background: #0D0B09; border-color: var(--frame); }
 #banner, #pullNum { font-family: var(--font-display); color: var(--gold-hi); }
 #restFill { background: var(--bar-mana); }
+
+/* 일본어 글꼴 (2026-10-29, 기획 121 7장): 제목은 Noto Serif JP (함렛 자리), 본문은 Noto Sans JP. 한글 (닉네임 등)은 뒤의 KR 글꼴이 맡음. src/fonts/fonts.css · 전투판 Pixi 글꼴은 battle/board.ts FONT */
+html[lang="ja"] {
+  --font-display: "Noto Serif JP", "Hahmlet", "Noto Serif KR", serif;
+  --font-body: "Noto Sans JP", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+}

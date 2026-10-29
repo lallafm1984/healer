@@ -310,7 +310,7 @@ function inventoryHtml(): string {
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   return `<section class="c7-inventory${picks ? ' c7-picking' : ''}" aria-label="${t('인벤토리')}">
       <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">${t('인벤토리')}</h3>${picks ? pickBarHtml() : ''}</header>
-      <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="${t('인벤토리 분류')}">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${t(x.name)}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="${t('정렬: {n}', { n: t(SORTS[bagSort].name) })}"${all.length ? '' : ' disabled'}>${t(SORTS[bagSort].name)} ▾</button></div>
+      <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="${t('인벤토리 분류')}">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${tc(x.name, 'bag')}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="${t('정렬: {n}', { n: t(SORTS[bagSort].name) })}"${all.length ? '' : ' disabled'}>${t(SORTS[bagSort].name)} ▾</button></div>
       <div class="c7-bags" role="region" aria-label="${t('인벤토리 아이템')}" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
 }
 
