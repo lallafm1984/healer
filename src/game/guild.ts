@@ -26,7 +26,8 @@ import { TUT } from './tutorial';
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
   if (!FEATURES.guild) return { ok: false, dev: false, why: '' };
   if (save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
-  const under = topLevel(save) < GUILD_LEVEL;
+  // 이미 만든 길드는 레벨과 상관없이 열림 (2026-10-29 Lim 「A」: Lv 15에 열리던 때 만든 길드가 #498 Lv 30 뒤로 잠겨 길드원 · 명성 · 부탁이 멈췄음)
+  const under = topLevel(save) < GUILD_LEVEL && !save.guild.founded;
   if (under && !save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${GUILD_LEVEL}에 열림` };
   return { ok: true, dev: under, why: '' };
 }
