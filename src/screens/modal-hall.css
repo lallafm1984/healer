@@ -1,0 +1,29 @@
+/* 공통 알림·확인·광고·공지 창 = 길드의 새로 뽑기 확인 창과 같은 표면·글꼴·간격 (2026-10-31 Lim).
+ * 휴식 전용 창은 departure-hall.css에서 관리한다. 버튼 표면은 menu-buttons.css의 공통 노랑/검정을 쓴다. */
+#app .admodal:not(.st-modal) {
+  padding: calc(var(--banner-h, 70px) + 16px) 16px 16px;
+  background: #0009;
+}
+#app .admodal:not(.st-modal) > .panel {
+  box-sizing: border-box; width: 100%; max-width: 380px; max-height: calc(100dvh - var(--banner-h, 70px) - 32px);
+  margin: 0; padding: 20px; display: flex; flex-direction: column; gap: 16px;
+  border: 1px solid var(--gk-edge); border-radius: 12px;
+  background: var(--gk-bg); background-blend-mode: normal;
+  color: var(--gk-ink); box-shadow: 0 12px 50px #000a;
+  overflow-y: auto; overscroll-behavior: contain; word-break: keep-all; overflow-wrap: anywhere;
+}
+#app .admodal:not(.st-modal) > .panel > * { flex-shrink: 0; min-width: 0; }
+#app .admodal:not(.st-modal) > .panel > h3 {
+  margin: 0; font: 800 22px/1.4 var(--font-display); color: #f4dcaa;
+}
+#app .admodal:not(.st-modal) > .panel > p {
+  flex-shrink: 1; min-height: 0; margin: 0; overflow-y: auto;
+  font: 400 15px/1.7 var(--font-body); color: var(--gk-ink);
+}
+#app .admodal:not(.st-modal) :is(.row1, .row2) { display: grid; gap: 10px; }
+#app .admodal:not(.st-modal) .row1 { grid-template-columns: minmax(0, 1fr); }
+#app .admodal:not(.st-modal) .row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#app .admodal:not(.st-modal) .btn {
+  min-width: 0; min-height: 48px; padding: 8px;
+  font: 800 16px var(--font-body); overflow-wrap: anywhere;
+}

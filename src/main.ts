@@ -52,6 +52,7 @@ import './screens/stamina.css';
 import './screens/departure-hall.css';
 import './screens/service-hall.css';
 import './screens/guild-hall.css';
+import './screens/modal-hall.css';
 import './screens/member-traits.css';
 import './screens/guide.css';
 import './screens/legend.css';
