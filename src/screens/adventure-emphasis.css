@@ -40,14 +40,13 @@
 #s-content .b-scene-reward-list { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px; }
 #s-content .b-scene-reward-list::-webkit-scrollbar { display: none; }
 #s-content .b-scene-reward {
-  flex: 0 0 46px; width: 46px; height: 48px; padding: 2px; margin: 0;
+  flex: 0 0 44px; width: 44px; height: 44px; padding: 2px; margin: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   border: 1px solid var(--reward-color); border-radius: 5px; background: #19140fdb;
   color: #f8ecd4; box-shadow: inset 0 0 9px #dfba5914; font: inherit; cursor: pointer;
 }
 #s-content .b-scene-reward-icon { display: grid; place-items: center; width: 28px; height: 28px; }
 #s-content .b-scene-reward-icon :is(.g-ic,.currency-icon) { width: 28px; height: 28px; display: block; }
-#s-content .b-scene-reward small { font: 600 10px/1.1 var(--font-body); color: var(--reward-color); white-space: nowrap; }
 #s-content .b-scene-reward[data-reward="gear"] { background: linear-gradient(145deg, color-mix(in srgb, var(--reward-color) 25%, #19140f), #19140feb); box-shadow: inset 0 0 10px color-mix(in srgb, var(--reward-color) 25%, transparent); }
 #s-content .b-scene-reward.received { opacity: .65; }
 #s-content .b-scene-reward[aria-expanded="true"] { background: #4a3921; box-shadow: 0 0 0 1px #ffe5aa; }
@@ -55,23 +54,25 @@
 #s-content .b-scene-rewards .b-lootrow > :is(.b-loot,.cap:first-child) { display: none; }
 #s-content .b-scene-rewards .b-lootrow .cap { padding: 0; border: 0; background: none; font-size: 9px; }
 #s-content .b-reward-chance {
-  position: absolute; z-index: 40; box-sizing: border-box; padding: 12px 42px 12px 14px;
-  display: flex; flex-direction: column; gap: 5px; border: 1px solid #c6a263; border-radius: 8px;
+  position: absolute; z-index: 40; box-sizing: border-box; padding: 10px 42px 10px 12px;
+  display: flex; flex-direction: column; gap: 4px; border: 1px solid #c6a263; border-radius: 8px;
   background: #242019; color: #f6e5c0; box-shadow: 0 6px 22px #0009; outline: none;
 }
-#s-content .b-reward-chance > b { font: 700 13px/1.3 var(--font-display); }
-#s-content .b-reward-chance > strong { font: 800 30px/1.15 var(--font-display); color: #ffdb8b; }
+#s-content .b-reward-chance > b { font: 700 12px/1.3 var(--font-display); }
+#s-content .b-reward-amount .currency-amount { gap: 6px; }
+#s-content .b-reward-amount .currency-icon { width: 22px; height: 22px; }
+#s-content .b-reward-amount b { font: 800 22px/1.1 var(--font-display); color: #ffdb8b; }
 #s-content .b-reward-chance > small { font: 400 10px/1.4 var(--font-body); color: #d7c8af; }
-#s-content .b-reward-chance[data-reward-key="gear"] { padding-right: 14px; }
+#s-content .b-reward-chance[data-reward-key="gear"] { padding-right: 12px; }
 #s-content .b-reward-chance[data-reward-key="gear"] > b { padding-right: 28px; }
-#s-content .b-grade-chances { display: grid; gap: 3px; margin: 3px 0; }
-#s-content .b-grade-chance { display: flex; align-items: center; justify-content: space-between; min-height: 21px; padding: 0 5px; border-radius: 3px; background: #ffffff06; font: 600 12px/1.4 var(--font-body); }
+#s-content .b-grade-chances { display: grid; gap: 2px; margin: 2px 0; }
+#s-content .b-grade-chance { display: flex; align-items: center; justify-content: space-between; min-height: 19px; padding: 0 5px; border-radius: 3px; background: #ffffff06; font: 600 11.5px/1.3 var(--font-body); }
 #s-content .b-grade-chance dt { color: var(--grade-color); }
 #s-content .b-grade-chance dt::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
 #s-content .b-grade-chance dd { margin: 0; font-variant-numeric: tabular-nums; color: #f6e5c0; }
 #s-content .b-grade-chance.unavailable { opacity: .5; }
 /* 닫기 터치 44px (QA 2026-10-17: 36px였음). 팝업 안 귀퉁이에 붙임 (× 가운데는 2px만 움직임) */
-#s-content [data-reward-close] { position: absolute; top: 0; right: 0; width: 44px; height: 44px; border: 0; background: none; color: #efdfbb; font: 400 26px/1 var(--font-body); cursor: pointer; }
+#s-content [data-reward-close] { position: absolute; top: 0; right: 0; width: 44px; height: 44px; border: 0; background: none; color: #efdfbb; font: 400 22px/1 var(--font-body); cursor: pointer; }
 #s-content :is(.b-chal,.b-current-places,.b-arw,.b-scene-reward,[data-reward-close]):focus-visible { outline: 2px solid #ffe2a0; outline-offset: -2px; }
 /* 장소별 네 난이도의 진행도를 같은 위치에서 비교한다. */
 #s-content { --b-page-size: 4; }
@@ -110,6 +111,5 @@
   #s-content .b-scene-reward-list { gap: 4px; padding: 0; }
   #s-content .b-scene-reward { flex-basis: 44px; width: 44px; height: 44px; padding: 1px; gap: 1px; }
   #s-content .b-scene-reward-icon, #s-content .b-scene-reward-icon :is(.g-ic,.currency-icon) { width: 25px; height: 25px; }
-  #s-content .b-scene-reward small { font-size: 9px; }
   #s-content .b-st { top: 15px; left: 48px; right: 118px; max-width: none; padding: 0; font-size: 8px; line-height: 1; white-space: nowrap; text-align: left; background: none; }
 }

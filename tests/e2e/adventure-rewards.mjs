@@ -35,7 +35,7 @@ async function probabilityBounds(page) {
     const tabs=document.querySelector('#tabs').getBoundingClientRect();
     const viewport={left:0,top:0,right:innerWidth,bottom:Math.min(innerHeight,tabs.top)};
     const clipped=[],occluded=[];
-    for(const text of el.querySelectorAll('[data-grade],dt,dd,small')) {
+    for(const text of el.querySelectorAll(':scope > b,[data-grade],dt,dd,small,.b-reward-amount b')) {
       if(!text.getClientRects().length)continue;
       const range=document.createRange();range.selectNodeContents(text);
       if(!inside(text.getBoundingClientRect(),r) || [...range.getClientRects()].some(g=>g.width && g.height && (!inside(g,r) || !inside(g,viewport))))
@@ -47,7 +47,7 @@ async function probabilityBounds(page) {
       if(!hit || !el.contains(hit))occluded.push(part.dataset.grade || part.textContent);
     }
     return {text:el.textContent,modal:el.getAttribute('aria-modal'),inside:inside(r,viewport),closeInside:!!close && inside(close,r),
-      scroll:el.scrollHeight>el.clientHeight+1 || el.scrollWidth>el.clientWidth+1,clipped,occluded,bottom:r.bottom,tabsTop:tabs.top};
+      scroll:el.scrollHeight>el.clientHeight+1 || el.scrollWidth>el.clientWidth+1,clipped,occluded,width:r.width,height:r.height,bottom:r.bottom,tabsTop:tabs.top};
   });
 }
 
@@ -67,7 +67,7 @@ async function inspectProbabilities(page,expected,{maxGrade,keepOpen=false}={}) 
   const rows=values.length===wanted.length && values.every((v,i)=>v.grade===wanted[i].grade && Math.abs(v.p-wanted[i].p)<1e-6
     && v.text.includes(v.grade) && [...v.text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].some(m=>Math.abs(Number(m[1])-v.p)<0.0051)); // 화면은 소수 둘째 자리까지
   const icon=icons.length===1 && !oldCount && icons[0].max===highest && icons[0].color===color && icons[0].border===rgb
-    && icons[0].p===(expectedSum?1:0) && (expectedSum?icons[0].name.includes(highest):/수령 완료/.test(icons[0].label));
+    && icons[0].p===(expectedSum?1:0) && !icons[0].label.trim() && (expectedSum?icons[0].name.includes(highest):/수령 완료/.test(icons[0].name));
   const ok=rows && icon && Math.abs(sum-expectedSum)<1e-6 && geometry.inside && geometry.closeInside && !geometry.scroll && !geometry.clipped.length && !geometry.occluded.length;
   if(!keepOpen && !wasOpen){await page.keyboard.press('Escape');await page.clock.runFor(20);}
   return {values,wanted,icons,oldCount,sum,geometry,ok};
@@ -113,6 +113,10 @@ export default async function adventureRewards(url,shots) {
             && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘 (장비 · 골드)·상세 팝업 제거`,rewards);
           const mainText=await page.locator('#s-content').innerText();
           ok(!/A\s*평가|보너스 제외|좌우로?\s*넘겨/.test(mainText),`${tag} ${tab}: 보상 기준·지역 넘기기 보조문구를 메인에서 제거`);
+          // 직전 장비 버튼의 누름 애니메이션이 끝난 뒤 실제 터치 영역을 잰다.
+          await page.clock.runFor(200);
+          ok(await page.locator('.b-scene-reward').evaluateAll(els=>els.every(el=>!el.textContent.trim() && !el.querySelector('small')
+            && el.getBoundingClientRect().width>=44 && el.getBoundingClientRect().height>=44)),`${tag} ${tab}: 보상은 아이콘만 · 누르는 영역 44px 이상`);
           const selected=await page.locator('#contentGo').getAttribute('aria-label'),bad=[];
           for(const reward of rewards) {
             const button=page.locator(`[data-reward="${reward.key}"]`);
@@ -125,7 +129,13 @@ export default async function adventureRewards(url,shots) {
             const state=await probabilityBounds(page);
             const percentages=[...state.text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map(m=>Number(m[1]));
             if(!state.inside || !state.closeInside || state.scroll || state.clipped.length || state.occluded.length || state.modal!=='false'
-              || (reward.key!=='gear' && !percentages.some(p=>Math.abs(p-reward.p*100)<1e-4)))bad.push({key:reward.key,p:reward.p,state});
+              || (reward.key==='gear' ? state.width>204.1 : state.width>172.1 || percentages.length))bad.push({key:reward.key,p:reward.p,state});
+            if(reward.key==='gold') {
+              const gold=await pop.locator('.b-reward-amount').evaluate(el=>({amount:Number(el.dataset.amount),text:el.querySelector('b').textContent,
+                icon:el.querySelector('.currency-icon')?.dataset.currency}));
+              if(!(gold.amount>0) || gold.text!==gold.amount.toLocaleString('ko-KR') || gold.icon!=='gold' || !state.text.includes('기본 획득 골드'))
+                bad.push({key:reward.key,issue:'gold amount/icon instead of probability',gold});
+            }
             if(reward.key==='gear') {
               const grades=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
               if(!grades.ok || /장비 1개|보너스 제외/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis line',grades,text:state.text});
@@ -135,7 +145,7 @@ export default async function adventureRewards(url,shots) {
             await page.keyboard.press('Escape');await page.clock.runFor(20);
             if(await pop.count() || !await button.evaluate(el=>document.activeElement===el))bad.push({key:reward.key,issue:'Escape or return focus failed'});
           }
-          ok(!bad.length && await page.locator('#contentGo').getAttribute('aria-label')===selected,`${tag} ${tab}: 모든 ${rewards.length}개 보상 아이콘 직접 접근·확률·화면 내 팝오버·Esc 복귀`,bad);
+          ok(!bad.length && await page.locator('#contentGo').getAttribute('aria-label')===selected,`${tag} ${tab}: 보상 아이콘 직접 접근·장비 확률·골드 금액·작은 팝오버·Esc 복귀`,bad);
           await page.locator('[data-reward]').first().click();await page.click('[data-reward-close]');
           ok(await page.locator('.b-reward-chance').count()===0,`${tag} ${tab}: 확률 닫기 버튼`);
           await page.locator('[data-reward]').first().click();

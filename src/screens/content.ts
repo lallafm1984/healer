@@ -3,7 +3,7 @@
  * 분류 4칸 → 작은 장소 풍경/권장 레벨 → 장소 줄 → 난이도 → 출전.
  * 장소 줄 (2026-10-12 Lim: 지역 → 장소 팝업 없이 한 단계로): 그 분류의 장소를 열림 레벨 순서대로 바로 고름.
  * 레벨이 모자란 장소는 숨기고 레벨이 되면 보여 줌. 다 잠긴 분류는 다음에 열릴 한 곳만 잠긴 채로 보여 줌.
- * 장면 안 보상 아이콘을 누르면 그 보상의 확률만 표시. 주간 도전은 던전 분류 바로 아래 독립 버튼.
+ * 장면 안 보상은 아이콘만, 누르면 장비 등급 확률·기본 골드 획득량을 표시. 주간 도전은 던전 분류 바로 아래 독립 버튼.
  * 분류마다 장소, 장소마다 난이도와 장소 줄의 가로 위치를 기억한다 (모듈 변수, 저장 안 함). 화면 세로 스크롤은 없다.
  * 모험 길잡이 (86): 추천 칸 (game/guide)이 바뀌었으면 들어올 때 그 분류 · 장소 · 난이도를 고른 채로. 분류 탭 점 · 장소 카드 「추천」 ·
  * 난이도 칸 적합도 (여유 · 적정 · 도전 · 위험)와 「추천」.
@@ -29,7 +29,7 @@ import { chalContent, chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT, tutLockedContent } from '../game/tutorial';
 import { esc, fmt, freshEntry, go, goingBack, previous, screen, topBar } from './kit';
-import { classEmblem, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyAmount, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sortie } from './stamina';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
@@ -209,7 +209,7 @@ function chalCell(): string {
 interface SceneReward {
   key: string;
   name: string;
-  label: string;
+  amount?: number;
   icon: string;
   color: string;
   probability: number;
@@ -230,14 +230,14 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   // 탐험은 판마다 장비 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 판은 언제나): 등급별 확률은 장비가 나왔을 때
   const dropP = play && c.kind === 'explore' ? EXPLORE_DROP : 1;
   const items: SceneReward[] = [{
-    key: 'gear', name: t('장비 등급별 확률'), label: t(maxGrade), icon: gameIcon('gear', ICON.gear),
+    key: 'gear', name: t('장비 등급별 확률'), icon: gameIcon('gear', ICON.gear),
     color: GRADE_STYLE[maxGrade].color, probability: dropP, maxGrade,
     gradeOdds: odds,
     // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 레이드는 주 첫 클리어 · 다시 깬 판
     basis: `${t('최소 {g}', { g: t(minG) })}${dropP < 1 ? ` · ${t('장비는 판마다 {n}%', { n: Math.round(dropP * 100) })}` : ''}${raid && play ? ` · ${lootOpen ? t('이번 주 첫 클리어') : t('다시 깬 판 (첫 보상은 받음)')}` : ''}`,
   }];
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = t('클리어 시'), probability = 1) => {
-    items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
+    items.push({ key, name, amount, icon: currencyIcon(key), color, probability, basis });
   };
   // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD.
   // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값 (휴식 판 restRun의 1/REST_BONUS). 휴식 보너스는 결과 화면에서만. 튜토리얼 판은 예전 값 그대로
@@ -251,8 +251,8 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
 function rewards(c: ContentDef, d: DiffName): string {
   return `<section class="b-scene-rewards" aria-label="${t('획득 보상')}">
     <div class="b-scene-rewards-heading"><b>${t('획득 보상')}</b></div>
-    <div class="b-scene-reward-list">${rewardItems(c, d).map(r => `<button type="button" class="b-scene-reward${r.probability ? '' : ' received'}" data-reward="${r.key}" data-probability="${r.probability}"${r.maxGrade ? ` data-max-grade="${r.maxGrade}"` : ''} style="--reward-color:${r.color}" aria-label="${esc(r.maxGrade ? `${t('장비')} · ${r.probability ? t('최고 {g}', { g: t(r.maxGrade) }) : t('이번 주 수령 완료')} · ${t('등급별 확률 보기')}` : `${r.name} · ${t('획득 확률 보기')}`)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="bRewardChance">
-      <span class="b-scene-reward-icon">${r.icon}</span><small>${r.label}</small></button>`).join('')}</div>
+    <div class="b-scene-reward-list">${rewardItems(c, d).map(r => `<button type="button" class="b-scene-reward${r.probability ? '' : ' received'}" data-reward="${r.key}" data-probability="${r.probability}"${r.maxGrade ? ` data-max-grade="${r.maxGrade}"` : ''} style="--reward-color:${r.color}" aria-label="${esc(r.maxGrade ? `${t('장비')} · ${r.probability ? t('최고 {g}', { g: t(r.maxGrade) }) : t('이번 주 수령 완료')} · ${t('등급별 확률 보기')}` : `${r.name} ${fmt(r.amount ?? 0)} · ${t('획득량 보기')}`)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="bRewardChance">
+      <span class="b-scene-reward-icon">${r.icon}</span></button>`).join('')}</div>
     ${lootLine(c)}
   </section>`;
 }
@@ -423,7 +423,7 @@ function positionRewardChance(): void {
   const tabs = document.getElementById('tabs')?.getBoundingClientRect();
   const bottom = Math.min(box.bottom, innerHeight, tabs?.height && tabs.top > box.top ? tabs.top : Infinity);
   const height = Math.max(0, bottom - box.top);
-  const w = Math.max(0, Math.min(230, box.width - 24));
+  const w = Math.max(0, Math.min(rewardKey === 'gold' ? 172 : 204, box.width - 24));
   pop.style.width = `${w}px`;
   pop.style.maxHeight = `${Math.max(0, height - 16)}px`;
   pop.style.left = `${Math.max(12, Math.min(box.width - w - 12, r.left - box.left + (r.width - w) / 2))}px`;
@@ -454,10 +454,10 @@ function openRewardChance(key: string): void {
       const p = reward.gradeOdds![g];
       return `<div class="b-grade-chance" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${t(g)}</dt><dd>${percent(p)}%</dd></div>`;
     }).join('')}</dl>` : ''
-    : `<strong>${percent(reward.probability)}%</strong>`;
+    : `<div class="b-reward-amount" data-amount="${reward.amount ?? 0}">${currencyAmount('gold', reward.amount ?? 0)}</div>`;
   s.el.insertAdjacentHTML('beforeend', `<div class="b-reward-chance" id="bRewardChance" role="dialog" aria-modal="false" aria-labelledby="bRewardChanceTitle" tabindex="-1" data-reward-key="${key}">
-    <button type="button" data-reward-close aria-label="${t('확률 안내 닫기')}">×</button>
-    <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
+    <button type="button" data-reward-close aria-label="${t('보상 안내 닫기')}">×</button>
+    <b id="bRewardChanceTitle">${esc(key === 'gold' ? t('기본 획득 골드') : reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
   </div>`);
   positionRewardChance();
   s.el.querySelector<HTMLElement>('.b-reward-chance')?.focus({ preventScroll: true });

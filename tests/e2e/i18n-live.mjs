@@ -77,6 +77,11 @@ export default async function i18nLive(url, shots) {
     await page.click('#s-party .tb-back'); await page.clock.runFor(100);
     const placeAlt = await page.locator('#s-content .b-gate img.b-art').getAttribute('alt');
     ok(!!placeAlt && !/[가-힣]/.test(placeAlt), `${lang}: 장소 그림의 대체 텍스트 번역`, placeAlt);
+    await page.click('#s-content [data-reward="gold"]'); await page.clock.runFor(50);
+    const gold = await page.locator('#bRewardChance').innerText();
+    ok(!/[가-힣%]/.test(gold) && /\d/.test(gold), `${lang}: 골드 팝업은 번역된 획득량 표시`, gold);
+    await page.screenshot({ path: `${shots}/i18n-${lang}-gold-reward.png` });
+    await page.keyboard.press('Escape');
     await toParty(page, { content: 'rustfort', tab: 'dungeon' });
     await departGo(page); await page.clock.runFor(4000);
     for (let i = 0; i < 30 && !(await page.isVisible('#s-settle')); i++) {
