@@ -113,10 +113,9 @@ export default async function adventureRewards(url,shots) {
             && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘 (장비 · 골드)·상세 팝업 제거`,rewards);
           const mainText=await page.locator('#s-content').innerText();
           ok(!/A\s*평가|보너스 제외|좌우로?\s*넘겨/.test(mainText),`${tag} ${tab}: 보상 기준·지역 넘기기 보조문구를 메인에서 제거`);
-          // 직전 장비 버튼의 누름 애니메이션이 끝난 뒤 실제 터치 영역을 잰다.
-          await page.clock.runFor(200);
+          // 누름 연출의 일시적인 scale을 제외하고 클릭 대상의 레이아웃 크기를 잰다.
           ok(await page.locator('.b-scene-reward').evaluateAll(els=>els.every(el=>!el.textContent.trim() && !el.querySelector('small')
-            && el.getBoundingClientRect().width>=44 && el.getBoundingClientRect().height>=44)),`${tag} ${tab}: 보상은 아이콘만 · 누르는 영역 44px 이상`);
+            && el.offsetWidth>=44 && el.offsetHeight>=44)),`${tag} ${tab}: 보상은 아이콘만 · 누르는 영역 44px 이상`);
           const selected=await page.locator('#contentGo').getAttribute('aria-label'),bad=[];
           for(const reward of rewards) {
             const button=page.locator(`[data-reward="${reward.key}"]`);
@@ -133,12 +132,12 @@ export default async function adventureRewards(url,shots) {
             if(reward.key==='gold') {
               const gold=await pop.locator('.b-reward-amount').evaluate(el=>({amount:Number(el.dataset.amount),text:el.querySelector('b').textContent,
                 icon:el.querySelector('.currency-icon')?.dataset.currency}));
-              if(!(gold.amount>0) || gold.text!==gold.amount.toLocaleString('ko-KR') || gold.icon!=='gold' || !state.text.includes('기본 획득 골드'))
+              if(!(gold.amount>0) || gold.text!==gold.amount.toLocaleString('ko-KR') || gold.icon!=='gold' || !state.text.includes('골드') || /클리어 시|A 평가/.test(state.text))
                 bad.push({key:reward.key,issue:'gold amount/icon instead of probability',gold});
             }
             if(reward.key==='gear') {
               const grades=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
-              if(!grades.ok || /장비 1개|보너스 제외/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis line',grades,text:state.text});
+              if(!grades.ok || /장비 1개|보너스 제외|최소|장비는 판마다/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis line',grades,text:state.text});
             }
             if(reward.key==='gear' || (tab==='dungeon' && reward.key==='gold'))
               await page.screenshot({path:`${shots}/departure-reward-chance-${reward.key}-${tab}-${id}-${width}x${height}.png`});

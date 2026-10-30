@@ -165,14 +165,14 @@ describe('클리어 골드 (12 3-1, 91에서 되살림)', () => {
   it('정산에 들어가고 저장됨, 지면 없음. 탐험은 × 0.35 (튜토리얼 뒤)', () => {
     const s = newSave(1);
     const x = settle(s, res({}), () => 0.5);
-    expect(x.gold).toBe(restRun(clearGold(x.items[0].lv!, '보통', x.grade!))); // 튜토리얼 보상은 튜토리얼 판만 (103): 녹슨 요새는 보통 판 (휴식 판)
+    expect(x.gold).toBe(restRun(clearGold(x.items[0].lv!, '보통', 'A'))); // 일반 전투 골드는 표시한 A 기준 고정액
     expect(s.player.gold).toBe(x.gold);
     const y = settle(s, res({ win: false }), () => 0.5);
     expect(y.gold).toBe(0);
     s.tut = TUT.done; s.player.level = 30;
     const z = settle(s, res({ content: 'cemetery' as BattleResult['content'], diff: '악몽' }), () => 0.5);
-    expect(z.items).toEqual([]); // 탐험 장비는 판마다 50% (103): rng 0.5면 안 나옴
-    expect(z.gold).toBe(restRun(clearGold(stageOf(contentOf('cemetery'), '악몽'), '악몽', z.grade!) * EXPLORE_REWARD)); // 튜토리얼 뒤 휴식 판 = 예전의 2/3 (90, 2026-10-17), 튜토리얼 판은 그대로
+    expect(z.items).toHaveLength(1); // 탐험도 클리어하면 확정 1개
+    expect(z.gold).toBe(restRun(clearGold(stageOf(contentOf('cemetery'), '악몽'), '악몽', 'A') * EXPLORE_REWARD));
   });
 });
 

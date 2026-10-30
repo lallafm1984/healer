@@ -230,7 +230,6 @@ const en: Record<string, string> = {
   '다시 깬 판 (첫 보상은 받음)': 'Repeat clear (first reward claimed)',
   '클리어 시': 'On clear',
   '클리어 시 · A 평가': 'On clear · A rank',
-  '기본 획득 골드': 'Base Gold Reward',
   '획득량 보기': 'View Amount',
   '보상 안내 닫기': 'Close Reward Details',
   '획득 보상': 'Loot',

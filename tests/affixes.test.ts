@@ -365,7 +365,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const s = save(34), m = runMode(s, contentOf('snowlab'), '어려움', { chal: 0 });
     expect(m).toMatchObject({ stage: 34, affixes: ['rage'], chal: 0 });
     const x = settle(s, result({ content: 'snowlab', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(restRun(clearGold(34, '어려움', 'S'))); // 휴식 판 = 예전의 2/3 (90, 2026-10-17)
+    expect(x.gold).toBe(restRun(clearGold(34, '어려움', 'A'))); // 출전 표시와 같은 기본 골드 · 평가는 경험치에만 반영
     expect(x.xp).toBe(restRun(clearXp(34, '어려움', 'S', { win: true })));
     // 내 레벨이 높아도 녹슨 요새 어려움은 Lv 9 · 격노 없음
     expect(runMode(save(52), contentOf('rustfort'), '어려움', { chal: 0 })).toMatchObject({ stage: 9, affixes: [] });

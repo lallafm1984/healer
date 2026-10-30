@@ -218,7 +218,7 @@ function itemsHtml(x: Settlement): string {
   // 레이드 칸 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): 첫 클리어 = 레이드 보상, 다시 깬 판 = 던전과 같은 표 (월요일 오전 6시에 다시)
   const week = x.raidLoot === 'first' ? `<p class="r-item none week first">${t('이번 주 첫 클리어 보상')}</p>`
     : x.raidLoot === 'again' ? `<p class="r-item none week">${t('이번 주 첫 보상은 받음 · 월요일 오전 9시에 다시')}</p>` : '';
-  // 장비가 안 나온 판 (탐험 판마다 EXPLORE_DROP, 103)은 아무 줄도 없음 (2026-10-24 Lim 「이번 판 장비 없음」 줄 뺌)
+  // 받은 장비만 표시한다 (2026-10-24 Lim 「이번 판 장비 없음」 줄 뺌).
   return week + x.items.map(it => itemRow(it.id)).join('');
 }
 

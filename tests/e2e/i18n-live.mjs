@@ -79,6 +79,8 @@ export default async function i18nLive(url, shots) {
     ok(!!placeAlt && !/[가-힣]/.test(placeAlt), `${lang}: 장소 그림의 대체 텍스트 번역`, placeAlt);
     await page.click('#s-content [data-reward="gold"]'); await page.clock.runFor(50);
     const gold = await page.locator('#bRewardChance').innerText();
+    const previewGold = Number(await page.locator('#bRewardChance [data-amount]').getAttribute('data-amount'));
+    const walletBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')).player.gold);
     ok(!/[가-힣%]/.test(gold) && /\d/.test(gold), `${lang}: 골드 팝업은 번역된 획득량 표시`, gold);
     await page.screenshot({ path: `${shots}/i18n-${lang}-gold-reward.png` });
     await page.keyboard.press('Escape');
@@ -88,6 +90,15 @@ export default async function i18nLive(url, shots) {
       if (await page.isVisible('#rest')) { await page.click('#restGo'); await page.clock.runFor(3500); }
       else { await killEnemies(page); await page.clock.runFor(1500); }
     }
+    const paid = await page.locator('#s-settle .r-cur:has([data-currency="gold"])').evaluate(el => {
+      const amount = el.querySelector('.r-cv > b'), counter = amount.querySelector('[data-rc-to]');
+      const total = counter ? Number(counter.dataset.rcTo) : Number(amount.textContent.replace(/[^0-9]/g, ''));
+      const bonus = Number((el.querySelector('.r-rest-tag')?.textContent ?? '').replace(/[^0-9]/g, ''));
+      return { total, base: total - bonus };
+    });
+    const walletAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')).player.gold);
+    ok(paid.base === previewGold && walletAfter - walletBefore === paid.total,
+      `${lang}: 표시한 기본 골드 = 결과 기본액 · 별도 휴식 보너스 포함 총액이 실제 잔액에 반영`, { previewGold, paid, walletBefore, walletAfter });
     const nextLabel = await page.locator('#s-settle #next b').innerText();
     ok(lang === 'en' ? nextLabel === 'Next Battle' : nextLabel.startsWith('次の'), `${lang}: 결과의 다음 전투 버튼 문구`, nextLabel);
     await page.screenshot({ path: `${shots}/i18n-${lang}-next-battle.png` });
