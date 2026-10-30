@@ -405,6 +405,7 @@ const en: Record<string, string> = {
   '다시 도전': 'Retry',
   '{n}단계 도전': 'Try Tier {n}',
   '다음 {k}': 'Next {k}',
+  '다음 전투': 'Next Battle',
   '엔딩': 'Ending',
   '심장이 멈췄다': 'The Heart Has Stopped',
   '햇살 축제로': 'To the Sunlight Festival',
