@@ -142,7 +142,7 @@ export function debuffTag(d: Debuff): { long: string; short: string } {
   if (d.invert) return { long: t('치유 반전'), short: t('반전') };
   if (d.cap != null) return { long: t('치유 상한'), short: t('상한') };
   if (d.over) return one(t('넘침'));
-  if (d.noDps) return one(d.noMove ? '기절' : '침묵');
+  if (d.noDps) return one(d.noMove ? t('기절') : t('침묵'));
   if (d.noMove) return one(t('묶임'));
   if (d.vuln) return one(t('피해↑'));
   if (d.healCut) return one(t('치유↓'));
@@ -154,7 +154,7 @@ export function debuffTag(d: Debuff): { long: string; short: string } {
   if (e?.p === 'spread') return one(t('번짐'));
   if (e?.p === 'jump') return { long: t('옮겨붙음'), short: t('옮김') };
   if (d.trap || e) return one(t('폭발'));
-  return one(d.name);
+  return one(t(d.name));
 }
 
 export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {

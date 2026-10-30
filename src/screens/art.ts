@@ -127,7 +127,7 @@ export function classEmblem(hero: string, size: 'sm' | 'md' | 'lg' | 'xl' = 'md'
   const e = EMBLEM[hero] || EMBLEM.priest, img = art(`emblem-${hero}`);
   // 그린 문장(emblem-<직업>)이 있으면 그 그림, 없으면 선 아이콘 (28 7장)
   const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e.path}</svg>`;
-  return `<span class="emblem emblem-${size}${hero === 'warder' ? ' dark' : ''}" style="--em:${e.color}" role="img" aria-label="${e.name}">${inner}</span>`;
+  return `<span class="emblem emblem-${size}${hero === 'warder' ? ' dark' : ''}" style="--em:${e.color}" role="img" aria-label="${t(e.name)}">${inner}</span>`;
 }
 
 /** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 해바라기 언덕 해바라기 · 심연 소용돌이 눈 (10 4장) · 해적단 닻 (46 0-2) · 요정단 광대버섯 갓 + 반딧불 · 용 일가 불꽃 (48 0장) · 모래 왕국 해 + 모래시계 (54 0장) */

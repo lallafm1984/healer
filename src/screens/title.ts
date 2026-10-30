@@ -16,7 +16,7 @@ const motes = [
   [74, 81, -18, 12], [7, 46, 17, 13], [80, 28, -12, 16],
 ];
 
-const s = screen('s-title', t('타이틀'), {
+const s = screen('s-title', '타이틀', {
   enter() {
     stopMotion();
     prepareTitleBloom();

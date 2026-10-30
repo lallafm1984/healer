@@ -1,6 +1,6 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import { syncBgm } from '../bgm';
-import { lang, locale, t } from '../i18n';
+import { lang, locale, onLangChange, t } from '../i18n';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -69,6 +69,7 @@ export const goingBack = (): boolean => backNav;
 export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}): Screen {
   const el = document.createElement('section');
   el.id = id; el.className = 'screen ns'; el.hidden = true; el.setAttribute('aria-label', t(label));
+  onLangChange(() => el.setAttribute('aria-label', t(label)));
   $('app').appendChild(el);
   const s = { el, ...def };
   screens.set(id, s);

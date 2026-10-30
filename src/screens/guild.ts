@@ -49,7 +49,7 @@ const MEMBER_SORTS: { key: MemberSort; label: string }[] = [
 const memberView: { role: MemberRole; sort: MemberSort } = { role: 'any', sort: 'level' };
 let postReplace = false;
 
-const s = screen('s-guild', t('길드'), { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, realOpen, Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.ask = null; st.help = false; postReplace = false; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshReqs(G.save, realOpen, Math.random); refreshExped(G.save, realOpen); refreshPost(G.save, Math.random); commit(); } if (!goingBack()) { st.sub = 'home'; memberView.role = 'any'; } st.sheet = null; st.ask = null; st.help = false; postReplace = false; render(); } });
 s.el.classList.add('g-hall');
 // 「새로 뽑기」 쿨타임 글: 영입 탭이 보이는 동안 분 단위로 고치고, 다 되면 다시 그림
 setInterval(() => {
@@ -212,7 +212,7 @@ function todoSec(): Sec {
     <span class="g-rs"><b class="g-num">${xd}<small> / ${ex.length}</small></b>${expedReady(G.save) ? `<button class="btn mini primary" type="button" id="expedChest">${t('상자 받기')}</button>` : g.exped.got ? okPill(t('받음')) : famePill(EXPED.fame)}</span></li>
     <li class="g-exped-places" id="guild-exped-places"><ul class="g-places" aria-label="${t('주간 원정 장소')}">${places}</ul></li>` : '';
   const reqs = g.reqs.list.map(q => `<li class="g-row g-job${q.done ? ' done' : ''}"><span class="g-ri">${IC.req()}</span><div class="g-rm"><div class="g-job-title"><b>${esc(nickOf(q.nick))}</b>${q.done ? '' : `<span class="g-rewards">${pill('', t('경험치 ×{n}', { n: REQ.xpMult }), 'xp', esc(nickOf(q.nick)))}</span>`}</div><span class="g-sub wrap">${placeName(q.content)} · ${t('{d} 이상', { d: esc(t(q.diff)) })}</span></div>
-    <span class="g-rs">${q.done ? `<span class="g-rewards">${okPill(t('완료'))}</span>` : `<button class="btn mini primary" type="button" data-goto="${esc(q.content)}" data-gdiff="${esc(q.diff)}" data-gneed="${esc(q.nick)}" aria-label="${t('{n} 부탁 · {p} 장소 보기', { n: esc(q.nick), p: placeName(q.content) })}">${t('장소 보기')}</button>`}</span></li>`).join('');
+    <span class="g-rs">${q.done ? `<span class="g-rewards">${okPill(t('완료'))}</span>` : `<button class="btn mini primary" type="button" data-goto="${esc(q.content)}" data-gdiff="${esc(q.diff)}" data-gneed="${esc(q.nick)}" aria-label="${t('{n} 부탁 · {p} 장소 보기', { n: esc(nickOf(q.nick)), p: placeName(q.content) })}">${t('장소 보기')}</button>`}</span></li>`).join('');
   const left = (w.got ? 0 : 1) + (ex.length && !g.exped.got ? 1 : 0) + g.reqs.list.filter(q => !q.done).length;
   return {
     key: 'todo', flat: true, icon: IC.goal(), title: t('할 일'), meta: left ? t('{n}개 남음', { n: left }) : t('완료'), sum: w.n >= need && !w.got || expedReady(G.save) ? t('보상 받기') : left ? t('{n}개 남음', { n: left }) : t('완료'), dot: jobsDot(G.save) || (w.n >= need && !w.got), body: `<h3 class="g-job-group">${t('오늘의 부탁')}<span class="g-group-meta"><small>${t('{a}/{b} 완료', { a: g.reqs.list.filter(q => q.done).length, b: g.reqs.list.length })}</small></span></h3><ul class="g-rows">${reqs || `<li class="g-empty0">${g.members.length ? t('새 부탁 없음') : t('길드원 영입 뒤 부탁 도착')}</li>`}</ul><h3 class="g-job-group">${t('이번 주')}</h3><ul class="g-rows">${goal}${exped}</ul>`,

@@ -470,7 +470,7 @@ const qIc = (ic: string, kind: string | undefined, name: string, cls = 'ic') => 
 export function buildStage(): void {
   const F = fight(), R = S.run!;
   const ticks = new Set<number>();
-  for (const p of guideOf(F).phases) { const m = /^체력 (\d+)%/.exec(p.at); if (m && +m[1] > 0 && +m[1] < 100) ticks.add(+m[1] / 100); }
+  for (const p of guideOf(F).phases) if (p.hpAt != null && p.hpAt > 0 && p.hpAt < 1) ticks.add(p.hpAt);
   const total = F.mobs.reduce((a, m) => a + m.max, 0), boss = F.mobs.filter(m => m.boss).reduce((a, m) => a + m.max, 0);
   if (total > 0 && boss > 0 && boss < total) ticks.add(boss / total);
   $('bossTicks').innerHTML = [...ticks].map(v => `<i style="left:${(v * 100).toFixed(1)}%"></i>`).join('');
@@ -676,7 +676,7 @@ function drawPreview(u: Unit): void {
     // 종류 이름은 지울 수 있을 때만 (물리 · 해제 안 됨은 종류가 아무 뜻이 없음, 2026-10-28 Lim 「물리가 무슨 뜻인지 모른다」)
     const b = debuffBrief(d), kind = [dispellable(d) ? t(d.type) : '', d.stack ? t('{n}중첩', { n: d.stack }) : ''].filter(Boolean).join(' ');
     const paren = [kind, Number.isFinite(d.left) ? t('{n}초', { n: Math.ceil(d.left) }) : ''].filter(Boolean).join(', '); // 끝없는 깊은 상처 (어픽스)는 초 없이
-    items.push(`${d.name}${paren ? ` (${paren})` : ''}${b ? ` · ${b}` : ''}`);
+    items.push(`${t(d.name)}${paren ? ` (${paren})` : ''}${b ? ` · ${b}` : ''}`);
   }
   if (u.hot > 0) items.push(t('소생 {n}초', { n: Math.ceil(u.hot) }));
   for (const h of u.hots) items.push(t('{s} {n}초 (남은 회복 {r})', { s: t(h.name), n: Math.ceil(h.left), r: Math.round(h.rest) }));

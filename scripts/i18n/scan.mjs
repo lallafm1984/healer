@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const RE = /(?<![\w.$])(?:t\(\s*|msg\(\s*\w+\s*,\s*)(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g; // t('…') · 엔진 알림 msg(f, '…') (121 ⑥-2)
+const RE = /(?<![\w.$])(?:t\(\s*|(?:msg|screen)\(\s*(?:\w+|'[^']*'|"[^"]*")\s*,\s*)(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g; // t('…') · msg(f, '…') · screen('id', '한국어 이름')
 const unescape = s => s.replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c));
 
 export function walk(dir) {

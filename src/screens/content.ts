@@ -262,7 +262,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), lk = lockOf(c), pl = PLACES[pa.place];
   const other = lk.locked ? otherHeroFor(lk.lv) : null;
   const status = !c.ready ? tc('준비 중', 'content') : other ? t('{h} Lv {n}로 입장 가능', { h: t(HEROES[other.hero].name), n: other.lv }) : lk.locked ? t('Lv {n}에 열림', { n: lk.lv }) : '';
-  const scene = pa.url ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">` : '';
+  const scene = pa.url ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(t(pl.name))}" decoding="async" draggable="false">` : '';
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="${t('출전할 곳')} · ${esc(t(c.name))}">
     ${scene}<div class="b-gate-shade"></div>
     <div class="b-gt"><span class="b-gn">${adventureRegionOf(c).name === c.name ? '' : `<small>${esc(t(adventureRegionOf(c).name))}</small>`}<b>${esc(t(c.name))}</b></span></div>
@@ -316,7 +316,7 @@ function cta(c: ContentDef | null, d: DiffName): string {
   return `<button type="button" class="g-cta" id="contentGo" aria-label="${t('출전')} · ${esc(sub)}"${ok ? '' : ' disabled'}><span class="g-mk" aria-hidden="true">${mk}</span><span class="g-ct"><b>${t('출전')}</b></span>${departureArrow()}</button>`;
 }
 
-const s = screen('s-content', t('모험 선택'), {
+const s = screen('s-content', '모험 선택', {
   tab: 'battle',
   // arg = 열 분류 (로비: 주간 도전 → dungeon, 레이드 팻말 → raid10 · raid20) 또는 고를 장소 · 난이도 (로비 「출전」 · 다음 목표 · 길드 부탁).
   // 없으면 첫 분류 탐험 (2026-10-21 Lim 「각 메뉴에 들어갔을때 그전의 탭화면을 유지 하지 말고 항상 첫번째 탭」), 「←」로 돌아오면 보던 분류

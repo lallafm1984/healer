@@ -53,7 +53,7 @@ let sheetKey = '';
 /** 다른 화면에서는 장비 정보를 읽기 전용으로 표시한다. 배경 화면은 유지한다. */
 let itemOverlay: { origin: string; previousSub: Sub; onClose: () => void } | null = null;
 
-const s = screen('s-char', t('캐릭터'), {
+const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (itemOverlay) sub = itemOverlay.previousSub;

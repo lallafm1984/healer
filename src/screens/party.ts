@@ -43,7 +43,7 @@ function withNeeded(pick: number[], nick: string | undefined): number[] {
   const at = pick.map(role).lastIndexOf(CLASSES[m.cls].role), i = at >= 0 ? at : pick.length - 1;
   return pick.map((id, k) => (k === i ? m.id : id));
 }
-const s = screen('s-party', t('파티 편성'), {
+const s = screen('s-party', '파티 편성', {
   enter() {
     if (!Flow.party) {
       roll();

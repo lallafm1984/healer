@@ -10,6 +10,24 @@ const text = (h: string) => h.replace(/<[^>]+>/g, ' ');
 
 describe('공략 시트 영어 · 일본어', () => {
   afterAll(async () => { await setLang('ko'); });
+  it('보스 체력 눈금은 모든 언어에서 같고 기존 한국어 눈금과 일치한다', async () => {
+    await setLang('ko');
+    const expected = new Map<string, number[]>();
+    const ticks = (phases: ReturnType<typeof guideModel>['phases']) => [...new Set(phases.flatMap(p => p.hpAt != null && p.hpAt > 0 && p.hpAt < 1 ? [p.hpAt] : []))];
+    for (const key of Object.keys(ENCOUNTERS) as EncounterKey[]) for (const diff of Object.keys(DIFFS) as DiffName[]) {
+      const g = guideModel(key, diff, 30, 30);
+      const legacy = [...new Set(g.phases.flatMap(p => { const m = /^체력 (\d+)%/.exec(p.at); return m && +m[1] > 0 && +m[1] < 100 ? [+m[1] / 100] : []; }))];
+      expect(ticks(g.phases), `${key}|${diff}`).toEqual(legacy);
+      expected.set(`${key}|${diff}`, legacy);
+    }
+    expect(expected.get('warden|보통')).toEqual([0.4]);
+    for (const lang of ['en', 'ja'] as const) {
+      await setLang(lang);
+      for (const key of Object.keys(ENCOUNTERS) as EncounterKey[]) for (const diff of Object.keys(DIFFS) as DiffName[])
+        expect(ticks(guideModel(key, diff, 30, 30).phases), `${lang} ${key}|${diff}`).toEqual(expected.get(`${key}|${diff}`));
+    }
+    await setLang('ko');
+  });
   for (const lang of ['en', 'ja'] as const) {
     it(`${lang}: 모든 장소 × 난이도의 공략 글에 한국어가 없다`, async () => {
       await setLang(lang);

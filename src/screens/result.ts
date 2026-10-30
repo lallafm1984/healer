@@ -39,7 +39,7 @@ import { lootSound } from './ui-sound';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
-const st = screen('s-settle', t('전투 결과'), { enter() { itemDetailOpen = false; deferredPopups = []; setResultWin(!!Flow.result?.win && !Flow.result?.quit); render(); } });
+const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; setResultWin(!!Flow.result?.win && !Flow.result?.quit); render(); } });
 const resultModal = sheetDialog(st.el, () => closeResultPopup(st.el));
 
 /** 머리 뒤에 장소 그림 (28 4장) */

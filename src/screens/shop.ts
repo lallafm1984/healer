@@ -29,7 +29,7 @@ import { now as gameNow } from '../platform/time';
 /** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」, 앞 「cash」는 예전 하위 탭 이름), from = 뒤로 갈 화면 */
 const st: { focus: string; from: string } = { focus: '', from: 's-lobby' };
 
-const s = screen('s-shop', t('상점'), {
+const s = screen('s-shop', '상점', {
   enter(arg) {
     // 설정에서 돌아올 때는 처음 들어온 화면을 그대로 둠
     if (previous !== 's-settings' && previous !== 's-shop') st.from = previous || 's-lobby';

@@ -20,7 +20,10 @@ export function translateStatic(root: ParentNode): void {
     const next = m[1] + t(m[2]) + m[3];
     if (n.data !== next) n.data = next;
   }
-  for (const el of (root as Element).querySelectorAll(ATTRS.map(a => `[${a}]`).join(','))) {
+  const selector = ATTRS.map(a => `[${a}]`).join(',');
+  const elements = [...root.querySelectorAll(selector)];
+  if (root instanceof Element && root.matches(selector)) elements.unshift(root);
+  for (const el of elements) {
     for (const a of ATTRS) {
       const v = el.getAttribute(a);
       if (v == null) continue;
@@ -35,7 +38,7 @@ export function translateStatic(root: ParentNode): void {
 
 /** 앱 시작 (main.ts): 정적 글을 지금 언어로, 언어가 바뀌면 다시 */
 export function mountI18n(): void {
-  const run = () => ['adBanner', 'rest', 'battle'].forEach(id => { const el = document.getElementById(id); if (el) translateStatic(el); });
+  const run = () => ['adBanner', 'rest', 'battle', 'tabs'].forEach(id => { const el = document.getElementById(id); if (el) translateStatic(el); });
   run();
   onLangChange(run);
 }
