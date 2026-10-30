@@ -379,7 +379,7 @@ const gear: Record<string, string> = {
   '빛의 파도 범위 +{v}칸': 'Light Wave range +{v} tiles',
   '빛의 성역 효과 시간 +{v}': 'Sanctuary of Light duration +{v}',
   '희생으로 나눠 받는 비율 +{v}, 내가 받는 피해 −20%': 'Sacrifice share +{v}; you take −20% damage',
-  '「치유」 회복량 +{v}': '「Heal」 healing +{v}',
+  '「치유」 회복량 +{v}': '“Heal” healing +{v}',
   '순간 치유 회복량 +{v}': 'Flash Heal healing +{v}',
   '치유의 기원 회복량 +{v}': 'Prayer of Healing healing +{v}',
   '성언: 평온 회복량 +{v}': 'Holy Word: Serenity healing +{v}',

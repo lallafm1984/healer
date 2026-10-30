@@ -50,8 +50,8 @@ for (const c of CONTENT) {
 export function milestonesAt(level: number, hero: HeroKey): Milestone[] {
   const def = HEROES[hero];
   const skills = Object.values(def.slots).flatMap(key => key && SKILLS[key].lv === level
-    ? [{ text: `스킬 「${SKILLS[key].name}」`, live: true }] : []);
-  const passives = def.passives.filter(p => p.lv === level).map(p => ({ text: `패시브 「${p.name}」`, live: true }));
+    ? [{ text: `스킬 「${SKILLS[key].name}」`, live: true, tpl: '스킬 「{n}」', arg: SKILLS[key].name }] : []);
+  const passives = def.passives.filter(p => p.lv === level).map(p => ({ text: `패시브 「${p.name}」`, live: true, tpl: '패시브 「{n}」', arg: p.name }));
   const system = def.system.lv === level ? [{ text: def.system.name, live: true }] : [];
   return [...(MILESTONES[level] ?? []).filter(m => !m.hero || m.hero === hero), ...skills, ...passives, ...system];
 }

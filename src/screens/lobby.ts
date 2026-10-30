@@ -46,7 +46,7 @@ const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt=""
  */
 interface Goal { title: string; tag?: DiffName; sub: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
 /** 목표 한 줄 글 (aria · 두 번째 줄) */
-const goalText = (g: Goal) => `${g.title}${g.tag ? ` · ${g.tag}` : ''}${g.sub && !g.tag ? ` · ${g.sub}` : ''}`;
+const goalText = (g: Goal) => `${t(g.title)}${g.tag ? ` · ${t(g.tag)}` : ''}${g.sub && !g.tag ? ` · ${g.sub}` : ''}`; // 장소 · 난이도는 보여 줄 때 번역 (한국어는 그대로)
 /** 좁은 리넨 표에는 스킬·장소 이름만, 접근성 설명에는 분류를 포함한 원래 목표 정보를 유지한다. */
 const shortGoalText = (g: Goal) => goalText(g).replace(/(?:스킬|탐험|던전|레이드)\s*「([^」]+)」/g, '$1');
 /** 두 번째 줄은 「 · 」 사이에서만 줄을 바꾼다 (장소 이름 「역병 약초 / 온실」처럼 이름 중간에서 끊기지 않게) */
@@ -120,8 +120,8 @@ function tracker(): string {
   const gs = goals(), to = gs.findIndex(g => g.to);
   const [first, ...rest] = gs;
   const main = first
-    ? `<strong class="trk-t">${esc(first.title)}</strong>
-      <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(first.tag)}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
+    ? `<strong class="trk-t">${esc(t(first.title))}</strong>
+      <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(t(first.tag))}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
     : `<strong class="trk-t">${t('마을 정비')}</strong>`;
   const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${shortGoalHtml(g)}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0

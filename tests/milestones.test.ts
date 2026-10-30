@@ -47,7 +47,7 @@ describe('현재 직업의 레벨업 안내', () => {
   });
 
   it('로비 다음 목표도 현재 직업 기준이며 최대 레벨 뒤에는 없음', () => {
-    expect(nextMilestone(1, 'druid')).toEqual({ level: 2, items: [{ text: '스킬 「피워 내기」', live: true }] });
+    expect(nextMilestone(1, 'druid')).toEqual({ level: 2, items: [{ text: '스킬 「피워 내기」', live: true, tpl: '스킬 「{n}」', arg: '피워 내기' }] }); // tpl · arg = 영어 · 일본어 이정표 (121)
     expect(nextMilestone(100, 'priest')).toBeNull();
     expect(levelUpMilestones([], 'priest')).toEqual([]);
   });

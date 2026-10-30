@@ -78,21 +78,21 @@ function render(): void {
       ${card('screen', 'eye', t('전투 화면'), [`<div class="st-col">${tog('reducedEffects', t('시각 효과 줄이기'))}<p class="g-sub wrap">${t('피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.')}</p></div>`])}
       ${accountView().on ? card('account', 'char', t('계정'), accountRows()) : ''}
       ${card('info', 'info', t('공지'), [`<span class="st-label">${t('운영 공지')}</span><button class="btn st-open" type="button" id="noticeOpen">${t('보기')}</button>`])}
-      <section class="group dev"><h2>개발 빌드</h2>
-        ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
-        ${tog('autoNovice', '자동 치유를 초보처럼')}<p>처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.</p>
-        ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
-        ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
-        ${tog('devJobs', '전 직업 선택')}<p>구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.</p>
-        ${tog('devGold', '골드 무제한')}<p>골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
-        ${tog('devStamina', '휴식 무제한')}<p>클리어해도 휴식이 줄지 않고 휴식 보너스가 늘 붙습니다.</p>
+      <section class="group dev"><h2>${t('개발 빌드')}</h2>
+        ${tog('auto', t('자동 치유 (일시정지에서도 켜고 끔)'))}
+        ${tog('autoNovice', t('자동 치유를 초보처럼'))}<p>${t('처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.')}</p>
+        ${tog('devUnlock', t('레벨 잠금 무시 (던전·레이드)'))}
+        ${tog('allSkills', t('스킬 전부 열기 (레벨 무관)'))}
+        ${tog('devJobs', t('전 직업 선택'))}<p>${t('구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.')}</p>
+        ${tog('devGold', t('골드 무제한'))}<p>${t('골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.')}</p>
+        ${tog('devStamina', t('휴식 무제한'))}<p>${t('클리어해도 휴식이 줄지 않고 휴식 보너스가 늘 붙습니다.')}</p>
         <div class="row dev-level">
-          <button class="btn" type="button" id="devLevelUp"${lvLock ? ' disabled' : ''}>레벨 +${TEST_LEVEL_STEP}</button>
-          <button class="btn" type="button" id="devMaxLevel"${lvLock ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
+          <button class="btn" type="button" id="devLevelUp"${lvLock ? ' disabled' : ''}>${t('레벨 +{n}', { n: TEST_LEVEL_STEP })}</button>
+          <button class="btn" type="button" id="devMaxLevel"${lvLock ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? t('{n}레벨 적용됨', { n: MAX_LEVEL }) : t('{n}레벨로 변경', { n: MAX_LEVEL })}</button>
         </div>
-        <p id="devLevelStatus" role="status">현재 Lv. ${G.save.player.level}${Flow.running ? ' · 정산 후 변경 가능' : ' · 장비·재화 유지'}</p>
-        <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
-        <button class="btn" type="button" id="resetSave">${confirmReset ? '한 번 더 누르면 삭제' : '저장 지우고 처음부터'}</button>
+        <p id="devLevelStatus" role="status">${t('현재 Lv. {n}', { n: G.save.player.level })}${Flow.running ? ` · ${t('정산 후 변경 가능')}` : ` · ${t('장비·재화 유지')}`}</p>
+        <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? t('튜토리얼 건너뛰기') : t('튜토리얼 다시 보기 (레벨·장비는 그대로)')}</button>
+        <button class="btn" type="button" id="resetSave">${confirmReset ? t('한 번 더 누르면 삭제') : t('저장 지우고 처음부터')}</button>
       </section>
     </div>`;
 }

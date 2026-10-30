@@ -252,7 +252,7 @@ function slotHtml(key: SlotKey): string {
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${t(name)} · ${esc(qualityTxt(it) + gearName(it))} · ${t(it.grade)}${specLabel(it)}${it.lock ? ` · ${t('잠김')}` : ''}">
       <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${newFx(it, 's')}${specDots(it)}</span>
-      <b>${it.lock ? LOCK : ''}${name}</b></button>`;
+      <b>${it.lock ? LOCK : ''}${t(name)}</b></button>`; // 장착 칸 이름도 번역 (빈 칸은 이미 t)
 }
 
 /**

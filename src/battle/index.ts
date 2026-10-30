@@ -595,9 +595,9 @@ function handleEvents(now: number): void {
       }
       case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
         if (!u) break;
-        if (ev.fumble) { fxNote(u, t('{s} 헛씀', { s: t(ev.name) }), 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
-        if (ev.weak) fxNote(u, `${t(ev.name)} ${t(ev.weak)}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
-        fxAbility(u, ev.name, now);
+        if (ev.fumble) { fxNote(u, t('{s} 헛씀', { s: tc(ev.name, 'ab') }), 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
+        if (ev.weak) fxNote(u, `${tc(ev.name, 'ab')} ${t(ev.weak)}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
+        fxAbility(u, tc(ev.name, 'ab'), now); // 파티원 능력 이름 (영어 · 일본어는 이름 사전, 예전엔 한국어 그대로 떴음)
         const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
         if (fx) fxPxf(u, fx, now);
         break;

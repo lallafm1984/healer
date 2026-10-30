@@ -156,9 +156,9 @@ function setSlotArt(el: HTMLElement, key: SkillKey): void {
 
 /** 주시 (P-AGGRO, 35 4-4): 눈 게이지 % 또는 노리는 남은 초. 무력화 (P-STAGGER, 35 4-5): 힘 모으기 남은 초 */
 function watchText(F: Fight): string {
-  if (F.stagger) return ` · ${F.stagger.name} ${Math.ceil(F.stagger.until - F.t)}`;
+  if (F.stagger) return ` · ${t(F.stagger.name)} ${Math.ceil(F.stagger.until - F.t)}`;
   const v = F.vessel;
-  if (v) return ` · ${v.name} ${Math.min(99, Math.floor((v.fill / v.need) * 100))}% ${Math.ceil(v.until - F.t)}`;
+  if (v) return ` · ${t(v.name)} ${Math.min(99, Math.floor((v.fill / v.need) * 100))}% ${Math.ceil(v.until - F.t)}`;
   const w = F.watch;
   if (!w) return ''; // 내 위협 (96)은 안 보임 (2026-10-19 Lim 「어그로 게이지는 보이지않게」, 엔진 셈은 그대로)
   return F.t < w.until ? ` · ${t('주시 중 {n}', { n: Math.ceil(w.until - F.t) })}` : ` · ${t('주시 {n}%', { n: Math.min(99, Math.floor((w.fill / w.max) * 100)) })}`;
