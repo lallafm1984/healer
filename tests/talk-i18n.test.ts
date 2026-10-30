@@ -28,7 +28,8 @@ const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS, 'hello', 'go', 'winClean', 'bus
   'debDisease', 'phase', 'lastStand', 'cured', 'linkOn', 'debMagic', 'trapMark', 'fullHp', 'fullMark', 'manaEmpty', 'adds', 'maxCut',
   'selfDown', 'groupHeal', 'staggerStart', 'bomb', 'safeCall', 'addDown', 'daze', 'staggerWin', 'drainAdd', 'linkShare', 'orderStart', 'invertOn',
   'win', 'allFull', 'bigHeal', 'jailed', 'manaLow', 'offTank', 'swarm', 'debCurse', 'vesselOn', 'pylon', 'padsCall', 'padGo',
-  'retry', 'loseClose', 'pullHard', 'winClose', 'guildGo', 'guildSaved', 'guildFirst', 'dodgeOk', 'longFight', 'enrageSoon', 'guildTame', 'allyRevived', 'sulkEnd', 'fleeBack'];
+  'retry', 'loseClose', 'pullHard', 'winClose', 'guildGo', 'guildSaved', 'guildFirst', 'dodgeOk', 'longFight', 'enrageSoon', 'guildTame', 'allyRevived', 'sulkEnd', 'fleeBack',
+  'abDef', 'shieldOn', 'abAtk', 'healCrit', 'aheal', 'fixate', 'charmed', 'watchOn', 'overheal', 'abCtl', 'zoneStand', 'abHeal', 'pullEasy', 'counterOk', 'overMark', 'addOnMe'];
 
 describe('파티원 대사 사전', () => {
   afterAll(async () => { await setLang('ko'); });
