@@ -1,6 +1,6 @@
 // 번역 사전만 있어도 표시 경로에서 t()를 빠뜨리면 한국어가 남는다. 실제 언어 전환 · 장소 그림 · 전투 상세 · HP 단계선을 확인한다.
 import { chromium } from 'playwright';
-import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, killEnemies, pastTitle, patchSave, toParty } from './nav.mjs';
 
 export default async function i18nLive(url, shots) {
   const browser = await chromium.launch();
@@ -40,6 +40,14 @@ export default async function i18nLive(url, shots) {
       return { text: el.textContent, lines: ink.length, fits: ink.every(r => r.left >= box.left + 8 && r.right <= box.right - 8) };
     });
     ok(embark.lines === 1 && embark.fits, `${lang}: 출전 버튼 글자 전체가 한 줄로 표시`, embark);
+    const goal = await page.locator('#s-lobby .lb-trk.gate').evaluate(card => {
+      const title = card.querySelector('.trk-t'), r = document.createRange(); r.selectNodeContents(title);
+      const box = card.getBoundingClientRect(), level = card.querySelector('.trk-tl small').getBoundingClientRect();
+      const row = card.querySelector('.obj').getBoundingClientRect();
+      return { text: title.textContent, ellipsis: getComputedStyle(title).textOverflow,
+        fits: [...r.getClientRects()].every(t => t.left >= box.left && t.right <= level.left + 1 && t.bottom <= row.top + 1) };
+    });
+    ok(goal.ellipsis !== 'ellipsis' && goal.fits, `${lang}: 긴 다음 목표 이름 전체 표시 · 레벨·조건과 비겹침`, goal);
 
     // 다시 시작하지 않고 세 언어를 오가도 등록된 모든 화면의 접근성 이름이 현재 언어를 따른다.
     await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
@@ -70,7 +78,16 @@ export default async function i18nLive(url, shots) {
     const placeAlt = await page.locator('#s-content .b-gate img.b-art').getAttribute('alt');
     ok(!!placeAlt && !/[가-힣]/.test(placeAlt), `${lang}: 장소 그림의 대체 텍스트 번역`, placeAlt);
     await toParty(page, { content: 'rustfort', tab: 'dungeon' });
-    await departGo(page); await page.clock.runFor(200);
+    await departGo(page); await page.clock.runFor(4000);
+    for (let i = 0; i < 30 && !(await page.isVisible('#s-settle')); i++) {
+      if (await page.isVisible('#rest')) { await page.click('#restGo'); await page.clock.runFor(3500); }
+      else { await killEnemies(page); await page.clock.runFor(1500); }
+    }
+    const nextLabel = await page.locator('#s-settle #next b').innerText();
+    ok(lang === 'en' ? nextLabel === 'Next Battle' : nextLabel.startsWith('次の'), `${lang}: 결과의 다음 전투 버튼 문구`, nextLabel);
+    await page.screenshot({ path: `${shots}/i18n-${lang}-next-battle.png` });
+    await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+    await toParty(page, { content: 'rustfort', tab: 'dungeon' }); await departGo(page); await page.clock.runFor(200);
     // 동일한 경비대장 보통 전투: 한국어 글을 정규식으로 읽던 HP 단계선이 다른 언어에서도 40%에 나타난다.
     await page.evaluate(() => {
       const old = window.__proto.F;

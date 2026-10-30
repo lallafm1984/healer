@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { setResultWin } from '../bgm';
-import { nickOf, t, tc } from '../i18n';
+import { lang, nickOf, t, tc } from '../i18n';
 import { STAT_NAMES, type StatKey } from '../data/fm';
 import { CLASSES } from '../data/classes';
 import { EXPED, guildLvOf, REQ } from '../data/guild';
@@ -391,7 +391,7 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
   const n = nextRun(r.content, r.diff);
   if (!n) return null;
   const c = contentOf(n.content);
-  return { label: t('다음 {k}', { k: t({ explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[c.kind]) }), sub: `${t(c.name)} · ${t(n.diff)}` };
+  return { label: lang() === 'en' ? t('다음 전투') : t('다음 {k}', { k: t({ explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[c.kind]) }), sub: `${t(c.name)} · ${t(n.diff)}` };
 }
 
 /**

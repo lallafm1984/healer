@@ -20,6 +20,8 @@
 
 /* 다음 목표 둘째 줄: 낱말 중간 (온/실)에서 끊지 않음 */
 #s-lobby .lb-trk .obj > span { word-break: keep-all; }
+/* 긴 다음 목표 이름도 말줄임 없이 읽는다. 늘어난 줄 높이는 목표표의 자동 높이가 받는다. */
+#s-lobby .lb-trk .trk-t { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 
 /* 출전: 행선지 글이 칼 그림 위로 넘치던 것 → 칼 · 「출전」 · 화살표 한 줄, 행선지는 아래 줄 전체 폭 */
 #s-lobby .lb-cta {
