@@ -10,6 +10,7 @@ import { plan } from '../tests/e2e/suites.mjs';
 /** E2E_ONLY=장소,던전 처럼 이름 일부로 몇 묶음만 */
 const only = process.env.E2E_ONLY?.split(',').filter(Boolean);
 const todo = plan(process.env.E2E_SHARD).filter(p => !only || only.some(o => p.name.includes(o)));
+if (only && !todo.length) { console.error(`E2E_ONLY=${process.env.E2E_ONLY}: 맞는 묶음이 없습니다 (묶음 이름 일부, tests/e2e/suites.mjs). 아무것도 돌리지 않고 통과로 보이지 않게 멈춥니다.`); process.exit(1); }
 if (process.env.E2E_SHARD) console.log(`몫 ${process.env.E2E_SHARD}: ${todo.map(p => p.name).join(' · ')} (CI 기준 약 ${Math.round(todo.reduce((t, p) => t + p.sec, 0))}초)`);
 
 const PORT = Number(process.env.E2E_PORT ?? 4179);
