@@ -18,7 +18,9 @@ function tidy(html) {
     .replace(/<canvas[^>]*lb-village-canvas[^>]*><\/canvas>/g, '')
     .replace(/ ?\bxf-[a-z0-9-]+/g, '')
     .replace(/<div id="tapfx"[^>]*>.*?<\/div>/gs, '')
-    .replace(/ class=""/g, '');
+    .replace(/ class=""/g, '')
+    // 전투판 캔버스의 글자 재기 값 (이름 · 체력 글자 폭 · 높이, 장식 칸): 운영체제 글꼴 그리기마다 다름 (맥 ↔ CI 리눅스), 한국어 글이 아님
+    .replace(/ data-[a-z-]*(?:bounds|text-(?:max-width|min-height|min-neighbor-gap))="[^"]*"/g, '');
 }
 
 export default async function i18nKo(url, shots) {
@@ -29,7 +31,7 @@ export default async function i18nKo(url, shots) {
   const errs = [];
   let fails = 0;
   const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) fails++; };
-  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'ko-KR' });
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'ko-KR', timezoneId: 'Asia/Seoul' });
   // 난수 고정 (mulberry32): 공개모집 · 행상인 · 구간 적 · 마을이 매번 같게
   await ctx.addInitScript(() => {
     let a = 0x9e3779b9;
@@ -57,7 +59,8 @@ export default async function i18nKo(url, shots) {
   const save = fn => page.evaluate(fn);
   const reload = async () => { await page.reload(); await page.clock.runFor(300); if (await page.isVisible('#s-title')) await click('#titleStart'); if (await page.isVisible('#s-story')) await click('#tutSkip'); };
 
-  await page.clock.install({ time: new Date(2026, 9, 7, 12) });
+  // 시계는 한 순간으로 (한국 2026-10-07 12시): new Date(2026, 9, 7, 12)는 돌리는 기계의 시간대를 따라 CI (UTC)에서 9시간 늦어 주간 남은 시간 막대가 달랐다
+  await page.clock.install({ time: new Date('2026-10-07T03:00:00Z') });
   await page.goto(url); await page.clock.runFor(300);
   await snap('title');
   await click('#titleStart');

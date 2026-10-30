@@ -61,7 +61,7 @@ describe('파티원 대사 사전', () => {
     }
     expect(n).toBeGreaterThan(500);
     expect([...new Set(bad)].slice(0, 20)).toEqual([]);
-  });
+  }, 120_000); // 모든 장소 × 90초 전투: 맥 4초, CI 러너는 30초를 넘음
   it('영어 · 일본어에서는 번역 있는 대사만: 모든 상황에서 공통 대사까지 내려가고, 한국어는 그대로', async () => {
     await setLang('ko');
     const rand = () => 0.37;

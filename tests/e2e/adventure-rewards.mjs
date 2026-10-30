@@ -191,13 +191,13 @@ export default async function adventureRewards(url,shots) {
             await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
             const nextWeek=await page.evaluate(()=>{
               const [y,m,d]=JSON.parse(localStorage.getItem('healer.save')).weekly.week.split('-').map(Number);
-              return new Date(y,m-1,d+7,6,0,0,1).getTime();
+              return Date.UTC(y,m-1,d+7,0,0,0,1); // 주간 리셋 = 월요일 UTC 00:00 (#528). 기계 시간대 (맥 한국 시각)와 상관없게
             });
             await page.clock.setSystemTime(new Date(nextWeek));
             if(trigger==='render')await page.click('[data-diff="악몽"]');else await page.click('[data-reward="gear"]');
             const reset=await inspectProbabilities(page,TABLES.raid20.악몽,{keepOpen:true});
             ok(reset.ok && await page.locator('[data-reward="merit"], [data-reward="crystal"]').count()===0,
-            `월요일 06시를 지난 뒤 ${trigger==='render'?'난이도 재표시':'장비 아이콘 클릭'}: 장비 갱신 (공훈 없음), 첫클리어 상태 유지`,reset);
+            `월요일 리셋 (UTC 0시)을 지난 뒤 ${trigger==='render'?'난이도 재표시':'장비 아이콘 클릭'}: 장비 갱신 (공훈 없음), 첫클리어 상태 유지`,reset);
             ok(Math.abs(Number(await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability'))-.055)<1e-6
               && /5\.5%/.test(await page.locator('.b-reward-chance [data-grade="전설"]').innerText()),`주간 경계 ${trigger}: 확률 표도 새 주 전설 5.5%`);
             await page.keyboard.press('Escape');

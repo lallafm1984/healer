@@ -47,6 +47,9 @@ export function detectLang(): Lang {
     if (isLang(saved)) return saved;
   } catch { /* 저장소를 못 읽으면 기기 언어 */ }
   if (!hasWindow) return 'ko';
+  // 화면 테스트 (Playwright = navigator.webdriver)는 기기 언어를 보지 않고 한국어: 테스트가 한국어 글을 전제하는데
+  // CI 브라우저는 영어라 저장된 언어가 없는 화면이 모두 영어로 떴다 (#533 ~). 영어 · 일본어 검사는 언어를 저장하고 띄움, 기기 언어 검사는 window.__deviceLangTest = true
+  if (navigator.webdriver && !(window as { __deviceLangTest?: boolean }).__deviceLangTest) return 'ko';
   const tag = (navigator.languages?.[0] ?? navigator.language ?? '').toLowerCase();
   return tag.startsWith('ko') ? 'ko' : tag.startsWith('ja') ? 'ja' : 'en';
 }
