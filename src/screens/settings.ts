@@ -20,7 +20,7 @@ import './settings.css';
 let back = 's-lobby';
 let confirmReset = false;
 
-const s = screen('s-settings', t('설정'), {
+const s = screen('s-settings', '설정', {
   enter() {
     if (previous && previous !== 's-settings') back = previous;
     confirmReset = false;

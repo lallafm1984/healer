@@ -31,7 +31,7 @@ const st: { slot: SlotKey; got: number | null; fresh: boolean; ask: boolean } = 
 /** 지난 그리기에 띄운 감정 결과 (같은 창을 다시 그릴 땐 올라오는 움직임 없이) */
 let shown: number | null = null;
 
-const s = screen('s-merchant', t('행상인'), {
+const s = screen('s-merchant', '행상인', {
   enter() { refreshDay(); st.got = null; st.ask = false; render(); },
 });
 /** 뒤로가기 · Esc: 판매 확인 창이 떠 있으면 그것만 닫음 */

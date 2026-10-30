@@ -22,7 +22,7 @@ const devSkip = (className = 'btn ghost') => `<button class="${className}" type=
 function skip(): void { G.save.tut = TUT.done; commit(); go('s-lobby'); }
 
 // ---------- 이야기 (짧게) ----------
-const story = screen('s-story', t('이야기'), {
+const story = screen('s-story', '이야기', {
   enter() {
     story.el.classList.toggle('intro-calm', !!G.save.settings.reducedEffects);
     story.el.innerHTML = `<div class="intro-body">
@@ -67,7 +67,7 @@ function startExplore(): void {
 }
 
 // ---------- 단계 사이 카드 ----------
-const card = screen('s-tut', t('튜토리얼'), {
+const card = screen('s-tut', '튜토리얼', {
   enter(arg) {
     const lose = arg === 'lose' || arg === 'quit';
     if (lose) {

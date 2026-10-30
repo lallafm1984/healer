@@ -78,7 +78,7 @@ const enrageSkill = (c: GuideCtx): GuideSkill => {
 };
 
 interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; mythic: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number; /** 전투 변주 (113 7-4) */ variant: number }
-export interface GuidePhase { id: string; name: string; at: string; text: string; enr?: boolean }
+export interface GuidePhase { id: string; name: string; at: string; text: string; enr?: boolean; /** 체력 막대 눈금용 비율. 번역된 at 문장에서 숫자를 읽지 않는다. */ hpAt?: number }
 /** art = 기술 아이콘 그림 이름 (battle/skillArt.ts, 없으면 글자 아이콘) */
 export interface GuideSkill { ic: string; name: string; art?: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[]; /** 대상 칩 (없으면 칩 없음) */ who?: Who }
 interface GuideBody { nums: Record<string, Num>; cur: (F: Fight) => string; phases: GuidePhase[]; skills: GuideSkill[] }
@@ -155,7 +155,7 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
       cur: F => (F.enraged ? 'enrage' : F.bossHp <= F.bossMax * B.zoneAt ? 'p40' : 'p1'),
       phases: [
         { id: 'p1', name: t('시작'), at: t('체력 100~{p}%', { p: B.zoneAt * 100 }), text: t('{a} · {b} 반복', { a: t(bu.name), b: t(ao.name) }) },
-        { id: 'p40', name: t('녹이 흘러내림'), at: t('체력 {p}% 아래', { p: B.zoneAt * 100 }), text: t('{s} 더해짐', { s: iga(t(zo.name)) }) },
+        { id: 'p40', name: t('녹이 흘러내림'), at: t('체력 {p}% 아래', { p: B.zoneAt * 100 }), hpAt: B.zoneAt, text: t('{s} 더해짐', { s: iga(t(zo.name)) }) },
         enragePhase(c),
       ],
       skills: [
@@ -189,10 +189,10 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
     };
     const phases: GuidePhase[] = [
       { id: 'p1', name: t('1페이즈'), at: t('체력 100~{p}%', { p: B.interAt * 100 }), text: `${t(br.name)} · ${t(st.name)} · ${t(pu.name)}` },
-      { id: 'inter', name: t('인터미션'), at: t('체력 {p}%, {n}초', { p: B.interAt * 100, n: B.interDur }), text: t('보스 무적, 예고 기술 멈춤. 쥐떼가 뒷줄 {n}명 공격', { n: T.rats }) },
+      { id: 'inter', name: t('인터미션'), at: t('체력 {p}%, {n}초', { p: B.interAt * 100, n: B.interDur }), hpAt: B.interAt, text: t('보스 무적, 예고 기술 멈춤. 쥐떼가 뒷줄 {n}명 공격', { n: T.rats }) },
       { id: 'p2', name: t('2페이즈'), at: t('인터미션 뒤'), text: t('{a} 끝 · {b} 시작 · 파동이 {n}로 세지고 {p}초마다', { a: t(st.name), b: t(co.name), n: N.pulse2, p: B.pulse2Period }) },
     ];
-    if (mythic) phases.push({ id: 'p3', name: t('3페이즈 (악몽)'), at: t('체력 {p}% 아래', { p: B.p3At * 100 }), text: t('{s} 더해짐', { s: iga(t(so.name)) }) });
+    if (mythic) phases.push({ id: 'p3', name: t('3페이즈 (악몽)'), at: t('체력 {p}% 아래', { p: B.p3At * 100 }), hpAt: B.p3At, text: t('{s} 더해짐', { s: iga(t(so.name)) }) });
     phases.push(enragePhase(c));
     const skills: GuideSkill[] = [
       { ic: br.icon, name: t(br.name), who: WHO.some(T.breath),
@@ -486,7 +486,7 @@ function dataGuide(c: GuideCtx): GuideBody {
     const tx = st.do.find(x => x.p === 'text') as { text: string } | undefined;
     if (tx) marks.set(st.if.hpBelow, [t(tx.text)]); // 흐름 글 (boss-parts 사전)
   }
-  for (const [at, txt] of [...marks].sort((a, b) => b[0] - a[0])) phases.push({ id: `h${at}`, name: txt[0].split(/[:：]/)[0], at: t('체력 {p} 아래', { p: pctT(at) }), text: txt.join(' · ') });
+  for (const [at, txt] of [...marks].sort((a, b) => b[0] - a[0])) phases.push({ id: `h${at}`, name: txt[0].split(/[:：]/)[0], at: t('체력 {p} 아래', { p: pctT(at) }), hpAt: at, text: txt.join(' · ') });
   if (isFinite(c.enc.enrage)) phases.push(enragePhase(c));
   const skills: GuideSkill[] = shown.map(d => {
     const ps = sk[d.key], [what0, how0, who] = effectText(d, d.effect, c, ps), wt = whenText(d);

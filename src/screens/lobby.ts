@@ -234,7 +234,7 @@ function journey(): string {
   return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}</div></div>`;
 }
 
-const s = screen('s-lobby', t('로비'), {
+const s = screen('s-lobby', '로비', {
   tab: 'lobby',
   enter() { refreshDay(); render(); },
 });

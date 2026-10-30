@@ -35,6 +35,8 @@
 #s-merchant .mc-go { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; font-size: 17px; }
 #s-merchant .mc-go .currency-amount b { font-size: 16px; }
 #s-merchant .mc-go .currency-icon { width: 20px; height: 20px; }
+/* 영어에서도 사기 직전의 부위 이름을 끝까지 표시한다. 한국어 배치는 그대로 둔다. */
+html[lang="en"] #s-merchant .mc-buy .g-hd h3 { white-space: normal; overflow: visible; line-height: 1.2; }
 #s-merchant .mc-why { margin: 0; font-size: 12px; font-weight: 700; color: var(--gk-enr-ink); text-align: center; }
 
 /* 감정 결과 시트 */

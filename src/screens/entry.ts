@@ -24,7 +24,7 @@ import { afxIcon, timeline } from './brief';
 let back = 's-content';
 /** 열린 ⓘ (길드 화면과 같음: 규칙 · 긴 설명은 ⓘ 안에만) */
 let tip: string | null = null;
-const s = screen('s-entry', t('주간 도전'), { enter() { if (previous === 's-lobby' || previous === 's-content') back = previous; tip = null; render(); } });
+const s = screen('s-entry', '주간 도전', { enter() { if (previous === 's-lobby' || previous === 's-content') back = previous; tip = null; render(); } });
 
 const infoBtn = (key: string, label: string) => `<button type="button" class="g-info" data-tip="${key}" aria-expanded="${tip === key}" aria-label="${esc(label)} ${t('설명')}">${uiIcon('info')}</button>`;
 const tipBox = (key: string, html: string) => (tip === key ? `<div class="g-tip" role="note">${html}</div>` : '');

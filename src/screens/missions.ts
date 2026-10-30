@@ -23,7 +23,7 @@ import './missions.css';
 import { sfx } from '../sfx';
 
 const st = { tab: 'daily' as 'daily' | 'weekly' };
-const s = screen('s-missions', t('임무'), { enter() { refreshDay(); st.tab = 'daily'; render(); } });
+const s = screen('s-missions', '임무', { enter() { refreshDay(); st.tab = 'daily'; render(); } });
 
 /** 임무 그림 (2026-10-22 Lim 임무 시안): 있는 그림을 빌려 씀. 이름 · 보상 · 진행은 그림이 아니라 실제 임무 값 */
 const MISSION_ART: Record<string, string> = {

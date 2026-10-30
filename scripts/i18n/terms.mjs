@@ -92,7 +92,7 @@ export const TERMS = [
   { ko: '강타', en: ['Tankbuster', 'Buster'], ja: ['タンクバスター', 'バスター'] },
   { ko: '장판', en: ['AoE'], ja: ['範囲攻撃', '範囲'] },
   { ko: '예고', en: ['Telegraph'], ja: ['予兆'] },
-  { ko: '광폭화', en: ['Enrage'], ja: ['時間切れ'] },
+  { ko: '광폭화', en: ['Enrage'], ja: ['時間切れ', '暴走'] }, // 제한시간 도달 = 時間切れ, 탱커 부재로 발동하는 상태 = 暴走
   { ko: '쫄', en: ['Add'], ja: ['雑魚'] },
   { ko: '어그로', en: ['Threat', 'Aggro'], ja: ['ヘイト'] },
   { ko: '위협', en: ['Threat'], ja: ['ヘイト'] },
@@ -140,6 +140,7 @@ export const TERMS = [
   { ko: '집중', en: ['Focus'], ja: ['集中'], not: ['정신 집중'] }, // 정신 집중 = 채널링 (channel · チャネリング)
   { ko: '학습력', en: ['Learning'], ja: ['学習力'] },
   { ko: '꾸준함', en: ['Consistency'], ja: ['安定性'] },
+  { ko: '기 리듬', en: ['Chi Rhythm'], ja: ['気のリズム'] },
   // 5-5 공통 UI
     { ko: '닫기', en: ['Close'], ja: ['閉じる'] },
   { ko: '받기', en: ['Claim'], ja: ['受け取', '受取'] },
