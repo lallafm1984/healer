@@ -558,7 +558,7 @@ function installNumFont(): void {
   numFont = true;
 }
 const isNum = (t: string) => /^[+\-!%0-9]+$/.test(t);
-interface LabelStyle { size: number; fill: number; stroke?: number; strokeW?: number; font?: string; weight?: TextStyleFontWeight; num?: boolean }
+interface LabelStyle { size: number; fill: number; stroke?: number; strokeW?: number; font?: string; weight?: TextStyleFontWeight; num?: boolean; padding?: number }
 type Label = Text | BitmapText;
 class Labels {
   private map = new Map<string, { t: Label; used: boolean; sig: string }>();
@@ -566,7 +566,7 @@ class Labels {
   begin(): void { for (const v of this.map.values()) v.used = false; }
   put(key: string, text: string, st: LabelStyle, x: number, y: number, alpha = 1, anchorY = 0.5): Label {
     const bmp = !!st.num && numFont && isNum(text);
-    const sig = bmp ? `b|${st.size.toFixed(1)}` : `${st.size.toFixed(1)}|${st.fill}|${st.stroke ?? ''}|${st.strokeW ?? 0}|${st.font ?? FONT}|${st.weight ?? W_TEXT}`;
+    const sig = bmp ? `b|${st.size.toFixed(1)}` : `${st.size.toFixed(1)}|${st.fill}|${st.stroke ?? ''}|${st.strokeW ?? 0}|${st.font ?? FONT}|${st.weight ?? W_TEXT}|${st.padding ?? 0}`;
     let e = this.map.get(key);
     if (!e || e.sig !== sig) {
       if (e) e.t.destroy();
@@ -574,7 +574,7 @@ class Labels {
         ? new BitmapText({ text, style: { fontFamily: NUM, fontSize: st.size } })
         : new Text({
           text, resolution: dpr * L.k, // 줄여 그리는 판은 화면 픽셀만큼만
-          style: { fontFamily: st.font ?? FONT, fontWeight: st.weight ?? W_TEXT, fontSize: st.size, fill: st.fill, ...(st.strokeW ? { stroke: { color: st.stroke ?? C.line, width: st.strokeW, join: 'round' as const } } : {}) },
+          style: { fontFamily: st.font ?? FONT, fontWeight: st.weight ?? W_TEXT, fontSize: st.size, fill: st.fill, padding: st.padding ?? 0, ...(st.strokeW ? { stroke: { color: st.stroke ?? C.line, width: st.strokeW, join: 'round' as const } } : {}) },
         });
       t.anchor.set(0.5, anchorY);
       this.parent.addChild(t);
@@ -822,6 +822,8 @@ const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw
 };
 /** 감정 아이콘 자리 (43 5장: 말풍선 너비 = 아이콘 16px + 글자 + 여백) */
 const EMOTE_W = 16;
+/** 틀 안쪽 여백과 별도로 글자 텍스처에도 여백을 둬 마지막 획의 안티앨리어싱이 잘리지 않게 한다. */
+const BUBBLE_PAD_X = 10, BUBBLE_TEXT_PAD = 2;
 /**
  * 대사 이펙트 띠 (43 4장 C, fx-talk-<이름>): 길이(ms) · 프레임 너비 ÷ 높이.
  * pop 말풍선이 뜰 때 · shake 위기 말풍선 둘레 · cheer 승리 한마디 · sweat 실수 신호 칸 위
@@ -2320,12 +2322,12 @@ export function render(now: number): void {
     const p = unitPos(u);
     // 감정 아이콘 자리는 그림 파일이 있으면 처음부터 잡아 둠 (읽는 동안 너비가 바뀌지 않게)
     const emote = b.emote ? `emote-${b.emote}` : '', iw = emote && art(emote) ? EMOTE_W : 0;
-    const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16 - iw), value => measure(value, 12, FONT, '500'));
     const st = BUBBLE[b.kind];
     // 꼬리 끝이 말한 사람 칸 꼭짓점에 닿는 자리만 (bubbleSpot). 몸체 · 꼬리 · 선 · 위기 흔들림 폭까지 이름 · 체력 · 다른 연출을 피함
     const tail = 5, strokePad = st.lw, shakeRange = b.kind === 'alert' && !S.reducedEffects && now - b.t0 < 300 ? 1.5 : 0;
-    const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, 0);
-    const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14 + iw, h = Math.max(22, label.height + 3);
+    const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 2 * (BUBBLE_PAD_X + strokePad + shakeRange) - iw), value => measure(value, 12, FONT, '500'));
+    const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500', padding: BUBBLE_TEXT_PAD }, 0, 0, 0);
+    const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 2 * BUBBLE_PAD_X + iw, h = Math.max(22, label.height + 3);
     const bp = bubbleSpot(p, r, w, h, strokePad + shakeRange, tail,
       transientOccupied.filter(o => !(o as DecorationBound).kind || (o as DecorationBound).kind === 'hp' || (o as DecorationBound).kind === 'nick'),
       transientOccupied.filter((o): o is DecorationBound => !!(o as DecorationBound).kind && (o as DecorationBound).kind in BUBBLE_SOFT),
