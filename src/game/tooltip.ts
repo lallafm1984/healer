@@ -6,6 +6,9 @@
 import { healText, SKILL_INFO, SKILLS, type SkillKey } from '../data/skills';
 import { t, tc } from '../i18n';
 
+/** 스킬 · 특성 설명의 회복량 {n} → 「지능의 n% (지금 값)」을 지금 언어로 (data/skills healText는 번역을 모름, 121) */
+export const healTextT = (desc: string, int?: number): string => healText(desc, int, p => t('지능의 {p}%', { p }));
+
 export interface TipSpec {
   /** 이름 앞 아이콘 (HTML) */
   icon?: string;
@@ -35,5 +38,5 @@ export const costText = (k: SkillKey) => (SKILLS[k].cost ? t('마나 {n}%', { n:
 /** 스킬: lockLv = 아직 못 배웠으면 배우는 레벨, int = 지금 지능 (설명에 지금 회복량, 34 1-2) */
 export function skillTip(k: SkillKey, lockLv = 0, int?: number): TipSpec {
   const info = SKILL_INFO[k];
-  return { name: t(SKILLS[k].name), kind: info && tc(info.kind, 'kind'), rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? t('레벨 {n} 필요', { n: lockLv }) : '', desc: info && healText(t(info.desc), int) };
+  return { name: t(SKILLS[k].name), kind: info && tc(info.kind, 'kind'), rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? t('레벨 {n} 필요', { n: lockLv }) : '', desc: info && healTextT(t(info.desc), int) };
 }

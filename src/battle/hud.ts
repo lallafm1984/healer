@@ -16,8 +16,8 @@ import { dispellable, HEROES } from '../data/heroes';
 import { contentOf, type ContentKey } from '../data/content';
 import { mobGrade } from '../data/encounters';
 import { INT_BASE } from '../data/rules';
-import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
-import { skillTip, tipHtml } from '../game/tooltip';
+import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
+import { healTextT, skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Mob, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
@@ -281,7 +281,7 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const d = TALENT_DEF[k], a = d.active!;
   const row = a.once ? t('전투당 1회') : t('{a}초 · 재사용 대기 {b}초', { a: a.dur, b: a.cd });
   const F = fight();
-  popTip(tipHtml({ name: tc(d.name, 'talent'), kind: t('특성'), rows: [[t('즉시'), row]], desc: healText(t(d.desc), INT_BASE * F.power * F.gear.heal), note: a.cell ? t('누른 뒤 빈 칸을 탭') : t('GCD·마나 없이 바로') }), el, { tal: k, held: true });
+  popTip(tipHtml({ name: tc(d.name, 'talent'), kind: t('특성'), rows: [[t('즉시'), row]], desc: healTextT(t(d.desc), INT_BASE * F.power * F.gear.heal), note: a.cell ? t('누른 뒤 빈 칸을 탭') : t('GCD·마나 없이 바로') }), el, { tal: k, held: true });
 }
 
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
