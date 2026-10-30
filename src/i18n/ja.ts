@@ -68,7 +68,7 @@ const ja: Record<string, string> = {
   '나혼자 힐러@title': 'Solo Healer',
   '나혼자@title': 'Solo',
   '힐러@title': 'Healer',
-  '시작하기': 'はじめる',
+  '시작하기': 'Start',
   '클리어': 'クリア',
   '추천': 'おすすめ',
   '권장 {n}': '推奨 {n}',
