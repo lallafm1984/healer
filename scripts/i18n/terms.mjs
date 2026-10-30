@@ -41,7 +41,7 @@ export const TERMS = [
   { ko: '원정', en: ['Expedition'], ja: ['遠征'] },
   { ko: '내보내기', en: ['Dismiss'], ja: ['除名'] },
   // 5-2 콘텐츠 · 난이도 · 진행
-  { ko: '탐험', en: ['Venture'], ja: ['探索'] },
+  { ko: '탐험', en: ['Delve'], ja: ['探索'] }, // 2026-10-30 Lim: Venture → Delve
   { ko: '던전', en: ['Dungeon'], ja: ['ダンジョン'] },
   { ko: '레이드', en: ['Raid'], ja: ['レイド'] },
   { ko: '주간 도전', en: ['Weekly Challenge', 'Weekly'], ja: ['週間チャレンジ', '週間'] },
@@ -106,7 +106,7 @@ export const TERMS = [
   { ko: '평타', en: ['Auto-attack', 'Auto Attack'], ja: ['オートアタック'] },
   { ko: '기믹', en: ['Mechanic'], ja: ['ギミック'] },
   { ko: '공략', en: ['Guide'], ja: ['攻略'] },
-  { ko: '정비', en: ['Regroup'], ja: ['休憩'], not: ['마을 정비'] }, // 마을 정비 (로비) = Tend the Village · 村の手入れ
+  { ko: '정비', en: ['Regroup'], ja: ['インターバル'], not: ['마을 정비'] }, // 마을 정비 (로비) = Tend the Village · 村の手入れ
   { ko: '일시정지', en: ['Pause'], ja: ['一時停止'] },
   { ko: '전투 기록', en: ['Combat Log'], ja: ['戦闘ログ'] },
   { ko: '전투', en: ['Battle', 'Combat', 'Fight'], ja: ['戦闘', 'バトル'], not: ['전투 결과'] }, // 전투 결과 = Results · リザルト (결과 표)
@@ -153,6 +153,8 @@ export const TERMS = [
 
 /** 일부러 표와 다르게 쓰는 열쇠: 열쇠 → 까닭 (짧은 칸 · 문맥상 다른 뜻). 사전 열쇠 그대로 */
 export const EXCEPT = {
+  '나혼자 힐러@title': '타이틀 제목은 일본어도 영문 그대로 (2026-10-30 Lim)',
+  '힐러@title': '타이틀 제목은 일본어도 영문 그대로 (2026-10-30 Lim)',
   '처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.': '개발 빌드 설명 (출시판 때 지움), 기믹 공략 = mechanics',
   '골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.': '개발 빌드 설명 (출시판 때 지움), 보유량 = balance',
   '{n} 부탁 · {p} 장소 보기': '{p}가 장소 이름',

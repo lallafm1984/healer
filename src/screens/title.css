@@ -63,8 +63,10 @@
 }
 /* 영어 · 일본어 제목 (기획 121): 로마자 · 가나가 한글보다 길어 크기 · 자간만 줄임 (한국어 CSS는 그대로) */
 html[lang="en"] #s-title .t-main { font-size: clamp(52px, 17.5vw, 76px); letter-spacing: .02em; }
-html[lang="ja"] #s-title .t-main { font-size: clamp(56px, 18vw, 80px); letter-spacing: .02em; }
-html[lang="en"] #s-title .t-prefix { letter-spacing: .3em; }
+html[lang="ja"] #s-title .t-main { font-size: clamp(52px, 17.5vw, 76px); letter-spacing: .02em; }
+html[lang="en"] #s-title .t-prefix, html[lang="ja"] #s-title .t-prefix { letter-spacing: .3em; }
+/* 일본어 제목도 영문 「Solo Healer」 (2026-10-30 Lim): 영어와 같은 글꼴 (일본어 글꼴의 로마자를 쓰지 않음) */
+html[lang="ja"] #s-title .t-name { font-family: "Hahmlet", "Noto Serif KR", serif; }
 #s-title .t-main {
   padding: 0 .045em .08em .09em;
   color: #f8da8b;
