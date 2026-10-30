@@ -39,11 +39,6 @@ export const REWARD_GRADE: Record<Grade, number> = { S: 1.2, A: 1.1, B: 1.0, C: 
 export const RAID_GOLD = { 10: 1.5, 20: 2.2 } as const;
 /** 탐험 골드·경험치 배율 (32 3-3): 구간 1개라 짧고 쉬움. 적 레벨이 내 레벨이 되며 던전보다 나은 파밍 자리가 되지 않게 */
 export const EXPLORE_REWARD = 0.35;
-/**
- * 탐험 클리어 장비는 판마다 이 확률 (2026-10-19 Lim 카드 「탐험만 줄임」, 103 파밍 문제점 2): 탐험은 2구간이라 던전보다 판이 짧아 시간당 장비 · 영웅이 던전의 2.6배였음 → 약 1.3배.
- * 등급 표 · 영웅 확률은 그대로, 튜토리얼 판은 언제나
- */
-export const EXPLORE_DROP = 0.5;
 
 /** 클리어 골드 = (50 + 10 × 적 레벨) × 난이도 × 등급. 레이드는 보스 1마리마다 × RAID_GOLD (12 3-1). raid = 레이드 인원 (0 = 던전·탐험) */
 export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0 | 10 | 20 = 0): number {

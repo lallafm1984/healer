@@ -18,18 +18,17 @@ import { GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_DROP, EXPLORE_REWARD, restRun } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
-import { restBase } from '../game/stamina';
+import { clearGoldReward } from '../game/gold-reward';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
-import { chalContent, chalGate, runMode, weekAffixes } from '../game/runmode';
+import { chalContent, chalGate, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT, tutLockedContent } from '../game/tutorial';
 import { esc, fmt, freshEntry, go, goingBack, previous, screen, topBar } from './kit';
-import { classEmblem, currencyAmount, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyAmount, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt } from './art';
 import { sortie } from './stamina';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
@@ -225,25 +224,15 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
   const lv = G.save.player.level, odds = gearGradeOdds(d, raid, lv, 'A', false, raid ? stageOf(c, d) : c.stageLv, !lootOpen);
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
-  // 칸마다 최소 등급 (88 v0.2, Lim 「칸마다 난이도 및 레벨에 따라서 최소 등급」): 확률 창 아래 한 줄
-  const minG = ITEM_GRADES.find(g => odds[g] > 0) ?? ITEM_GRADES[0];
-  // 탐험은 판마다 장비 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 판은 언제나): 등급별 확률은 장비가 나왔을 때
-  const dropP = play && c.kind === 'explore' ? EXPLORE_DROP : 1;
   const items: SceneReward[] = [{
     key: 'gear', name: t('장비 등급별 확률'), icon: gameIcon('gear', ICON.gear),
-    color: GRADE_STYLE[maxGrade].color, probability: dropP, maxGrade,
+    color: GRADE_STYLE[maxGrade].color, probability: 1, maxGrade,
     gradeOdds: odds,
-    // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 레이드는 주 첫 클리어 · 다시 깬 판
-    basis: `${t('최소 {g}', { g: t(minG) })}${dropP < 1 ? ` · ${t('장비는 판마다 {n}%', { n: Math.round(dropP * 100) })}` : ''}${raid && play ? ` · ${lootOpen ? t('이번 주 첫 클리어') : t('다시 깬 판 (첫 보상은 받음)')}` : ''}`,
+    // 최소 등급·드롭 확률 보조 문구는 제거. 레이드 표가 달라지는 주 첫 보상 여부만 안내한다.
+    basis: raid && play ? lootOpen ? t('이번 주 첫 클리어') : t('다시 깬 판 (첫 보상은 받음)') : '',
   }];
-  const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = t('클리어 시'), probability = 1) => {
-    items.push({ key, name, amount, icon: currencyIcon(key), color, probability, basis });
-  };
-  // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD.
-  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값 (휴식 판 restRun의 1/REST_BONUS). 휴식 보너스는 결과 화면에서만. 튜토리얼 판은 예전 값 그대로
-  const stage = runMode(G.save, c, d, { chal: 0 }).stage;
-  const raw = clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1);
-  currency('gold', t('골드'), play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', t('클리어 시 · A 평가'));
+  items.push({ key: 'gold', name: t('골드'), amount: clearGoldReward(G.save, c, d).base,
+    icon: currencyIcon('gold'), color: '#DDB563', probability: 1, basis: '' });
   return items;
 }
 
@@ -457,7 +446,7 @@ function openRewardChance(key: string): void {
     : `<div class="b-reward-amount" data-amount="${reward.amount ?? 0}">${currencyAmount('gold', reward.amount ?? 0)}</div>`;
   s.el.insertAdjacentHTML('beforeend', `<div class="b-reward-chance" id="bRewardChance" role="dialog" aria-modal="false" aria-labelledby="bRewardChanceTitle" tabindex="-1" data-reward-key="${key}">
     <button type="button" data-reward-close aria-label="${t('보상 안내 닫기')}">×</button>
-    <b id="bRewardChanceTitle">${esc(key === 'gold' ? t('기본 획득 골드') : reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
+    <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
   </div>`);
   positionRewardChance();
   s.el.querySelector<HTMLElement>('.b-reward-chance')?.focus({ preventScroll: true });

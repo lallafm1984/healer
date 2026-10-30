@@ -7,7 +7,7 @@ import type { HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT, TUT_CONTENT, tutReplay } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, type GuildAfter } from './guild';
@@ -20,6 +20,7 @@ import type { RosterEntry } from '../engine/types';
 import type { AffixKey } from '../data/affixes';
 import { restBase, restGain, staminaCost, useRest, type RestUse } from './stamina';
 import { now as gameNow } from '../platform/time';
+import { clearGoldReward } from './gold-reward';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -150,8 +151,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const xp0 = replay || !r.win || r.quit ? 0
     : run(!r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
       : clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * stageBonus);
-  // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD
-  const gold0 = r.win && !replay ? run(clearGold(stage, r.diff, grade!, raid) * kind * stageBonus) : 0;
+  // 일반 전투의 기본 골드는 출전 표시와 같은 고정액. 휴식 보너스만 별도로 더한다. 주간 도전은 기존 단계 보상.
+  const gold0 = r.win && !r.quit && !replay ? r.chal
+    ? run(clearGold(stage, r.diff, grade!, raid) * kind * stageBonus)
+    : clearGoldReward(save, c, r.diff, stage).full : 0;
   const share = rest ? rest.share : 1;
   const xp = restGain(xp0, share), gold = restGain(gold0, share);
   const restBonus = rest && rest.share > 0 && (xp > restBase(xp0) || gold > restBase(gold0)) ? { xp: xp - restBase(xp0), gold: gold - restBase(gold0) } : null;
@@ -162,8 +165,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const items: GearItem[] = [];
   // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
   const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
-  // 탐험은 판마다 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 · 주간 도전은 언제나)
-  const noDrop = r.win && play && c.kind === 'explore' && !r.chal && rng() >= EXPLORE_DROP;
   if (r.win) {
     // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
     // 등급은 콘텐츠 · 난이도 바탕 표 (일반 ~ 희귀) + 영웅 · 전설 확률 (88, equipment dropOdds). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
@@ -171,7 +172,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
     // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf, 2026-10-21부터 적 레벨도 같음). 주간 도전은 내 레벨 그대로
     const dropLv = r.chal ? stage : stageOf(c, r.diff);
-    if (!noDrop) items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
+    items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
     save.gear.bag.push(...items);
     if (raidLoot === 'first') save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
   }
