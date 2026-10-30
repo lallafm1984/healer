@@ -104,13 +104,12 @@ export function openStamina(): void {
   const render = () => {
     const el = show('st-info', `<h3 id="stTitle">${t('휴식')}</h3>${meter()}
       <p class="note">${t('{m}분마다 1씩 찹니다. 클리어할 때 써서 경험치 · 골드를 {x}배로 받습니다.', { m: STAMINA.regenMs / 60e3, x: REST_BONUS })}</p>
-      <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="shop">${t('상점')}</button><button class="btn" type="button" data-st="no">${t('닫기')}</button></div>`);
+      <div class="st-btns">${adButton()}<button class="btn" type="button" data-st="no">${t('닫기')}</button></div>`);
     el.onclick = async e => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-st]');
       if (!b || b.disabled) { if (e.target === el) close(); return; }
       const k = b.dataset.st;
       if (k === 'no') close();
-      else if (k === 'shop') { close(); go('s-shop', 'cash'); }
       else if (k === 'ad') {
         b.disabled = true;
         const charged = await charge();
