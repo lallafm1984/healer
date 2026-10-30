@@ -68,7 +68,7 @@ describe('파티원 대사 사전', () => {
     const spk = { pers: '신중파', cls: 'warrior', role: 'tank' } as const;
     expect(hasTalk('ㅎㅇ')).toBe(true); expect(hasTalk('번역 없는 대사')).toBe(true); expect(talkOf('ㅎㅇ')).toBe('ㅎㅇ');
     await setLang('en');
-    expect(hasTalk('ㅎㅇ')).toBe(true); expect(hasTalk('번역 없는 대사')).toBe(false); expect(talkOf('ㅎㅇ')).toBe('hi'); expect(talkOf('{ally} 어서 와')).toBe('welcome back {ally}');
+    expect(hasTalk('ㅎㅇ')).toBe(true); expect(hasTalk('번역 없는 대사')).toBe(false); expect(talkOf('ㅎㅇ')).toBe('hi'); expect(talkOf('{ally} 어서 와')).toBe('wb {ally}');
     for (const sit of Object.keys(SITS) as TalkSit[]) {
       const line = pickLine(sit, spk, rand, new Set(), hasTalk);
       if (!COMMON_LINES[sit]?.length) continue;
@@ -78,7 +78,7 @@ describe('파티원 대사 사전', () => {
     }
     await setLang('ja');
     expect(talkOf('ㅎㅇ')).toBe('よろ');
-    expect(talkOf('도발 ㄱ!')).toBe('挑発いく！');
+    expect(talkOf('도발 ㄱ!')).toBe('挑発！');
     expect(talkOf('{boss} 멀리서 쏜다')).toBe('{boss} 遠くから撃つ');
   });
 });
