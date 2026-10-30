@@ -8,7 +8,7 @@
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
-import { lang, nickOf, onLangChange, t as tr } from '../i18n';
+import { lang, nickOf, onLangChange, t as tr, tc } from '../i18n';
 import { art } from '../art';
 import type { ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
@@ -1025,7 +1025,7 @@ const SPEC_TINT: Record<SpecGroup | 'named', number> = {
 let specKeys: Map<string, string> | null = null;
 /** 장비 특수능력이 켜짐 (42 · 36 J): 칸 위 금색 이름 + fx-proc (묶음 색). 마지막 숨은 fx-endure (금빛 날개) */
 export function fxSpec(u: Unit, name: string, now: number): void {
-  fxAbility(u, name, now);
+  fxAbility(u, tc(name, 'spec'), now); // 장비 특수능력 이름은 번역해 보이고, 아래 그림 찾기는 한국어 이름 그대로
   if (!specKeys) { specKeys = new Map(Object.values(SPECS).map(d => [d.name, d.key] as const)); for (const n of NAMED) specKeys.set(n.name, n.key); }
   const key = specKeys.get(name) ?? '';
   if (key === 'lastBreath') fxGim('endure', now, { id: u.id });

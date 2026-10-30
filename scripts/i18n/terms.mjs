@@ -22,11 +22,11 @@ export const TERMS = [
   { ko: '파티', en: ['Party', 'Group Finder'], ja: ['パーティ'] },
   { ko: '파티원', en: ['Party Member'], ja: ['パーティメンバー'] },
   { ko: '공개모집', en: ['Group Finder'], ja: ['パーティ募集'] },
-  { ko: '길드파티', en: ['Guild Party', 'Guild Sortie'], ja: ['ギルドパーティ', 'ギルド出撃'] },
+  { ko: '길드파티', en: ['Guild Party', 'Guild Run'], ja: ['ギルドパーティ', 'ギルド出撃'] },
   { ko: '편성', en: ['Party Setup', 'Setup', 'Suggested Party'], ja: ['編成'] },
   { ko: '파티 편성', en: ['Party Setup'], ja: ['パーティ編成'] },
-  { ko: '출전', en: ['Sortie'], ja: ['出撃'] },
-  { ko: '출발', en: ['Depart'], ja: ['出発'] },
+  { ko: '출전', en: ['Embark', 'Guild Run'], ja: ['出撃'] }, // 2026-10-30 Lim: Sortie (군사 · 일본식 게임 말) → Embark
+  { ko: '출발', en: ['Start Battle', 'Start'], ja: ['出発'] }, // 2026-10-30 Lim: Depart → Start Battle
   { ko: '출전할 곳', en: ['Destination'], ja: ['出撃先'] },
   { ko: '다시 도전', en: ['Retry'], ja: ['再挑戦'] },
   { ko: '성격', en: ['Personality', 'Personalities'], ja: ['性格'] },
@@ -153,6 +153,8 @@ export const TERMS = [
 
 /** 일부러 표와 다르게 쓰는 열쇠: 열쇠 → 까닭 (짧은 칸 · 문맥상 다른 뜻). 사전 열쇠 그대로 */
 export const EXCEPT = {
+  '처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.': '개발 빌드 설명 (출시판 때 지움), 기믹 공략 = mechanics',
+  '골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.': '개발 빌드 설명 (출시판 때 지움), 보유량 = balance',
   '{n} 부탁 · {p} 장소 보기': '{p}가 장소 이름',
   '주변 아군 보호와 지속 치유': 'heals nearby allies over time (문장을 나눔)',
   '치유의 빛이 모험길로 이어지는, 인물 없는 신전 풍경': '타이틀 그림 설명, 癒しの光 (시적 표현)',

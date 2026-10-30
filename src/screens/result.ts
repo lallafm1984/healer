@@ -359,7 +359,7 @@ function notesHtml(x: Settlement): string {
 function recordHtml(r: BattleResult, open: boolean): string {
   const multi = r.segN > 1;
   const dev = G.save.settings.devUnlock && r.dev?.length
-    ? `<details class="r-dev"><summary>플레이 기록 (테스트용)</summary><dl class="metrics small">${r.dev.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>` : '';
+    ? `<details class="r-dev"><summary>${t('플레이 기록 (테스트용)')}</summary><dl class="metrics small">${r.dev.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>` : '';
   return `<details class="r-rec"${open ? ' open' : ''}>
       <summary>${t('전투 기록')}</summary>
       ${r.meter ? meterHtml(r.meter, r.time, { title: multi ? t('피해량 · 던전 전체') : t('피해량'), heal: r.healed, compact: true }) : ''}

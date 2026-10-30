@@ -71,7 +71,7 @@ function cashHtml(): string {
       <p class="g-sub wrap">${t('{m}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×{x} · 광고 보고 최대 충전 · 하루 {n}번', { m: STAMINA.regenMs / 60e3, x: REST_BONUS, n: STAMINA.adDaily })}</p></div>`)}
     ${card('noads', gameIcon('noads', uiIcon('star')), t('광고 제거 패키지'), `<ul class="g-rows">${row(NOADS.id, gameIcon('noads', uiIcon('star')), t(NOADS.name), t('전면 광고 없음 · 휴식 최대 +{n}', { n: STAMINA.bonus }))}</ul>`)}
     ${card('jobs', uiIcon('char'), t('직업'), `<p class="g-sub wrap sh-lead">${t('현금 또는 골드 · 레벨 조건 없이 바로 열림 · 모든 캐릭터')}</p><ul class="g-rows">${PAID_HEROES.map(h => row(jobProductId(h), classEmblem(h, 'md'), t(HEROES[h].name), t(JOB_LINE[h]))).join('')}</ul>`)}
-    <p class="note sh-foot">${dev ? '개발 빌드: 누르면 결제 없이 바로 받음' : esc(t(STORE_WHY))}</p>`;
+    <p class="note sh-foot">${dev ? t('개발 빌드: 누르면 결제 없이 바로 받음') : esc(t(STORE_WHY))}</p>`;
 }
 
 s.el.addEventListener('click', async e => {

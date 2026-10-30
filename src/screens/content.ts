@@ -9,7 +9,7 @@
  * 난이도 칸 적합도 (여유 · 적정 · 도전 · 위험)와 「추천」.
  */
 import { adventureContents, adventureRegionOf, adventureTabOf, type AdventureTab } from '../data/adventure-regions';
-import { t, tc } from '../i18n';
+import { lang, t, tc } from '../i18n';
 import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
@@ -266,7 +266,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="${t('출전할 곳')} · ${esc(t(c.name))}">
     ${scene}<div class="b-gate-shade"></div>
     <div class="b-gt"><span class="b-gn">${adventureRegionOf(c).name === c.name ? '' : `<small>${esc(t(adventureRegionOf(c).name))}</small>`}<b>${esc(t(c.name))}</b></span></div>
-    <div class="b-level" aria-label="${t('권장 레벨 {n}', { n: recLevel(c, d) })}"><span>${tc('권장 레벨', 'short')}</span><strong><small>Lv.</small> ${recLevel(c, d)}</strong></div>
+    <div class="b-level" aria-label="${t('권장 레벨 {n}', { n: recLevel(c, d) })}"><span>${tc('권장 레벨', 'short')}</span><strong>${lang() === 'ko' ? '<small>Lv.</small> ' : ''}${recLevel(c, d)}</strong></div>
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="${t('이전 장소')}">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="${t('다음 장소')}">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${lk.locked && !other ? LOCK : ''}${status}</span>` : ''}
     ${rewards(c, d)}

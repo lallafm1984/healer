@@ -16,7 +16,7 @@ import { battle, go, screen } from './kit';
 import { depart } from './party';
 import { gameIcon, placeArt } from './art';
 
-const devSkip = (className = 'btn ghost') => `<button class="${className}" type="button" id="tutSkip">튜토리얼 건너뛰기 (개발 빌드)</button>`;
+const devSkip = (className = 'btn ghost') => `<button class="${className}" type="button" id="tutSkip">${t('튜토리얼 건너뛰기 (개발 빌드)')}</button>`;
 
 /** 개발 빌드: 튜토리얼 없이 로비로 */
 function skip(): void { G.save.tut = TUT.done; commit(); go('s-lobby'); }
