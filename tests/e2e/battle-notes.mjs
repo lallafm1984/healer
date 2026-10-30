@@ -14,7 +14,7 @@ const BOARDS = [
   { n: 10, tab: 'raid10', content: 'abyss1', five: true },
   { n: 20, tab: 'raid20', content: 'cathedral1', five: true },
 ];
-const LINES = ['좋아, 가자!', '힐 좀 부탁해요~', '조심해! 크게 온다', '고마워요 힐러님'];
+const LINES = ['좋아, 가자!', 'heals hurt me now', '조심해! 크게 온다', '고마워요 힐러님'];
 
 export default async function battleNotes(url, shots) {
   const browser = await chromium.launch();
@@ -95,13 +95,15 @@ export default async function battleNotes(url, shots) {
         const above = b.bottom <= p.y;
         const gap = above ? (p.y - r) - b.bottom : b.top - (p.y + r);
         const k = Number(cv.dataset.drawScale || 1); // 꼬리 여백 9px는 판 그림 좌표 (줄여 그리면 화면에선 9k)
-        return { id, gap: +gap.toFixed(2), tailIn: p.x >= b.left + 9 * k - .05 && p.x <= b.right - 9 * k + .05, covers };
+        const text = all.find(x => x.key === `bubble-text${id}`);
+        const textMargin = text ? Math.min(text.left - b.left, b.right - text.right) / k : 0;
+        return { id, gap: +gap.toFixed(2), tailIn: p.x >= b.left + 9 * k - .05 && p.x <= b.right - 9 * k + .05, covers, textMargin };
       }, id);
-      if (m) { placed.push(m); if (Math.abs(m.gap) > 2 || !m.tailIn || m.covers.length) stray.push(m); }
+      if (m) { placed.push(m); if (Math.abs(m.gap) > 2 || !m.tailIn || m.covers.length || m.textMargin < 10 - .1) stray.push(m); }
       await page.clock.runFor(800);
     }
     ok(stray.length === 0 && placed.length >= Math.min(ids.length, board.n <= 5 ? 2 : 3),
-      `${tag}: 말풍선 ${placed.length}/${ids.length}개가 말한 사람 칸 꼭짓점에 꼬리로 붙음 · 이름 · 체력 안 가림`, { stray, placed: placed.length });
+      `${tag}: 말풍선 ${placed.length}/${ids.length}개가 말한 사람 칸에 붙고 · 이름·체력 안 가림 · 글자 양끝 여백`, { stray, placed: placed.length });
     if (board.n >= 10) {
       // 붙일 자리가 없는 사람의 기믹 말풍선은 생략 (2026-10-11 Lim 「자리가 없으면 말풍선 생략」): 판에도, 전투 메시지에도 안 뜸
       let skipped = null;

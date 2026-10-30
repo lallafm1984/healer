@@ -31,6 +31,9 @@
 #s-lobby .lb-cta > .g-ic { grid-area: ic; align-self: center; width: 27px; height: 29px; transform: translate(2px, 1.5px); }
 #s-lobby .lb-cta-copy { display: contents; }
 #s-lobby .lb-cta-copy > b { grid-area: t; align-self: center; justify-self: center; transform: translate(-2px, -1px); }
+/* 좁은 출전 버튼에서도 Embark의 마지막 글자가 다음 줄로 밀리지 않게 한다. */
+#s-lobby .lb-cta-copy > b { white-space: nowrap; }
+html[lang="en"] #s-lobby .lb-cta-copy > b { font-size: clamp(16px, 4.7cqw, 18px); }
 #s-lobby .lb-cta-copy > small { grid-area: sub; justify-self: center; width: auto; max-width: 100%; text-align: center; }
 #s-lobby .lb-cta > .lb-chevron { grid-area: ch; align-self: center; }
 

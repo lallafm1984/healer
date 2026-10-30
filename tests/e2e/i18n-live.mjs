@@ -34,6 +34,12 @@ export default async function i18nLive(url, shots) {
     }));
     const lobbyAttrs = await koAttrs();
     ok(lobbyAttrs.length === 0, `${lang}: 로비 · 공통 탭 · 광고 자리의 접근성 이름 번역`, lobbyAttrs);
+    const embark = await page.locator('#lobbyStart .lb-cta-copy > b').evaluate(el => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const ink = [...r.getClientRects()], box = el.closest('button').getBoundingClientRect();
+      return { text: el.textContent, lines: ink.length, fits: ink.every(r => r.left >= box.left + 8 && r.right <= box.right - 8) };
+    });
+    ok(embark.lines === 1 && embark.fits, `${lang}: 출전 버튼 글자 전체가 한 줄로 표시`, embark);
 
     // 다시 시작하지 않고 세 언어를 오가도 등록된 모든 화면의 접근성 이름이 현재 언어를 따른다.
     await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
