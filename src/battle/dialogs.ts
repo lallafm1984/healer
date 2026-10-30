@@ -52,6 +52,36 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
   let active: Session | null = null;
   let acting = false;
 
+  // 번역된 긴 문구도 줄이거나 자르지 않고 한 줄로 표시한다. 실제 글꼴 폭으로 재고 회전·글꼴 로드 뒤에도 다시 맞춘다.
+  function fitActionLabels(): void {
+    if (!confirmDialog.open) return;
+    const actions = apply.parentElement!;
+    const buttons = [cancel, apply];
+    for (const button of buttons) button.style.removeProperty('font-size');
+    const labels = buttons.map(button => {
+      const style = getComputedStyle(button);
+      const range = document.createRange();
+      range.selectNodeContents(button);
+      const scale = button.getBoundingClientRect().width / button.offsetWidth;
+      const width = scale > 0 ? range.getBoundingClientRect().width / scale : 0;
+      const inset = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+        + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+      return { width, inset, size: parseFloat(style.fontSize) };
+    });
+    const available = actions.clientWidth - parseFloat(getComputedStyle(actions).columnGap);
+    const textWidth = labels.reduce((n, label) => n + label.width, 0);
+    if (available <= 0 || textWidth <= 0) return;
+    const insets = labels.reduce((n, label) => n + label.inset, 0);
+    const ratio = Math.min(1, Math.max(0, (available - insets - 2) / textWidth));
+    const spare = Math.max(0, available - insets - textWidth * ratio) / buttons.length;
+    // 긴 확인 문구에 너비를 더 배분해, 좁은 화면에서도 글자가 지나치게 작아지지 않게 한다.
+    actions.style.gridTemplateColumns = labels.map(label => `${label.width * ratio + label.inset + spare}px`).join(' ');
+    buttons.forEach((button, i) => {
+      if (ratio < 1) button.style.fontSize = `${Math.floor(labels[i].size * ratio * 10) / 10}px`;
+    });
+  }
+  window.addEventListener('resize', fitActionLabels);
+
   function restoreOpener(session: Session): void {
     const el = session.opener;
     if (el?.isConnected && !el.closest('[hidden], [inert]') && el.getClientRects().length) el.focus({ preventScroll: true });
@@ -108,6 +138,8 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     apply.textContent = text.action;
     apply.disabled = false;
     show(session, cancel); // 기본 선택은 항상 취소다.
+    fitActionLabels();
+    void document.fonts.ready.then(fitActionLabels);
   }
 
   cancel.addEventListener('click', () => { if (active?.dialog === confirmDialog) closeActive(); });
