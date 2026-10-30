@@ -129,8 +129,68 @@ export default async function i18nLive(url, shots) {
     const preview = await page.locator('#preview').innerText();
     ok(!/[가-힣]/.test(preview) && preview.includes(lang === 'en' ? 'Starlight Daze' : '星光のめまい'), `${lang}: 길게 누른 실제 상태 효과 이름 번역`, preview);
     await page.screenshot({ path: `${shots}/i18n-${lang}-debuff.png` });
+    await statusFeedback(page, lang, shots, ok);
     await ctx.close();
   }
   await browser.close();
   return { fails, errs };
+}
+
+/** 독립 전투 fixture: 번역 배지 폭이 달라도 칸 중앙과 좌우 시간 열을 지킨다. */
+export async function statusFeedback(page, lang, shots, ok) {
+  const roster = await page.evaluate(() => window.__proto.F.party.filter(u => !u.me)
+    .map(u => ({ nick: u.nick, role: u.role, cls: u.cls, pers: '신중파' })));
+  for (const count of [3, 5, 10, 20]) {
+    await page.evaluate(({ roster, count }) => {
+      const encounter = { 3: 'golem18', 5: 'warden', 10: 'plague', 20: 'choir' }[count];
+      window.__battle.start({ content: 'snowpass', diff: '쉬움', name: 'Blizzard Pass', segs: [encounter], hero: 'druid', level: 100, heroLv: 100,
+        party: Array.from({ length: count - 1 }, (_, i) => ({ ...roster[i % roster.length],
+          role: i < (count >= 10 ? 2 : 1) ? 'tank' : i % 2 ? 'ranged' : 'melee', cls: undefined })), seed: 3 });
+    }, { roster, count });
+    await page.clock.runFor(6500);
+    // 보스 행동은 멈추고 실제 판 렌더만 검사한다. 정지 팝업은 fixture에서만 숨긴다.
+    await page.click('#pauseBtn');
+    await page.locator('#pause').evaluate(el => { el.hidden = true; });
+    const bad = [];
+    const actualCount = await page.evaluate(() => window.__proto.F.party.length);
+    if (actualCount !== count) bad.push({ issue: 'party size', actualCount, count });
+    for (const many of [false, true]) for (const type of ['독', '마법', '질병', '저주']) {
+      const uid = await page.evaluate(({ many, type }) => {
+        const f = window.__proto.F; f.dmgMult = 0; f.bossHp = f.bossMax = 10000000;
+        f.events = []; f.tels = []; f.zones = [];
+        for (const u of f.party) { u.alive = true; u.hp = u.max; u.moving = null; }
+        const u = f.party.find(u => !u.me); u.hot = 11; u.redu = 8;
+        u.guardian = many ? 9 : 0;
+        u.mods = many ? [{ k: 'absorb', v: 300, until: f.t + 12, src: 'healer' }] : [];
+        u.hots = many ? ['sprout', 'growth'].map(key => ({ key, name: key, left: 10, tick: 99, every: 3, per: 0, i: 0, rest: 0 })) : [];
+        u.debuffs = [{ id: 9001, name: '서리 손길', type, left: 4, dot: 0 }];
+        return u.id;
+      }, { many, type });
+      await page.clock.runFor(32);
+      const issues = await page.locator('#board').evaluate((cv, uid) => {
+        const bounds = JSON.parse(cv.dataset.decorationBounds), own = key => bounds.find(b => b.key === key);
+        const body = own(`body${uid}`), badge = own(`deb${uid}`), nick = own(`nick${uid}`), text = own(`deb${uid}-text`);
+        const timers = bounds.filter(b => b.shape === 'circle' && new RegExp(`^(hot${uid}-|guard${uid}-|shield${uid}$)`).test(b.key));
+        const bad = [];
+        if (!body || !badge || !text || timers.length < 2) return ['missing fixture bounds'];
+        if (Math.abs(badge.x - body.x) > .2 || Math.abs(nick.x - body.x) > .2) bad.push('badge or name shifted from cell center');
+        if (text.w > badge.w + .2) bad.push('translated label outside badge');
+        for (const t of timers) {
+          if (t.x - t.w / 2 < body.x - body.w / 2 - .2 || t.x + t.w / 2 > body.x + body.w / 2 + .2) bad.push(`${t.key} outside cell`);
+          if (Math.abs(t.y - badge.y) < (t.h + badge.h) / 2 - .1 && Math.abs(t.x - badge.x) < (t.w + badge.w) / 2 - .1) bad.push(`${t.key} overlaps badge`);
+        }
+        return bad;
+      }, uid);
+      if (issues.length) bad.push({ many, type, issues });
+      if (!many && type === '마법' && count === 3) await page.screenshot({ path: `${shots}/i18n-${lang}-status-centered.png` });
+    }
+    ok(!bad.length, `${lang}: ${count}인 독·마법·질병·저주 + 지속 힐·방어 시간은 칸 중앙·테두리 안·비겹침`, bad);
+    if (count === 3) {
+      await page.locator('#resumeBtn').evaluate(el => el.click());
+      await page.locator('#wheel [data-slot="unique"]').click(); await page.clock.runFor(32);
+      const reason = await page.locator('#toast .toast').last().textContent();
+      ok(reason === (lang === 'en' ? 'No fallen party members' : '倒れたパーティメンバーなし'), `${lang}: 환생 실패 알림의 실제 표시 번역`, reason);
+      await page.screenshot({ path: `${shots}/i18n-${lang}-action-failure.png` });
+    }
+  }
 }

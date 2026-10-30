@@ -3,6 +3,7 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import { deedOf } from '../data/guild';
+import { actionReason } from './action-feedback';
 import { nickOf, t, tc } from '../i18n';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
@@ -330,14 +331,14 @@ function pressAux(key: TalentKey): void {
   if (talentUsesSpent(F, key)) return;
   if (def.active!.cell) {
     const r = talentReady(F, key);
-    if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('deny'); return; }
+    if (!r.ok) { if (r.reason) toast(actionReason(r.reason)); Snd.play('deny'); return; }
     ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false;
     if (S.sound) sfx(ui.talArmed ? 'ui-arm' : 'ui-disarm');
     if (ui.talArmed) toast(t('{s}: 빈 칸 선택', { s: t(def.name) }));
     vibe(8); return;
   }
   const res = useTalent(F, key);
-  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return; }
+  if (!res.ok) { if (res.reason) toast(actionReason(res.reason)); Snd.play('deny'); return; }
   vibe(12);
 }
 
@@ -380,7 +381,7 @@ function doUse(key: SkillKey, idx: number): boolean {
   if (skillUsesSpent(F, key)) return false;
   const res = use(F, key, idx);
   if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
-  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return false; }
+  if (!res.ok) { if (res.reason) toast(actionReason(res.reason)); Snd.play('deny'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
   if (B.armed && key === 'serenity') B.armed = null;
   coachUsed(key);
@@ -431,7 +432,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (ui.talArmed) { // 쉼터 장전 중: 빈 칸 탭
     if (P.idx < 0) { F.stats.emptyTaps++; return; }
     const res = useTalent(F, ui.talArmed, P.idx);
-    if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('deny'); return; }
+    if (!res.ok) { if (res.reason) toast(actionReason(res.reason)); Snd.play('deny'); return; }
     ui.talArmed = null; vibe(12); return;
   }
   const dx = P.x - P.x0, dy = P.y - P.y0;

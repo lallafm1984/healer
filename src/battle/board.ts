@@ -25,7 +25,7 @@ import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, relayTimerOf, sealTimerOf, shieldTimerOf, starMarkTimerOf, talentBuffTimers, talentObjectTimers, type GuardTimerKey, type TalentObjectKey } from './party-display';
-import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
+import { CELL_RADIUS, clearOf, debuffRowLayout, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
@@ -719,12 +719,16 @@ function bubbleSpot(p: { x: number; y: number }, r: number, w: number, h: number
   }
   return best;
 }
-function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1): PillBox {
+function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1, maxWidth = Infinity): PillBox {
   const kind = key.startsWith('deb') ? 'debuff' : key === 'swipe' ? 'swipe' : 'pill';
   const content = fitPartyName(text, Math.max(1, L.right - L.left - fs * 0.7 - 1.5), value => measure(value, fs));
   const label = lb.put(key, content, { size: fs, fill: fg }, x, y, alpha);
+  label.scale.set(1);
   // 높이는 글자 줄 상자(약 1.45em)가 아니라 실제 글자 높이에 맞춤: 작은 칸에서 배지가 이름·위 칸 체력에 닿지 않게 (2026-10-10)
-  const tw = Math.max(measure(content, fs), label.width), w = tw + fs * 0.7, h = fs * 1.32;
+  const naturalTextWidth = Math.max(measure(content, fs), label.width);
+  const w = Math.min(naturalTextWidth + fs * 0.7, Math.max(1, maxWidth - 1.5)), h = fs * 1.32;
+  label.scale.x = Math.min(1, Math.max(1, w - fs * .7) / Math.max(1, naturalTextWidth));
+  const tw = naturalTextWidth * label.scale.x;
   const p = fitCenter(x, y, w / 2 + 0.75, h / 2 + 0.75);
   g.roundRect(p.x - w / 2, p.y - h / 2, w, h, h / 2).fill({ color: bg, alpha }).stroke({ width: 1.5, color: C.line, alpha });
   label.position.set(p.x, p.y);
@@ -2035,13 +2039,12 @@ export function render(now: number): void {
       const hr = hasHot ? hotLayout.radius + 0.75 : 0, sr = leftN ? shieldLayout.radius + 0.75 : 0, half = r * COS30;
       let text = badgeText(shortBadge), w = measure(text, fsD) + fsD * 0.7 + 1.5;
       if (w > half * 2 - (hr ? hr * 2 + 1 : 0) - (sr ? sr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
-      const hx = Math.min(x + hotLayout.x, x + half - hr), sx = Math.max(x + shieldLayout.x, x - half + sr);
-      let bx = hr ? Math.min(x, hx - hr - 1 - w / 2) : x;
-      if (sr) bx = Math.max(bx, sx + sr + 1 + w / 2);
-      debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, bx, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
+      const row = debuffRowLayout(s, w, hots.length, leftN);
+      debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, x, Math.max(y - r * 0.4, below), text, color, C.dark, fsD, 1, row.maxWidth);
+      const placed = debuffRowLayout(s, debBadge.w, hots.length, leftN);
       // 지속 힐 원은 배지 오른쪽, 보호막 · 방어 생존기 원은 배지 왼쪽 같은 줄 (둘째부터 그 아래)
-      if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
-      if (sr) shieldSpot = fitCenter(Math.min(sx, debBadge.x - debBadge.w / 2 - 1 - sr), debBadge.y, sr);
+      if (hr) hotSpot = fitCenter(x + placed.hotX, debBadge.y, hr);
+      if (sr) shieldSpot = fitCenter(x + placed.leftX, debBadge.y, sr);
       // 기믹 디버프는 배지 왼쪽 끝에 그 기믹 그림 (매혹 · 치유 상한 · 빚 · 부풀기 · 뒤집힘 · 포자 · 함정 · 쇠약, 2026-10-16 QA)
       const gim = GIM_ICON.find(([f]) => f(deb))?.[1], gt = gim ? artTexture(gim) : null;
       if (gt) { const z = debBadge.h * 1.5, gp = fitCenter(debBadge.x - debBadge.w / 2 - z * 0.4, debBadge.y, z / 2); marks.put(gt, gp.x, gp.y, z, z); recordBound(`gim${u.id}`, 'mark', 'icon', gp.x, gp.y, z, z); }
