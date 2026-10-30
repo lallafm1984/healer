@@ -1,11 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
+import { CELL_RADIUS, clearOf, debuffRowLayout, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
 import { BOARDS } from '../src/data/boards';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { makeCells } from '../src/engine/board';
 
 type Layout = ReturnType<typeof fitBoard>;
 const EPS = 1e-7;
+
+describe('디버프와 양쪽 시간 원의 중앙 정렬', () => {
+  it.each([29, 36, 43, 51.77, 60, 80])('칸 크기 %d: 긴 번역도 배지는 중앙 · 원은 칸 안 · 겹침 없음', scale => {
+    const half = scale * CELL_RADIUS * Math.sqrt(3) / 2;
+    for (const hotN of [0, 1, 3, 5]) for (const leftN of [0, 1, 3, 6]) for (const natural of [20, 35, 60, 100, 180]) {
+      const row = debuffRowLayout(scale, natural, hotN, leftN);
+      expect(row.width).toBeLessThanOrEqual(row.maxWidth);
+      expect(row.width / 2).toBeLessThanOrEqual(half);
+      if (hotN) {
+        const r = hotTimerLayout(scale, hotN).radius + .75;
+        expect(row.hotX - r).toBeGreaterThanOrEqual(row.width / 2 + 1 - EPS);
+        expect(row.hotX + r).toBeLessThanOrEqual(half + EPS);
+      }
+      if (leftN) {
+        const r = shieldTimerLayout(scale, leftN).radius + .75;
+        expect(row.leftX + r).toBeLessThanOrEqual(-row.width / 2 - 1 + EPS);
+        expect(row.leftX - r).toBeGreaterThanOrEqual(-half - EPS);
+      }
+    }
+  });
+});
 
 describe('보호막 시간 원 (2026-10-16 Lim)', () => {
   it.each([36, 43, 51.77, 60, 80])('칸 크기 %d: 지속 힐 원 하나와 같은 크기 · 칸 왼쪽으로 뒤집은 자리, 칸 안', scale => {

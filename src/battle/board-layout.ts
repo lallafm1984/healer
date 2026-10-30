@@ -35,6 +35,18 @@ export function shieldTimerLayout(scale: number, count = 1) {
   return { radius: hot.radius, step: hot.step, x: -hot.x, y: hot.y };
 }
 
+/** 디버프는 칸 중앙 고정. 긴 번역은 두 시간 원 사이 폭 안에 맞추고, 양쪽 열도 육각형 안에 둔다. */
+export function debuffRowLayout(scale: number, badgeWidth: number, hotCount: number, leftCount: number) {
+  const half = scale * CELL_RADIUS * Math.sqrt(3) / 2, gap = 1;
+  const hot = hotTimerLayout(scale, hotCount), left = shieldTimerLayout(scale, Math.max(1, leftCount));
+  const hr = hotCount ? hot.radius + .75 : 0, sr = leftCount ? left.radius + .75 : 0;
+  const maxWidth = Math.max(1, 2 * Math.min(half - (hr ? 2 * hr + gap : 0), half - (sr ? 2 * sr + gap : 0)));
+  const width = Math.min(badgeWidth, maxWidth);
+  return { maxWidth, width,
+    hotX: hr ? Math.min(half - hr, Math.max(hot.x, width / 2 + gap + hr)) : 0,
+    leftX: sr ? Math.max(-half + sr, Math.min(left.x, -width / 2 - gap - sr)) : 0 };
+}
+
 export function fitBoard(cells: readonly BoardPoint[], width: number, height: number, insets: BoardInsets = {}) {
   const W = Math.max(1, width), H = Math.max(1, height);
   const requestedLeft = Math.max(0, insets.left || 0) + EDGE;
