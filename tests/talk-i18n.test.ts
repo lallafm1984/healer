@@ -30,7 +30,8 @@ const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS, 'hello', 'go', 'winClean', 'bus
   'win', 'allFull', 'bigHeal', 'jailed', 'manaLow', 'offTank', 'swarm', 'debCurse', 'vesselOn', 'pylon', 'padsCall', 'padGo',
   'retry', 'loseClose', 'pullHard', 'winClose', 'guildGo', 'guildSaved', 'guildFirst', 'dodgeOk', 'longFight', 'enrageSoon', 'guildTame', 'allyRevived', 'sulkEnd', 'fleeBack',
   'abDef', 'shieldOn', 'abAtk', 'healCrit', 'aheal', 'fixate', 'charmed', 'watchOn', 'overheal', 'abCtl', 'zoneStand', 'abHeal', 'pullEasy', 'counterOk', 'overMark', 'addOnMe',
-  'nextSeg', 'holeOpen', 'tankUp', 'abSup', 'eliteAdd', 'inter', 'marchAdd', 'counterWarn', 'segWin', 'mendAdd', 'jailOther', 'castMove', 'rats', 'bossRest', 'safeOk', 'interEnd', 'bossHeal', 'vesselFull', 'pullAffix', 'pullChal'];
+  'nextSeg', 'holeOpen', 'tankUp', 'abSup', 'eliteAdd', 'inter', 'marchAdd', 'counterWarn', 'segWin', 'mendAdd', 'jailOther', 'castMove', 'rats', 'bossRest', 'safeOk', 'interEnd', 'bossHeal', 'vesselFull', 'pullAffix', 'pullChal',
+  'immuneOn', 'marchIn', 'trapPop', 'swallowedOther', 'woundMark', 'bombBoom', 'staggerFail', 'linkSnap', 'swallowed', 'invertHurt', 'orderWrong', 'burstStack', 'jailFree', 'charmOther', 'charmFree', 'drainOn', 'recoilOn', 'soulWin', 'soulFail', 'beaconOn'];
 
 describe('파티원 대사 사전', () => {
   afterAll(async () => { await setLang('ko'); });
