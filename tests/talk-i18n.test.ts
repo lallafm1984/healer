@@ -25,7 +25,8 @@ const PERS_SITS_DONE: TalkSit[] = [...BARK_SITS, 'hello', 'go', 'winClean', 'bus
   'pullBoss', 'healed', 'hurtBig', 'partyLow', 'meterTop', 'busterOk', 'clutch', 'noHeal', 'healerLow', 'pullTrash', 'debLong', 'loseHealer',
   'idle', 'lastMob', 'pullRaid', 'gauge', 'hotOn', 'healCut', 'boss5', 'pullElite', 'aoeHit', 'boss20', 'dispelled', 'boss50', 'raidCd',
   'noDps', 'guardOn', 'mobDown', 'pulled', 'enraged', 'quakeWarn', 'jealous', 'zoneHit', 'debPoison', 'soulOn', 'low50', 'noTank',
-  'debDisease', 'phase', 'lastStand', 'cured', 'linkOn', 'debMagic', 'trapMark', 'fullHp', 'fullMark', 'manaEmpty', 'adds', 'maxCut'];
+  'debDisease', 'phase', 'lastStand', 'cured', 'linkOn', 'debMagic', 'trapMark', 'fullHp', 'fullMark', 'manaEmpty', 'adds', 'maxCut',
+  'selfDown', 'groupHeal', 'staggerStart', 'bomb', 'safeCall', 'addDown', 'daze', 'staggerWin', 'drainAdd', 'linkShare', 'orderStart', 'invertOn'];
 
 describe('파티원 대사 사전', () => {
   afterAll(async () => { await setLang('ko'); });
