@@ -444,7 +444,7 @@ const names: Record<string, string> = {
   '어려움 이상 던전 클리어': 'Clear Hard or Nightmare dungeons',
   '주간 도전 5단계 이상 클리어': 'Clear Weekly Challenge Tier 5 or higher',
   '일일 임무 완료 상자 받기': 'Claim the daily Completion Chest',
-  '탐험 클리어': 'Clear ventures',
+  '탐험 클리어': 'Clear delves',
 
   // ---------- 길드 (data/guild) 한 일 ----------
   '장판을 잘 피함': 'Dodged AoE well',
@@ -480,7 +480,7 @@ const names: Record<string, string> = {
   '10인 레이드 악몽': '10-Player Raid Nightmare',
   '10인 레이드 「심연의 탑」': '10-Player Raid: Tower of the Abyss',
   '첫 던전 「{n}」': 'First Dungeon: {n}',
-  '탐험 「{n}」': 'Venture: {n}',
+  '탐험 「{n}」': 'Delve: {n}',
   '던전 「{n}」': 'Dungeon: {n}',
   '스킬 「{n}」': 'Skill: {n}', // 이정표 (로비 다음 목표 · 레벨 업)
   '패시브 「{n}」': 'Passive: {n}',
@@ -492,8 +492,8 @@ const names: Record<string, string> = {
   '던전 · 일반': 'Dungeon · Trash',
   '던전 · 정예': 'Dungeon · Elite',
   '튜토리얼 · 2인': 'Tutorial · 2-Player',
-  '탐험 · 일반': 'Venture · Trash',
-  '탐험 · 3인': 'Venture · 3-Player',
+  '탐험 · 일반': 'Delve · Trash',
+  '탐험 · 3인': 'Delve · 3-Player',
 
   // ---------- 특성 (data/talents) 단 주제 · 버튼 짧은 이름 ----------
   '기본 강화': 'Core',
