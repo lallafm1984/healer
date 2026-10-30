@@ -30,23 +30,25 @@ describe('값: 그 레벨 가장 큰 콘텐츠 한 판 골드에 비례, Lv 100�
   });
 });
 
-describe('등급 확률: 일반 50 · 고급 35 · 희귀 14 · 영웅 1% (2026-10-28 Lim), 영웅은 Lv 45부터, 전설 없음', () => {
-  it('합 1, 전설 0, 레벨이 달라도 일반 50 · 고급 35', () => {
+describe('등급 확률: Lv 45 전 고급 80 · 희귀 20%, Lv 45부터 고급 78 · 희귀 20 · 영웅 2% (2026-10-31 Lim)', () => {
+  it('합 1, 일반·전설 0, 레벨이 달라도 희귀 20%', () => {
     for (let lv = 1; lv <= 100; lv++) {
       const o = merchantOdds(lv);
       expect(o.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
       expect(grade(o, '전설')).toBe(0);
-      expect(grade(o, '일반')).toBe(0.5);
-      expect(grade(o, '고급')).toBe(0.35);
+      expect(grade(o, '일반')).toBe(0);
+      expect(grade(o, '희귀')).toBe(0.2);
     }
   });
-  it('Lv 45부터 희귀 14 · 영웅 1% 그대로, 그 전엔 영웅 몫이 희귀로 (희귀 15)', () => {
-    for (const lv of [HERO_FROM, 60, 100]) expect(merchantOdds(lv)).toEqual([0.5, 0.35, 0.14, 0.01, 0]);
+  it('Lv 45부터 고급 78 · 희귀 20 · 영웅 2%, 그 전엔 영웅 몫이 고급으로 (고급 80)', () => {
+    expect(HERO_FROM).toBe(45);
+    for (const lv of [HERO_FROM, 60, 100]) expect(merchantOdds(lv)).toEqual([0, 0.78, 0.2, 0.02, 0]);
     for (const lv of [10, 30, HERO_FROM - 1]) {
       expect(grade(merchantOdds(lv), '영웅')).toBe(0);
-      expect(grade(merchantOdds(lv), '희귀')).toBeCloseTo(0.15, 9);
+      expect(grade(merchantOdds(lv), '고급')).toBeCloseTo(0.8, 9);
+      expect(grade(merchantOdds(lv), '희귀')).toBe(0.2);
     }
-    expect(MERCHANT.odds).toEqual([0.5, 0.35, 0.14, 0.01, 0]);
+    expect(MERCHANT.odds).toEqual([0, 0.78, 0.2, 0.02, 0]);
   });
 });
 
@@ -69,15 +71,18 @@ describe('사기', () => {
     expect(Object.keys(count).sort()).toEqual(kindsOf('weapon').map(k => k.key).sort());
     for (const k of kindsOf('weapon')) { expect(count[k.key] / n).toBeGreaterThan(0.16); expect(count[k.key] / n).toBeLessThan(0.24); }
   });
-  it('여러 번 사면 등급 비율이 확률표와 맞음 (Lv 100 일반 50% · 영웅 1% 안팎, 전설 없음)', () => {
-    const s = at(100, 1e8), r = rngFrom(11), n = 4000, count: Record<string, number> = {};
+  it.each([44, 45, 100])('Lv %i에서 실제 구매 비율이 확률표와 맞음 (고급 이상, Lv 45부터 영웅 2%)', lv => {
+    const s = at(lv, 1e8), r = rngFrom(11), n = 4000, count: Record<string, number> = {};
     for (let i = 0; i < n; i++) {
       const it = buyUnknown(s, SLOTS[i % SLOTS.length].key, r);
       if (typeof it === 'string') throw new Error(it);
       count[it.grade] = (count[it.grade] ?? 0) + 1;
     }
-    expect(count['일반'] / n).toBeGreaterThan(0.47); expect(count['일반'] / n).toBeLessThan(0.53);
-    expect((count['영웅'] ?? 0) / n).toBeGreaterThan(0.004); expect((count['영웅'] ?? 0) / n).toBeLessThan(0.018);
+    const odds = merchantOdds(lv);
+    for (const g of ['고급', '희귀', '영웅']) expect(Math.abs((count[g] ?? 0) / n - grade(odds, g))).toBeLessThan(g === '영웅' ? 0.008 : 0.03);
+    expect(count['일반'] ?? 0).toBe(0);
+    if (lv < HERO_FROM) expect(count['영웅'] ?? 0).toBe(0);
+    else expect(count['영웅']).toBeGreaterThan(0);
     expect(count['전설'] ?? 0).toBe(0);
   });
   it('골드가 모자라면 안 사짐 (골드 그대로), 개발 골드 무제한이면 잔액을 안 씀', () => {
