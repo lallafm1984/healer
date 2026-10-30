@@ -22,7 +22,13 @@ export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? unde
 /** 특수능력 · 이름 있는 장신구 이름 (키 → 이름) */
 export const specName = (key: string) => t(SPECS[key]?.name ?? namedOf(key)?.name ?? key);
 /** 특수능력 효과 글 (번역, {v} = 값): data/specials specText와 같되 사전을 거침 (121 3단계 ①) */
-const specTextT = (d: { text: string; unit: SpecUnit }, v: number) => t(d.text).replace('{v}', fmtSpec(v, d.unit));
+/** 특수능력 값 글자를 지금 언어로: 초 → {n}s · {n}秒, 한국식 %p는 영어 · 일본어에서 % (한국어는 fmtSpec 그대로) */
+const fmtSpecT = (v: number, unit: SpecUnit): string => {
+  const s = fmtSpec(v, unit);
+  if (lang() === 'ko') return s;
+  return unit === 'sec' ? t('{n}초', { n: s.slice(0, -1) }) : unit === 'pp' ? s.replace('%p', '%') : s;
+};
+const specTextT = (d: { text: string; unit: SpecUnit }, v: number) => t(d.text).replace('{v}', fmtSpecT(v, d.unit));
 
 /** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 (굴림 막대 · 줄 번호는 재설정과 함께 2026-10-21 없앰) */
 export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; off: string }

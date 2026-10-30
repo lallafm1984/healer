@@ -12,7 +12,8 @@ import { locale, t, tc } from '../i18n';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_GOLD, JOB_PRICE, jobProductId } from '../data/economy';
-import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
+import { healTextT } from '../game/tooltip';
+import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { openTiers, TALENT_TREES, type TalentKey } from '../data/talents';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { type TapKey } from '../platform/storage';
@@ -545,7 +546,7 @@ function descBox(lay: Record<string, string | null>): string {
       <p class="m c7-sdm">${descHint(k, sel, h)}${lock ? ` ${LOCK}${t('Lv {n}에 배웁니다.', { n: lock })}` : ''}</p></section>`;
 }
 /** 스킬 설명: 회복량은 「지능의 n% (지금 값)」 (34 1-2) */
-const skDesc = (k: SkillKey) => healText(t(SKILL_INFO[k].desc), statParts().int.total);
+const skDesc = (k: SkillKey) => healTextT(t(SKILL_INFO[k].desc), statParts().int.total);
 /** 설명 아래 한 줄: 종류 · 쓰는 방향 · 칸 탭 */
 const descHint = (k: SkillKey, d: string, h: HeroKey) => `${tc(SKILL_INFO[k].kind, 'kind')} · ${t('휠에서 {d} 쪽으로 쓸면 씁니다.', { d: battle().layout.ARROW[d] })}${skillAt(h, G.save.settings.tapKey) === k ? ` ${t('칸 탭 기본 힐입니다.')}` : ''}`;
 
@@ -592,7 +593,7 @@ function skillRows(lay: Record<string, string | null>): string {
   }
   const pas = passivesOf(h), open = skOpen === 'pas';
   rows.push(`<button type="button" class="c7-sk pas" data-skrow="pas" aria-expanded="${open}"><span class="c7-ski">${line('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>')}</span><span class="c7-skn"><b>${t('패시브 {n}', { n: pas.length })}</b><span>${pas.map(p => t(p.name)).join(' · ')}</span></span><span class="c7-dir">${open ? '▴' : '▾'}</span></button>
-    ${open ? `<ul class="c7-pas">${pas.map(p => `<li class="${p.lv > lv ? 'locked' : ''}"><b>${t(p.name)}</b><span class="cap">${p.kind} · ${p.lv > lv ? `${LOCK}${t('Lv {n}에 배움', { n: p.lv })}` : `Lv ${p.lv}`}</span><p>${esc(healText(t(p.desc), statParts().int.total))}</p></li>`).join('')}</ul>` : ''}`);
+    ${open ? `<ul class="c7-pas">${pas.map(p => `<li class="${p.lv > lv ? 'locked' : ''}"><b>${t(p.name)}</b><span class="cap">${p.kind} · ${p.lv > lv ? `${LOCK}${t('Lv {n}에 배움', { n: p.lv })}` : `Lv ${p.lv}`}</span><p>${esc(healTextT(t(p.desc), statParts().int.total))}</p></li>`).join('')}</ul>` : ''}`);
   return rows.join('');
 }
 
@@ -730,7 +731,7 @@ function talentSheet(i: number, j: number): string {
   return `${dim}<section class="sheet c7-tsheet" role="dialog" aria-label="${t('특성 설명')}">
       <header class="c7-tp-head"><span class="c7-tp-ic${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
         <span class="c7-tp-tt"><b>${tc(p.name, 'talent')}</b><span class="c7-tp-tags"><i>Lv ${tier.lv}</i><i>${p.active ? t('사용 효과') : t('지속 효과')}</i>${chosen ? `<i class="on">${t('선택 중')}</i>` : ''}</span></span></header>
-      <p class="c7-tp-desc">${esc(healText(t(p.desc), statParts().int.total))}</p>
+      <p class="c7-tp-desc">${esc(healTextT(t(p.desc), statParts().int.total))}</p>
       ${p.active ? `<p class="c7-tp-note">${t('전투 화면 아래 특성 버튼으로 나옵니다.')}</p>` : ''}
       <footer class="c7-tp-btns"><button type="button" class="c7-tp-btn c7-tclose" data-sheetx aria-label="${t('특성 설명 닫기')}">${t('닫기')}</button>
         <button type="button" class="c7-tp-btn${chosen ? '' : ' primary'}" data-talent="${i}:${j}">${chosen ? t('풀기') : t('고르기')}</button></footer></section>`;

@@ -471,6 +471,7 @@ const en: Record<string, string> = {
   '능력치 상세 보기': 'View stat details',
   '체력': 'Health',
   '지능': 'Intellect',
+  '지능의 {p}%': '{p}% of Intellect', // 스킬 · 특성 설명 회복량 (healTextT)
   '치명타': 'Critical',
   '가속': 'Haste',
   '정신력': 'Spirit',

@@ -136,10 +136,10 @@ export const PASSIVE_NAME: Record<PassiveKey, string> = { echo: '메아리 치�
  * 설명 속 회복량 {n} (지능 300 기준 숫자) → 「지능의 n/300 %」 (34 1-2: 지능 = 치유 회복량, 스킬 회복량은 지능의 비율).
  * int(지금 지능)를 주면 지금 값을 괄호로: 「지능의 100% (1,414)」
  */
-export function healText(desc: string, int?: number): string {
+export function healText(desc: string, int?: number, pct: (p: number) => string = p => `지능의 ${p}%`): string {
   return desc.replace(/\{(\d+)\}/g, (_, n: string) => {
     const r = Number(n) / INT_BASE;
-    return `지능의 ${Math.round(r * 100)}%${int ? ` (${Math.round(int * r).toLocaleString('en-US')})` : ''}`;
+    return `${pct(Math.round(r * 100))}${int ? ` (${Math.round(int * r).toLocaleString('en-US')})` : ''}`;
   });
 }
 
