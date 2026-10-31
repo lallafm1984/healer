@@ -35,6 +35,9 @@ export default async function relay(url, shots) {
         const F = window.__proto.F;
         F.skills.forEach(k => { k.next = Infinity; });
         F.dmgMult = 0;
+        // 표시 배치 검사 동안 첫 자리 찾기 이동을 멈춘다. 이동 중 이웃 칸을 지나는 장면은 별도다.
+        F.R = { ...F.R, pos: null };
+        F.party.forEach(u => { u.moving = null; });
         const tk = F.party.find(u => u.role === 'tank' && u.alive);
         tk.debuffs = deb ? [{ id: 9001, name: '독 화살', type: '독', left: 12, dot: 0 }] : [];
         tk.hot = hot ? 9 : 0;

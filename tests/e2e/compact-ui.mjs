@@ -205,6 +205,12 @@ async function enter(page, party, level = 100, compactSkills = false) {
   await pastTitle(page);
   await toParty(page, { ...party, diff: '쉬움' });
   await departGo(page);
+  // 고정 칸의 배치 검사: 탱커의 첫 자리 찾기 중 서로 지나치는 글자까지 겹침으로 재지 않는다.
+  await page.evaluate(() => {
+    const f = window.__proto.F;
+    f.R = { ...f.R, pos: null };
+    f.party.forEach(u => { u.moving = null; });
+  });
   await page.clock.runFor(3400);
 }
 
