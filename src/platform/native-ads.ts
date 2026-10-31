@@ -1,9 +1,9 @@
-/** Android AdMob. 출시 광고는 동의 확인 뒤 시작하고 개발판은 Google 데모 광고만 요청한다. */
+/** Android 광고 요청·캐시·동의·화면 수명. 메뉴와 저장은 광고 요청의 원인이 되지 않는다. */
+import { App } from '@capacitor/app';
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
-import {
-  AdMob, AdmobConsentStatus, BannerAdPosition, BannerAdSize,
-  InterstitialAdPluginEvents, RewardAdPluginEvents,
-} from '@capacitor-community/admob';
+import { AdMob, AdmobConsentStatus, BannerAdPluginEvents, BannerAdPosition, BannerAdSize, InterstitialAdPluginEvents, RewardAdPluginEvents } from '@capacitor-community/admob';
+import { AdRuntime } from './ad-runtime';
+import { serverReady } from './startup';
 
 export const NATIVE_ADS = Capacitor.getPlatform() === 'android';
 export const TEST_ADS = import.meta.env.DEV || import.meta.env.VITE_ADMOB_TESTING === 'true';
@@ -12,138 +12,267 @@ export const AD_UNITS = {
   rewarded: 'ca-app-pub-9163944262143117/7886378150',
   interstitial: 'ca-app-pub-9163944262143117/1081296656',
 } as const;
+export const AD_TIMING = { retry: 30000, retryMax: 300000, loadWait: 8000, cache: 55 * 60000 };
+type Kind = 'rewarded' | 'interstitial';
+export interface AdResult { status: 'closed' | 'failed' | 'not-ready' | 'busy' | 'cancelled'; shown: boolean; rewarded: boolean }
+interface Gate { failures: number; at: number }
+interface Cache { readyAt: number | null; wallAt: number; id: string; pending: Promise<boolean> | null; gate: Gate }
+const time = (): number => performance.now();
+const gate = (): Gate => ({ failures: 0, at: 0 });
+const initGate = gate(), bannerGate = gate();
+const caches: Record<Kind, Cache> = Object.fromEntries(['rewarded', 'interstitial'].map(k => [k, { readyAt: null, wallAt: 0, id: '', pending: null, gate: gate() }])) as Record<Kind, Cache>;
+const blocked = (g: Gate): boolean => time() < g.at;
+function failed(g: Gate): void { g.at = time() + Math.min(AD_TIMING.retryMax, AD_TIMING.retry * 2 ** Math.min(g.failures++, 4)); }
+function passed(g: Gate): void { g.failures = 0; g.at = 0; }
+const result = (status: AdResult['status'], shown = false, rewarded = false): AdResult => ({ status, shown, rewarded });
 
-let initialized = false;
-let initializing: Promise<boolean> | null = null;
-let mounted = false;
-let noAds = false;
-let bannerShown = false;
-let bannerQueue: Promise<void> = Promise.resolve();
-let fullscreenBusy = false;
-let privacyRequired = false;
+let testAds = TEST_ADS, runtimeKnown = false;
+let consentAllowed = false, consentBlocked = false, sdkReady = false;
+let initWork: Promise<boolean> | null = null, consentWork: ReturnType<typeof AdMob.requestConsentInfo> | null = null, sdkWork: Promise<void> | null = null;
+let mounted = false, noAds = false, fullscreenBusy = false, nativeActive = true, lastForeground = true;
+let epoch = 0, privacyRequired = false;
+let banner: 'idle' | 'loading' | 'created' | 'ready' = 'idle';
+let bannerWork: Promise<void> | null = null, visibilityWork: Promise<void> | null = null;
+let visibilityDirty = false;
+let bannerVisible = true, bannerTimer: ReturnType<typeof setTimeout> | undefined;
+let listenersReady = false;
 const privacyListeners = new Set<() => void>();
+const counts = { consentRequests: 0, sdkInitializations: 0, bannerRequests: 0, bannerLoaded: 0, bannerImpressions: 0, rewardedRequests: 0, interstitialRequests: 0, fullscreenShown: 0, rewards: 0 };
+export const adDiagnostics = () => ({ testAds, consentAllowed, consentBlocked, banner, fullscreenBusy, ...counts });
+export const nativeAdBusy = (): boolean => fullscreenBusy;
+const foreground = (): boolean => nativeActive && (typeof document === 'undefined' || document.visibilityState !== 'hidden');
+const mayShow = (check: () => boolean): boolean => foreground() && serverReady() && check();
 export const adPrivacyRequired = (): boolean => NATIVE_ADS && privacyRequired;
 export function onAdPrivacyChange(fn: () => void): void { privacyListeners.add(fn); }
+function setPrivacy(required: boolean): void { if (privacyRequired !== required) { privacyRequired = required; privacyListeners.forEach(fn => fn()); } }
+
+class AdWaitTimeout extends Error {}
+async function bounded<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try { return await Promise.race([promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new AdWaitTimeout('AdMob load timed out')), AD_TIMING.loadWait); })]); }
+  finally { clearTimeout(timer); }
+}
 
 async function initialize(): Promise<boolean> {
-  if (!NATIVE_ADS) return false;
-  if (initialized) return true;
-  if (initializing) return initializing;
-  initializing = (async () => {
+  if (!NATIVE_ADS || consentBlocked) return false;
+  if (sdkReady && consentAllowed) return true;
+  if (initWork) return initWork;
+  if (blocked(initGate) || !foreground()) return false;
+  initWork = (async () => {
     try {
-      // isTesting은 Google 데모 광고 단위만 사용한다. 개발판까지 운영 앱의 UMP 메시지 등록에 묶지 않는다.
-      // 출시 빌드는 반드시 동의를 확인한다. UMP 오류·요청 불가를 시험 광고 경로로 우회하지 않는다.
-      if (!TEST_ADS) {
-        let consent = await loadAd(AdMob.requestConsentInfo());
-        if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
-          consent = await AdMob.showConsentForm();
-        }
-        privacyRequired = consent.privacyOptionsRequirementStatus === 'REQUIRED';
-        privacyListeners.forEach(fn => fn());
-        if (!consent.canRequestAds) return false;
+      if (!runtimeKnown) {
+        const info = await bounded(AdRuntime.getInfo());
+        testAds = TEST_ADS || info.debuggable;
+        runtimeKnown = true;
+        if (testAds && typeof window !== 'undefined') (window as unknown as { __adDiagnostics: typeof adDiagnostics }).__adDiagnostics = adDiagnostics;
       }
-      await AdMob.initialize({ initializeForTesting: TEST_ADS });
-      initialized = true;
+      if (testAds) consentAllowed = true;
+      else if (!consentAllowed) {
+        try {
+          if (!consentWork) {
+            counts.consentRequests++;
+            consentWork = AdMob.requestConsentInfo().finally(() => { consentWork = null; });
+          }
+          let consent = await bounded(consentWork);
+          if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
+            if (!foreground()) return false;
+            consent = await AdMob.showConsentForm();
+          }
+          setPrivacy(consent.privacyOptionsRequirementStatus === 'REQUIRED');
+          consentAllowed = consent.canRequestAds;
+          consentBlocked = !consentAllowed;
+        } catch (error) {
+          // Google 권장: 갱신 실패에도 이전에 얻은 유효 동의가 있으면 사용한다. 첫 실행 오류는 그대로 막는다.
+          const previous = await bounded(AdRuntime.getInfo());
+          setPrivacy(previous.privacyOptionsRequired);
+          if (!previous.canRequestAds) throw error;
+          consentAllowed = true;
+        }
+      }
+      if (!consentAllowed || !foreground()) return false;
+      if (!sdkReady) {
+        if (!sdkWork) {
+          counts.sdkInitializations++;
+          sdkWork = AdMob.initialize({ initializeForTesting: testAds }).then(() => { sdkReady = true; }).finally(() => { sdkWork = null; });
+        }
+        await bounded(sdkWork);
+      }
+      passed(initGate);
       return true;
-    } catch (error) {
-      console.warn('AdMob initialization unavailable', error);
-      return false;
-    }
+    } catch (error) { failed(initGate); console.warn('AdMob initialization unavailable', error); return false; }
   })();
-  try { return await initializing; } finally { initializing = null; }
+  try { return await initWork; } finally { initWork = null; }
 }
 
-async function updateBanner(): Promise<void> {
-  // 배너는 구매 여부와 관계없이 앱 전체에서 한 뷰를 유지한다. 화면·메뉴 이동은 다시 요청하지 않는다.
-  if (bannerShown || !await initialize()) return;
-  // 320×50 배너. 플러그인이 노치 높이를 더하므로 웹도 같은 안전 영역만큼 비운다.
-  await AdMob.showBanner({
-    adId: AD_UNITS.banner, adSize: BannerAdSize.BANNER,
-    position: BannerAdPosition.TOP_CENTER, margin: 0, isTesting: TEST_ADS,
-  });
-  bannerShown = true;
+function scheduleBanner(): void {
+  clearTimeout(bannerTimer); bannerTimer = undefined;
+  if (!mounted || !foreground() || consentBlocked || fullscreenBusy || banner !== 'idle') return;
+  const delay = Math.max(0, initGate.at - time(), bannerGate.at - time());
+  bannerTimer = setTimeout(() => { bannerTimer = undefined; void ensureBanner(); }, delay);
 }
 
-/** 패키지는 전면 광고만 제외한다. 저장·메뉴 이동 때 부르더라도 기존 배너를 새로 불러오지 않는다. */
-export function syncNativeBanner(adsFree: boolean): Promise<void> {
-  noAds = adsFree;
-  if (!NATIVE_ADS || !mounted) return Promise.resolve();
-  bannerQueue = bannerQueue.then(updateBanner).catch(error => console.warn('AdMob banner unavailable', error));
-  return bannerQueue;
+async function syncBannerVisibility(): Promise<void> {
+  visibilityDirty = true;
+  if (visibilityWork) return visibilityWork;
+  visibilityWork = (async () => {
+    while (visibilityDirty) {
+      visibilityDirty = false;
+      if (banner !== 'created' && banner !== 'ready') break;
+      const show = foreground() && !fullscreenBusy;
+      if (bannerVisible === show) continue;
+      if (show) await AdMob.resumeBanner(); else await AdMob.hideBanner();
+      bannerVisible = show;
+    }
+  })().catch(error => { visibilityDirty = false; console.warn('AdMob banner visibility unavailable', error); });
+  try { await visibilityWork; } finally { visibilityWork = null; if (visibilityDirty) void syncBannerVisibility(); }
 }
 
-/** 강제 업데이트·공지 처리가 끝난 다음 시작한다. 광고 실패가 게임 시작을 막지 않는다. */
-export async function mountNativeAds(adsFree: boolean): Promise<void> {
-  if (!NATIVE_ADS || mounted) return;
-  mounted = true;
-  document.documentElement.classList.add('native-ads');
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && !fullscreenBusy) syncNativeBanner(noAds);
-  });
-  syncNativeBanner(adsFree);
-  await bannerQueue;
-}
-
-/** 필요한 지역에서만 설정에 표시하는 UMP 동의 변경 창. */
-export async function showAdPrivacyOptions(): Promise<boolean> {
-  if (!adPrivacyRequired() || fullscreenBusy) return false;
-  fullscreenBusy = true;
-  try {
-    await AdMob.showPrivacyOptionsForm();
-    // 이전 동의로 요청한 배너를 버리고 새 동의로 다시 요청한다.
-    await bannerQueue;
-    if (bannerShown) { await AdMob.removeBanner(); bannerShown = false; }
-    initialized = false;
-    return true;
-  } catch (error) {
-    console.warn('AdMob privacy options unavailable', error);
-    return false;
-  } finally { fullscreenBusy = false; syncNativeBanner(noAds); }
-}
-
-/** 광고 로드가 끝없이 결과 화면을 붙잡지 않게 한다. 광고를 실제로 보는 동안에는 시간 제한이 없다. */
-async function loadAd<T>(load: Promise<T>): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([load, new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('AdMob load timed out')), 15000);
-    })]);
-  } finally { clearTimeout(timer); }
-}
-
-/** 닫힌 뒤 완료. 보상형은 Rewarded 신호가 있어야 true, 조기 닫기·로드/표시 실패는 false. */
-export async function showNativeAd(kind: 'rewarded' | 'interstitial'): Promise<boolean> {
-  if (!NATIVE_ADS || fullscreenBusy || kind === 'interstitial' && noAds) return false;
-  fullscreenBusy = true;
+async function listenBanner(): Promise<void> {
+  if (listenersReady) return;
   const handles: PluginListenerHandle[] = [];
   try {
-    if (!await initialize() || kind === 'interstitial' && noAds) return false;
-    let earned = false;
-    let settled = false;
-    let finish!: (ok: boolean) => void;
-    const done = new Promise<boolean>(resolve => {
-      finish = ok => { if (!settled) { settled = true; resolve(ok); } };
-    });
+    handles.push(await AdMob.addListener(BannerAdPluginEvents.Loaded, () => { banner = 'ready'; counts.bannerLoaded++; passed(bannerGate); void syncBannerVisibility(); }));
+    handles.push(await AdMob.addListener(BannerAdPluginEvents.AdImpression, () => { counts.bannerImpressions++; }));
+    handles.push(await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, () => {
+      // 이 플러그인은 실패한 AdView를 제거한다. 없어진 뷰를 표시 중으로 기억하지 않는다.
+      banner = 'idle'; failed(bannerGate); scheduleBanner();
+    }));
+    listenersReady = true;
+  } catch (error) { await Promise.allSettled(handles.map(h => h.remove())); throw error; }
+}
+
+async function ensureBanner(): Promise<void> {
+  if (!mounted || !foreground() || fullscreenBusy || consentBlocked || banner !== 'idle') return;
+  if (bannerWork) return bannerWork;
+  if (blocked(initGate) || blocked(bannerGate)) { scheduleBanner(); return; }
+  bannerWork = (async () => {
+    try {
+      await listenBanner();
+      if (!await initialize() || !foreground() || fullscreenBusy) return;
+      banner = 'loading'; counts.bannerRequests++;
+      await AdMob.showBanner({ adId: AD_UNITS.banner, adSize: BannerAdSize.BANNER, position: BannerAdPosition.TOP_CENTER, margin: 0, isTesting: testAds });
+      if (banner === 'loading') banner = 'created';
+      bannerVisible = true;
+      await syncBannerVisibility();
+    } catch (error) { banner = 'idle'; failed(bannerGate); console.warn('AdMob banner unavailable', error); }
+  })();
+  try { await bannerWork; } finally { bannerWork = null; scheduleBanner(); }
+}
+
+/** 저장·메뉴 이동은 요청을 만들지 않는다. 구매 상태만 최신으로 유지한다. */
+export function syncNativeBanner(adsFree: boolean): Promise<void> {
+  noAds = adsFree;
+  if (noAds) caches.interstitial.readyAt = null;
+  return Promise.resolve();
+}
+
+export async function mountNativeAds(adsFree: boolean): Promise<void> {
+  await syncNativeBanner(adsFree);
+  if (!NATIVE_ADS || mounted) return;
+  mounted = true; lastForeground = foreground();
+  document.documentElement.classList.add('native-ads');
+  const changed = () => {
+    const active = foreground(), resumed = active && !lastForeground;
+    lastForeground = active;
+    void syncBannerVisibility();
+    if (!active) { clearTimeout(bannerTimer); bannerTimer = undefined; }
+    else if (resumed) scheduleBanner();
+  };
+  document.addEventListener('visibilitychange', changed);
+  void App.addListener('appStateChange', state => { nativeActive = state.isActive; changed(); }).catch(error => console.warn('AdMob app state unavailable', error));
+  await ensureBanner();
+}
+
+export function nativeAdReady(kind: Kind): boolean {
+  const c = caches[kind];
+  // performance가 깊은 잠을 덜 세는 기기도 있으므로 벽시계는 오래된 캐시를 버리는 용도로만 함께 확인한다.
+  const wallAge = Date.now() - c.wallAt;
+  return c.readyAt != null && time() - c.readyAt < AD_TIMING.cache && wallAge >= 0 && wallAge < AD_TIMING.cache && !blocked(c.gate) && !(kind === 'interstitial' && noAds);
+}
+
+/** 형식마다 한 개만 준비한다. 시간 초과 뒤에도 실제 로드가 끝나기 전에는 다음 요청을 만들지 않는다. */
+export async function prepareNativeAd(kind: Kind): Promise<boolean> {
+  if (!NATIVE_ADS || !foreground() || fullscreenBusy || kind === 'interstitial' && noAds) return false;
+  const c = caches[kind];
+  if (nativeAdReady(kind)) return true;
+  if (blocked(c.gate)) return false;
+  if (c.pending) return c.pending;
+  const generation = epoch;
+  c.pending = (async () => {
+    try {
+      if (!await initialize() || !foreground() || kind === 'interstitial' && noAds) return false;
+      counts[kind === 'rewarded' ? 'rewardedRequests' : 'interstitialRequests']++;
+      const options = { adId: AD_UNITS[kind], isTesting: testAds, immersiveMode: true };
+      const info = await (kind === 'rewarded' ? AdMob.prepareRewardVideoAd(options) : AdMob.prepareInterstitial(options));
+      if (generation !== epoch || kind === 'interstitial' && noAds) return false;
+      c.id = info.adUnitId;
+      c.readyAt = time(); c.wallAt = Date.now(); passed(c.gate);
+      return true;
+    } catch (error) { c.readyAt = null; failed(c.gate); console.warn('AdMob load unavailable', error); return false; }
+  })();
+  try { return await c.pending; } finally { c.pending = null; }
+}
+
+/** 전면은 준비된 것만. 보상형은 명시적 요청 때만 로드하고 표시 직전에 화면·혜택 조건을 다시 확인한다. */
+export async function showNativeAd(kind: Kind, canShow: () => boolean = () => true): Promise<AdResult> {
+  if (!NATIVE_ADS) return result('not-ready');
+  if (fullscreenBusy) return result('busy');
+  if (!mayShow(canShow) || kind === 'interstitial' && noAds) return result('cancelled');
+  if (kind === 'interstitial' && !nativeAdReady(kind)) return result('not-ready');
+  // 보상형 로드를 시작한 뒤에도 다른 전면 광고가 끼어들지 못하게 먼저 잠근다.
+  let prepared: Promise<boolean> | null = null;
+  if (kind === 'rewarded') prepared = prepareNativeAd(kind);
+  fullscreenBusy = true;
+  void syncBannerVisibility();
+  const handles: PluginListenerHandle[] = [];
+  const c = caches[kind];
+  let shown = false, earned = false;
+  try {
+    if (prepared && !await bounded(prepared)) return result('not-ready');
+    if (!mayShow(canShow) || !nativeAdReady(kind)) return result('cancelled');
+    let finish!: (value: AdResult) => void, settled = false;
+    const done = new Promise<AdResult>(resolve => { finish = value => { if (!settled) { settled = true; resolve(value); } }; });
+    const onShown = () => { if (!settled && !shown) { shown = true; counts.fullscreenShown++; } };
+    const onReward = () => { if (!settled && !earned) { earned = true; counts.rewards++; } };
+    const onClosed = () => { if (!settled) { onShown(); finish(result('closed', true, earned)); } };
+    const onFailed = () => { if (!settled) { failed(c.gate); finish(result('failed', shown)); } };
     if (kind === 'rewarded') {
-      handles.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, () => { earned = true; }));
-      handles.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => finish(earned)));
-      handles.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish(false)));
+      handles.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, onReward));
+      handles.push(await AdMob.addListener(RewardAdPluginEvents.Showed, onShown));
+      handles.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, onClosed));
+      handles.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, onFailed));
     } else {
-      handles.push(await AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => finish(true)));
-      handles.push(await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, () => finish(false)));
+      handles.push(await AdMob.addListener(InterstitialAdPluginEvents.Showed, onShown));
+      handles.push(await AdMob.addListener(InterstitialAdPluginEvents.Dismissed, onClosed));
+      handles.push(await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, onFailed));
     }
-    const options = { adId: AD_UNITS[kind], isTesting: TEST_ADS, immersiveMode: true };
-    await loadAd(kind === 'rewarded' ? AdMob.prepareRewardVideoAd(options) : AdMob.prepareInterstitial(options));
-    if (kind === 'interstitial' && noAds) return false;
-    // 보상형 show의 Promise는 조기 닫기 때 끝나지 않는다. Dismissed 사건으로 완료를 결정한다.
-    const showing = kind === 'rewarded' ? AdMob.showRewardVideoAd() : AdMob.showInterstitial();
-    void showing.catch(() => finish(false));
+    if (!mayShow(canShow) || kind === 'interstitial' && noAds) return result('cancelled');
+    c.readyAt = null;
+    const showing = kind === 'rewarded' ? AdMob.showRewardVideoAd({ adId: c.id }) : AdMob.showInterstitial({ adId: c.id });
+    void showing.catch(onFailed);
     return await done;
   } catch (error) {
-    console.warn('AdMob fullscreen unavailable', error);
-    return false;
-  } finally {
-    await Promise.allSettled(handles.map(handle => handle.remove()));
-    fullscreenBusy = false;
+    // 표시 대기 시간 초과와 같은 물리 요청의 최종 실패를 두 번의 실패로 세지 않는다.
+    if (error instanceof AdWaitTimeout && c.pending) c.gate.at = Math.max(c.gate.at, time() + AD_TIMING.retry);
+    else failed(c.gate);
+    console.warn('AdMob fullscreen unavailable', error); return result('failed', shown);
   }
+  finally { await Promise.allSettled(handles.map(h => h.remove())); fullscreenBusy = false; void syncBannerVisibility(); scheduleBanner(); }
+}
+
+export async function showAdPrivacyOptions(): Promise<boolean> {
+  if (!adPrivacyRequired() || fullscreenBusy || !foreground()) return false;
+  fullscreenBusy = true; void syncBannerVisibility();
+  try {
+    await AdMob.showPrivacyOptionsForm();
+    epoch++; Object.values(caches).forEach(c => { c.readyAt = null; });
+    if (bannerWork) await bannerWork;
+    if (banner !== 'idle') await AdMob.removeBanner();
+    banner = 'idle';
+    const info = await bounded(AdRuntime.getInfo());
+    consentAllowed = info.canRequestAds; consentBlocked = !info.canRequestAds;
+    setPrivacy(info.privacyOptionsRequired); passed(initGate); passed(bannerGate);
+    return true;
+  } catch (error) { console.warn('AdMob privacy options unavailable', error); return false; }
+  finally { fullscreenBusy = false; void syncBannerVisibility(); scheduleBanner(); }
 }

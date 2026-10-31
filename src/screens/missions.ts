@@ -22,6 +22,7 @@ import './missions.css';
 import { sfx } from '../sfx';
 
 const st = { tab: 'daily' as 'daily' | 'weekly' };
+let chestAdPending = false;
 const s = screen('s-missions', '임무', { enter() { refreshDay(); st.tab = 'daily'; render(); } });
 
 /** 임무 그림 (2026-10-22 Lim 임무 시안): 있는 그림을 빌려 씀. 이름 · 보상 · 진행은 그림이 아니라 실제 임무 값 */
@@ -120,12 +121,17 @@ s.el.addEventListener('click', async e => {
   if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); award(r, t('임무 보상')); return; }
   if (el.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); award(r, t('완료 상자')); return; }
   if (el.closest('#chest2')) {
-    if (save.daily.ads.chest >= AD_LIMIT.chest) return;
-    if (!(await showRewarded(t('완료 상자 한 번 더')))) return;
-    save.daily.ads.chest++;
-    const r = claimChest(save, Math.random, true);
-    got(r, 'chest-open');
-    award(r, t('완료 상자 · 한 번 더')); return;
+    if (chestAdPending || !save.daily.chest || save.daily.chest2 || save.daily.ads.chest >= AD_LIMIT.chest) return;
+    const daily = save.daily;
+    chestAdPending = true;
+    try {
+      const eligible = () => G.save === save && save.daily === daily && daily.chest && !daily.chest2 && daily.ads.chest < AD_LIMIT.chest;
+      if (!(await showRewarded(t('완료 상자 한 번 더'), () => !s.el.hidden && eligible())) || !eligible()) return;
+      const r = claimChest(save, Math.random, true);
+      if (typeof r !== 'string') daily.ads.chest++;
+      got(r, 'chest-open'); award(r, t('완료 상자 · 한 번 더'));
+    } finally { chestAdPending = false; }
+    return;
   }
   if (el.closest('#guildGoal')) {
     const err = claimGuildGoal(save); got(err || {}, 'mission-claim'); commit(); render();

@@ -6,7 +6,7 @@ import { interstitialConfig, interstitialDue } from '../src/platform/ads';
 describe('전면 광고 원격 설정', () => {
   it('설정 없음 · 오류 값은 10분 · Lv 10', () => {
     expect(interstitialConfig({})).toEqual({ everyMs: 600000, minLv: 10 });
-    for (const value of [null, '20', false, 0, -1, NaN, Infinity, 1441]) {
+    for (const value of [null, '20', false, 0, 0.01, 0.5, -1, NaN, Infinity, 1441]) {
       expect(interstitialConfig({ interstitial_interval_minutes: value }).everyMs).toBe(600000);
     }
     for (const value of [null, '20', false, 0, -1, 10.5, 101, NaN]) {
@@ -25,8 +25,8 @@ describe('전면 광고 원격 설정', () => {
     expect(interstitialDue({ ...ready, won: false })).toBe(false);
     expect(interstitialDue({ ...ready, tutDone: false })).toBe(false);
     expect(interstitialDue({ ...ready, adsFree: true })).toBe(false);
-    h.flags = { interstitial_interval_minutes: 0.5, interstitial_min_level: 1 };
-    expect(interstitialDue({ ...run, level: 1, ms: 30000 })).toBe(true);
+    h.flags = { interstitial_interval_minutes: 1, interstitial_min_level: 1 };
+    expect(interstitialDue({ ...run, level: 1, ms: 60000 })).toBe(true);
     h.flags = {};
   });
 });
