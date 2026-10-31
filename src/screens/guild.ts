@@ -22,7 +22,6 @@ import { realOpen } from '../game/guide';
 import { expedReady, jobsDot, refreshExped, refreshReqs } from '../game/guildjobs';
 import { abilityStars } from '../data/fm';
 import { adRefreshPost, capOf, foundGuild, postAdWait, postNew, refreshPost, restSponsor, sponsor, sponsorRest, sponsorWhy, full, guildOpen, hire, release } from '../game/guild';
-import { adsFree } from '../game/stamina';
 import { noticeModal, showRewarded } from '../platform/ads';
 import { notify } from './toast';
 import { commit, G, refreshDay } from '../game/state';
@@ -250,7 +249,7 @@ function membersHtml(): string {
 /** 광고로 새로 뽑기까지 남은 시간 글 (1시간 쿨타임, 분 단위 올림) */
 const adWaitText = (ms: number) => t('{n}분 뒤', { n: Math.max(1, Math.ceil(ms / 60000)) });
 /**
- * 모집 공고 (2026-10-22 Lim): 무료, 매일 오전 6시 새 지원자 3명 (Lv 1 ~ 내 레벨), 「새로 뽑기」 = 보상형 광고 한 번 (광고 제거면 바로) → 5명, 1시간에 한 번.
+ * 모집 공고: 무료, 매일 오전 6시 새 지원자 3명 (Lv 1 ~ 내 레벨), 「새로 뽑기」 = 보상형 광고 한 번 → 5명, 1시간에 한 번.
  * 지원자 줄 = 영입 골드 (hireGold = 레벨 × 능력 배율, 2026-10-28 Lim). 희귀 · 스킬 등급 표시는 없음
  */
 function recruitHtml(): string {
@@ -261,11 +260,11 @@ function recruitHtml(): string {
   });
   const post = g.post, cands = post?.cands ?? [], room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? t('남은 자리 {n}명', { n: room }) : t('정원 가득'); // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
   const list = cands.length ? `<ul class="pcards g-list g-candidates">${cands.map((c, i) => candRow(c, i)).join('')}</ul>` : `<p class="g-empty0">${t('내일 새 지원자 {n}명', { n: POST.cands })}<small>${t('오전 6시 · {r}', { r: roomTxt })}</small></p>`;
-  const wait = postAdWait(G.save), noads = adsFree(G.save);
+  const wait = postAdWait(G.save);
   const postSec: Sec = {
     key: 'post', flat: true, icon: IC.post(), title: t(POST.name), dot: postNew(G.save),
     body: `<div class="g-post-offer"><div class="g-post-copy"><div class="g-offer-title"><h3>${t('지원자 {n}명', { n: cands.length })}<small> · ${roomTxt}</small></h3></div><p class="g-post-summary">${t('매일 새 {n}명 · Lv 1~{lv}', { n: POST.cands, lv: my })}</p></div>
-      <div class="g-post-action"><button class="btn mini primary" type="button" data-post="ad" aria-describedby="guild-post-ad"${cands.length ? ' aria-haspopup="dialog"' : ''}${wait ? ' disabled' : ''}>${wait ? adWaitText(wait) : t('새로 뽑기')}</button><small id="guild-post-ad">${wait ? t('다시 뽑기까지') : noads ? t('바로 {n}명', { n: POST.adCands }) : t('광고 보고 {n}명', { n: POST.adCands })}</small></div></div>
+      <div class="g-post-action"><button class="btn mini primary" type="button" data-post="ad" aria-describedby="guild-post-ad"${cands.length ? ' aria-haspopup="dialog"' : ''}${wait ? ' disabled' : ''}>${wait ? adWaitText(wait) : t('새로 뽑기')}</button><small id="guild-post-ad">${wait ? t('다시 뽑기까지') : t('광고 보고 {n}명', { n: POST.adCands })}</small></div></div>
       ${list}`,
   };
 
@@ -334,18 +333,18 @@ function statHelpHtml(): string {
 function postConfirmHtml(): string {
   const post = G.save.guild.post;
   if (!postReplace || !post?.cands.length) { postReplace = false; return ''; }
-  const noads = adsFree(G.save), disabled = postAdWait(G.save) > 0;
+  const disabled = postAdWait(G.save) > 0;
   return `<button type="button" class="sheet-dim g-action-dim" data-shut aria-label="${t('새로 뽑기 취소')}" tabindex="-1"></button>
     <section class="sheet g-action-confirm g-post-confirm" role="dialog" aria-modal="true" aria-labelledby="guildPostTitle" aria-describedby="guildPostDesc">
       <h3 id="guildPostTitle">${t('새로 뽑기')}</h3>
       <p id="guildPostDesc">${t('현재 지원자 {a}명이 돌아갑니다.<br>새 지원자 {b}명을 받으시겠습니까?', { a: post.cands.length, b: POST.adCands })}</p>
-      <div class="g-action-cost"><span>${noads ? t('광고 없이 바로') : t('보상형 광고 1회')}</span><b>${t('{n}명', { n: POST.adCands })}</b></div>
+      <div class="g-action-cost"><span>${t('보상형 광고 1회')}</span><b>${t('{n}명', { n: POST.adCands })}</b></div>
       <div class="g-action-buttons"><button type="button" id="cancelPost" data-shut>${t('취소')}</button><button type="button" class="primary" data-confirm-post="ad"${disabled ? ' disabled' : ''}>${t('확인')}</button></div>
     </section>`;
 }
-/** 보상형 광고 (광고 제거면 바로) → 지원자 5명. 광고를 끝까지 안 보면 그대로 */
+/** 보상형 광고 → 지원자 5명. 광고를 끝까지 안 보면 그대로 */
 async function adRefresh(): Promise<void> {
-  const ok = await showRewarded(t('새 지원자 {n}명', { n: POST.adCands }), adsFree(G.save));
+  const ok = await showRewarded(t('새 지원자 {n}명', { n: POST.adCands }));
   const err = ok ? adRefreshPost(G.save, Math.random) : '';
   if (ok) {
     sfx(err ? 'deny' : 'guild-recruit');

@@ -95,6 +95,8 @@ import { initClock } from './platform/time';
 import { mountServer } from './screens/server-notice';
 import { mountAccount } from './screens/account';
 import { mountI18n } from './i18n/dom';
+import { mountNativeAds } from './platform/native-ads';
+import { adsFree } from './game/stamina';
 
 applyArtVars();
 mountI18n(); // 정적 글 (전투 · 정비)을 지금 언어로 (기획 121). 사전은 i18n 모듈이 읽힐 때 이미 읽음
@@ -112,7 +114,7 @@ refreshDay();
 syncAds();
 go('s-title');
 // 강제 업데이트가 1순위. 타이틀 공지까지 끝난 뒤에만 계정 복원 창을 시작한다.
-void mountServer().then(allowed => { if (allowed) mountAccount(); });
+void mountServer().then(async allowed => { if (allowed) { await mountNativeAds(adsFree(G.save)); mountAccount(); } });
 void enterFullscreen();
 // 메뉴 · 로비 · 조작판 그림을 미리 디코딩 (지금 직업 조작판만). 장소 · 보스 · 이펙트 그림은 그 화면에서 (2026-10-17 Lim 「처음 페이지 열 때 살짝 느림」)
 prepareVillage(); // 로비 마을 (Pixi · 나무 · 집 · 구름 그림)도 타이틀에서 미리

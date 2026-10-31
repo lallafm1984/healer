@@ -400,19 +400,22 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
  * Lv 10 전 · 튜토리얼 · 진 판 · 포기 · 광고 제거 패키지면 없음. 못 불러오면 그냥 감 (시계 그대로)
  */
 let adPass = false;
+let adPending = false;
 st.el.addEventListener('click', e => {
   if (adPass) return;
   const b = (e.target as HTMLElement).closest<HTMLElement>('#again, #next, [data-go]');
   const r = Flow.result, x = Flow.settle;
   if (!b || !r || !x || interstitialOff()) return;
+  if (adPending) { e.preventDefault(); e.stopImmediatePropagation(); return; }
   const tutDone = G.save.tut >= TUT.done && !x.tutEnd;
   if (!interstitialDue({ won: r.win && !r.quit, level: G.save.player.level, tutDone, adsFree: adsFree(G.save), ms: adClockMs() })) return;
   e.preventDefault(); e.stopImmediatePropagation();
+  adPending = true;
   void showInterstitial().then(() => {
     if (st.el.hidden || !b.isConnected) return;
     adPass = true;
     try { b.click(); } finally { adPass = false; }
-  });
+  }).finally(() => { adPending = false; });
 }, true);
 
 st.el.addEventListener('click', e => {

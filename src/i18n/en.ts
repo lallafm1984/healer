@@ -3,6 +3,13 @@
  * 코드의 t('…') 열쇠는 모두 여기 있어야 한다 (tests/i18n.test.ts). 없는 열쇠 · 안 쓰는 열쇠: node scripts/i18n/keys.mjs
  */
 const en: Record<string, string> = {
+  '광고': 'Ads',
+  '광고를 끝까지 시청하지 않았거나 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.': 'The ad was not completed or could not load. Please try again shortly.',
+  '광고는 Android 앱에서 이용할 수 있습니다.': 'Ads are available in the Android app.',
+  '광고 개인정보 설정': 'Ad Privacy Settings',
+  '광고 동의 관리': 'Ad Consent',
+  '변경': 'Change',
+  '잠시 후 다시 시도해 주십시오.': 'Please try again shortly.',
   // 공통 · 탭 · 위 정보창
   '설정': 'Settings',
   '뒤로': 'Back',

@@ -126,7 +126,7 @@ export function postAdWait(save: SaveData, now = gameNow()): number {
   const at = save.guild.postAdAt ?? 0;
   return at > now ? 0 : Math.max(0, at + POST.adCooldownMs - now);
 }
-/** 보상형 광고를 본 뒤 (광고 제거면 바로): 지원자를 POST.adCands명으로 새로. 성공 = 빈 문자열 */
+/** 보상형 광고를 본 뒤: 지원자를 POST.adCands명으로 새로. 성공 = 빈 문자열 */
 export function adRefreshPost(save: SaveData, r: () => number, now = gameNow()): string {
   const g = save.guild;
   if (!g.founded) return t('길드 결성 전');

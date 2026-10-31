@@ -6,7 +6,7 @@ import { REST_BONUS, STAMINA } from '../data/economy';
 import { t } from '../i18n';
 import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
-import { adCharge, adsFree, staminaClock, staminaView } from '../game/stamina';
+import { adCharge, staminaClock, staminaView } from '../game/stamina';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
 import { fmt, go } from './kit';
@@ -74,11 +74,11 @@ function meter(extraCls = ''): string {
     <span class="st-bar${v.n > v.max ? ' over' : ''}" aria-hidden="true"><i style="width:${pct.toFixed(1)}%"></i></span></div>`;
 }
 
-/** 광고 충전 버튼 (광고 제거 패키지면 광고 없이 바로) */
+/** 보상형 광고 충전 버튼 (구매 여부와 관계없이 시청 필요) */
 function adButton(): string {
-  const v = view(), free = adsFree(G.save), left = v.adsLeft;
+  const v = view(), left = v.adsLeft;
   const full = v.n >= v.max;
-  const label = full ? t('휴식 가득 참') : free ? t('바로 최대 충전') : t('광고 보고 최대 충전');
+  const label = full ? t('휴식 가득 참') : t('광고 보고 최대 충전');
   return `<button class="btn primary st-ad" type="button" data-st="ad"${left && !full && !charging ? '' : ' disabled'}>${label}<small>${t('오늘 {a}/{b}', { a: left, b: STAMINA.adDaily })}</small></button>`;
 }
 
@@ -88,7 +88,7 @@ async function charge(): Promise<boolean> {
   if (charging || v.adsLeft <= 0 || v.n >= v.max) return false;
   charging = true;
   try {
-    if (!(await showRewarded(t('휴식 최대 충전'), adsFree(G.save)))) return false;
+    if (!(await showRewarded(t('휴식 최대 충전')))) return false;
     const err = adCharge(G.save, gameNow());
     if (err) return false;
     sfx('rest-charge');

@@ -7,7 +7,6 @@
  */
 import { AD_LIMIT } from '../data/economy';
 import { t } from '../i18n';
-import { adsFree } from '../game/stamina';
 import { CHEST_REWARD, GUILD_GOAL, WEEKLY_LV } from '../data/missions';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
@@ -66,10 +65,10 @@ function render(): void {
   const save = G.save, d = save.daily, w = save.weekly, lv = topLevel(save);
   const ch = chestState(save), gotN = d.missions.filter(m => m.got).length, weeklyN = w.missions.filter(m => m.got).length;
   const g = w.guild, run = runGold(lv), chal = save.chalChest ? chalChestOf(save.chalChest, save.player.level) : null;
-  const adLeft = AD_LIMIT.chest - d.ads.chest, mem = adsFree(save), weeklyOn = lv >= WEEKLY_LV;
+  const adLeft = AD_LIMIT.chest - d.ads.chest, weeklyOn = lv >= WEEKLY_LV;
 
   // ---------- 일일: 완료 상자 판 · 오늘의 임무 판 ----------
-  const chestBtns = `${ch.today || ch.banked ? `<button class="btn mini primary" type="button" id="chest">${ch.today ? t('열기') : t('놓친 날 열기')}</button>` : d.chest ? okPill(t('받음')) : ''}${d.chest && !d.chest2 ? `<button class="btn mini" type="button" id="chest2"${adLeft > 0 || mem ? '' : ' disabled'}>${mem ? t('한 번 더') : t('광고 한 번 더')}</button>` : ''}`;
+  const chestBtns = `${ch.today || ch.banked ? `<button class="btn mini primary" type="button" id="chest">${ch.today ? t('열기') : t('놓친 날 열기')}</button>` : d.chest ? okPill(t('받음')) : ''}${d.chest && !d.chest2 ? `<button class="btn mini" type="button" id="chest2"${adLeft > 0 ? '' : ' disabled'}>${t('광고 한 번 더')}</button>` : ''}`;
   // 제목 · 받은 수는 판 머리에, 줄에는 보상 알약 · 막대 · 버튼만
   const chestRow = `<li class="g-row m-chest"><span class="g-ri">${gameIcon('chest', '')}</span><div class="g-rm"><span class="g-rewards">${pill(currencyAmount('gold', run * CHEST_REWARD.runs), 'fame')}${pill(`${img(art('item-chest-vestment'))}${t('장비 1')}`)}</span>${bar((gotN / d.missions.length) * 100, t('보상 받은 임무 {a} / {b}', { a: gotN, b: d.missions.length }))}${ch.banked ? `<span class="g-sub">${t('놓친 날 상자 {n}개', { n: ch.banked })}</span>` : ''}</div>
       ${chestBtns ? `<span class="g-rs m-rs">${chestBtns}</span>` : ''}</li>`;
@@ -121,10 +120,9 @@ s.el.addEventListener('click', async e => {
   if (c) { const r = claimMission(save, c.dataset.claim as 'daily' | 'weekly', Number(c.dataset.i)); got(r, 'mission-claim'); award(r, t('임무 보상')); return; }
   if (el.closest('#chest')) { const r = claimChest(save, Math.random); got(r, 'chest-open'); award(r, t('완료 상자')); return; }
   if (el.closest('#chest2')) {
-    const mem = adsFree(save);
-    if (!mem && save.daily.ads.chest >= AD_LIMIT.chest) return;
-    if (!(await showRewarded(t('완료 상자 한 번 더'), mem))) return;
-    if (!mem) save.daily.ads.chest++;
+    if (save.daily.ads.chest >= AD_LIMIT.chest) return;
+    if (!(await showRewarded(t('완료 상자 한 번 더')))) return;
+    save.daily.ads.chest++;
     const r = claimChest(save, Math.random, true);
     got(r, 'chest-open');
     award(r, t('완료 상자 · 한 번 더')); return;
