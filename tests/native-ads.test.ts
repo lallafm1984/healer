@@ -20,6 +20,8 @@ const emit = (event: string) => h.handlers.get(event)?.();
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  vi.stubEnv('DEV', false);
+  vi.stubEnv('VITE_ADMOB_TESTING', 'false');
   h.handlers.clear();
   h.platform = 'android';
   Object.values(h.sdk).forEach(fn => fn.mockReset().mockResolvedValue(undefined));
@@ -31,7 +33,7 @@ beforeEach(() => {
   vi.stubGlobal('document', { documentElement: { classList: { add: vi.fn() } }, addEventListener: vi.fn(), hidden: false });
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('Android AdMob', () => {
   it('동의가 필요하면 동의 창 → SDK → 지정한 배너 순서', async () => {
@@ -42,7 +44,30 @@ describe('Android AdMob', () => {
     expect(h.sdk.showConsentForm).toHaveBeenCalledOnce();
     expect(h.sdk.showConsentForm.mock.invocationCallOrder[0]).toBeLessThan(h.sdk.initialize.mock.invocationCallOrder[0]);
     expect(h.sdk.initialize.mock.invocationCallOrder[0]).toBeLessThan(h.sdk.showBanner.mock.invocationCallOrder[0]);
-    expect(h.sdk.showBanner).toHaveBeenCalledWith(expect.objectContaining({ adId: ads.AD_UNITS.banner, adSize: 'BANNER', position: 'TOP_CENTER', isTesting: true }));
+    expect(h.sdk.showBanner).toHaveBeenCalledWith(expect.objectContaining({ adId: ads.AD_UNITS.banner, adSize: 'BANNER', position: 'TOP_CENTER', isTesting: false }));
+    expect(h.sdk.initialize).toHaveBeenCalledWith({ initializeForTesting: false });
+  });
+
+  it.each(['vite', 'apk'] as const)('시험 광고(%s)는 운영 UMP 미등록과 관계없이 Google 데모 배너를 요청', async mode => {
+    if (mode === 'vite') vi.stubEnv('DEV', true);
+    else vi.stubEnv('VITE_ADMOB_TESTING', 'true');
+    h.sdk.requestConsentInfo.mockRejectedValue(new Error('Publisher misconfiguration: no forms configured'));
+    const ads = await import('../src/platform/native-ads');
+    await ads.mountNativeAds(false);
+    expect(h.sdk.requestConsentInfo).not.toHaveBeenCalled();
+    expect(h.sdk.showConsentForm).not.toHaveBeenCalled();
+    expect(h.sdk.initialize).toHaveBeenCalledWith({ initializeForTesting: true });
+    expect(h.sdk.showBanner).toHaveBeenCalledWith(expect.objectContaining({ isTesting: true }));
+    expect(ads.adPrivacyRequired()).toBe(false);
+  });
+
+  it('출시 빌드는 UMP 미등록 오류에도 시험 광고로 전환하거나 동의 없이 요청하지 않음', async () => {
+    h.sdk.requestConsentInfo.mockRejectedValue(new Error('Publisher misconfiguration: no forms configured'));
+    const ads = await import('../src/platform/native-ads');
+    await ads.mountNativeAds(false);
+    expect(h.sdk.requestConsentInfo).toHaveBeenCalledOnce();
+    expect(h.sdk.initialize).not.toHaveBeenCalled();
+    expect(h.sdk.showBanner).not.toHaveBeenCalled();
   });
 
   it('광고 요청 불가·오프라인이면 SDK·광고를 시작하지 않고 다음 요청에서 재시도', async () => {

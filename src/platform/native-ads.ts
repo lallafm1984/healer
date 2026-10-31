@@ -1,4 +1,4 @@
-/** Android AdMob. 동의 확인 뒤에만 SDK·광고를 시작하며 웹에서는 호출하지 않는다. */
+/** Android AdMob. 출시 광고는 동의 확인 뒤 시작하고 개발판은 Google 데모 광고만 요청한다. */
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import {
   AdMob, AdmobConsentStatus, BannerAdPosition, BannerAdSize,
@@ -31,14 +31,18 @@ async function initialize(): Promise<boolean> {
   if (initializing) return initializing;
   initializing = (async () => {
     try {
-      let consent = await loadAd(AdMob.requestConsentInfo());
-      if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
-        consent = await AdMob.showConsentForm();
+      // isTesting은 Google 데모 광고 단위만 사용한다. 개발판까지 운영 앱의 UMP 메시지 등록에 묶지 않는다.
+      // 출시 빌드는 반드시 동의를 확인한다. UMP 오류·요청 불가를 시험 광고 경로로 우회하지 않는다.
+      if (!TEST_ADS) {
+        let consent = await loadAd(AdMob.requestConsentInfo());
+        if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
+          consent = await AdMob.showConsentForm();
+        }
+        privacyRequired = consent.privacyOptionsRequirementStatus === 'REQUIRED';
+        privacyListeners.forEach(fn => fn());
+        if (!consent.canRequestAds) return false;
       }
-      privacyRequired = consent.privacyOptionsRequirementStatus === 'REQUIRED';
-      privacyListeners.forEach(fn => fn());
-      if (!consent.canRequestAds) return false;
-      await AdMob.initialize();
+      await AdMob.initialize({ initializeForTesting: TEST_ADS });
       initialized = true;
       return true;
     } catch (error) {
