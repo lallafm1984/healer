@@ -41,7 +41,7 @@ export function markGearOpened(id: number): boolean {
   return true;
 }
 
-/** 광고 제거 패키지를 샀으면 배너를 숨김 (81 3장) */
+/** 구매 상태는 전면 광고만 제외한다. 배너는 같은 뷰를 계속 유지한다. */
 export function syncAds(): void {
   if (typeof document !== 'undefined') document.body.classList.toggle('noads', adsFree(G.save));
   syncNativeBanner(adsFree(G.save));

@@ -1,6 +1,6 @@
 /**
  * AdMob 배너 · 보상형 · 전면. Android는 실제 SDK, 개발 웹·화면 검사만 시험 창.
- * 보상형: 시청 완료만 보상. 광고 제거 패키지 (81)면 광고 없이 바로 보상.
+ * 보상형: 구매와 관계없이 시청 완료만 보상. 광고 제거 패키지는 전면 광고만 제외한다.
  * 전면 (90): 클리어한 판의 결과 화면에서 나갈 때, 마지막 광고 뒤 앱이 화면에 떠 있던 시간이 10분을 넘었으면 한 번 (screens/result.ts).
  */
 import { INTERSTITIAL } from '../data/economy';
@@ -74,8 +74,7 @@ function adBox(cls: string, html: string): Promise<string> {
 }
 
 /** 보상형 광고: 다 보면 true (그때 광고 시계를 새로). 실패·취소에는 보상을 주지 않는다. */
-export async function showRewarded(label: string, adsFree: boolean): Promise<boolean> {
-  if (adsFree) return true;
+export async function showRewarded(label: string): Promise<boolean> {
   if (NATIVE_ADS) {
     const ok = await showNativeAd('rewarded');
     if (ok) resetAdClock();

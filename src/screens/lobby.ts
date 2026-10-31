@@ -24,7 +24,7 @@ import { guide } from '../game/guide';
 import { merchantOffer } from '../game/merchant';
 import { chalContent, chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
-import { adsFree, staminaView } from '../game/stamina';
+import { staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar, milestoneText } from './kit';
 import { art } from '../art';
@@ -211,13 +211,13 @@ function merchantPlate(): string {
 
 /**
  * 휴식 충전: 휴식이 던전 한 판 몫 (20) 밑이고 충전할 수 있을 때만 왼쪽 맨 아래에 나옴 (다른 소켓 자리는 그대로).
- * 0이면 휴식 보너스 (클리어 경험치 · 골드 × REST_BONUS)를 못 받아 빛남. 누르면 휴식 창 (최대 충전 하루 3번, 광고 제거면 바로)
+ * 0이면 휴식 보너스 (클리어 경험치 · 골드 × REST_BONUS)를 못 받아 빛남. 누르면 휴식 창 (광고 보고 최대 충전 하루 3번)
  */
 function restSock(): string {
   const v = staminaView(G.save, gameNow());
   if (v.unlimited || v.n >= STAMINA_COST.dungeon || !v.adsLeft) return '';
   return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="${t('휴식 충전')} · ${t('휴식 {a}/{b}', { a: v.n, b: v.max })} · ${t('휴식이 있으면 보너스 ×{n}', { n: REST_BONUS })}"`, currencyIcon('rest'), tc('휴식 충전', 'short'),
-    adsFree(G.save) ? t('바로 최대 충전') : tc('광고 최대 충전', 'short'), v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
+    tc('광고 최대 충전', 'short'), v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
 /**

@@ -72,7 +72,7 @@ export default async function shop(url, shots) {
     && (await page.locator('#s-shop [data-prod^="job_"] .cash-gold').allInnerTexts()).filter(t => /50,000/.test(t)).length === 4, '상품: 광고 제거 5,500원 · 직업 4종 2,200원 또는 골드 50,000');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너 숨김 · 휴식 최대 150');
+  ok(sv.bought.includes('noads') && await page.locator('#adBanner span').evaluate(el => getComputedStyle(el).visibility === 'visible') && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너 유지 · 전면만 제외 · 휴식 최대 150');
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')) && (await page.locator('#s-shop [data-prod="job_monk"] .cash-gold').count()) === 0, '직업 구매: 수도사 보유 (골드 버튼도 사라짐)');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
@@ -117,14 +117,19 @@ export default async function shop(url, shots) {
   await toGate(0);
   await page.click('#contentGo'); await page.clock.runFor(100);
   ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party'), '휴식 0이어도 출전 = 바로 편성');
-  // 휴식 충전은 위 휴식 칸의 휴식 창에서 (광고 제거 패키지 = 광고 없이 바로)
+  // 휴식 충전은 위 휴식 칸에서. 광고 제거 구매자도 보상형을 시청한다.
   await page.click('#s-party .tb-back'); await page.clock.runFor(100);
   await page.click('#s-content [data-stamina-open]'); await page.clock.runFor(50);
   ok(await page.isVisible('.st-modal .st-info') && /경험치 · 골드를 \d배로 받습니다/.test(await text('.st-modal .note')) && !/1\/3|줄어|감소|가득까지|다음 \+1/.test(await text('.st-modal')), '휴식 창: 짧은 휴식 보너스 안내, 시간 줄 없음 (깎임 말 없음)');
   await page.screenshot({ path: `${shots}/shop_rest_window.png` });
   await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('.admodal [data-ad="ok"]') && (await save()).stamina.n === 0, '광고 제거 구매자도 보상형 시청 필요 · 시청 전에는 휴식 그대로');
+  await page.click('.admodal [data-ad="no"]'); await page.clock.runFor(50);
+  ok((await save()).stamina.n === 0 && (await save()).stamina.ads === 0, '구매자 보상형 취소 = 충전·횟수 소모 없음');
+  await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
+  await page.click('.admodal [data-ad="ok"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(!(await page.isVisible('.admodal [data-ad]')) && sv.stamina.n === 150 && sv.stamina.ads === 1, '광고 충전: 0 → 최대 150, 오늘 1번 (광고 제거 패키지 = 광고 없이 바로)');
+  ok(!(await page.isVisible('.admodal [data-ad]')) && sv.stamina.n === 150 && sv.stamina.ads === 1, '광고 완료: 0 → 최대 150, 오늘 1번 (구매자도 시청 완료 뒤 지급)');
   ok(await page.locator('.st-modal [data-st="ad"]').isDisabled() && /휴식 가득 참/.test(await text('.st-modal')), '가득 차면 광고 충전 비활성화');
   await page.click('.st-modal [data-st="no"]'); await page.clock.runFor(50);
   await page.click('#contentGo'); await page.clock.runFor(100);

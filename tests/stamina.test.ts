@@ -173,7 +173,7 @@ describe('전면 광고 (90)', () => {
 });
 
 describe('앱 결제 상품 (81 3장)', () => {
-  it('광고 제거 패키지 5,500원: 휴식 최대 +50 (150), 광고 없이 충전', () => {
+  it('광고 제거 패키지 5,500원: 휴식 최대 +50 (150), 전면 광고만 제외', () => {
     const s = fresh();
     expect(products(s).map(p => [p.id, p.price])).toEqual([[NOADS.id, '5,500원'], ...PAID_HEROES.map(h => [jobProductId(h), '2,200원'])]);
     expect(grantProduct(s, NOADS.id)).toBe('');

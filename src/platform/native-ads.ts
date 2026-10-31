@@ -50,26 +50,22 @@ async function initialize(): Promise<boolean> {
 }
 
 async function updateBanner(): Promise<void> {
-  if (noAds) {
-    if (bannerShown) { await AdMob.removeBanner(); bannerShown = false; }
-    return;
-  }
-  if (bannerShown || !await initialize() || noAds) return;
+  // 배너는 구매 여부와 관계없이 앱 전체에서 한 뷰를 유지한다. 화면·메뉴 이동은 다시 요청하지 않는다.
+  if (bannerShown || !await initialize()) return;
   // 320×50 배너. 플러그인이 노치 높이를 더하므로 웹도 같은 안전 영역만큼 비운다.
   await AdMob.showBanner({
     adId: AD_UNITS.banner, adSize: BannerAdSize.BANNER,
     position: BannerAdPosition.TOP_CENTER, margin: 0, isTesting: TEST_ADS,
   });
   bannerShown = true;
-  // 광고를 준비하는 동안 패키지를 샀으면 곧바로 제거한다.
-  if (noAds) { await AdMob.removeBanner(); bannerShown = false; }
 }
 
-/** 패키지 구입·복원·저장 초기화도 같은 경로. 비동기 표시·제거가 역전되지 않게 순서대로 실행한다. */
-export function syncNativeBanner(adsFree: boolean): void {
+/** 패키지는 전면 광고만 제외한다. 저장·메뉴 이동 때 부르더라도 기존 배너를 새로 불러오지 않는다. */
+export function syncNativeBanner(adsFree: boolean): Promise<void> {
   noAds = adsFree;
-  if (!NATIVE_ADS || !mounted) return;
+  if (!NATIVE_ADS || !mounted) return Promise.resolve();
   bannerQueue = bannerQueue.then(updateBanner).catch(error => console.warn('AdMob banner unavailable', error));
+  return bannerQueue;
 }
 
 /** 강제 업데이트·공지 처리가 끝난 다음 시작한다. 광고 실패가 게임 시작을 막지 않는다. */
@@ -113,11 +109,11 @@ async function loadAd<T>(load: Promise<T>): Promise<T> {
 
 /** 닫힌 뒤 완료. 보상형은 Rewarded 신호가 있어야 true, 조기 닫기·로드/표시 실패는 false. */
 export async function showNativeAd(kind: 'rewarded' | 'interstitial'): Promise<boolean> {
-  if (!NATIVE_ADS || fullscreenBusy || noAds) return false;
+  if (!NATIVE_ADS || fullscreenBusy || kind === 'interstitial' && noAds) return false;
   fullscreenBusy = true;
   const handles: PluginListenerHandle[] = [];
   try {
-    if (!await initialize() || noAds) return false;
+    if (!await initialize() || kind === 'interstitial' && noAds) return false;
     let earned = false;
     let settled = false;
     let finish!: (ok: boolean) => void;
@@ -134,7 +130,7 @@ export async function showNativeAd(kind: 'rewarded' | 'interstitial'): Promise<b
     }
     const options = { adId: AD_UNITS[kind], isTesting: TEST_ADS, immersiveMode: true };
     await loadAd(kind === 'rewarded' ? AdMob.prepareRewardVideoAd(options) : AdMob.prepareInterstitial(options));
-    if (noAds) return false;
+    if (kind === 'interstitial' && noAds) return false;
     // 보상형 show의 Promise는 조기 닫기 때 끝나지 않는다. Dismissed 사건으로 완료를 결정한다.
     const showing = kind === 'rewarded' ? AdMob.showRewardVideoAd() : AdMob.showInterstitial();
     void showing.catch(() => finish(false));

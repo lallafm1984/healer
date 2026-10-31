@@ -12,7 +12,7 @@ import { NOADS, REST_CUT, STAMINA, STAMINA_COST } from '../data/economy';
 import type { SaveData } from '../platform/storage';
 import { dayKey } from './clock';
 
-/** 광고 제거 패키지를 삼 (배너 · 전면 광고 없음, 휴식 충전은 광고 없이 바로) */
+/** 광고 제거 패키지를 삼 (전면 광고만 제외, 배너·보상형 유지, 휴식 최대 +50) */
 export const adsFree = (save: SaveData): boolean => save.bought.includes(NOADS.id);
 /** 최대치 (자연 회복이 멈추는 값) */
 export const staminaMax = (save: SaveData): number => STAMINA.max + (adsFree(save) ? STAMINA.bonus : 0);

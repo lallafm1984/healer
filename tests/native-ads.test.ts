@@ -114,17 +114,31 @@ describe('Android AdMob', () => {
     expect(await retry).toBe(false);
   });
 
-  it('광고 제거 패키지는 시작 시 광고 없음, 구입 즉시 배너 제거, 해제 시 재표시', async () => {
+  it('광고 제거 구매 후에도 배너 유지 · 전면만 제외 · 보상형은 시청 필요', async () => {
     const ads = await import('../src/platform/native-ads');
     await ads.mountNativeAds(true);
-    expect(h.sdk.requestConsentInfo).not.toHaveBeenCalled();
-    ads.syncNativeBanner(false);
-    await vi.waitFor(() => expect(h.sdk.showBanner).toHaveBeenCalledOnce());
-    ads.syncNativeBanner(true);
-    await vi.waitFor(() => expect(h.sdk.removeBanner).toHaveBeenCalledOnce());
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce();
+    await ads.syncNativeBanner(false);
+    await ads.syncNativeBanner(true);
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce();
+    expect(h.sdk.removeBanner).not.toHaveBeenCalled();
     expect(await ads.showNativeAd('interstitial')).toBe(false);
-    ads.syncNativeBanner(false);
-    await vi.waitFor(() => expect(h.sdk.showBanner).toHaveBeenCalledTimes(2));
+    expect(h.sdk.prepareInterstitial).not.toHaveBeenCalled();
+    const reward = ads.showNativeAd('rewarded');
+    await vi.waitFor(() => expect(h.sdk.showRewardVideoAd).toHaveBeenCalledOnce());
+    emit(RewardAdPluginEvents.Dismissed);
+    expect(await reward).toBe(false);
+  });
+
+  it('화면·메뉴 이동과 저장 동기화 100회에도 배너 생성·요청은 한 번', async () => {
+    const ads = await import('../src/platform/native-ads');
+    await ads.mountNativeAds(false);
+    await Promise.all(Array.from({ length: 100 }, (_, i) => ads.syncNativeBanner(i % 2 === 0)));
+    await ads.mountNativeAds(false);
+    expect(h.sdk.requestConsentInfo).toHaveBeenCalledOnce();
+    expect(h.sdk.initialize).toHaveBeenCalledOnce();
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce();
+    expect(h.sdk.removeBanner).not.toHaveBeenCalled();
   });
 
   it('개인정보 선택이 필요한 사용자에게 동의 변경 진입점 제공', async () => {
