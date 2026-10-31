@@ -79,6 +79,19 @@ export default async function shop(url, shots) {
   await page.evaluate(() => { document.documentElement.classList.add('native-ads'); document.documentElement.style.setProperty('--safe-area-inset-top', '24px'); });
   ok(await page.isHidden('#adBanner') && await page.locator('#viewport').evaluate(el => el.getBoundingClientRect().top === 24), 'Android 광고 제거 레이아웃은 상태 표시줄 안전 여백만 유지');
   await page.evaluate(() => { document.documentElement.classList.remove('native-ads'); document.documentElement.style.removeProperty('--safe-area-inset-top'); });
+  // 시험 ON/OFF는 실제 구매 기록을 보존하며 재실행에도 유지한다.
+  await page.getByRole('button', { name: '설정', exact: true }).click(); await page.clock.runFor(100);
+  ok(await page.locator('[data-tog="devNoAds"]').isChecked(), '광고 제거 시험 기본값은 실제 구매 상태를 따름');
+  await page.locator('[data-tog="devNoAds"]').uncheck(); await page.clock.runFor(100);
+  ok((await save()).bought.includes('noads') && (await save()).settings.devNoAds === false && await page.isVisible('#adBanner'), '시험 OFF: 구매 기록 유지 · 배너 표시');
+  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+  ok(await page.isVisible('#adBanner'), '재실행해도 시험 OFF 유지');
+  await page.getByRole('button', { name: '설정', exact: true }).click(); await page.clock.runFor(100);
+  await page.locator('[data-tog="devNoAds"]').check(); await page.clock.runFor(100);
+  ok((await save()).bought.includes('noads') && (await save()).settings.devNoAds === true && await page.isHidden('#adBanner'), '시험 ON: 구매 기록 유지 · 배너 제거');
+  await page.click('#devNoAdsReset'); await page.clock.runFor(100);
+  ok(!('devNoAds' in (await save()).settings) && (await save()).bought.includes('noads') && await page.isHidden('#adBanner'), '실제 구매 상태로: 시험값만 해제 · 기존 구매 혜택 유지');
+  await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')) && (await page.locator('#s-shop [data-prod="job_monk"] .cash-gold').count()) === 0, '직업 구매: 수도사 보유 (골드 버튼도 사라짐)');

@@ -16,6 +16,8 @@ import { noticeList } from '../platform/server';
 import { noticesHtml, refreshServer } from './server-notice';
 import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, showBackupError, signOutFlow } from './account';
 import { lang, LANGS, setLang, t, type Lang } from '../i18n';
+import { adPackageTestAvailable } from '../platform/ad-package-test';
+import { adsFree } from '../game/stamina';
 import './settings.css';
 
 let back = 's-lobby';
@@ -73,7 +75,7 @@ function render(): void {
     const v = (k === 'sfx' ? st.sound : st.music) ? Math.round(((k === 'sfx' ? st.sfxVol : st.musicVol) ?? 1) * 100) : 0;
     return `<div class="vol-row"><label for="vol-${k}">${label}</label><input type="range" id="vol-${k}" data-vol="${k}" min="0" max="100" step="5" value="${v}" aria-valuetext="${v ? `${v}%` : t('끔')}"><output for="vol-${k}">${v ? `${v}%` : t('끔')}</output></div>`;
   };
-  const tog = (name: string, label: string) => `<label class="toggle"><input type="checkbox" data-tog="${name}"${(st as unknown as Record<string, boolean>)[name] ? ' checked' : ''}> ${label}</label>`;
+  const tog = (name: string, label: string, checked = (st as unknown as Record<string, boolean>)[name]) => `<label class="toggle"><input type="checkbox" data-tog="${name}"${checked ? ' checked' : ''}> ${label}</label>`;
   // 길드 판 (guild-hall.css .g-card): 머리 = 기호 · 제목, 줄 = 그 설정 하나
   const card = (key: string, icon: Parameters<typeof uiIcon>[0], title: string, rows: string[]) =>
     `<section class="g-card st-card" data-sec="${key}"><header class="g-hd"><span class="g-hi">${uiIcon(icon)}</span><h3>${title}</h3></header><ul class="g-rows">${rows.map(r => `<li class="g-row st-row">${r}</li>`).join('')}</ul></section>`;
@@ -96,6 +98,9 @@ function render(): void {
         ${tog('devJobs', t('전 직업 선택'))}<p>${t('구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.')}</p>
         ${tog('devGold', t('골드 무제한'))}<p>${t('골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.')}</p>
         ${tog('devStamina', t('휴식 무제한'))}<p>${t('클리어해도 휴식이 줄지 않고 휴식 보너스가 늘 붙습니다.')}</p>
+        ${adPackageTestAvailable() ? `${tog('devNoAds', t('광고 제거 패키지 시험'), adsFree(G.save))}
+          <p>${t('배너·전면 광고와 휴식 최대치를 시험합니다. 구매 기록은 바뀌지 않습니다.')}</p>
+          <button class="btn" type="button" id="devNoAdsReset"${typeof st.devNoAds === 'boolean' ? '' : ' disabled'}>${t('실제 구매 상태로')}</button>` : ''}
         <div class="row dev-level">
           <button class="btn" type="button" id="devLevelUp"${lvLock ? ' disabled' : ''}>${t('레벨 +{n}', { n: TEST_LEVEL_STEP })}</button>
           <button class="btn" type="button" id="devMaxLevel"${lvLock ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? t('{n}레벨 적용됨', { n: MAX_LEVEL }) : t('{n}레벨로 변경', { n: MAX_LEVEL })}</button>
@@ -107,7 +112,10 @@ function render(): void {
     </div>`;
 }
 
-function saveSettings(): void { commit(); pushSettings(); render(); }
+function saveSettings(scrollTop?: number): void {
+  commit(); pushSettings(); render();
+  if (scrollTop != null) s.el.querySelector('.settings')!.scrollTop = scrollTop;
+}
 
 /** 크기 막대 값 → 설정 (0 = 끔) */
 function applyVol(el: HTMLInputElement): void {
@@ -136,6 +144,10 @@ s.el.addEventListener('click', e => {
   if (c) { (G.save.settings as unknown as Record<string, string>)[c.dataset.set!] = c.dataset.val!; saveSettings(); return; }
   const l = el.closest<HTMLElement>('[data-lang]');
   if (l) { void setLang(l.dataset.lang as Lang).then(() => { render(); refreshTabs(); }); return; }
+  if (el.closest('#devNoAdsReset') && adPackageTestAvailable()) {
+    const scrollTop = s.el.querySelector('.settings')!.scrollTop;
+    delete G.save.settings.devNoAds; saveSettings(scrollTop); return;
+  }
   const lvBtn = el.closest<HTMLButtonElement>('#devLevelUp, #devMaxLevel');
   if (lvBtn) {
     const scrollTop = s.el.querySelector('.settings')?.scrollTop ?? 0;
@@ -169,7 +181,12 @@ s.el.addEventListener('click', e => {
 
 s.el.addEventListener('change', e => {
   const i = (e.target as HTMLElement).closest<HTMLInputElement>('[data-tog]');
-  if (i) { (G.save.settings as unknown as Record<string, boolean>)[i.dataset.tog!] = i.checked; saveSettings(); }
+  if (i) {
+    const test = i.dataset.tog === 'devNoAds';
+    if (test && !adPackageTestAvailable()) return;
+    const scrollTop = test ? s.el.querySelector('.settings')!.scrollTop : undefined;
+    (G.save.settings as unknown as Record<string, boolean>)[i.dataset.tog!] = i.checked; saveSettings(scrollTop);
+  }
 });
 
 onAccountChange(() => { if (current === 's-settings') render(); });

@@ -11,9 +11,11 @@ import { t } from '../i18n';
 import { NOADS, REST_CUT, STAMINA, STAMINA_COST } from '../data/economy';
 import type { SaveData } from '../platform/storage';
 import { dayKey } from './clock';
+import { adPackageTestAvailable } from '../platform/ad-package-test';
 
-/** 광고 제거 패키지를 삼 (전면 광고만 제외, 배너·보상형 유지, 휴식 최대 +50) */
-export const adsFree = (save: SaveData): boolean => save.bought.includes(NOADS.id);
+/** 배너·전면 제거와 휴식 최대 +50. 시험 ON/OFF는 실제 구매 기록을 바꾸지 않는다. */
+export const adsFree = (save: SaveData): boolean => adPackageTestAvailable() && typeof save.settings.devNoAds === 'boolean'
+  ? save.settings.devNoAds : save.bought.includes(NOADS.id);
 /** 최대치 (자연 회복이 멈추는 값) */
 export const staminaMax = (save: SaveData): number => STAMINA.max + (adsFree(save) ? STAMINA.bonus : 0);
 /** 화면 테스트는 window.__staminaFree = true면 휴식 무제한 (window.__villageMotion처럼, 휴식 자체 검사는 e2e shop) */
