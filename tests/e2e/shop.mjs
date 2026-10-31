@@ -7,7 +7,7 @@ export default async function shop(url, shots) {
   const errs = [];
   let fails = 0;
   const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) fails++; };
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   page.on('pageerror', e => errs.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
@@ -72,7 +72,14 @@ export default async function shop(url, shots) {
     && (await page.locator('#s-shop [data-prod^="job_"] .cash-gold').allInnerTexts()).filter(t => /50,000/.test(t)).length === 4, '상품: 광고 제거 5,500원 · 직업 4종 2,200원 또는 골드 50,000');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.bought.includes('noads') && await page.locator('#adBanner span').evaluate(el => getComputedStyle(el).visibility === 'visible') && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너 유지 · 전면만 제외 · 휴식 최대 150');
+  ok(sv.bought.includes('noads') && await page.isHidden('#adBanner') && await page.locator('#viewport').evaluate(el => el.getBoundingClientRect().top === 0)
+    && /배너·전면 광고 없음/.test(await text('#s-shop [data-prod="noads"]')) && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너·상단 자리 제거 · 전면 제외 · 휴식 최대 150');
+  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+  ok(await page.isHidden('#adBanner') && await page.locator('#viewport').evaluate(el => el.getBoundingClientRect().top === 0), '다시 켜도 구매 상태 적용 · 배너와 빈 광고 자리 없음');
+  await page.evaluate(() => { document.documentElement.classList.add('native-ads'); document.documentElement.style.setProperty('--safe-area-inset-top', '24px'); });
+  ok(await page.isHidden('#adBanner') && await page.locator('#viewport').evaluate(el => el.getBoundingClientRect().top === 24), 'Android 광고 제거 레이아웃은 상태 표시줄 안전 여백만 유지');
+  await page.evaluate(() => { document.documentElement.classList.remove('native-ads'); document.documentElement.style.removeProperty('--safe-area-inset-top'); });
+  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')) && (await page.locator('#s-shop [data-prod="job_monk"] .cash-gold').count()) === 0, '직업 구매: 수도사 보유 (골드 버튼도 사라짐)');
   await page.screenshot({ path: `${shots}/shop_cash.png` });

@@ -76,12 +76,50 @@ describe('빌드와 동의', () => {
 });
 
 describe('배너 수명과 요청 제한', () => {
-  it('화면·저장·구매 동기화 100회와 SDK 자체 새로고침에도 앱 요청은 한 번', async () => {
+  it('화면·저장 동기화 100회와 SDK 자체 새로고침에도 앱 요청은 한 번', async () => {
     const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(false); emit(Banner.Loaded);
-    await Promise.all(Array.from({ length: 100 }, (_, i) => ads.syncNativeBanner(i % 2 === 0)));
+    await Promise.all(Array.from({ length: 100 }, () => ads.syncNativeBanner(false)));
     emit(Banner.Loaded); emit(Banner.AdImpression); await ads.mountNativeAds(false);
     expect(h.sdk.showBanner).toHaveBeenCalledOnce(); expect(h.sdk.removeBanner).not.toHaveBeenCalled();
     expect(ads.adDiagnostics()).toMatchObject({ bannerRequests: 1, bannerLoaded: 2, bannerImpressions: 1 });
+  });
+  it('구매·복원 신호가 겹쳐도 기존 배너는 한 번만 제거하고 복귀·저장 후 재요청 없음', async () => {
+    const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(false); emit(Banner.Loaded);
+    await Promise.all(Array.from({ length: 100 }, () => ads.syncNativeBanner(true)));
+    expect(h.sdk.removeBanner).toHaveBeenCalledOnce();
+    emit(Banner.Loaded); // 이미 제거한 광고의 늦은 콜백도 구매 상태를 되돌리지 않는다.
+    visible(false); h.appState?.({ isActive: false }); await flush();
+    visible(true); h.appState?.({ isActive: true }); await vi.advanceTimersByTimeAsync(3600000);
+    await ads.syncNativeBanner(true);
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce(); expect(h.sdk.removeBanner).toHaveBeenCalledOnce();
+    expect(h.sdk.resumeBanner).not.toHaveBeenCalled(); expect(ads.adDiagnostics().banner).toBe('idle');
+  });
+  it('배너 생성 중 구매하면 완료를 기다려 제거하고 늦게 다시 표시하지 않음', async () => {
+    const created = deferred<void>(); h.sdk.showBanner.mockReturnValue(created.promise);
+    const ads = await import('../src/platform/native-ads'); const mounting = ads.mountNativeAds(false); await flush();
+    const bought = ads.syncNativeBanner(true); await flush(); expect(h.sdk.removeBanner).not.toHaveBeenCalled();
+    created.resolve(); await mounting; await bought; emit(Banner.Loaded); await flush();
+    expect(h.sdk.removeBanner).toHaveBeenCalledOnce(); expect(ads.adDiagnostics().banner).toBe('idle');
+    expect(h.sdk.resumeBanner).not.toHaveBeenCalled();
+  });
+  it('초기화 중 구매하면 배너 자체를 만들지 않음', async () => {
+    const initialized = deferred<void>(); h.sdk.initialize.mockReturnValue(initialized.promise);
+    const ads = await import('../src/platform/native-ads'); const mounting = ads.mountNativeAds(false); await flush();
+    const bought = ads.syncNativeBanner(true); initialized.resolve(); await mounting; await bought;
+    expect(h.sdk.showBanner).not.toHaveBeenCalled(); expect(h.sdk.removeBanner).not.toHaveBeenCalled();
+  });
+  it('배너 실패 재시도 대기 중 구매하면 예약 요청도 취소', async () => {
+    const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(false); emit(Banner.FailedToLoad);
+    await ads.syncNativeBanner(true); await vi.advanceTimersByTimeAsync(3600000);
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce();
+  });
+  it('계정의 구매 상태가 제거 중 바뀌어도 제거 완료 뒤 새 상태로 한 번만 표시', async () => {
+    const removed = deferred<void>(); h.sdk.removeBanner.mockReturnValue(removed.promise);
+    const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(false); emit(Banner.Loaded);
+    const bought = ads.syncNativeBanner(true); await flush(); await ads.syncNativeBanner(false);
+    expect(h.sdk.showBanner).toHaveBeenCalledOnce();
+    removed.resolve(); await bought; await flush();
+    expect(h.sdk.removeBanner).toHaveBeenCalledOnce(); expect(h.sdk.showBanner).toHaveBeenCalledTimes(2);
   });
   it('SDK가 실패한 뷰를 제거하면 30초 뒤에만 새로 요청', async () => {
     const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(false); emit(Banner.FailedToLoad);
@@ -172,9 +210,10 @@ describe('전면·보상형 로드와 표시', () => {
     expect((await reward).rewarded).toBe(false); expect(ads.nativeAdBusy()).toBe(false); expect(h.handlers.size).toBe(0);
     await ads.prepareNativeAd('rewarded'); expect(h.sdk.prepareRewardVideoAd).toHaveBeenCalledOnce();
   });
-  it('광고 제거 구매 후 배너·보상형 유지, 전면만 제외', async () => {
+  it('구매한 계정으로 시작하면 배너·전면 요청 없이 보상형만 선택 시 시청', async () => {
     const ads = await import('../src/platform/native-ads'); await ads.mountNativeAds(true); await ads.prepareNativeAd('interstitial');
-    expect(h.sdk.showBanner).toHaveBeenCalledOnce(); expect(h.sdk.prepareInterstitial).not.toHaveBeenCalled();
+    expect(h.sdk.showBanner).not.toHaveBeenCalled(); expect(h.sdk.initialize).not.toHaveBeenCalled();
+    expect(h.sdk.requestConsentInfo).not.toHaveBeenCalled(); expect(h.sdk.prepareInterstitial).not.toHaveBeenCalled();
     expect((await ads.showNativeAd('interstitial')).status).toBe('cancelled');
     const reward = ads.showNativeAd('rewarded'); await flush(); emit(Reward.Dismissed); expect((await reward).shown).toBe(true);
   });

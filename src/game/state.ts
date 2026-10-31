@@ -41,7 +41,7 @@ export function markGearOpened(id: number): boolean {
   return true;
 }
 
-/** 구매 상태는 전면 광고만 제외한다. 배너는 같은 뷰를 계속 유지한다. */
+/** 광고 제거 구매·복원은 배너와 전면에 함께 적용한다. 보상형은 별도 시청한다. */
 export function syncAds(): void {
   if (typeof document !== 'undefined') document.body.classList.toggle('noads', adsFree(G.save));
   syncNativeBanner(adsFree(G.save));
