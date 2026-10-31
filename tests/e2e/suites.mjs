@@ -51,6 +51,7 @@ import i18nKo from './i18n-ko.mjs';
 import i18nLive from './i18n-live.mjs';
 import accountCloud from './account-cloud.mjs';
 import serverStartup from './server-startup.mjs';
+import serverLanguage from './server-language.mjs';
 
 /**
  * [이름, 묶음, CI에서 걸린 초, 조각 수]. 초는 2026-10-11 CI 기록 (모두 합쳐 33분), 몫을 고르게 나누는 데만 씀.
@@ -58,6 +59,7 @@ import serverStartup from './server-startup.mjs';
  */
 export const SUITES = [
   ['타이틀 강제 업데이트·공지 우선순위', serverStartup, 60],
+  ['서버 공지·업데이트 언어 선택', serverLanguage, 45],
   ['계정 백업 충돌·복원·세션', accountCloud, 20],
   ['한국어 화면 스냅샷 (121)', i18nKo, 40], // 어림
   ['다국어 전투·언어 전환 (121)', i18nLive, 30],

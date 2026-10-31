@@ -4,7 +4,7 @@
 
 | 하는 일 | 함수 | 누가 부르나 |
 |---|---|---|
-| 서버 시각 · 강제 업데이트 · 점검 · 공지 (+ 버전별 켠 수) | `app_boot(platform, version, count)` | 모두 (게스트도, 공개 키) |
+| 서버 시각 · 강제 업데이트 · 점검 · 공지 (+ 버전별 켠 수) | `app_boot(platform, version, count, lang)` | 모두 (게스트도, 공개 키), 이전 2/3인자 호출 유지 |
 | 서버 시각만 | `server_now()` | 모두 |
 | 자동 백업 (앱을 끄거나 뒤로 보낼 때) | `upload_save(data, base_rev, upload_id, app_version, client_at)` | 구글 로그인 한 사람 |
 | 자기 저장 받기 (로그인 고르기 · 저장 깨짐 때만) | `download_save()` | 구글 로그인 한 사람 |
@@ -47,6 +47,23 @@ Supabase 보안 점검 (Advisors)의 「RLS는 켜졌는데 정책 없음」 · 
 
 ## 자주 하는 일 (SQL Editor)
 
+설정 언어는 `ko` · `en` · `ja`다. 기본 `notices.title/body`, `app_config.update_message/maintenance_message`는 기존 한국어와 이전 앱용으로 유지한다. 새 앱에는 `notice_translations`와 `app_config_translations`의 선택 언어를 우선 반환한다. `ko`가 없으면 기존 한국어, `en`/`ja`가 없으면 영어 → 기존 한국어 순이다. 안내 문구가 전부 비어 있으면 앱의 해당 언어 기본 문구를 사용한다. 공지 제목·본문은 한 번역 행으로 함께 선택하며, 비어 있는 본문은 의도한 빈 본문으로 유지한다. 자동 번역은 하지 않으므로 운영 문장은 언어별로 등록한다.
+
+기존 앱은 언어 인자 없이 원래 한국어를 받는다. 새 앱은 설정 언어 변경과 공지 열기에서 `count=false`로 다시 받으며, 공지 캐시만 언어별로 분리한다. 읽음 번호는 공통이라 언어 변경만으로 같은 자동 팝업을 다시 띄우지 않는다. 번역 표는 RLS 및 권한 회수로 클라이언트가 직접 읽거나 쓸 수 없고 RPC만 사용한다.
+
+```sql
+-- 같은 공지 번호에 번역을 등록한다. 한국어 원문과 대상·기간은 notices 한 곳에서 관리한다.
+insert into public.notice_translations(notice_id, lang, title, body) values
+  (123, 'en', 'Maintenance Notice', 'Cloud saves will be unavailable during maintenance.'),
+  (123, 'ja', 'メンテナンスのお知らせ', 'メンテナンス中はクラウドセーブを利用できません。')
+on conflict(notice_id, lang) do update set title=excluded.title, body=excluded.body;
+insert into public.app_config_translations(platform, lang, update_message, maintenance_message) values
+  ('android', 'en', 'Update to the latest version to continue.', 'Server maintenance is in progress.'),
+  ('android', 'ja', '最新版にアップデートして続けてください。', 'サーバーメンテナンス中です。')
+on conflict(platform, lang) do update set update_message=excluded.update_message, maintenance_message=excluded.maintenance_message;
+select public.app_boot('android', 652, false, 'ja');
+```
+
 ```sql
 -- 공지 (popup = 처음 볼 때 한 번 창, 기간 · 버전 · 플랫폼을 비우면 모두)
 insert into public.notices (title, body, popup, ends_at) values ('점검 안내', '10월 30일 02:00 ~ 03:00 백업이 잠시 멈춥니다.', true, '2026-10-30 03:00+09');
@@ -87,6 +104,10 @@ update public.server_settings set value = '3' where key = 'history_keep';
 ```
 
 ## 테스트
+
+`npx vitest run tests/server-language.test.ts tests/server-client-language.test.ts`: 실제 Postgres의 언어 선택·정규화·대체·기간/버전 필터·통계 단일 집계·권한과 클라이언트 언어 캐시·느린 응답을 검사한다. `E2E_ONLY='서버 공지' npm run e2e`는 실제 설정 칩 전환, 타이틀 공지, 강제·일반 업데이트·점검의 세 언어 표시를 검사한다. 외부 HTTP와 Android 브리지는 모형이다.
+
+운영에는 `20261031010000_server_languages.sql`을 적용한 뒤 `supabase/tests/server-language.sql`을 SQL Editor에서 실행한다. `ko/en/ja`와 이전 호출·영어 대체·권한을 확인한 뒤 테스트 공지·번역·설정을 모두 **ROLLBACK**한다. 새 4인자 API가 준비된 뒤 앱을 배포한다.
 
 `npx vitest run tests/server-db.test.ts tests/account-flow.test.ts tests/account-platform.test.ts`: DB 권한과 세션 인계, 호출 제한, 중복 재시도, 비동기 복원 충돌, 저장 공간 부족, 미래 저장 버전, 복원 후 reload의 pause 이벤트, 실제 SDK 로그아웃 범위를 확인한다. 전체 단위 검사와 빌드 뒤 `E2E_ONLY=계정 npm run e2e`는 실제 SDK를 쓰는 브라우저에서 충돌 → 복원 → 로그아웃을 확인한다. 이 E2E의 외부 요청은 모두 모의 응답으로 처리한다.
 

@@ -4,7 +4,7 @@
  * 서버에 못 닿으면 아무 창도 없이 그대로. 설정 「공지」 줄은 noticesHtml
  */
 import { App } from '@capacitor/app';
-import { t } from '../i18n';
+import { lang, onLangChange, t } from '../i18n';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
 import { appBoot, appVersion, type Boot, type Notice } from '../platform/server';
@@ -137,10 +137,15 @@ function boot(count: boolean): Promise<boolean> {
   lastBootAt = performance.now();
   running = (async () => {
     try {
-      const b = await appBoot(count);
-      if (b) {
-        refreshDay(); // 서버 시각으로 맞춘 뒤 날 · 주가 바뀌었으면 새로
-        await showBoot(b, await appVersion());
+      for (;;) {
+        const selected = lang();
+        const b = await appBoot(count);
+        if (selected !== lang()) { count = false; continue; } // 빠른 언어 전환은 마지막 선택으로 다시 받는다.
+        if (b) {
+          refreshDay(); // 서버 시각으로 맞춘 뒤 날 · 주가 바뀌었으면 새로
+          await showBoot(b, await appVersion());
+        }
+        break;
       }
     } catch {
       // 서버 표시 실패는 오프라인 진행을 막지 않음. 이미 뜬 강제 업데이트 창은 유지한다.
@@ -153,6 +158,10 @@ function boot(count: boolean): Promise<boolean> {
   })();
   return running;
 }
+
+/** 설정 언어 변경·공지 열기: 앱 재실행 없이 갱신하되 강제 업데이트가 언제나 먼저다. */
+export const refreshServer = (): Promise<boolean> => serverOn() ? boot(false) : Promise.resolve(true);
+onLangChange(() => { void refreshServer(); });
 
 /** 앱이 켜질 때 (main.ts, 타이틀을 띄운 뒤): app_boot · 창, 앞으로 올 때 10분마다 다시 */
 export function mountServer(): Promise<boolean> {

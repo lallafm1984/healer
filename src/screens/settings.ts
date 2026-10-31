@@ -12,13 +12,22 @@ import { uiIcon } from './art';
 import { battle, current, go, previous, refreshTabs, screen, topBar } from './kit';
 import { noticeModal } from '../platform/ads';
 import { noticeList } from '../platform/server';
-import { noticesHtml } from './server-notice';
+import { noticesHtml, refreshServer } from './server-notice';
 import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, showBackupError, signOutFlow } from './account';
 import { lang, LANGS, setLang, t, type Lang } from '../i18n';
 import './settings.css';
 
 let back = 's-lobby';
 let confirmReset = false;
+let openingNotices = false;
+
+async function openNotices(): Promise<void> {
+  if (openingNotices) return;
+  openingNotices = true;
+  try {
+    if (await refreshServer() && current === 's-settings') await noticeModal(t('공지'), noticesHtml(noticeList()));
+  } finally { openingNotices = false; }
+}
 
 const s = screen('s-settings', '설정', {
   enter() {
@@ -139,7 +148,7 @@ s.el.addEventListener('click', e => {
   if (el.closest('#acctOut')) { void signOutFlow(); return; }
   if (el.closest('#acctDel')) { void deleteFlow(); return; }
   if (el.closest('#acctStatus')) { void showBackupError(); return; }
-  if (el.closest('#noticeOpen')) { void noticeModal(t('공지'), noticesHtml(noticeList())); return; }
+  if (el.closest('#noticeOpen')) { void openNotices(); return; }
   if (el.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;
     G.save.tut = again ? TUT.intro : TUT.done; commit();
