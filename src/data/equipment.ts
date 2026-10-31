@@ -9,7 +9,7 @@
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
  */
-import { CONTENT, contentOf, RAID10_LV, type ContentDef } from './content';
+import { CONTENT, contentOf, RAID10_LV, RAID20_LV, type ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
@@ -252,17 +252,16 @@ export const HERO_MAX: Record<0 | 10 | 20, Record<DiffName, number>> = {
 };
 export const heroRamp = (lv: number) => Math.max(0, Math.min(1, (lv - (HERO_FROM - 1)) / (MAX_LEVEL - (HERO_FROM - 1))));
 /**
- * 전설 (88, Lim 「노란색은 100레벨부터」): 내 레벨 100부터 레이드 어려움 · 악몽. 20인 = 고유 장비 · 이름 있는 장신구 (그 구역 것).
+ * 전설 (2026-10-31 Lim 「레이드 시작 레벨과 동일하게」): 해당 레이드 난이도 입장 레벨부터 어려움 · 악몽. 20인 = 고유 장비 · 이름 있는 장신구 (그 구역 것).
  * 10인도 (2026-10-22 Lim 「10인 레이드에서도 어려움, 악몽에서 확률은 20인 레이드 반으로 해서 나올수 있게」): 확률은 20인의 절반 (LEGEND_CHANCE_10),
  * 10인 구역에는 고유 장비 · 이름 있는 장신구 배치가 없어 고유 능력 한 줄 (1.3~1.7배) + 특수능력 1줄의 보통 전설 (makeItem). 아이템 레벨 = 그 레이드 레벨
  */
-export const LEGEND_LEVEL = MAX_LEVEL;
 export const LEGEND_CHANCE: Partial<Record<DiffName, number>> = { '어려움': 0.02, '악몽': 0.05 };
 /** 10인 레이드 전설 = 20인의 절반 */
 export const LEGEND_CHANCE_10: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.025 };
 /**
  * 레이드 다시 깬 판 (2026-10-19 Lim 카드 「주 첫 판만 크게」): 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표 그대로, 그 주에 다시 깨면 같은 레벨 던전 표
- * (바탕 표 · 영웅 확률 = 던전) + 내 레벨 100 어려움 · 악몽 전설 이만큼 (20인 REPEAT_LEGEND · 10인 그 절반 REPEAT_LEGEND_10)
+ * (바탕 표 · 영웅 확률 = 던전) + 해당 레이드 입장 레벨부터 어려움 · 악몽 전설 이만큼 (20인 REPEAT_LEGEND · 10인 그 절반 REPEAT_LEGEND_10)
  */
 export const REPEAT_LEGEND: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.01 };
 /** 10인 레이드 다시 깬 판 전설 = 20인의 절반 */
@@ -277,7 +276,7 @@ export const TOP_GRADE_MULT: Record<'S' | 'A' | 'B' | 'C', number> = { S: 1.2, A
 export const PUB_TOP_MULT = 1.5;
 
 /**
- * 드롭 등급을 정하는 맥락: tierLv = 등급대 · 영웅 레벨 (장소 레벨 · 레이드 레벨 · 내 레벨), level = 내 레벨 (전설), pub = 공개모집 보너스 판,
+ * 드롭 등급을 정하는 맥락: tierLv = 등급대 · 영웅 레벨 (장소 레벨 · 레이드 난이도 입장 레벨 · 내 레벨), level = 내 레벨 (전설 입장 조건), pub = 공개모집 보너스 판,
  * repeat = 그 주에 레이드 칸 첫 보상을 이미 받은 다시 깬 판 (던전 표, REPEAT_LEGEND)
  */
 export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; level: number; grade?: 'S' | 'A' | 'B' | 'C'; pub?: boolean; repeat?: boolean }
@@ -285,9 +284,9 @@ export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; l
 const tableOf = (o: OddsCtx): 0 | 10 | 20 => (o.repeat ? 0 : o.raid ?? 0);
 /** 영웅 확률 (클리어 등급 · 보너스 배율 포함) */
 export const heroChance = (o: OddsCtx) => HERO_MAX[tableOf(o)][o.diff] * heroRamp(o.tierLv) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
-/** 전설 확률: 레이드 · 내 레벨 100부터, 20인 LEGEND_CHANCE · 10인 그 절반 (다시 깬 판은 REPEAT_LEGEND · REPEAT_LEGEND_10). 클리어 등급 · 공개모집 보너스 배율은 같게 */
+/** 전설 확률: 해당 레이드 난이도 입장 레벨부터, 20인 LEGEND_CHANCE · 10인 그 절반 (다시 깬 판은 REPEAT_LEGEND · REPEAT_LEGEND_10). 클리어 등급 · 공개모집 보너스 배율은 같게 */
 export function legendChance(o: OddsCtx): number {
-  if (!o.raid || o.level < LEGEND_LEVEL) return 0;
+  if (!o.raid || o.level < Math.max(o.tierLv, o.raid === 20 ? RAID20_LV : RAID10_LV)) return 0;
   const table = o.raid === 20 ? (o.repeat ? REPEAT_LEGEND : LEGEND_CHANCE) : (o.repeat ? REPEAT_LEGEND_10 : LEGEND_CHANCE_10);
   return (table[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
 }

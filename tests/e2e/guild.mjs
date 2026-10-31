@@ -88,8 +88,11 @@ export default async function guild(url, shots) {
   const rowCosts = (await page.locator('#s-guild .g-candidates .f-tag.gold').allTextContents()).map(t => Number(t.replace(/[^0-9]/g, '')));
   const skillColors = await page.locator('#s-guild .g-candidates .skill-name b').evaluateAll(els => [...new Set(els.map(e => getComputedStyle(e).color))]);
   ok(skillColors.length === 1, `스킬 이름은 한 색 (일반 · 고급 · 희귀 색 없음) ${JSON.stringify(skillColors)}`);
+  const candidateName = await text('#s-guild [data-cand="0"] .pnick');
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
-  ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(await text('#s-guild .g-msheet')), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
+  // 거북이친구 같은 정상 닉네임을 삭제된 친구 · 인연 시스템 안내로 오인하지 않는다.
+  const candidateDetail = (await text('#s-guild .g-msheet')).split(candidateName).join('');
+  ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(candidateDetail), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
   ok((await page.locator('#s-guild .g-msheet .g-info').count()) === 0, '지원자 상세: ⓘ 없음 (길드원 상세에만)');
   ok((await page.locator('#s-guild .g-msheet .trait-grade').count()) === 0 && !/(일반|고급|희귀)$/.test((await text('#s-guild .g-msheet .pab .trait-heading')).trim()), '지원자 상세: 스킬 등급 (일반 · 고급 · 희귀) 글 없음');
   const hireTxt = (await text('#s-guild .g-hire-actions [data-hire]')).replace(/\s+/g, '');

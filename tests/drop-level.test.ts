@@ -1,10 +1,13 @@
 /** 장비 레벨 = 그 콘텐츠 레벨 (2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」) */
 import { describe, expect, it } from 'vitest';
-import { CONTENT, raidSize, stageOf } from '../src/data/content';
+import { CONTENT, contentOf, raidSize, stageOf } from '../src/data/content';
 import { dropOdds, heroChance, LEGEND, LEGEND_CHANCE, LEGEND_CHANCE_10, legendChance, makeLegend, REPEAT_LEGEND, REPEAT_LEGEND_10, rollItem } from '../src/data/equipment';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
+import { gearGradeOdds } from '../src/data/reward-preview';
+import { milestonesAt } from '../src/data/milestones';
+import { rollover } from '../src/game/economy';
 
 const run = (content: string, diff: BattleResult['diff'], stage: number): BattleResult => ({
   content: content as BattleResult['content'], diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 200, restSec: 0, deaths: 0,
@@ -30,10 +33,12 @@ describe('장비 레벨은 그 콘텐츠 레벨', () => {
 });
 
 describe('레이드 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」)', () => {
-  it('다시 깬 판 = 같은 레벨 던전 표 (영웅 확률 · 바탕 표), Lv 100 어려움 · 악몽 전설 20인 1% · 10인 0.5% (20인의 절반, 2026-10-22)', () => {
+  it('다시 깬 판 = 같은 레벨 던전 표의 영웅 확률 + 어려움 · 악몽 전설 20인 1% · 10인 0.5%', () => {
     for (const diff of ['보통', '어려움', '악몽'] as const) for (const raid of [10, 20] as const) {
       const again = dropOdds({ diff, raid, tierLv: 70, level: 70, repeat: true }), dungeon = dropOdds({ diff, raid: 0, tierLv: 70, level: 70 });
-      expect(again, `${diff} ${raid}`).toEqual(dungeon);
+      const legend = legendChance({ diff, raid, tierLv: 70, level: 70, repeat: true });
+      expect(again[4], `${diff} ${raid}`).toBeCloseTo(legend, 12);
+      for (let i = 0; i < 3; i++) expect(again[i], `${diff} ${raid} 등급 ${i}`).toBeCloseTo(dungeon[i] * (1 - again[3] - legend) / (1 - dungeon[3]), 12);
       expect(heroChance({ diff, raid, tierLv: 70, level: 70, repeat: true })).toBe(heroChance({ diff, raid: 0, tierLv: 70, level: 70 }));
     }
     const legend = (diff: '보통' | '어려움' | '악몽', raid: 10 | 20, level: number, repeat: boolean) => legendChance({ diff, raid, tierLv: 100, level, grade: 'B', repeat });
@@ -43,6 +48,35 @@ describe('레이드 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」)'
     expect([legend('어려움', 10, 100, false), legend('악몽', 10, 100, false), legend('보통', 10, 100, false), legend('악몽', 10, 99, false)]).toEqual([LEGEND_CHANCE_10['어려움'], LEGEND_CHANCE_10['악몽'], 0, 0]);
     expect(LEGEND_CHANCE_10).toEqual({ '어려움': 0.01, '악몽': 0.025 });
     expect(legend('악몽', 20, 100, false)).toBe(LEGEND_CHANCE['악몽']); // 주 첫 클리어는 그대로
+  });
+});
+
+describe('전설은 각 레이드 난이도 입장 레벨부터', () => {
+  it('모든 레이드: 출전 확률과 실제 첫 보상 · 반복 보상에 전설 포함, 아이템 레벨은 해당 레이드 레벨', () => {
+    for (const c of CONTENT.filter(x => x.ready && x.kind === 'raid')) for (const diff of ['어려움', '악몽'] as const) {
+      const level = stageOf(c, diff), raid = raidSize(c);
+      for (const repeat of [false, true]) {
+        const label = `${c.key} ${diff} ${repeat ? '반복' : '첫 판'}`;
+        expect(gearGradeOdds(diff, raid, level - 1, 'A', false, level, repeat)['전설'], label).toBe(0);
+        const odds = gearGradeOdds(diff, raid, level, 'A', false, level, repeat);
+        expect(odds['전설'], label).toBeGreaterThan(0);
+        const s = newSave(); s.player.level = level; s.tut = 99;
+        const now = Date.UTC(2026, 9, 31);
+        rollover(s, now, rngFrom(1));
+        if (repeat) s.weekly.loot.push(`${c.key}|${diff}`);
+        // 등급 추첨의 마지막 구간을 골라 실제 정산도 전설을 지급하는지 확인한다.
+        const result = settle(s, run(c.key, diff, level), () => 0.999999, [], now);
+        expect(result.raidLoot, label).toBe(repeat ? 'again' : 'first');
+        expect(result.items[0], label).toMatchObject({ grade: LEGEND, lv: level });
+        if (raid === 20) expect(!!result.items[0].unique || !!result.items[0].named, label).toBe(true);
+      }
+    }
+  });
+
+  it('전설 해금 안내도 첫 10인 레이드 입장 레벨로 이동', () => {
+    const legend = '전설 장비 (노란색, 레이드 어려움 · 악몽)';
+    expect(milestonesAt(contentOf('abyss1').unlockLv, 'priest').some(m => m.text === legend)).toBe(true);
+    expect(milestonesAt(100, 'priest').some(m => m.text === legend)).toBe(false);
   });
 });
 

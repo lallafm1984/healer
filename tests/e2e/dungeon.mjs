@@ -113,10 +113,19 @@ export default async function dungeon(url, shots) {
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.cls).join()) === clsNow, `전투 파티원 직업 = 편성 화면 (${clsNow})`);
   // 칸을 길게 누르면 직업 · 성격 (직업 패시브는 69에서 뺌)
   const bb = await page.locator('#board').boundingBox();
-  const tankAt = await page.evaluate(() => { const ui = window.__proto; const t = ui.F.party.find(u => u.role === 'tank'); return ui.center(t.cell); });
+  // 입력 검사 중 탱커가 첫 자리로 이동해 누른 칸을 떠나지 않도록 잠시 고정한다.
+  const tankAt = await page.evaluate(() => {
+    const ui = window.__proto, f = ui.F, pos = f.R.pos;
+    f.R = { ...f.R, pos: null };
+    f.party.forEach(u => { u.moving = null; });
+    const t = f.party.find(u => u.role === 'tank');
+    return { ...ui.center(t.cell), pos };
+  });
+  await page.clock.runFor(40);
   await page.mouse.move(bb.x + tankAt.x, bb.y + tankAt.y); await page.mouse.down(); await page.clock.runFor(600);
   const pv = await page.textContent('#preview');
   await page.mouse.up(); await page.clock.runFor(50);
+  await page.evaluate(pos => { window.__proto.F.R.pos = pos; }, tankAt.pos);
   ok(/(전사|수호기사) · 탱커/.test(pv) && !/(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업, 패시브 없음 (${pv.slice(0, 40)})`);
   // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 평온 게이지는 숨기지 않고 어둡게 + 자물쇠 · Lv 6 (#182)
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
