@@ -5,13 +5,13 @@ const uid = '20000000-0000-4000-8000-000000000001';
 const user = { id: uid, aud: 'authenticated', role: 'authenticated', email: 'startup@example.invalid',
   app_metadata: { provider: 'google', providers: ['google'] }, user_metadata: {}, is_anonymous: false, created_at: '2026-10-31T00:00:00Z' };
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
-const normal = () => ({ now: Date.now(), config: { min_version: 0, latest_version: 0, store_url: 'https://store.example.invalid/healer',
+export const normal = () => ({ now: Date.now(), config: { min_version: 0, latest_version: 0, store_url: 'https://store.example.invalid/healer',
   update_message: null, maintenance: false, maintenance_message: null, flags: {} }, notices: [] });
 const notice = (id, popup = true) => ({ id, title: '공지사항', body: '새로운 모험이 준비되었습니다.\n확인 후 게임을 시작할 수 있습니다.', popup, starts_at: Date.now() });
 const forced = () => { const b = normal(); b.config.min_version = 652; b.config.latest_version = 652; b.config.maintenance = true; b.notices = [notice(901)]; return b; };
 
-async function bridge(ctx) {
-  await ctx.addInitScript(() => {
+async function bridge(ctx, language) {
+  await ctx.addInitScript(language => {
     window.__serverTest = localStorage.getItem('startup-server-fixture') === '1';
     window.__nativeCalls = []; window.__nativeListeners = {};
     window.CapacitorCustomPlatform = { name: 'android' };
@@ -36,13 +36,13 @@ async function bridge(ctx) {
         return 'fixture-listener';
       },
     };
-    localStorage.setItem('healer.lang', 'ko');
-  });
+    if (!localStorage.getItem('healer.lang')) localStorage.setItem('healer.lang', language);
+  }, language);
 }
 
-async function start(browser, url, errs, { width = 360, height = 780, boot = normal(), hold = false, account = false, conflict = true, corruptSeen = false } = {}) {
+export async function start(browser, url, errs, { width = 360, height = 780, boot = normal(), hold = false, account = false, conflict = true, corruptSeen = false, language = 'ko' } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, locale: 'ko-KR', isMobile: true, hasTouch: true });
-  await bridge(ctx);
+  await bridge(ctx, language);
   const state = { boot, hold, started: deferred(), release: deferred(), downloadStarted: deferred(), downloadRelease: deferred(),
     downloadDone: deferred(), deviceDone: deferred(), holdDownload: false, requests: [], cloud: null, store: [] };
   await ctx.route('**/*', async route => {
@@ -53,7 +53,7 @@ async function start(browser, url, errs, { width = 360, height = 780, boot = nor
     const body = req.postDataJSON(); state.requests.push({ path: u.pathname, body });
     try {
       if (u.pathname.endsWith('/app_boot')) {
-        const snapshot = structuredClone(state.boot), wait = state.hold ? state.release.promise : null;
+        const snapshot = structuredClone(typeof state.boot === 'function' ? state.boot(body) : state.boot), wait = state.hold ? state.release.promise : null;
         state.started.resolve(body); if (wait) await wait;
         return await route.fulfill({ json: snapshot });
       }
