@@ -45,6 +45,7 @@ export default async function accountCloud(url,shots){
     ok(uploads===0&&await page.evaluate(()=>localStorage.getItem('healer.restorePending')==='1'),'충돌 뒤 복원 대기 · 업로드 없음');
     await pastTitle(page);await page.click('#s-lobby [data-go="s-settings"]');
     await page.locator('#acctStatus').waitFor();ok(await page.locator('#acctStatus').innerText()==='백업 대기','설정에서 백업 실패 상태 확인 가능');
+    await page.locator('#acctStatus').scrollIntoViewIfNeeded();
     await page.screenshot({path:`${shots}/account-backup-pending.png`});
     chooseConflict=false;cloud.player.level=6;
     await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
