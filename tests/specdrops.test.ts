@@ -128,7 +128,7 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
     const old = many(6000, (r, i) => rollItem(r, '보통', 'B', 30, i));
     for (const s of SLOTS) expect(old.filter(it => it.slot === s.key).length / old.length).toBeCloseTo(1 / 6, 1);
   });
-  it('등급 (88, Lim 「초반에는 희귀까지만 · 중반부터 희박하게 영웅 · 전설은 100레벨부터」)', () => {
+  it('초반에는 희귀까지 · 중반부터 영웅 · 전설은 각 레이드 입장 레벨부터 어려움 · 악몽', () => {
     const DS = ['쉬움', '보통', '어려움', '악몽'] as const;
     const top = (diff: (typeof DS)[number], raid: 0 | 10 | 20, lv: number) => {
       const its = many(3000, (r, i) => rollItem(r, diff, 'S', lv, i, { place: 'cathedral1', raid, bonus: true, tierLv: lv }));
@@ -141,7 +141,7 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
     expect(DS.map(d => top(d, 0, 100))).toEqual(['희귀', '영웅', '영웅', '영웅']);
     expect(DS.map(d => top(d, 10, 100))).toEqual(['영웅', '영웅', '전설', '전설']);
     expect(DS.map(d => top(d, 20, 100))).toEqual(['영웅', '영웅', '전설', '전설']);
-    expect(top('악몽', 20, 99)).toBe('영웅');
+    expect(top('악몽', 20, 99)).toBe('전설');
     // 영웅은 레벨이 오를수록 늘어남 (10인 악몽)
     const epic = (lv: number) => many(4000, (r, i) => rollItem(r, '악몽', 'B', lv, i, { raid: 10, tierLv: lv })).filter(it => it.grade === '영웅').length;
     const [e50, e75, e100] = [epic(50), epic(75), epic(100)];

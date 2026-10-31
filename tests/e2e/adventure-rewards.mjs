@@ -3,8 +3,8 @@ import { chooseContent, pastTitle, shownImagesReady } from './nav.mjs';
 import { DEPARTURE_DEVICES, departureLayout, layoutIssues } from './adventure-no-scroll.mjs';
 
 // 실제 A 클리어 확률 (88): 바탕 표 (일반 ~ 희귀)에 +0.02를 밀고, 영웅 · 전설은 따로 (Lv 100: 최대값 × 1.1). 공개모집 보정은 제외.
-// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 그 레이드 레벨 (#296 · 103: 심연의 탑 1층 45 · 악몽 60, 대성당 1구역 70 · 악몽 80), 전설은 내 Lv 100. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
-// RAID_AGAIN = 그 주에 주 첫 보상을 받은 칸을 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」): 같은 레벨 던전 표 + 20인 Lv 100 어려움 · 악몽 전설 1% × 1.1
+// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 그 레이드 레벨 (#296 · 103: 심연의 탑 1층 45 · 악몽 60, 대성당 1구역 70 · 악몽 80), 전설도 각 난이도 입장 레벨부터. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
+// RAID_AGAIN = 그 주에 주 첫 보상을 받은 칸을 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」): 같은 레벨 던전 표 + 20인 어려움 · 악몽 전설 1% × 1.1
 const GRADES=['일반','고급','희귀','영웅','전설'];
 const GRADE_COLORS=['#C8C8C8','#3FD85A','#4A9BFF','#BE6EFF','#FFD23F'];
 const TABLES={
@@ -211,12 +211,16 @@ export default async function adventureRewards(url,shots) {
               && /5\.5%/.test(await page.locator('.b-reward-chance [data-grade="전설"]').innerText()),`주간 경계 ${trigger}: 확률 표도 새 주 전설 5.5%`);
             await page.keyboard.press('Escape');
           }
-          for(const level of [99,100]) {
-            // 88: 전설은 Lv 100부터. 영웅 = 30% × (대성당 1구역 악몽 Lv 80 − 44) / 56 × 1.1 (레이드 레벨, #296)
-            const h=30*36/56*1.1;
-            await seed(page,{level,devUnlock:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
-            const state=await inspectProbabilities(page,level<100?[0,0,100-h,h,0]:TABLES.raid20.악몽);
-            ok(state.ok,`Lv${level}: 실제 최고등급 ${level<100?'영웅·전설 0%':'전설 5.5%'}와 등급별 확률 일치`,state);
+          for(const [tab,content,diff,level] of [
+            ['raid10','abyss1','어려움',45],['raid10','abyss1','악몽',60],
+            ['raid20','cathedral1','어려움',70],['raid20','cathedral1','악몽',80],
+            ['raid20','cathedral1','악몽',99],['raid20','cathedral1','악몽',100],
+          ]) {
+            await seed(page,{level});await page.click(`[data-ctab="${tab}"]`);await chooseContent(page,content);await page.click(`[data-diff="${diff}"]`);
+            const state=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
+            ok(state.ok,`Lv${level} ${tab}/${diff}: 난이도 입장 레벨부터 전설 아이콘·확률 표시`,state);
+            if(level<100)await page.screenshot({path:`${shots}/departure-legend-${tab}-${diff}-lv${level}-${id}.png`});
+            await page.keyboard.press('Escape');
           }
         }
         // 긴 실제 이름과 잠금 안내가 함께 나와도 중앙 제목을 줄이거나 가리지 않는다.
