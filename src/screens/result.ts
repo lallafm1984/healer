@@ -31,7 +31,7 @@ import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type Currenc
 import { depart } from './party';
 import { sortie } from './stamina';
 import { adsFree } from '../game/stamina';
-import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
+import { adClockMs, interstitialDue, interstitialOff, prepareInterstitial, showInterstitial } from '../platform/ads';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
 import { sfx } from '../sfx';
@@ -39,7 +39,7 @@ import { lootSound } from './ui-sound';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
-const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; setResultWin(!!Flow.result?.win && !Flow.result?.quit); render(); } });
+const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; setResultWin(!!Flow.result?.win && !Flow.result?.quit); render(); if (resultAdDue()) prepareInterstitial(); } });
 const resultModal = sheetDialog(st.el, () => closeResultPopup(st.el));
 
 /** 머리 뒤에 장소 그림 (28 4장) */
@@ -401,6 +401,10 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
  */
 let adPass = false;
 let adPending = false;
+function resultAdDue(): boolean {
+  const r = Flow.result, x = Flow.settle;
+  return !!r && !!x && !interstitialOff() && interstitialDue({ won: r.win && !r.quit, level: G.save.player.level, tutDone: G.save.tut >= TUT.done && !x.tutEnd, adsFree: adsFree(G.save), ms: adClockMs() });
+}
 st.el.addEventListener('click', e => {
   if (adPass) return;
   const b = (e.target as HTMLElement).closest<HTMLElement>('#again, #next, [data-go]');
@@ -411,7 +415,7 @@ st.el.addEventListener('click', e => {
   if (!interstitialDue({ won: r.win && !r.quit, level: G.save.player.level, tutDone, adsFree: adsFree(G.save), ms: adClockMs() })) return;
   e.preventDefault(); e.stopImmediatePropagation();
   adPending = true;
-  void showInterstitial().then(() => {
+  void showInterstitial(() => !st.el.hidden && Flow.result === r && Flow.settle === x && resultAdDue()).then(() => {
     if (st.el.hidden || !b.isConnected) return;
     adPass = true;
     try { b.click(); } finally { adPass = false; }

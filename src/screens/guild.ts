@@ -343,9 +343,16 @@ function postConfirmHtml(): string {
     </section>`;
 }
 /** 보상형 광고 → 지원자 5명. 광고를 끝까지 안 보면 그대로 */
+let postAdPending = false;
 async function adRefresh(): Promise<void> {
-  const ok = await showRewarded(t('새 지원자 {n}명', { n: POST.adCands }));
-  const err = ok ? adRefreshPost(G.save, Math.random) : '';
+  if (postAdPending || postAdWait(G.save) > 0) return;
+  const save = G.save;
+  postAdPending = true;
+  let ok = false;
+  try { ok = await showRewarded(t('새 지원자 {n}명', { n: POST.adCands }), () => !s.el.hidden && G.save === save && postAdWait(save) <= 0); }
+  finally { postAdPending = false; }
+  if (G.save !== save) return;
+  const err = ok ? adRefreshPost(save, Math.random) : '';
   if (ok) {
     sfx(err ? 'deny' : 'guild-recruit');
     commit(); // 새 지원자는 목록에 바로 보임 (「새 지원자 N명 도착」 줄은 2026-10-28 Lim 「제거」)

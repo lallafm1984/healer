@@ -6,7 +6,7 @@
 import { INTERSTITIAL } from '../data/economy';
 import { t } from '../i18n';
 import { lastBoot } from './server';
-import { NATIVE_ADS, showNativeAd } from './native-ads';
+import { NATIVE_ADS, nativeAdBusy, prepareNativeAd, showNativeAd } from './native-ads';
 
 export const ADS_READY = NATIVE_ADS;
 
@@ -15,7 +15,7 @@ export function interstitialConfig(flags = lastBoot()?.config?.flags): { everyMs
   const minutes = flags?.interstitial_interval_minutes;
   const level = flags?.interstitial_min_level;
   return {
-    everyMs: typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 && minutes <= 1440 ? minutes * 60e3 : INTERSTITIAL.everyMs,
+    everyMs: typeof minutes === 'number' && Number.isFinite(minutes) && minutes >= 1 && minutes <= 1440 ? minutes * 60e3 : INTERSTITIAL.everyMs,
     minLv: typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 100 ? level : INTERSTITIAL.minLv,
   };
 }
@@ -74,12 +74,19 @@ function adBox(cls: string, html: string): Promise<string> {
 }
 
 /** 보상형 광고: 다 보면 true (그때 광고 시계를 새로). 실패·취소에는 보상을 주지 않는다. */
-export async function showRewarded(label: string): Promise<boolean> {
+let rewardPending = false;
+export async function showRewarded(label: string, canShow: () => boolean = () => true): Promise<boolean> {
+  if (rewardPending || !canShow() || nativeAdBusy()) return false;
+  rewardPending = true;
+  try { return await rewardFlow(label, canShow); } finally { rewardPending = false; }
+}
+
+async function rewardFlow(label: string, canShow: () => boolean): Promise<boolean> {
   if (NATIVE_ADS) {
-    const ok = await showNativeAd('rewarded');
-    if (ok) resetAdClock();
-    else await noticeModal(t('광고'), t('광고를 끝까지 시청하지 않았거나 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.'));
-    return ok;
+    const r = await showNativeAd('rewarded', canShow);
+    if (r.shown) resetAdClock(); // 보상 없이 닫았어도 본 광고 뒤 전면 광고가 바로 이어지지 않게 한다.
+    if ((r.status === 'failed' || r.status === 'not-ready') && canShow()) await noticeModal(t('광고'), t('광고를 끝까지 시청하지 않았거나 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.'));
+    return r.rewarded;
   }
   if (!webAdPreview()) {
     await noticeModal(t('광고'), t('광고는 Android 앱에서 이용할 수 있습니다.'));
@@ -95,11 +102,14 @@ export async function showRewarded(label: string): Promise<boolean> {
  * 전면 광고: 띄웠으면 (닫힌 뒤) true, 못 불러왔으면 false (그때는 시계 그대로, 다음 클리어에 다시 봄).
  * 개발 웹·화면 검사에서만 시험 창
  */
-export async function showInterstitial(): Promise<boolean> {
+/** 결과 화면에 들어왔을 때 한 개만 준비한다. 준비가 늦으면 나가기를 막거나 나중에 갑자기 띄우지 않는다. */
+export function prepareInterstitial(): void { if (NATIVE_ADS && !interstitialOff()) void prepareNativeAd('interstitial'); }
+
+export async function showInterstitial(canShow: () => boolean = () => true): Promise<boolean> {
   if (NATIVE_ADS) {
-    const ok = await showNativeAd('interstitial');
-    if (ok) resetAdClock();
-    return ok;
+    const r = await showNativeAd('interstitial', canShow);
+    if (r.shown) resetAdClock();
+    return r.shown;
   }
   if (!webAdPreview()) return false;
   await adBox('ad-inter', `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="adInterTitle"><h3 id="adInterTitle">${t('전면 광고 자리 (시험)')}</h3><p class="note">${t('AdMob 연결 전 · 시험용')}</p>

@@ -86,10 +86,12 @@ function adButton(): string {
 async function charge(): Promise<boolean> {
   const v = view();
   if (charging || v.adsLeft <= 0 || v.n >= v.max) return false;
+  const save = G.save, opened = pop;
   charging = true;
   try {
-    if (!(await showRewarded(t('휴식 최대 충전')))) return false;
-    const err = adCharge(G.save, gameNow());
+    if (!(await showRewarded(t('휴식 최대 충전'), () => G.save === save && pop === opened && !!opened?.isConnected && view().adsLeft > 0 && view().n < view().max))) return false;
+    if (G.save !== save) return false;
+    const err = adCharge(save, gameNow());
     if (err) return false;
     sfx('rest-charge');
     commit();
