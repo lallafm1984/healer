@@ -1,5 +1,9 @@
 /* 앱 바깥 틀: 전체화면 + 상단 배너 영역 70dp(노치 포함) + 하단 탭 (09 5장) */
 :root { --banner-h: 70px; --tabs-h: 64px; }
+/* Android 네이티브 배너도 노치를 피한다. Capacitor SystemBars가 주는 dp 값과 광고 50dp를 함께 확보한다. */
+:root.native-ads { --banner-h: max(70px, calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 50px)); }
+.native-ads #adBanner { border-bottom: 0; }
+.native-ads #adBanner span { visibility: hidden; }
 html, body { margin: 0; height: 100%; overscroll-behavior: none; }
 body { background: #0E0B09; }
 /* 게임 UI 글자는 길게 눌러도 선택되지 않게 (폰 WebView 선택 핸들·돋보기 방지). 전투판(battle.css)만이 아니라 메뉴 전체. 글자 입력칸은 없음 (설정은 체크박스뿐) */

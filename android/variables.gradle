@@ -1,4 +1,7 @@
 ext {
+    // AdMob SDK는 동적 버전 대신 검증한 버전으로 고정한다.
+    playServicesAdsVersion = '25.4.0'
+    userMessagingPlatformVersion = '4.0.0'
     minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36

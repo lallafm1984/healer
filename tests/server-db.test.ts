@@ -64,6 +64,20 @@ beforeAll(async () => {
 });
 
 describe('게스트 (공개 키)', () => {
+  it('광고 기본값 · 운영자 변경은 app_boot로 전달하고 마이그레이션 재적용도 설정을 보존', async () => {
+    await as(null);
+    const defaults = await rpc('app_boot', ['android', 101, false]);
+    expect(defaults.config.flags).toMatchObject({ interstitial_interval_minutes: 10, interstitial_min_level: 10 });
+    await as('admin');
+    await db.exec(`update public.app_config set flags = flags || '{"backup":false,"interstitial_interval_minutes":15,"interstitial_min_level":20}'::jsonb where platform='android'`);
+    await db.exec(readFileSync(join(MIG_DIR, '20261031020000_admob_settings.sql'), 'utf8'));
+    await as(null);
+    const changed = await rpc('app_boot', ['android', 101, false]);
+    expect(changed.config.flags).toMatchObject({ backup: false, interstitial_interval_minutes: 15, interstitial_min_level: 20 });
+    await as('admin');
+    await db.query(`update public.app_config set flags=$1::jsonb where platform='android'`, [JSON.stringify(defaults.config.flags)]);
+  });
+
   it('app_boot: 서버 시각 · 설정 · 공지를 받고 켠 수를 셈', async () => {
     await as('admin');
     await db.exec(`update public.app_config set min_version = 100, latest_version = 120, flags = '{"backup": true}' where platform = 'android';

@@ -1,12 +1,26 @@
 /**
- * 광고 자리 (15 7장, 20 4-1: AdMob). 광고 계정을 붙이기 전이라 「광고 자리」 창을 띄움.
- * 보상형: 닫으면 보상. 광고 제거 패키지 (81)면 광고 없이 바로 보상.
+ * AdMob 배너 · 보상형 · 전면. Android는 실제 SDK, 개발 웹·화면 검사만 시험 창.
+ * 보상형: 시청 완료만 보상. 광고 제거 패키지 (81)면 광고 없이 바로 보상.
  * 전면 (90): 클리어한 판의 결과 화면에서 나갈 때, 마지막 광고 뒤 앱이 화면에 떠 있던 시간이 10분을 넘었으면 한 번 (screens/result.ts).
  */
 import { INTERSTITIAL } from '../data/economy';
 import { t } from '../i18n';
+import { lastBoot } from './server';
+import { NATIVE_ADS, showNativeAd } from './native-ads';
 
-export const ADS_READY = false;
+export const ADS_READY = NATIVE_ADS;
+
+/** app_config.flags. 값이 없거나 잘못되면 기본 10분 · Lv 10. 매 판정 때 최신 서버 값을 읽는다. */
+export function interstitialConfig(flags = lastBoot()?.config?.flags): { everyMs: number; minLv: number } {
+  const minutes = flags?.interstitial_interval_minutes;
+  const level = flags?.interstitial_min_level;
+  return {
+    everyMs: typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 && minutes <= 1440 ? minutes * 60e3 : INTERSTITIAL.everyMs,
+    minLv: typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 100 ? level : INTERSTITIAL.minLv,
+  };
+}
+
+const webAdPreview = (): boolean => !NATIVE_ADS && (import.meta.env.DEV || typeof navigator !== 'undefined' && !!navigator.webdriver);
 
 // ---------- 광고 시계 (90): 마지막 광고 뒤 앱이 화면에 떠 있던 시간. 메모리에만 (앱을 새로 켜면 0부터) ----------
 // 기기 시계 대신 performance.now와 화면 보임 (visibilitychange)으로 셈: 시계를 바꾸거나 앱을 내려 둔 시간은 안 셈
@@ -27,7 +41,8 @@ export function resetAdClock(): void { shownMs = 0; since = visibleNow() ? clock
 
 /** 전면 광고를 띄울 판인지 (90). 클리어 · Lv 10 이상 · 튜토리얼 끝 · 광고 제거 안 삼 · 10분 지남 */
 export function interstitialDue(o: { won: boolean; level: number; tutDone: boolean; adsFree: boolean; ms: number }): boolean {
-  return o.won && o.tutDone && !o.adsFree && o.level >= INTERSTITIAL.minLv && o.ms >= INTERSTITIAL.everyMs;
+  const config = interstitialConfig();
+  return o.won && o.tutDone && !o.adsFree && o.level >= config.minLv && o.ms >= config.everyMs;
 }
 /**
  * 화면 테스트 (Playwright = navigator.webdriver)는 전면 광고를 띄우지 않음 (시계가 빨리 가서 다른 검사를 막지 않게).
@@ -35,6 +50,8 @@ export function interstitialDue(o: { won: boolean; level: number; tutDone: boole
  */
 export function interstitialOff(): boolean {
   if (typeof window === 'undefined') return true;
+  if (NATIVE_ADS) return false;
+  if (!webAdPreview()) return true;
   const w = window as unknown as { __interstitialTest?: boolean };
   return !w.__interstitialTest && typeof navigator !== 'undefined' && !!navigator.webdriver;
 }
@@ -56,9 +73,19 @@ function adBox(cls: string, html: string): Promise<string> {
   });
 }
 
-/** 보상형 광고: 다 보면 true (그때 광고 시계를 새로). 지금은 시험 창 */
+/** 보상형 광고: 다 보면 true (그때 광고 시계를 새로). 실패·취소에는 보상을 주지 않는다. */
 export async function showRewarded(label: string, adsFree: boolean): Promise<boolean> {
   if (adsFree) return true;
+  if (NATIVE_ADS) {
+    const ok = await showNativeAd('rewarded');
+    if (ok) resetAdClock();
+    else await noticeModal(t('광고'), t('광고를 끝까지 시청하지 않았거나 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.'));
+    return ok;
+  }
+  if (!webAdPreview()) {
+    await noticeModal(t('광고'), t('광고는 Android 앱에서 이용할 수 있습니다.'));
+    return false;
+  }
   const ok = (await adBox('', `<div class="panel"><h3>${t('광고 자리')}</h3><p class="note">${t('AdMob 연결 전 · 시험용. 닫으면 보상')}</p><p>${label}</p>
       <div class="row2"><button class="btn" type="button" data-ad="no">${t('취소')}</button><button class="btn primary" type="button" data-ad="ok">${t('광고 끝 · 보상 받기')}</button></div></div>`)) === 'ok';
   if (ok) resetAdClock();
@@ -67,9 +94,15 @@ export async function showRewarded(label: string, adsFree: boolean): Promise<boo
 
 /**
  * 전면 광고: 띄웠으면 (닫힌 뒤) true, 못 불러왔으면 false (그때는 시계 그대로, 다음 클리어에 다시 봄).
- * AdMob 연결 전 (ADS_READY false)이라 시험 창
+ * 개발 웹·화면 검사에서만 시험 창
  */
 export async function showInterstitial(): Promise<boolean> {
+  if (NATIVE_ADS) {
+    const ok = await showNativeAd('interstitial');
+    if (ok) resetAdClock();
+    return ok;
+  }
+  if (!webAdPreview()) return false;
   await adBox('ad-inter', `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="adInterTitle"><h3 id="adInterTitle">${t('전면 광고 자리 (시험)')}</h3><p class="note">${t('AdMob 연결 전 · 시험용')}</p>
       <div class="row1"><button class="btn primary" type="button" data-ad="close">${t('닫기')}</button></div></div>`);
   resetAdClock();

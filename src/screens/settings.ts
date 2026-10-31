@@ -11,6 +11,7 @@ import { TUT } from '../game/tutorial';
 import { uiIcon } from './art';
 import { battle, current, go, previous, refreshTabs, screen, topBar } from './kit';
 import { noticeModal } from '../platform/ads';
+import { adPrivacyRequired, onAdPrivacyChange, showAdPrivacyOptions } from '../platform/native-ads';
 import { noticeList } from '../platform/server';
 import { noticesHtml, refreshServer } from './server-notice';
 import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, showBackupError, signOutFlow } from './account';
@@ -86,7 +87,7 @@ function render(): void {
       ${card('hand', 'wheel', t('스킬 휠 위치'), [`<div class="chips st-hand">${chip('hand', 'left', st.hand, t('왼쪽 (왼손)'))}${chip('hand', 'right', st.hand, t('오른쪽 (오른손)'))}</div>`])}
       ${card('screen', 'eye', t('전투 화면'), [`<div class="st-col">${tog('reducedEffects', t('시각 효과 줄이기'))}<p class="g-sub wrap">${t('피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.')}</p></div>`])}
       ${accountView().on ? card('account', 'char', t('계정'), accountRows()) : ''}
-      ${card('info', 'info', t('공지'), [`<span class="st-label">${t('운영 공지')}</span><button class="btn st-open" type="button" id="noticeOpen">${t('보기')}</button>`])}
+      ${card('info', 'info', t('공지'), [`<span class="st-label">${t('운영 공지')}</span><button class="btn st-open" type="button" id="noticeOpen">${t('보기')}</button>`])}${adPrivacyRequired() ? card('privacy', 'info', t('광고 개인정보 설정'), [`<span class="st-label">${t('광고 동의 관리')}</span><button class="btn st-open" type="button" id="adPrivacyOpen">${t('변경')}</button>`]) : ''}
       <section class="group dev"><h2>${t('개발 빌드')}</h2>
         ${tog('auto', t('자동 치유 (일시정지에서도 켜고 끔)'))}
         ${tog('autoNovice', t('자동 치유를 초보처럼'))}<p>${t('처음 하는 사람처럼 늦게 고르고 가끔 옆 칸을 누르며 기믹 공략을 모릅니다. 초반 난이도를 볼 때 씁니다.')}</p>
@@ -149,6 +150,12 @@ s.el.addEventListener('click', e => {
   if (el.closest('#acctDel')) { void deleteFlow(); return; }
   if (el.closest('#acctStatus')) { void showBackupError(); return; }
   if (el.closest('#noticeOpen')) { void openNotices(); return; }
+  if (el.closest('#adPrivacyOpen')) {
+    void showAdPrivacyOptions().then(ok => {
+      if (!ok) void noticeModal(t('광고 개인정보 설정'), t('잠시 후 다시 시도해 주십시오.'));
+    });
+    return;
+  }
   if (el.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;
     G.save.tut = again ? TUT.intro : TUT.done; commit();
@@ -166,3 +173,4 @@ s.el.addEventListener('change', e => {
 });
 
 onAccountChange(() => { if (current === 's-settings') render(); });
+onAdPrivacyChange(() => { if (current === 's-settings') render(); });
