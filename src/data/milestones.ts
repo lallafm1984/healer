@@ -34,8 +34,8 @@ if (FEATURES.guild) MILESTONES[GUILD_LEVEL] = [...(MILESTONES[GUILD_LEVEL] ?? []
 // 장비 재설정 (예전 Lv 20 · 후보 고르기 Lv 60)은 2026-10-21 Lim 「아이템의 능력치 재설정 기능제거」로 없앰
 const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
 addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: true });
-// 영웅 · 전설은 첫 10인 레이드 입장 레벨부터. 전설은 각 레이드 어려움 · 악몽에서 (10인은 20인의 절반).
-addFirst(raid10.unlockLv, { text: '전설 장비 (노란색, 레이드 어려움 · 악몽)', live: true });
+// 영웅은 첫 10인, 전설은 첫 20인 레이드 입장 레벨부터. 전설은 각 레이드 어려움 · 악몽에서 (10인은 20인의 절반).
+addFirst(raid20.unlockLv, { text: '전설 장비 (노란색, 레이드 어려움 · 악몽)', live: true });
 addFirst(raid10.unlockLv, { text: '영웅 장비 (드물게, 레벨이 오를수록 늘어남)', live: true });
 addFirst(raid20.unlockLv, { text: '20인 레이드 「가라앉은 대성당」', live: true, tpl: '20인 레이드 「{n}」', arg: '가라앉은 대성당' });
 addFirst(raid10.diffUnlock!['악몽']!, { text: '10인 레이드 악몽', live: true });

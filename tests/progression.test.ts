@@ -155,7 +155,7 @@ describe('장비 (02 10장)', () => {
       expect(avgScore(presetGear('희귀', 1, lv), lv)).toBeLessThan(RECOMMENDED['악몽']!.score);
     }
   });
-  it('드롭 등급 비율이 표를 따름, 전설은 레이드 입장 레벨부터 (10인은 20인의 절반)', () => {
+  it('드롭 등급 비율이 표를 따름, 전설은 최소 Lv 70 이상이며 레이드 입장 레벨부터 (10인은 20인의 절반)', () => {
     const rng = rngFrom(7);
     const count = (diff: '보통' | '악몽', level: number, raid: 0 | 10 | 20 = 0) => {
       const c: Record<string, number> = {};

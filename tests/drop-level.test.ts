@@ -1,7 +1,7 @@
 /** 장비 레벨 = 그 콘텐츠 레벨 (2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」) */
 import { describe, expect, it } from 'vitest';
 import { CONTENT, contentOf, raidSize, stageOf } from '../src/data/content';
-import { dropOdds, heroChance, LEGEND, LEGEND_CHANCE, LEGEND_CHANCE_10, legendChance, makeLegend, REPEAT_LEGEND, REPEAT_LEGEND_10, rollItem } from '../src/data/equipment';
+import { dropOdds, heroChance, LEGEND, LEGEND_LEVEL, LEGEND_CHANCE, LEGEND_CHANCE_10, legendChance, makeLegend, REPEAT_LEGEND, REPEAT_LEGEND_10, rollItem } from '../src/data/equipment';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
@@ -51,31 +51,44 @@ describe('레이드 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」)'
   });
 });
 
-describe('전설은 각 레이드 난이도 입장 레벨부터', () => {
+describe('전설은 첫 20인 레이드 시작 레벨 이상이며 각 난이도 입장 레벨부터', () => {
   it('모든 레이드: 출전 확률과 실제 첫 보상 · 반복 보상에 전설 포함, 아이템 레벨은 해당 레이드 레벨', () => {
     for (const c of CONTENT.filter(x => x.ready && x.kind === 'raid')) for (const diff of ['어려움', '악몽'] as const) {
-      const level = stageOf(c, diff), raid = raidSize(c);
+      const stage = stageOf(c, diff), level = Math.max(LEGEND_LEVEL, stage), raid = raidSize(c);
       for (const repeat of [false, true]) {
         const label = `${c.key} ${diff} ${repeat ? '반복' : '첫 판'}`;
-        expect(gearGradeOdds(diff, raid, level - 1, 'A', false, level, repeat)['전설'], label).toBe(0);
-        const odds = gearGradeOdds(diff, raid, level, 'A', false, level, repeat);
+        expect(gearGradeOdds(diff, raid, level - 1, 'A', false, stage, repeat)['전설'], label).toBe(0);
+        const odds = gearGradeOdds(diff, raid, level, 'A', false, stage, repeat);
         expect(odds['전설'], label).toBeGreaterThan(0);
         const s = newSave(); s.player.level = level; s.tut = 99;
         const now = Date.UTC(2026, 9, 31);
         rollover(s, now, rngFrom(1));
         if (repeat) s.weekly.loot.push(`${c.key}|${diff}`);
         // 등급 추첨의 마지막 구간을 골라 실제 정산도 전설을 지급하는지 확인한다.
-        const result = settle(s, run(c.key, diff, level), () => 0.999999, [], now);
+        const result = settle(s, run(c.key, diff, stage), () => 0.999999, [], now);
         expect(result.raidLoot, label).toBe(repeat ? 'again' : 'first');
-        expect(result.items[0], label).toMatchObject({ grade: LEGEND, lv: level });
+        expect(result.items[0], label).toMatchObject({ grade: LEGEND, lv: stage });
         if (raid === 20) expect(!!result.items[0].unique || !!result.items[0].named, label).toBe(true);
       }
     }
   });
 
-  it('전설 해금 안내도 첫 10인 레이드 입장 레벨로 이동', () => {
+  it('Lv 69의 10인 첫 보상 · 반복 보상에서는 전설을 지급하지 않음', () => {
+    const c = contentOf('abyss1'), now = Date.UTC(2026, 10, 1);
+    for (const diff of ['어려움', '악몽'] as const) for (const repeat of [false, true]) {
+      const s = newSave(); s.player.level = LEGEND_LEVEL - 1; s.tut = 99;
+      rollover(s, now, rngFrom(1));
+      if (repeat) s.weekly.loot.push(`${c.key}|${diff}`);
+      const result = settle(s, run(c.key, diff, stageOf(c, diff)), () => 0.999999, [], now);
+      expect(result.items[0].grade).not.toBe(LEGEND);
+    }
+  });
+
+  it('전설 해금 안내도 첫 20인 레이드 입장 레벨', () => {
     const legend = '전설 장비 (노란색, 레이드 어려움 · 악몽)';
-    expect(milestonesAt(contentOf('abyss1').unlockLv, 'priest').some(m => m.text === legend)).toBe(true);
+    expect(LEGEND_LEVEL).toBe(contentOf('cathedral1').unlockLv);
+    expect(milestonesAt(LEGEND_LEVEL, 'priest').some(m => m.text === legend)).toBe(true);
+    expect(milestonesAt(contentOf('abyss1').unlockLv, 'priest').some(m => m.text === legend)).toBe(false);
     expect(milestonesAt(100, 'priest').some(m => m.text === legend)).toBe(false);
   });
 });

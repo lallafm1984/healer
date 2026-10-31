@@ -3,7 +3,7 @@ import { chooseContent, pastTitle, shownImagesReady } from './nav.mjs';
 import { DEPARTURE_DEVICES, departureLayout, layoutIssues } from './adventure-no-scroll.mjs';
 
 // 실제 A 클리어 확률 (88): 바탕 표 (일반 ~ 희귀)에 +0.02를 밀고, 영웅 · 전설은 따로 (Lv 100: 최대값 × 1.1). 공개모집 보정은 제외.
-// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 그 레이드 레벨 (#296 · 103: 심연의 탑 1층 45 · 악몽 60, 대성당 1구역 70 · 악몽 80), 전설도 각 난이도 입장 레벨부터. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
+// 녹슨 요새는 장소 Lv 5 (첫 레벨대, 영웅 없음), 레이드는 그 레이드 레벨 (#296 · 103: 심연의 탑 1층 45 · 악몽 60, 대성당 1구역 70 · 악몽 80), 전설은 최소 Lv 70 이상이며 각 난이도 입장 레벨부터. 칸마다 최소 등급부터 차례로 줄어듦 (Lim 07:49 · 09:36)
 // RAID_AGAIN = 그 주에 주 첫 보상을 받은 칸을 다시 깬 판 (2026-10-19 Lim 「주 첫 판만 크게」): 같은 레벨 던전 표 + 20인 어려움 · 악몽 전설 1% × 1.1
 const GRADES=['일반','고급','희귀','영웅','전설'];
 const GRADE_COLORS=['#C8C8C8','#3FD85A','#4A9BFF','#BE6EFF','#FFD23F'];
@@ -14,6 +14,11 @@ const TABLES={
   raid20:{쉬움:[0,0,97.957142857143,2.0428571428571,0],보통:[0,0,95.914285714286,4.0857142857143,0],어려움:[0,0,87.585714285714,10.214285714286,2.2],악몽:[0,0,73.285714285714,21.214285714286,5.5]},
 };
 const RAID_AGAIN={raid20:{악몽:[0,0,84.757142857143,14.142857142857,1.1]}};
+// Lv 70 전의 10인: 레이드 Lv 45 어려움 · Lv 60 악몽의 영웅 확률은 그대로, 전설은 0%.
+const RAID10_BEFORE_LEGEND={
+  어려움:[0,0,100-15/56*1.1,15/56*1.1,0],
+  악몽:[0,0,100-25*16/56*1.1,25*16/56*1.1,0],
+};
 
 async function seed(page,{level=100,devUnlock=false,loot=[],cleared=false}={}) {
   await page.evaluate(({level,devUnlock,loot,cleared})=>{
@@ -213,12 +218,15 @@ export default async function adventureRewards(url,shots) {
           }
           for(const [tab,content,diff,level] of [
             ['raid10','abyss1','어려움',45],['raid10','abyss1','악몽',60],
+            ['raid10','abyss1','어려움',69],['raid10','abyss1','악몽',69],
+            ['raid10','abyss1','어려움',70],['raid10','abyss1','악몽',70],
             ['raid20','cathedral1','어려움',70],['raid20','cathedral1','악몽',80],
             ['raid20','cathedral1','악몽',99],['raid20','cathedral1','악몽',100],
           ]) {
             await seed(page,{level});await page.click(`[data-ctab="${tab}"]`);await chooseContent(page,content);await page.click(`[data-diff="${diff}"]`);
-            const state=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
-            ok(state.ok,`Lv${level} ${tab}/${diff}: 난이도 입장 레벨부터 전설 아이콘·확률 표시`,state);
+            const expected=tab==='raid10' && level<70 ? RAID10_BEFORE_LEGEND[diff] : TABLES[tab][diff];
+            const state=await inspectProbabilities(page,expected,{keepOpen:true});
+            ok(state.ok,`Lv${level} ${tab}/${diff}: 공통 최소 Lv70 · 난이도 입장 레벨에 맞는 최고등급·확률 표시`,state);
             if(level<100)await page.screenshot({path:`${shots}/departure-legend-${tab}-${diff}-lv${level}-${id}.png`});
             await page.keyboard.press('Escape');
           }
