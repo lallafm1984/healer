@@ -280,6 +280,7 @@ export const newRoster = (hero: HeroKey, now: number, level = 1): Roster => ({ c
 
 /** 옛 버전 저장을 지금 버전으로. 모르는 값은 새 저장 기본값으로 채움 */
 export function migrate(raw: unknown): SaveData {
+  if (saveIssue(raw) === 'newer') throw new Error('newer_save');
   if (!raw || typeof raw !== 'object') return newSave();
   const o = raw as Partial<SaveData>;
   const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : gameNow());
@@ -695,12 +696,45 @@ const OLD_LAYOUT = 'nhh.skillLayout.v1';
 /** 깨진 저장의 사본 키 · 복구 대기 표시 (기획 120 3-1): 서버 저장을 받아 보기 전에는 자동 백업을 하지 않음 (screens/account) */
 export const SAVE_BAK_KEY = 'healer.save.bak';
 export const RESTORE_PENDING_KEY = 'healer.restorePending';
+let pendingRestore: '1' | 'newer' | null = null;
+export function restoreStatus(kv: KV | null = store()): string | null {
+  if (kv === store() && pendingRestore) return pendingRestore;
+  try { return kv?.getItem(RESTORE_PENDING_KEY) ?? null; } catch { return '1'; }
+}
+export function setRestorePending(reason: '1' | 'newer' | null, kv: KV | null = store()): void {
+  if (kv === store()) pendingRestore = reason;
+  if (reason) kv?.setItem(RESTORE_PENDING_KEY, reason);
+  else kv?.removeItem?.(RESTORE_PENDING_KEY);
+}
+
+/** 마이그레이션으로 보완할 옛 필드와, 게임 저장이 아닌 입력을 구분한다. */
+export function saveIssue(raw: unknown): 'bad_save' | 'newer' | null {
+  const obj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+  const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  if (!obj(raw) || !num(raw.v) || !Number.isInteger(raw.v) || raw.v < 1) return 'bad_save';
+  if (raw.v > SAVE_VERSION) return 'newer';
+  if (raw.v === 1) return num(raw.createdAt) && obj(raw.settings) ? null : 'bad_save';
+  if (!obj(raw.player) || !num(raw.player.level) || (raw.v >= 17 && !num(raw.player.gold))) return 'bad_save';
+  if (!obj(raw.gear) || !obj(raw.gear.equipped) || !Array.isArray(raw.gear.bag)) return 'bad_save';
+  return null;
+}
 
 export function load(kv: KV | null = store()): SaveData {
   let s: string | null | undefined;
   try {
     s = kv?.getItem(SAVE_KEY);
     const raw = s ? JSON.parse(s) : null;
+    if (s != null) {
+      const issue = saveIssue(raw);
+      if (issue === 'newer') {
+        try { setRestorePending('newer', kv); } catch { /* 메모리의 새 버전 표시와 원본 유지 */ }
+        return newSave(); // 원본은 그대로 두고 save()도 막음
+      }
+      if (issue) throw new Error(issue);
+      if (restoreStatus(kv) === 'newer') setRestorePending(null, kv); // 지원하는 새 앱으로 업데이트됨
+    } else if (kv?.getItem('healer.backup')) {
+      setRestorePending('1', kv); // 이미 백업하던 기기에서 저장 키만 사라짐
+    }
     const d = migrate(raw);
     if (!raw || raw.v < 2) {
       try {
@@ -713,7 +747,10 @@ export function load(kv: KV | null = store()): SaveData {
     return d;
   } catch {
     // 읽다 깨짐: 옛 내용을 사본 키에 남기고 복구 대기 (예전에는 아무 말 없이 새 저장이 덮었음)
-    if (s) { try { kv?.setItem(SAVE_BAK_KEY, s); kv?.setItem(RESTORE_PENDING_KEY, '1'); } catch { /* 저장소가 가득이면 그만 */ } }
+    if (s != null) {
+      try { setRestorePending('1', kv); } catch { /* 메모리의 대기는 유지 */ }
+      try { kv?.setItem(SAVE_BAK_KEY, s); } catch { /* 저장소가 가득이면 그만 */ }
+    }
     return newSave();
   }
 }
@@ -724,6 +761,8 @@ export function load(kv: KV | null = store()): SaveData {
  */
 export function save(data: SaveData, kv: KV | null = store()): boolean {
   try {
+    if (restoreStatus(kv) === 'newer') return false;
+    try { if (saveIssue(JSON.parse(kv?.getItem(SAVE_KEY) || 'null')) === 'newer') return false; } catch { /* 깨진 저장은 사본과 복원 대기로 보호 */ }
     const r = data.roster, me = r.chars.find(c => c.id === r.cur);
     if (me) { me.level = data.player.level; me.hero = data.hero; }
     if (!kv) return false;

@@ -13,7 +13,7 @@ import { battle, current, go, previous, refreshTabs, screen, topBar } from './ki
 import { noticeModal } from '../platform/ads';
 import { noticeList } from '../platform/server';
 import { noticesHtml } from './server-notice';
-import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, signOutFlow } from './account';
+import { accountView, deleteFlow, kstText, linkGoogle, maskEmail, onAccountChange, showBackupError, signOutFlow } from './account';
 import { lang, LANGS, setLang, t, type Lang } from '../i18n';
 import './settings.css';
 
@@ -50,7 +50,7 @@ function accountRows(): string[] {
       `<p class="g-sub wrap st-note">${t('연결하면 앱을 끄거나 내릴 때 진행이 자동으로 백업됩니다. 연결하지 않으면 앱을 지울 때 진행도 함께 사라집니다.')}</p>`];
   }
   return [`<span class="st-label">${maskEmail(a.user.email)}</span><button class="btn st-open" type="button" id="acctOut">${t('로그아웃')}</button>`,
-    `<span class="st-label">${t('마지막 백업')}</span><span class="st-value">${a.lastAt ? kstText(a.lastAt) : t('아직 없음')}</span>`,
+    `<span class="st-label">${t('마지막 백업')}</span>${a.error ? `<button class="btn st-open" type="button" id="acctStatus">${t('백업 대기')}</button>` : `<span class="st-value">${a.lastAt ? kstText(a.lastAt) : t('아직 없음')}</span>`}`,
     `<span class="st-label">${t('계정 삭제')}</span><button class="btn st-open" type="button" id="acctDel">${t('삭제')}</button>`];
 }
 
@@ -138,6 +138,7 @@ s.el.addEventListener('click', e => {
   if (el.closest('#acctLink')) { void linkGoogle(); return; }
   if (el.closest('#acctOut')) { void signOutFlow(); return; }
   if (el.closest('#acctDel')) { void deleteFlow(); return; }
+  if (el.closest('#acctStatus')) { void showBackupError(); return; }
   if (el.closest('#noticeOpen')) { void noticeModal(t('공지'), noticesHtml(noticeList())); return; }
   if (el.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;

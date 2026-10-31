@@ -23,7 +23,7 @@ export default async function talents(url, shots) {
   const tapCell = async i => {
     const bb = await page.locator('#board').boundingBox();
     const at = await page.evaluate(i => window.__proto.center(i), i);
-    await page.mouse.move(bb.x + at.x, bb.y + at.y); await page.mouse.down(); await page.clock.runFor(60); await page.mouse.up(); await page.clock.runFor(60);
+    await page.mouse.move(bb.x + at.x, bb.y + at.y); await page.mouse.down(); await page.mouse.up(); await page.clock.runFor(60);
   };
   await page.clock.install();
   await page.goto(url);
@@ -73,7 +73,10 @@ export default async function talents(url, shots) {
   ok(await page.evaluate(() => window.__proto.F.tx.act.zenith.left > 0) && await page.isVisible('#aux [data-tal].on[data-tal="zenith"]'), '정점 = 바로 켜짐');
   await page.dispatchEvent('#aux [data-tal="shelter"]', 'pointerdown'); await page.dispatchEvent('#aux [data-tal="shelter"]', 'pointerup'); await page.clock.runFor(50);
   ok(await page.isVisible('#aux [data-tal].armed[data-tal="shelter"]') && /빈 칸 선택/.test(await text('#toast')), '쉼터 = 장전, 빈 칸 안내');
-  const empty = await page.evaluate(() => window.__proto.F.cells.findIndex(c => !c.unit));
+  // 빈 칸을 고른 뒤 클릭하기 전에 탱커가 그 칸으로 들어오면 정상 거절됨.
+  // 대상 선택과 pointerup 사이에는 전투 시간을 진행하지 않는다.
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+  const empty = await page.evaluate(() => window.__proto.F.cells.findIndex(c => !c.unit && !c.block));
   await tapCell(empty);
   ok(await page.evaluate(i => window.__proto.F.tx.shelter === i, empty) && !(await page.isVisible('#aux [data-tal].armed')), '빈 칸 탭 = 그 칸이 쉼터');
   await page.screenshot({ path: `${shots}/talent_battle.png` });

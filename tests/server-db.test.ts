@@ -29,7 +29,7 @@ const uid = () => `10000000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
 async function as(who: string | null | 'admin', claims: Record<string, unknown> = {}): Promise<void> {
   await db.exec('reset role');
   if (who === 'admin') { await db.query(`select set_config('request.jwt.claims', '', false)`); return; }
-  await db.query(`select set_config('request.jwt.claims', $1, false)`, [who ? JSON.stringify({ sub: who, ...claims }) : '']);
+  await db.query(`select set_config('request.jwt.claims', $1, false)`, [who ? JSON.stringify({ sub: who, session_id: who, ...claims }) : '']);
   await db.exec(who ? 'set role authenticated' : 'set role anon');
 }
 async function one<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T> {
@@ -56,6 +56,9 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(STUB);
   for (const m of MIGRATIONS) await db.exec(m);
+  // 기존 기능 시나리오는 시간 간격과 독립적으로 검사. 실제 기본 제한은 아래 별도 검사.
+  await db.exec(`update public.server_settings set value='0' where key in ('save_interval_seconds','choose_interval_seconds','login_interval_seconds');
+    update public.server_settings set value='[101]' where key='stats_versions'`);
   await db.exec(`insert into auth.users (id, email) values ('${A}', 'a@x'), ('${B}', 'b@x'), ('${C}', 'c@x'), ('${D}', 'd@x'), ('${E}', 'e@x');
     insert into auth.users (id, is_anonymous) values ('${ANON_USER}', true)`);
 });
@@ -120,7 +123,7 @@ describe('로그인 사용자 · 백업', () => {
     expect(mine).toEqual([{ user_id: A, level: 7 }]);
     expect(await flags(A)).toEqual(['first_upload']);
     await as(B);
-    expect((await db.query('select * from public.saves')).rows).toEqual([]);
+    expect((await db.query('select user_id from public.saves')).rows).toEqual([]);
     expect((await rpc('download_save')).exists).toBe(false);
   });
 
@@ -175,7 +178,7 @@ describe('로그인 사용자 · 백업', () => {
     expect(await upload({ hello: 1 }, 0)).toMatchObject({ ok: false, reason: 'bad_save' });
     const big = { ...save(), pad: 'x'.repeat(600_000) };
     expect(await upload(big, 0)).toMatchObject({ ok: false, reason: 'too_big' });
-    await expect(db.query(`select public.upload_save('[1]'::jsonb, 0, gen_random_uuid())`)).rejects.toThrow(/object/);
+    expect((await one<{ upload_save: unknown }>(`select public.upload_save('[1]'::jsonb, 0, gen_random_uuid())`)).upload_save).toMatchObject({ ok: false, reason: 'bad_save' });
   });
 
   it('익명 계정은 백업 · 받기 · 고르기 못 함 (구글 계정만 백업, 다시 로그인할 길이 없음)', async () => {
@@ -373,5 +376,100 @@ describe('관리자 · 계정 삭제', () => {
     for (const t of ['auth.users where id', 'public.saves where user_id', 'public.save_history where user_id', 'public.audit_flags where user_id', 'public.login_logs where user_id']) {
       expect(Number((await one<{ n: string }>(`select count(*) as n from ${t} = $1`, [A])).n)).toBe(0);
     }
+  });
+});
+
+describe('백업 보완 회귀 검사', () => {
+  const install = '30000000-0000-4000-8000-000000000001';
+  const session2 = '40000000-0000-4000-8000-000000000002';
+  async function fresh(): Promise<string> {
+    const u=uid(); await as('admin'); await db.query('insert into auth.users(id) values($1)',[u]); await as(u); return u;
+  }
+  const up=(base: number,id=crypto.randomUUID(),v=33) => rpc('upload_save',[JSON.stringify(save({v})),base,id,101,1,install]);
+
+  it('운영에서 쓸 역할·세션 검증 SQL도 통과하고 모든 테스트 데이터를 롤백', async () => {
+    await as('admin'); await db.exec(readFileSync(join(ROOT,'supabase/tests/backup-hardening.sql'),'utf8'));
+    expect(Number((await one<{n:number}>(`select count(*) as n from auth.users where id='fa000000-0000-4000-8000-000000000001'`)).n)).toBe(0);
+  });
+
+  it('점검과 backup=false는 선택 두 경로를 막고 병합 기록을 만들지 않음', async () => {
+    const u=await fresh(); await up(0);
+    for (const mode of ['maintenance','flag']) {
+      await as('admin');
+      await db.query(`update public.app_config set maintenance=$1, flags=$2::jsonb where platform='android'`,[mode==='maintenance',mode==='flag'?'{"backup":false}':'{}']);
+      await as(u);
+      for (const keep of ['account','device']) expect(await rpc('choose_progress',[keep,1,JSON.stringify(save()),crypto.randomUUID(),101,1,install])).toMatchObject({ok:false,reason:'paused'});
+    }
+    await as('admin'); await db.exec(`update public.app_config set maintenance=false,flags='{}' where platform='android'`);
+    expect(Number((await one<{n:number}>('select count(*) as n from public.account_merges where user_id=$1',[u])).n)).toBe(0);
+  });
+
+  it('설치 번호를 알아도 다른 세션이면 거절, 인계 뒤 옛 세션도 거절', async () => {
+    const u=await fresh(); await up(0);
+    await as(u,{session_id:session2});
+    expect(await up(1)).toMatchObject({ok:false,reason:'moved'});
+    expect(await rpc('device_status',[install])).toMatchObject({active:false});
+    for(const sql of ['select active_install from public.saves','select * from public.save_devices','select * from public.rpc_limits']) await expect(db.query(sql)).rejects.toThrow(/permission denied/);
+    expect(await rpc('choose_progress',['account',1,JSON.stringify(save()),null,101,1,install])).toMatchObject({ok:true,rev:1});
+    await as(u); expect(await up(1)).toMatchObject({ok:false,reason:'moved'});
+    await as(u,{session_id:session2}); expect(await up(1)).toMatchObject({ok:true,rev:2});
+  });
+
+  it('새 definer 도우미와 내부 함수의 공개 실행 권한 없음', async () => {
+    await as('admin');
+    await db.exec(`create function public.test_private_helper() returns boolean language sql security definer set search_path='' as $$select true$$`);
+    for(const role of [null,B]) {
+      await as(role);
+      await expect(db.query('select public.test_private_helper()')).rejects.toThrow(/permission denied/);
+      await expect(db.query('select public._session_id()')).rejects.toThrow(/permission denied/);
+      await expect(db.query(`select public._log_login_v1('open',null,null)`)).rejects.toThrow(/permission denied/);
+    }
+    await as('admin'); await db.exec('drop function public.test_private_helper()');
+  });
+
+  it('연속 쓰기 제한과 같은 upload_id 재시도의 단일 반영', async () => {
+    const u=await fresh(); await as('admin'); await db.exec(`update public.server_settings set value='10' where key='save_interval_seconds'`); await as(u);
+    const id=crypto.randomUUID(); expect(await up(0,id)).toMatchObject({ok:true,rev:1});
+    expect(await up(0,id)).toMatchObject({ok:true,duplicate:true,rev:1});
+    expect(await up(1)).toMatchObject({ok:false,reason:'rate_limited'});
+    expect((await rpc('download_save')).rev).toBe(1);
+    await as('admin'); await db.query(`update public.rpc_limits set last_at=now()-interval '11 seconds' where user_id=$1 and action='save'`,[u]); await as(u);
+    expect(await up(1)).toMatchObject({ok:true,rev:2});
+    await as('admin'); await db.exec(`update public.server_settings set value='0' where key='save_interval_seconds'`);
+  });
+
+  it('진행 선택의 응답을 잃어도 재시도 때 사본과 병합 기록은 한 번만', async () => {
+    const u=await fresh(); await up(0);
+    await as('admin'); await db.exec(`update public.server_settings set value='2' where key='choose_interval_seconds'`); await as(u);
+    const args=['device',1,JSON.stringify(save()),crypto.randomUUID(),101,1,install];
+    expect(await rpc('choose_progress',args)).toMatchObject({ok:true,rev:2});
+    expect(await rpc('choose_progress',args)).toMatchObject({ok:true,duplicate:true,rev:2});
+    expect(await rpc('choose_progress',['account',2,JSON.stringify(save()),null,101,1,install])).toMatchObject({ok:false,reason:'rate_limited'});
+    await as('admin'); expect(Number((await one<{n:number}>('select count(*) as n from public.account_merges where user_id=$1',[u])).n)).toBe(1);
+    await db.exec(`update public.server_settings set value='0' where key='choose_interval_seconds'`);
+  });
+
+  it('더 높은 저장 버전을 옛 앱의 업로드와 진행 선택으로 덮지 않음', async () => {
+    await fresh(); expect(await up(0,crypto.randomUUID(),34)).toMatchObject({ok:true,rev:1});
+    expect(await up(1)).toMatchObject({ok:false,reason:'newer_save'});
+    expect(await rpc('choose_progress',['device',1,JSON.stringify(save()),crypto.randomUUID(),101,1,install])).toMatchObject({ok:false,reason:'newer_save'});
+    expect((await rpc('download_save')).v).toBe(34);
+  });
+
+  it('임의 플랫폼은 통계에서 제외하고 미등록 버전은 한 줄로 합침', async () => {
+    await as(null);
+    for(let i=0;i<12;i++) { await rpc('app_boot',['arbitrary-'+i,100000+i]); await rpc('app_boot',['web',100000+i]); }
+    await as('admin');
+    expect(Number((await one<{n:number}>(`select count(*) as n from public.boot_stats where platform like 'arbitrary-%'`)).n)).toBe(0);
+    expect((await db.query(`select version,n::integer from public.boot_stats where platform='web'`)).rows).toEqual([{version:0,n:12}]);
+  });
+
+  it('같은 로그인 이벤트만 합치고 다른 이벤트는 유지', async () => {
+    const u=await fresh(); await as('admin'); await db.exec(`update public.server_settings set value='5' where key='login_interval_seconds'`); await as(u);
+    expect(await rpc('log_login',['open'])).toMatchObject({ok:true});
+    expect(await rpc('log_login',['open'])).toMatchObject({ok:true,duplicate:true});
+    expect(await rpc('log_login',['link'])).toMatchObject({ok:true});
+    await as('admin'); expect(Number((await one<{n:number}>('select count(*) as n from public.login_logs where user_id=$1',[u])).n)).toBe(2);
+    await db.exec(`update public.server_settings set value='0' where key='login_interval_seconds'`);
   });
 });

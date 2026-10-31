@@ -11,11 +11,11 @@ import { App } from '@capacitor/app';
 import { t } from '../i18n';
 import { Capacitor } from '@capacitor/core';
 import { askModal, noticeModal } from '../platform/ads';
-import { chooseProgress, connectGoogle, deleteAccount, deviceStatus, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, type DeviceStatus, type Download, type Me } from '../platform/account';
+import { chooseProgress, connectGoogle, deleteAccount, deviceStatus, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, watchAccount, type DeviceStatus, type Download, type Me } from '../platform/account';
 import { initInstall, markActive, renewInstall, wasActive } from '../platform/install';
 import { lastBoot, remoteFlag } from '../platform/server';
 import { serverOn } from '../platform/server-config';
-import { migrate, RESTORE_PENDING_KEY, save, type SaveData, type Settings } from '../platform/storage';
+import { migrate, restoreStatus, save, saveIssue, SAVE_KEY, setRestorePending, type SaveData, type Settings } from '../platform/storage';
 import { now } from '../platform/time';
 import { G, resetSave } from '../game/state';
 import { notify } from './toast';
@@ -24,7 +24,7 @@ const STATE_KEY = 'healer.backup';
 const PRE_MERGE_KEY = 'healer.save.pre-merge';
 
 /** 백업 상태 (사용자마다 하나): rev = 마지막으로 서버와 맞춘 판, hash = 그때 저장, at = 서버 시각, pending = 응답을 못 받은 올림, conflict = 다른 폰이 먼저 올림 */
-export interface BackupState { uid: string; rev: number; hash: string; at: number; pending?: { id: string; hash: string }; conflict?: boolean }
+export interface BackupState { uid: string; rev: number; hash: string; at: number; pending?: { id: string; hash: string }; conflict?: boolean; error?: string }
 
 /** 저장 글의 지문 (FNV-1a 32비트): 바뀌었는지만 봄 */
 export function fnv(s: string): string {
@@ -79,27 +79,36 @@ export function kstText(ms: number): string {
 
 const store = globalThis.localStorage as Storage | undefined;
 const readState = (): BackupState | null => { try { return JSON.parse(store?.getItem(STATE_KEY) || 'null') as BackupState | null; } catch { return null; } };
-const writeState = (st: BackupState | null): void => { try { if (st) store?.setItem(STATE_KEY, JSON.stringify(st)); else store?.removeItem(STATE_KEY); } catch { /* 그만 */ } };
-const restorePending = (): boolean => { try { return store?.getItem(RESTORE_PENDING_KEY) === '1'; } catch { return false; } };
-const clearRestore = (): void => { try { store?.removeItem(RESTORE_PENDING_KEY); } catch { /* 그만 */ } };
+const writeState = (st: BackupState | null): void => {
+  if (!store) throw new Error('local_save');
+  if (st) store.setItem(STATE_KEY, JSON.stringify(st)); else store.removeItem(STATE_KEY);
+};
+const restorePending = (): boolean => !!restoreStatus();
+const clearRestore = (): void => setRestorePending(null);
 const serverPaused = (): boolean => !remoteFlag('backup', true) || !!lastBoot()?.config?.maintenance;
 
 let who: Me | null = null;
 let busy = false;
+let leaving = false;
+let lastFailure: string | null = null;
 const listeners: (() => void)[] = [];
 /** 설정 화면이 계정 상태가 바뀌면 다시 그리게 */
 export const onAccountChange = (fn: () => void): void => { listeners.push(fn); };
 const changed = (): void => { for (const fn of listeners) fn(); };
 
-export interface AccountView { on: boolean; ready: boolean; user: Me | null; lastAt: number | null }
+export interface AccountView { on: boolean; ready: boolean; user: Me | null; lastAt: number | null; error: boolean }
 /** 설정 「계정」 판이 보일 것 */
 export function accountView(): AccountView {
   const st = readState(), g = who && !who.anonymous ? who : null;
-  return { on: serverOn(), ready: googleReady(), user: g, lastAt: g && st?.uid === g.id && st.at ? st.at : null };
+  return { on: serverOn(), ready: googleReady(), user: g, lastAt: g && st?.uid === g.id && st.at ? st.at : null, error: !!(lastFailure || st?.error) };
 }
 
 /** 구글 계정 (익명이 아님)일 때만 백업 */
-const googleUser = async (): Promise<Me | null> => { const u = who ?? (who = await me()); return u && !u.anonymous ? u : null; };
+const googleUser = async (): Promise<Me | null> => {
+  const u = who = await me(), st = readState();
+  if (u && st && st.uid !== u.id && (st.rev > 0 || st.pending)) { failed('account_mismatch'); return null; }
+  return u && !u.anonymous ? u : null;
+};
 
 /** 익명 계정으로 돌아감 (로그아웃 · 계정 삭제 뒤): 새 익명 계정 · 첫 익명 기록 */
 async function backToAnonymous(): Promise<void> {
@@ -109,33 +118,57 @@ async function backToAnonymous(): Promise<void> {
 }
 
 const err = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+function failed(e: unknown): void {
+  lastFailure = err(e);
+  const st = readState();
+  try { if (st) writeState({ ...st, error: lastFailure }); } catch { /* 메모리에도 실패 상태 유지 */ }
+  changed();
+}
+function failureText(code: string): string {
+  if (code === 'newer_save' || code === 'newer') return t('새 버전에서 저장한 진행입니다. 앱을 업데이트한 뒤 다시 연결할 수 있습니다.');
+  if (code === 'local_save') return t('진행을 저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도할 수 있습니다.');
+  if (code === 'paused') return t('서버 점검 중입니다. 게임은 그대로 할 수 있습니다.');
+  if (code === 'conflict') return t('그 사이 계정 진행이 바뀜');
+  if (code === 'rate_limited') return t('잠시 후 다시 시도할 수 있습니다.');
+  if (code === 'account_mismatch') return t('이 진행을 백업한 구글 계정에 다시 연결할 수 있습니다. 다른 계정으로 옮길 수 없습니다.');
+  return t('진행을 백업하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도할 수 있습니다.');
+}
+export async function showBackupError(): Promise<void> {
+  await noticeModal(t('백업 대기'), failureText(lastFailure || readState()?.error || 'network'));
+}
+const validRev = (n: unknown): n is number => Number.isInteger(n) && Number(n) > 0;
 
 /** 지금 저장을 올림 (base = 마지막으로 맞춘 판). 결과대로 상태를 고침 */
 async function upload(u: Me, base: number): Promise<boolean> {
   const json = JSON.stringify(G.save), hash = fnv(json), st = readState();
+  if (saveIssue(G.save) || restoreStatus() === 'newer') throw new Error('newer_save');
   const id = uploadIdFor(st && st.uid === u.id ? st : null, hash, () => crypto.randomUUID());
   const keep = st && st.uid === u.id ? st : { uid: u.id, rev: base, hash: '', at: 0 };
   writeState({ ...keep, pending: { id, hash } });
-  const r = await uploadSave(G.save, base, id, now());
+  const r = await uploadSave(JSON.parse(json), base, id, now());
   if (r.reason === 'moved') { await handleMoved(); return false; }
-  if (r.ok && !(r.duplicate && r.latest_rev && r.rev && r.latest_rev > r.rev)) {
-    writeState({ uid: u.id, rev: r.rev ?? base, hash, at: r.now ?? now() });
+  if (r.ok && validRev(r.rev) && !(r.duplicate && r.latest_rev && r.latest_rev > r.rev)) {
+    writeState({ uid: u.id, rev: r.rev, hash, at: r.now ?? now() });
+    lastFailure = null;
     markActive();
     changed();
     return true;
   }
   if (r.ok || r.reason === 'conflict') writeState({ ...keep, pending: { id, hash }, conflict: true });
+  failed(r.reason || 'conflict');
   return false;
 }
 
 /** 서버 진행을 이 폰 저장으로 (이 폰 것은 pre-merge 사본, 기기 설정은 지킴) → 다시 켬 */
 function applyServer(u: Me, d: Download): void {
-  try { store?.setItem(PRE_MERGE_KEY, JSON.stringify(G.save)); } catch { /* 그만 */ }
   const next = keepDeviceSettings(migrate(d.data), G.save.settings);
-  save(next);
+  if (!save(next) || store?.getItem(SAVE_KEY) !== JSON.stringify(next)) throw new Error('local_save');
+  writeState({ uid: u.id, rev: d.rev!, hash: fnv(JSON.stringify(next)), at: d.updated_at ?? now() });
   clearRestore();
-  writeState({ uid: u.id, rev: d.rev ?? 0, hash: fnv(JSON.stringify(next)), at: d.updated_at ?? now() });
+  lastFailure = null;
   markActive();
+  G.save = next;
+  leaving = true; // reload의 visibilitychange가 복원 전 메모리를 다시 올리지 않게 함
   location.reload();
 }
 
@@ -151,16 +184,18 @@ async function handleMoved(): Promise<void> {
   writeState(null);
   renewInstall();
   resetSave();
+  leaving = true;
   location.reload();
 }
 
 let checkedAt = -Infinity;
+let checkedUser = '';
 const CHECK_MS = 5 * 60e3;
 /** 현재 기기 확인 (구글 계정). 계속해도 되면 true */
 async function checkDevice(u: Me, force = false): Promise<boolean> {
-  if (!force && performance.now() - checkedAt < CHECK_MS) return true;
-  checkedAt = performance.now();
+  if (!force && checkedUser === u.id && performance.now() - checkedAt < CHECK_MS) return true;
   const a = deviceAction(await deviceStatus(), wasActive());
+  checkedAt = performance.now(); checkedUser = u.id;
   if (a === 'ok') { markActive(); return true; }
   if (a === 'moved') { await handleMoved(); return false; }
   if (a === 'reconcile') { await reconcile(u); return false; }
@@ -172,34 +207,54 @@ async function checkDevice(u: Me, force = false): Promise<boolean> {
  * 서버 저장이 없으면 이 폰 것을 첫 판으로, 있으면 고르기
  */
 async function reconcile(u: Me): Promise<void> {
+  if (serverPaused()) throw new Error('paused');
+  if (restoreStatus() === 'newer') throw new Error('newer_save');
+  const st = readState();
+  writeState({ ...(st?.uid === u.id ? st : { uid: u.id, rev: -1, hash: '', at: 0 }), conflict: true });
   const d = await downloadSave();
-  if (!d.exists) { clearRestore(); await upload(u, 0); return; }
+  if (!d.exists) {
+    if (!(await upload(u, 0))) throw new Error(lastFailure || 'backup');
+    clearRestore(); return;
+  }
+  const issue = saveIssue(d.data);
+  if (issue) throw new Error(issue === 'newer' ? 'newer_save' : issue);
+  if (!validRev(d.rev)) throw new Error('bad_response');
+  const takeAccount = async (): Promise<void> => {
+    try {
+      setRestorePending('1');
+      if (!store) throw new Error('local_save');
+      store.setItem(PRE_MERGE_KEY, JSON.stringify(G.save));
+    } catch { throw new Error('local_save'); }
+    const r = await chooseProgress('account', d.rev!, G.save, null, now());
+    if (!r.ok || r.rev !== d.rev) throw new Error(r.reason || 'conflict');
+    applyServer(u, d);
+  };
   const mine = G.save.player.level, theirs = d.level ?? 1, when = d.updated_at ? kstText(d.updated_at) : '';
   const deviceUp = async (): Promise<void> => {
     const json = JSON.stringify(G.save), id = crypto.randomUUID();
-    const r = await chooseProgress('device', d.rev ?? null, G.save, id, now());
-    if (!r.ok) throw new Error(r.reason === 'conflict' ? t('그 사이 계정 진행이 바뀜') : t('백업 실패'));
-    clearRestore();
-    writeState({ uid: u.id, rev: r.rev ?? 0, hash: fnv(json), at: r.now ?? now() });
+    const r = await chooseProgress('device', d.rev!, JSON.parse(json), id, now());
+    if (!r.ok || !validRev(r.rev)) throw new Error(r.reason || 'backup');
+    writeState({ uid: u.id, rev: r.rev, hash: fnv(json), at: r.now ?? now() });
+    clearRestore(); lastFailure = null;
     markActive();
     changed();
   };
   if (restorePending()) {
     const back = await askModal(t('저장 복구'), t('이 폰의 저장을 읽지 못해 새로 시작했습니다.<br>백업된 진행 Lv {lv} ({when})으로 되돌릴 수 있습니다.', { lv: theirs, when }), t('새로 시작'), t('되돌리기'));
-    if (back) { await chooseProgress('account', d.rev ?? null, G.save, null, now()); applyServer(u, d); return; }
+    if (back) { await takeAccount(); return; }
     if (await askModal(t('새로 시작'), t('백업된 Lv {lv} 진행은 사본으로 물러나고 지금 진행이 백업됩니다.', { lv: theirs }), t('취소'), t('새로 시작'))) await deviceUp();
     return;
   }
   for (;;) {
     const account = await askModal(t('진행 고르기'), t('이 계정에 백업된 진행이 있습니다.<br>이 폰 Lv {a} · 계정 Lv {b} ({when})', { a: mine, b: theirs, when }), t('이 폰 Lv {n}', { n: mine }), t('계정 Lv {n}', { n: theirs }));
-    if (account) { await chooseProgress('account', d.rev ?? null, G.save, null, now()); applyServer(u, d); return; }
+    if (account) { await takeAccount(); return; }
     if (await askModal(t('이 폰 진행으로'), t('계정의 Lv {b} 진행은 사본으로 물러나고 이 폰 Lv {a} 진행이 백업됩니다.', { a: mine, b: theirs }), t('취소'), t('이 폰 진행 백업'))) { await deviceUp(); return; }
   }
 }
 
 /** 앱을 내릴 때 (끌 때 포함) 자동 백업 */
 export async function backupOnPause(): Promise<void> {
-  if (busy || !serverOn()) return;
+  if (busy || leaving || !serverOn()) return;
   busy = true;
   try {
     const u = await googleUser();
@@ -207,37 +262,43 @@ export async function backupOnPause(): Promise<void> {
     const st = readState();
     const step = backupStep(st, u.id, fnv(JSON.stringify(G.save)), { restorePending: restorePending(), paused: serverPaused() });
     if (step === 'upload' && st) await upload(u, st.rev);
-  } catch { /* 연결이 없으면 다음에 (같은 upload_id로) */ } finally { busy = false; }
+  } catch (e) { failed(e); } finally { busy = false; }
 }
 
 /** 앞으로 올 때 · 켤 때: 맞춰야 하면 맞춤 */
 async function syncForeground(): Promise<void> {
-  if (busy || !serverOn()) return;
-  const u = await googleUser();
-  if (!u || serverPaused()) return;
+  if (busy || leaving || !serverOn()) return;
   busy = true;
   try {
+    const u = await googleUser();
+    if (!u || serverPaused()) return;
     if (!(await checkDevice(u))) return; // 옮겨짐 · 고르기를 했으면 끝
     const st = readState();
     if (backupStep(st, u.id, '', { restorePending: restorePending(), paused: false }) === 'sync') await reconcile(u);
-  } catch { /* 다음에 */ } finally { busy = false; }
+  } catch (e) { failed(e); } finally { busy = false; }
 }
 
 /** 설정 「구글 계정 연결」 */
 export async function linkGoogle(): Promise<void> {
   if (!googleReady()) { await noticeModal(t('구글 계정 연결'), t('아직 준비 중입니다.')); return; }
+  if (serverPaused()) { await noticeModal(t('서버 점검'), failureText('paused')); return; }
+  if (restoreStatus() === 'newer') { await noticeModal(t('업데이트 필요'), failureText('newer_save')); return; }
   if (busy) return;
   busy = true;
   try {
     const { user: u, mode } = await connectGoogle();
     who = u;
+    const owner = readState();
+    if (owner && owner.uid !== u.id && (owner.rev > 0 || owner.pending)) {
+      await signOut(); who = null; throw new Error('account_mismatch');
+    }
     if (readState()?.uid !== u.id) writeState(null); // 다른 계정이면 이전 대기를 버림
     void logLogin(mode); // link = 익명 계정에 연동 (같은 ID) · sign_in = 이미 있던 구글 계정으로
     changed();
     await reconcile(u);
     notify(t('구글 계정 연결됨'));
   } catch (e) {
-    if (err(e) !== '구글 로그인 취소') await noticeModal(t('구글 계정 연결'), t('연결하지 못했습니다.<br>{e}', { e: err(e).replace(/[<>&]/g, '') }));
+    if (err(e) !== '구글 로그인 취소') { failed(e); await noticeModal(t('구글 계정 연결'), failureText(err(e))); }
   } finally { busy = false; changed(); }
 }
 
@@ -268,24 +329,30 @@ export async function signOutFlow(): Promise<void> {
     writeState(null);
     renewInstall();
     resetSave();
+    leaving = true;
     location.reload(); // 새 익명 계정으로 처음부터
-  } finally { busy = false; }
+  } catch (e) { failed(e); await showBackupError(); } finally { busy = false; }
 }
 
 /** 설정 「계정 삭제」 (Google Play 정책) */
 export async function deleteFlow(): Promise<void> {
+  if (busy) return;
   if (!(await askModal(t('계정 삭제'), t('서버의 백업 · 로그인 기록이 모두 지워지고 되돌릴 수 없습니다. 이 폰의 진행은 그대로 남습니다.'), t('취소'), t('삭제')))) return;
-  try { await deleteAccount(); } catch (e) { await noticeModal(t('계정 삭제'), t('삭제하지 못했습니다.<br>{e}', { e: err(e).replace(/[<>&]/g, '') })); return; }
-  await signOut();
-  who = null;
-  writeState(null);
-  await backToAnonymous();
-  notify(t('계정을 삭제했습니다'));
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await deleteAccount();
+    if (!r.ok) throw new Error('delete_failed');
+    await signOut(); who = null; writeState(null);
+    await backToAnonymous(); notify(t('계정을 삭제했습니다'));
+  } catch (e) { await noticeModal(t('계정 삭제'), t('삭제하지 못했습니다.<br>{e}', { e: err(e).replace(/[<>&]/g, '') })); }
+  finally { busy = false; }
 }
 
 /** 앱이 켜질 때 (main.ts): 로그인 상태 읽기 (없으면 익명 계정) · 켬 기록 · 맞춤, 내릴 때 자동 백업 · 앞으로 올 때 맞춤 */
 export function mountAccount(): void {
   if (!serverOn()) return;
+  watchAccount(u => { who = u; checkedAt = -Infinity; changed(); });
   void (async () => {
     await initInstall();
     who = await me();
@@ -293,7 +360,7 @@ export function mountAccount(): void {
     changed();
     void logLogin('open');
     if (!who.anonymous) await syncForeground();
-  })();
+  })().catch(failed);
   if (Capacitor.isNativePlatform()) {
     void App.addListener('pause', () => { void backupOnPause(); });
     void App.addListener('resume', () => { void syncForeground(); });
