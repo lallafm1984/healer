@@ -10,11 +10,12 @@
 import { App } from '@capacitor/app';
 import { t } from '../i18n';
 import { Capacitor } from '@capacitor/core';
-import { askModal, noticeModal } from '../platform/ads';
+import { askModal, noticeModal as sharedNoticeModal } from '../platform/ads';
 import { chooseProgress, connectGoogle, deleteAccount, deviceStatus, downloadSave, googleReady, logLogin, me, signOut, startAnonymous, uploadSave, watchAccount, type DeviceStatus, type Download, type Me } from '../platform/account';
 import { initInstall, markActive, renewInstall, wasActive } from '../platform/install';
 import { lastBoot, remoteFlag } from '../platform/server';
 import { serverOn } from '../platform/server-config';
+import { serverReady, waitForServer } from '../platform/startup';
 import { migrate, restoreStatus, save, saveIssue, SAVE_KEY, setRestorePending, type SaveData, type Settings } from '../platform/storage';
 import { now } from '../platform/time';
 import { G, resetSave } from '../game/state';
@@ -22,6 +23,10 @@ import { notify } from './toast';
 
 const STATE_KEY = 'healer.backup';
 const PRE_MERGE_KEY = 'healer.save.pre-merge';
+/** 진행 중이던 계정 요청의 오류도 강제 업데이트 창 위에 올리지 않는다. */
+async function noticeModal(...args: Parameters<typeof sharedNoticeModal>): Promise<void> {
+  if (await waitForServer()) await sharedNoticeModal(...args);
+}
 
 /** 백업 상태 (사용자마다 하나): rev = 마지막으로 서버와 맞춘 판, hash = 그때 저장, at = 서버 시각, pending = 응답을 못 받은 올림, conflict = 다른 폰이 먼저 올림 */
 export interface BackupState { uid: string; rev: number; hash: string; at: number; pending?: { id: string; hash: string }; conflict?: boolean; error?: string }
@@ -177,6 +182,7 @@ function applyServer(u: Me, d: Download): void {
  * 진행은 계정 (지금 현재 기기)에 있고, 이 폰에서 다시 구글 연결 → 「계정 진행」으로 받아 올 수 있다 (그러면 저쪽이 옛 기기가 됨)
  */
 async function handleMoved(): Promise<void> {
+  if (!(await waitForServer())) return;
   await noticeModal(t('다른 기기로 옮겨진 계정'), t('이 계정의 진행을 다른 기기에서 불러왔습니다.<br>이 기기는 로그아웃되고, 이 기기의 진행은 지워집니다.'));
   try { await logLogin('sign_out'); } catch { /* 그만 */ }
   await signOut();
@@ -207,11 +213,13 @@ async function checkDevice(u: Me, force = false): Promise<boolean> {
  * 서버 저장이 없으면 이 폰 것을 첫 판으로, 있으면 고르기
  */
 async function reconcile(u: Me): Promise<void> {
+  if (!(await waitForServer())) return;
   if (serverPaused()) throw new Error('paused');
   if (restoreStatus() === 'newer') throw new Error('newer_save');
   const st = readState();
   writeState({ ...(st?.uid === u.id ? st : { uid: u.id, rev: -1, hash: '', at: 0 }), conflict: true });
   const d = await downloadSave();
+  if (!(await waitForServer())) return; // 내려받는 사이 강제 업데이트가 도착할 수 있음
   if (!d.exists) {
     if (!(await upload(u, 0))) throw new Error(lastFailure || 'backup');
     clearRestore(); return;
@@ -254,7 +262,7 @@ async function reconcile(u: Me): Promise<void> {
 
 /** 앱을 내릴 때 (끌 때 포함) 자동 백업 */
 export async function backupOnPause(): Promise<void> {
-  if (busy || leaving || !serverOn()) return;
+  if (busy || leaving || !serverOn() || !serverReady()) return;
   busy = true;
   try {
     const u = await googleUser();
@@ -268,6 +276,7 @@ export async function backupOnPause(): Promise<void> {
 /** 앞으로 올 때 · 켤 때: 맞춰야 하면 맞춤 */
 async function syncForeground(): Promise<void> {
   if (busy || leaving || !serverOn()) return;
+  if (!(await waitForServer()) || busy || leaving) return;
   busy = true;
   try {
     const u = await googleUser();
@@ -286,6 +295,7 @@ export async function linkGoogle(): Promise<void> {
   if (busy) return;
   busy = true;
   try {
+    if (!(await waitForServer())) return;
     const { user: u, mode } = await connectGoogle();
     who = u;
     const owner = readState();
@@ -296,7 +306,7 @@ export async function linkGoogle(): Promise<void> {
     void logLogin(mode); // link = 익명 계정에 연동 (같은 ID) · sign_in = 이미 있던 구글 계정으로
     changed();
     await reconcile(u);
-    notify(t('구글 계정 연결됨'));
+    if (serverReady()) notify(t('구글 계정 연결됨'));
   } catch (e) {
     if (err(e) !== '구글 로그인 취소') { failed(e); await noticeModal(t('구글 계정 연결'), failureText(err(e))); }
   } finally { busy = false; changed(); }
@@ -316,6 +326,7 @@ async function finalBackup(u: Me): Promise<boolean> {
  * 지우기 전에 마지막 백업 (못 올리면 로그아웃하지 않음). 다시 로그인하면 「계정 진행」으로 받아 올 수 있다
  */
 export async function signOutFlow(): Promise<void> {
+  if (!(await waitForServer())) return;
   if (!(await askModal(t('로그아웃'), t('로그아웃하면 이 기기의 진행은 지워지고, 계정에 백업된 진행은 그대로 남습니다.<br>다시 로그인하면 불러올 수 있습니다.'), t('취소'), t('로그아웃')))) return;
   if (busy) return;
   busy = true;
@@ -336,6 +347,7 @@ export async function signOutFlow(): Promise<void> {
 
 /** 설정 「계정 삭제」 (Google Play 정책) */
 export async function deleteFlow(): Promise<void> {
+  if (!(await waitForServer())) return;
   if (busy) return;
   if (!(await askModal(t('계정 삭제'), t('서버의 백업 · 로그인 기록이 모두 지워지고 되돌릴 수 없습니다. 이 폰의 진행은 그대로 남습니다.'), t('취소'), t('삭제')))) return;
   if (busy) return;

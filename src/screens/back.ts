@@ -30,7 +30,12 @@ async function askExit(): Promise<void> {
 }
 
 export function handleBack(): void {
-  if (document.querySelector('.admodal.block')) { void askExit(); return; } // 업데이트 전까지 막는 창 (server-notice): 닫지 않고 종료 확인
+  const block = document.querySelector('.admodal.block');
+  if (block) {
+    const boxes = document.querySelectorAll('.admodal');
+    if (boxes[boxes.length - 1] !== block && closePopup()) return; // 종료 확인에서 한 번 더 뒤로 = 취소
+    void askExit(); return; // 업데이트 창은 닫지 않고 종료 확인
+  }
   if (battle().back() || closePopup()) return;
   const scr = document.getElementById(current);
   const back = scr?.querySelector<HTMLElement>('.tb-back');
