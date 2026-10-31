@@ -57,7 +57,7 @@ import serverStartup from './server-startup.mjs';
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
-  ['타이틀 강제 업데이트·공지 우선순위', serverStartup, 50],
+  ['타이틀 강제 업데이트·공지 우선순위', serverStartup, 60],
   ['계정 백업 충돌·복원·세션', accountCloud, 20],
   ['한국어 화면 스냅샷 (121)', i18nKo, 40], // 어림
   ['다국어 전투·언어 전환 (121)', i18nLive, 30],

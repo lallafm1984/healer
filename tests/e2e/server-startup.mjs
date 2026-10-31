@@ -154,6 +154,46 @@ export default async function serverStartup(url, shots) {
         await p.reload(); await p.locator('.admodal.notice').waitFor();
         ok(await title(p), `${width}: 미룬 공지는 다음 실행의 타이틀에서 표시`);
       } finally { await y.close(); }
+
+      const long = normal();
+      long.notices = [{ ...notice(904), body: [
+        '모험가 여러분께 안내드립니다.',
+        '이번 업데이트와 게임 이용에 관한 내용을 확인해 주시기 바랍니다.',
+        '', '1. 업데이트 안내',
+        '안정적인 게임 이용을 위해 최신 버전으로 업데이트해 주시기 바랍니다.',
+        '업데이트가 필요한 경우 시작 화면의 업데이트 버튼으로 이동할 수 있습니다.',
+        '', '2. 계정과 저장',
+        '구글 계정을 연결하면 진행을 백업할 수 있습니다.',
+        '기기를 바꾸거나 앱을 다시 설치하기 전에는 마지막 백업을 확인해 주시기 바랍니다.',
+        '다른 기기에서 같은 계정을 사용하면 진행을 선택하는 창이 표시될 수 있습니다.',
+        '', '3. 점검 안내',
+        '점검 중에는 일부 계정 기능을 이용할 수 없습니다.',
+        '연결이 끊긴 경우에는 인터넷 연결을 확인한 뒤 다시 시도해 주시기 바랍니다.',
+        '', '4. 게임 이용 안내',
+        '전투를 시작하기 전에 파티와 스킬 설정을 확인해 주시기 바랍니다.',
+        '공지 내용이 길면 이 영역을 위아래로 움직여 나머지 내용을 읽을 수 있습니다.',
+        '아래의 확인 버튼은 내용을 읽는 동안 같은 자리에 표시됩니다.',
+        '', '5. 문의 안내',
+        '문제가 계속되면 이용 중인 버전과 발생 상황을 함께 전달해 주시기 바랍니다.',
+        '계정 비밀번호나 인증 번호는 다른 사람에게 전달하지 마시기 바랍니다.',
+        '', '안내를 끝까지 확인해 주셔서 감사합니다.',
+      ].join('\n') }];
+      const z = await start(browser, url, errs, { width, height: h, boot: long });
+      try {
+        const p = z.page; await p.locator('.admodal.notice').waitFor();
+        const body = p.locator('.admodal .panel > p'), button = p.locator('.admodal [data-ask="close"]');
+        const before = await button.boundingBox();
+        ok(await body.evaluate(el => el.scrollHeight > el.clientHeight && el.scrollWidth <= el.clientWidth), `${width}: 긴 공지는 본문에만 세로 스크롤·가로 넘침 없음`);
+        ok(await title(p) && await fits(p), `${width}: 긴 공지에서도 제목과 확인 버튼이 화면 안`);
+        await p.screenshot({ path: `${shots}/startup-notice-long-top-${width}x${h}.png` });
+        await body.hover(); await p.mouse.wheel(0, 10000);
+        await p.waitForFunction(() => { const el = document.querySelector('.admodal .panel > p'); return el.scrollTop > 0 && el.scrollTop + el.clientHeight >= el.scrollHeight - 2; });
+        const after = await button.boundingBox();
+        ok(Math.abs(before.y - after.y) < 1 && await fits(p), `${width}: 긴 본문을 끝까지 읽어도 확인 버튼 위치 고정`);
+        await p.screenshot({ path: `${shots}/startup-notice-long-bottom-${width}x${h}.png` });
+        await p.click('.admodal [data-ask="close"]'); await p.waitForFunction(() => !document.querySelector('#titleStart').disabled);
+        ok(await p.locator('.admodal').count() === 0, `${width}: 긴 공지도 확인 후 정상 시작 허용`);
+      } finally { await z.close(); }
     }
 
     const offline = await start(browser, url, errs, { hold: true });
