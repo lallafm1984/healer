@@ -74,6 +74,23 @@ it('점검 중이면 구글 연결도 시작하지 않음',async()=>{
   h.paused=true;const {linkGoogle}=await import('../src/screens/account');await linkGoogle();expect(h.connect).not.toHaveBeenCalled();
 });
 
+it('서버 확인·강제 업데이트 동안 계정 연결과 자동 백업을 시작하지 않음',async()=>{
+  const {beginServerCheck}=await import('../src/platform/startup');
+  const finish=beginServerCheck();
+  h.storage.set('healer.backup',JSON.stringify({uid:h.user.id,rev:1,hash:'old',at:1}));
+  const {linkGoogle,backupOnPause}=await import('../src/screens/account');
+  const link=linkGoogle();await backupOnPause();expect(h.connect).not.toHaveBeenCalled();expect(h.upload).not.toHaveBeenCalled();
+  finish(false);await link;await backupOnPause();expect(h.connect).not.toHaveBeenCalled();expect(h.upload).not.toHaveBeenCalled();
+});
+
+it('계정 진행을 내려받는 사이 강제 업데이트가 도착하면 복원 창을 열지 않음',async()=>{
+  const {beginServerCheck}=await import('../src/platform/startup');
+  h.download.mockImplementation(async()=>{beginServerCheck()(false);return {exists:true,rev:1,level:5,data:h.G.save};});
+  const {linkGoogle}=await import('../src/screens/account');await linkGoogle();
+  expect(h.ask).not.toHaveBeenCalled();expect(h.choose).not.toHaveBeenCalled();expect(h.notice).not.toHaveBeenCalled();expect(h.notify).not.toHaveBeenCalled();
+  expect(JSON.parse(h.storage.get('healer.save')!).player.level).toBe(9);
+});
+
 it('서버의 높은 버전 저장을 선택하거나 덮어쓰지 않음',async()=>{
   const {newSave,SAVE_VERSION}=await import('../src/platform/storage');h.download.mockResolvedValue({exists:true,rev:1,data:{...newSave(1),v:SAVE_VERSION+1}});
   const {linkGoogle,backupOnPause}=await import('../src/screens/account');await linkGoogle();await backupOnPause();

@@ -7,6 +7,7 @@ import { battle, screen } from './kit';
 import { afterTitle } from './tutorial';
 import { prepareTitleBloom, titleBloom } from './transition';
 import { sfx } from '../sfx';
+import { serverReady } from '../platform/startup';
 
 let stopMotion = () => {};
 const glyphs = (word: string, from = 0): string => [...word].map((glyph, i) =>
@@ -50,7 +51,7 @@ const s = screen('s-title', '타이틀', {
 let leaving = false;
 s.el.addEventListener('click', event => {
   const button = (event.target as Element | null)?.closest<HTMLButtonElement>('#titleStart');
-  if (!button || leaving) return;
+  if (!button || leaving || !serverReady()) return;
   leaving = true;
   button.disabled = true;
   if (!sfx('title-start')) battle().sound('tick');
