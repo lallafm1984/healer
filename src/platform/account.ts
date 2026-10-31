@@ -11,6 +11,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { GOOGLE_WEB_CLIENT_ID, SUPABASE_KEY, SUPABASE_URL, serverOn } from './server-config';
 import { appVersion, platform } from './server';
 import { installId } from './install';
+import { accountFetch } from './network';
 
 let sb: SupabaseClient | null = null;
 /** Supabase 클라이언트 (서버 주소가 없으면 null). 로그인 정보는 기기 저장소 healer.auth */
@@ -18,6 +19,7 @@ export function client(): SupabaseClient | null {
   if (!serverOn()) return null;
   return (sb ||= createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { storageKey: 'healer.auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+    global: { fetch: accountFetch },
   }));
 }
 
@@ -26,6 +28,11 @@ export const googleReady = (): boolean => serverOn() && !!GOOGLE_WEB_CLIENT_ID &
 
 export interface Me { id: string; email: string | null; anonymous: boolean }
 const toMe = (u: { id: string; email?: string | null; is_anonymous?: boolean }): Me => ({ id: u.id, email: u.email ?? null, anonymous: !!u.is_anonymous });
+/** 콜백 안에서는 인증 API를 기다리지 않는다 (SDK의 인증 잠금을 다시 잡지 않게). */
+export function watchAccount(fn: (user: Me | null) => void): () => void {
+  const subscription = client()?.auth.onAuthStateChange((_event, session) => fn(session?.user ? toMe(session.user) : null)).data.subscription;
+  return () => subscription?.unsubscribe();
+}
 /** 지금 로그인한 사람 (기기에 남은 로그인 정보, 익명 포함) */
 export async function me(): Promise<Me | null> {
   const c = client();
@@ -74,10 +81,10 @@ export async function connectGoogle(): Promise<{ user: Me; mode: 'link' | 'sign_
   return { user: toMe(data.user), mode: 'sign_in' };
 }
 
-/** 로그아웃 (서버 로그인 정보 · 구글 선택 지움). 이 폰 저장은 그대로 */
+/** 이 세션만 로그아웃. 실패하면 호출부가 진행을 지우지 않도록 오류를 전달한다. */
 export async function signOut(): Promise<void> {
   const c = client();
-  try { await c?.auth.signOut(); } catch { /* 연결이 없어도 기기 쪽은 지움 */ }
+  if (c) { const { error } = await c.auth.signOut({ scope: 'local' }); if (error) throw error; }
   if (Capacitor.isNativePlatform()) { try { await SocialLogin.logout({ provider: 'google' }); } catch { /* 그만 */ } }
 }
 
@@ -90,7 +97,7 @@ async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<
   return data as T;
 }
 
-export interface UploadResult { ok: boolean; rev?: number; latest_rev?: number; duplicate?: boolean; reason?: 'conflict' | 'paused' | 'too_big' | 'bad_save' | 'moved'; level?: number; now?: number }
+export interface UploadResult { ok: boolean; rev?: number; latest_rev?: number; duplicate?: boolean; reason?: 'conflict' | 'paused' | 'too_big' | 'bad_save' | 'moved' | 'rate_limited' | 'newer_save'; level?: number; now?: number }
 /** 이 설치가 이 계정의 현재 기기인가 (한 계정 = 한 기기, 9-2b). exists = 서버에 저장이 있음 */
 export interface DeviceStatus { exists: boolean; active: boolean; claimed?: boolean; rev?: number }
 export interface Download { exists: boolean; rev?: number; level?: number; v?: number; data?: unknown; updated_at?: number; now?: number }
