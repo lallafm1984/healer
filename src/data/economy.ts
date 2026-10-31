@@ -41,7 +41,7 @@ export const INTERSTITIAL = { everyMs: 10 * 60e3, minLv: 10 };
 
 // ---------- 앱 결제 상품 (81 3장) ----------
 export interface Product { id: string; name: string; price: string }
-/** 광고 제거 패키지: 전면 광고만 제외, 배너 유지 · 보상형은 시청 필요, 휴식 최대치 +50 (계정 영구) */
+/** 광고 제거 패키지: 배너·전면 광고 제외 · 보상형은 시청 필요, 휴식 최대치 +50 (계정 영구) */
 export const NOADS: Product = { id: 'noads', name: '광고 제거 패키지', price: '5,500원' };
 /** 상점에서 파는 직업 (사면 레벨 조건 없이 열림). 사제 처음부터 · 드루이드 Lv 20 · 성기사 Lv 30은 무료 */
 export const PAID_HEROES: HeroKey[] = ['shaman', 'monk', 'astrologer', 'warder'];

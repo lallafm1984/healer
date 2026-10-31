@@ -32,7 +32,7 @@ let initWork: Promise<boolean> | null = null, consentWork: ReturnType<typeof AdM
 let mounted = false, noAds = false, fullscreenBusy = false, nativeActive = true, lastForeground = true;
 let epoch = 0, privacyRequired = false;
 let banner: 'idle' | 'loading' | 'created' | 'ready' = 'idle';
-let bannerWork: Promise<void> | null = null, visibilityWork: Promise<void> | null = null;
+let bannerWork: Promise<void> | null = null, visibilityWork: Promise<void> | null = null, bannerRemoval: Promise<void> | null = null;
 let visibilityDirty = false;
 let bannerVisible = true, bannerTimer: ReturnType<typeof setTimeout> | undefined;
 let listenersReady = false;
@@ -106,7 +106,7 @@ async function initialize(): Promise<boolean> {
 
 function scheduleBanner(): void {
   clearTimeout(bannerTimer); bannerTimer = undefined;
-  if (!mounted || !foreground() || consentBlocked || fullscreenBusy || banner !== 'idle') return;
+  if (!mounted || noAds || bannerRemoval || !foreground() || consentBlocked || fullscreenBusy || banner !== 'idle') return;
   const delay = Math.max(0, initGate.at - time(), bannerGate.at - time());
   bannerTimer = setTimeout(() => { bannerTimer = undefined; void ensureBanner(); }, delay);
 }
@@ -118,7 +118,7 @@ async function syncBannerVisibility(): Promise<void> {
     while (visibilityDirty) {
       visibilityDirty = false;
       if (banner !== 'created' && banner !== 'ready') break;
-      const show = foreground() && !fullscreenBusy;
+      const show = foreground() && !fullscreenBusy && !noAds && !bannerRemoval;
       if (bannerVisible === show) continue;
       if (show) await AdMob.resumeBanner(); else await AdMob.hideBanner();
       bannerVisible = show;
@@ -131,7 +131,10 @@ async function listenBanner(): Promise<void> {
   if (listenersReady) return;
   const handles: PluginListenerHandle[] = [];
   try {
-    handles.push(await AdMob.addListener(BannerAdPluginEvents.Loaded, () => { banner = 'ready'; counts.bannerLoaded++; passed(bannerGate); void syncBannerVisibility(); }));
+    handles.push(await AdMob.addListener(BannerAdPluginEvents.Loaded, () => {
+      if (noAds || bannerRemoval) return;
+      banner = 'ready'; counts.bannerLoaded++; passed(bannerGate); void syncBannerVisibility();
+    }));
     handles.push(await AdMob.addListener(BannerAdPluginEvents.AdImpression, () => { counts.bannerImpressions++; }));
     handles.push(await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, () => {
       // 이 플러그인은 실패한 AdView를 제거한다. 없어진 뷰를 표시 중으로 기억하지 않는다.
@@ -142,13 +145,13 @@ async function listenBanner(): Promise<void> {
 }
 
 async function ensureBanner(): Promise<void> {
-  if (!mounted || !foreground() || fullscreenBusy || consentBlocked || banner !== 'idle') return;
+  if (!mounted || noAds || bannerRemoval || !foreground() || fullscreenBusy || consentBlocked || banner !== 'idle') return;
   if (bannerWork) return bannerWork;
   if (blocked(initGate) || blocked(bannerGate)) { scheduleBanner(); return; }
   bannerWork = (async () => {
     try {
       await listenBanner();
-      if (!await initialize() || !foreground() || fullscreenBusy) return;
+      if (!await initialize() || noAds || bannerRemoval || !foreground() || fullscreenBusy) return;
       banner = 'loading'; counts.bannerRequests++;
       await AdMob.showBanner({ adId: AD_UNITS.banner, adSize: BannerAdSize.BANNER, position: BannerAdPosition.TOP_CENTER, margin: 0, isTesting: testAds });
       if (banner === 'loading') banner = 'created';
@@ -159,10 +162,29 @@ async function ensureBanner(): Promise<void> {
   try { await bannerWork; } finally { bannerWork = null; scheduleBanner(); }
 }
 
-/** 저장·메뉴 이동은 요청을 만들지 않는다. 구매 상태만 최신으로 유지한다. */
+/** 생성 중 구매해도 네이티브 뷰 생성이 끝난 뒤 제거한다. 같은 구매·복원 신호는 한 번으로 합친다. */
+async function removePurchasedBanner(): Promise<void> {
+  clearTimeout(bannerTimer); bannerTimer = undefined;
+  if (bannerRemoval) return bannerRemoval;
+  bannerRemoval = (async () => {
+    if (bannerWork) await bannerWork;
+    if (visibilityWork) await visibilityWork;
+    if (banner === 'idle') return;
+    await AdMob.removeBanner();
+    banner = 'idle'; bannerVisible = false;
+  })().catch(error => { console.warn('AdMob banner removal unavailable', error); });
+  try { await bannerRemoval; }
+  finally { bannerRemoval = null; void syncBannerVisibility(); scheduleBanner(); }
+}
+
+/** 저장·메뉴 이동은 요청을 만들지 않는다. 구매·복원하면 배너를 제거하고 재요청도 막는다. */
 export function syncNativeBanner(adsFree: boolean): Promise<void> {
+  const changed = noAds !== adsFree;
   noAds = adsFree;
   if (noAds) caches.interstitial.readyAt = null;
+  if (!NATIVE_ADS) return Promise.resolve();
+  if (noAds) return removePurchasedBanner();
+  if (changed) scheduleBanner();
   return Promise.resolve();
 }
 
@@ -267,6 +289,7 @@ export async function showAdPrivacyOptions(): Promise<boolean> {
     await AdMob.showPrivacyOptionsForm();
     epoch++; Object.values(caches).forEach(c => { c.readyAt = null; });
     if (bannerWork) await bannerWork;
+    if (bannerRemoval) await bannerRemoval;
     if (banner !== 'idle') await AdMob.removeBanner();
     banner = 'idle';
     const info = await bounded(AdRuntime.getInfo());

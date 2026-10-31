@@ -95,6 +95,8 @@ export interface Settings {
   devGold?: boolean;
   /** 개발 빌드 「휴식 무제한」 (90, 81 때 이름 그대로): 휴식이 줄지 않고 휴식 보너스가 늘 붙음. 옛 저장엔 없음 = 꺼짐 */
   devStamina?: boolean;
+  /** 광고 시험 빌드: 패키지 ON/OFF. 없으면 실제 구매 상태를 따르며 bought는 바꾸지 않는다. */
+  devNoAds?: boolean;
   /** 개발 빌드 「전 직업 선택」: 구매 · 레벨 조건 없이 일곱 직업 모두 전환. 끄면 원래 잠금 (켜 둔 동안 바꾼 직업은 해금으로 남기지 않음). 옛 저장엔 없음 = 꺼짐 */
   devJobs?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */

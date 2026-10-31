@@ -72,16 +72,16 @@
   "len": 21713
  },
  "shop": {
-  "hash": "2ea94a6db3b94dd9cb5dd1b37f762f9a8bb414de088181ceec9a055d189f1eec",
-  "len": 18272
+  "hash": "2a658ea8f9cea7879e731b754c0720e5daec9143869b932f5597af05fce34842",
+  "len": 18275
  },
  "merchant": {
   "hash": "a5ea816008ec84e7443bbe15963b90fe6ce4da0a390f1c6c5fb8633984d59fd2",
   "len": 15556
  },
  "settings": {
-  "hash": "3d05c519911db527ebdc4a03a5a53857de733ca9d131643587f24648369dbd51",
-  "len": 17826
+  "hash": "075504029f3c6d94f5d0a60f0cb20a4b2d75f6bb2d4c2d22eccc9b67119f25ab",
+  "len": 18074
  },
  "char-gear": {
   "hash": "9de2b452997b91c5f376dbb44f73d8297675caf04cc769acc38fde0cc32162e9",

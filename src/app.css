@@ -30,4 +30,7 @@ body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none
 #tabs button[aria-current="page"] { color: #F0C46A; }
 #tabs button small { font-family: "Gowun Dodum", system-ui, sans-serif; font-size: 10px; opacity: 0.7; }
 
-/* 광고 제거 구매 여부와 관계없이 배너는 유지한다. 전면 광고만 제외한다. */
+/* 광고 제거 구매 시 배너 자리도 접고, Android 상태 표시줄의 안전 여백만 남긴다. */
+body.noads { --banner-h: 0px; }
+.native-ads body.noads { --banner-h: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); }
+body.noads #adBanner { display: none; }
