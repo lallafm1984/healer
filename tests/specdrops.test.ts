@@ -128,7 +128,7 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
     const old = many(6000, (r, i) => rollItem(r, '보통', 'B', 30, i));
     for (const s of SLOTS) expect(old.filter(it => it.slot === s.key).length / old.length).toBeCloseTo(1 / 6, 1);
   });
-  it('초반에는 희귀까지 · 중반부터 영웅 · 전설은 각 레이드 입장 레벨부터 어려움 · 악몽', () => {
+  it('초반에는 희귀까지 · 중반부터 영웅 · 전설은 최소 Lv 70 이상이며 각 레이드 입장 레벨부터 어려움 · 악몽', () => {
     const DS = ['쉬움', '보통', '어려움', '악몽'] as const;
     const top = (diff: (typeof DS)[number], raid: 0 | 10 | 20, lv: number) => {
       const its = many(3000, (r, i) => rollItem(r, diff, 'S', lv, i, { place: 'cathedral1', raid, bonus: true, tierLv: lv }));

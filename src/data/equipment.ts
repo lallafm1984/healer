@@ -252,16 +252,17 @@ export const HERO_MAX: Record<0 | 10 | 20, Record<DiffName, number>> = {
 };
 export const heroRamp = (lv: number) => Math.max(0, Math.min(1, (lv - (HERO_FROM - 1)) / (MAX_LEVEL - (HERO_FROM - 1))));
 /**
- * 전설 (2026-10-31 Lim 「레이드 시작 레벨과 동일하게」): 해당 레이드 난이도 입장 레벨부터 어려움 · 악몽. 20인 = 고유 장비 · 이름 있는 장신구 (그 구역 것).
+ * 전설 (2026-11-01 Lim 「최소 레벨을 20인 레이드 기준으로」): 첫 20인 레이드가 열리는 Lv 70 이상이며 해당 난이도 입장 레벨부터 어려움 · 악몽. 20인 = 고유 장비 · 이름 있는 장신구 (그 구역 것).
  * 10인도 (2026-10-22 Lim 「10인 레이드에서도 어려움, 악몽에서 확률은 20인 레이드 반으로 해서 나올수 있게」): 확률은 20인의 절반 (LEGEND_CHANCE_10),
  * 10인 구역에는 고유 장비 · 이름 있는 장신구 배치가 없어 고유 능력 한 줄 (1.3~1.7배) + 특수능력 1줄의 보통 전설 (makeItem). 아이템 레벨 = 그 레이드 레벨
  */
+export const LEGEND_LEVEL = RAID20_LV;
 export const LEGEND_CHANCE: Partial<Record<DiffName, number>> = { '어려움': 0.02, '악몽': 0.05 };
 /** 10인 레이드 전설 = 20인의 절반 */
 export const LEGEND_CHANCE_10: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.025 };
 /**
  * 레이드 다시 깬 판 (2026-10-19 Lim 카드 「주 첫 판만 크게」): 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표 그대로, 그 주에 다시 깨면 같은 레벨 던전 표
- * (바탕 표 · 영웅 확률 = 던전) + 해당 레이드 입장 레벨부터 어려움 · 악몽 전설 이만큼 (20인 REPEAT_LEGEND · 10인 그 절반 REPEAT_LEGEND_10)
+ * (바탕 표 · 영웅 확률 = 던전) + LEGEND_LEVEL 이상이며 해당 난이도 입장 레벨부터 어려움 · 악몽 전설 이만큼 (20인 REPEAT_LEGEND · 10인 그 절반 REPEAT_LEGEND_10)
  */
 export const REPEAT_LEGEND: Partial<Record<DiffName, number>> = { '어려움': 0.01, '악몽': 0.01 };
 /** 10인 레이드 다시 깬 판 전설 = 20인의 절반 */
@@ -284,9 +285,9 @@ export interface OddsCtx { diff: DiffName; raid?: 0 | 10 | 20; tierLv: number; l
 const tableOf = (o: OddsCtx): 0 | 10 | 20 => (o.repeat ? 0 : o.raid ?? 0);
 /** 영웅 확률 (클리어 등급 · 보너스 배율 포함) */
 export const heroChance = (o: OddsCtx) => HERO_MAX[tableOf(o)][o.diff] * heroRamp(o.tierLv) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
-/** 전설 확률: 해당 레이드 난이도 입장 레벨부터, 20인 LEGEND_CHANCE · 10인 그 절반 (다시 깬 판은 REPEAT_LEGEND · REPEAT_LEGEND_10). 클리어 등급 · 공개모집 보너스 배율은 같게 */
+/** 전설 확률: 공통 최소 LEGEND_LEVEL 이상이며 해당 난이도 입장 레벨부터, 20인 LEGEND_CHANCE · 10인 그 절반 (다시 깬 판은 REPEAT_LEGEND · REPEAT_LEGEND_10). 클리어 등급 · 공개모집 보너스 배율은 같게 */
 export function legendChance(o: OddsCtx): number {
-  if (!o.raid || o.level < Math.max(o.tierLv, o.raid === 20 ? RAID20_LV : RAID10_LV)) return 0;
+  if (!o.raid || o.level < Math.max(o.tierLv, LEGEND_LEVEL)) return 0;
   const table = o.raid === 20 ? (o.repeat ? REPEAT_LEGEND : LEGEND_CHANCE) : (o.repeat ? REPEAT_LEGEND_10 : LEGEND_CHANCE_10);
   return (table[o.diff] ?? 0) * TOP_GRADE_MULT[o.grade ?? 'A'] * (o.pub ? PUB_TOP_MULT : 1);
 }
